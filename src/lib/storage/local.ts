@@ -6,6 +6,7 @@ const NS = "maro:v1";
 export const StorageKeys = {
   session: `${NS}:session`,
   projects: `${NS}:projects`,
+  creations: `${NS}:creations`,
   seeded: `${NS}:seeded`,
 } as const;
 

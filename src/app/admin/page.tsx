@@ -20,14 +20,16 @@ import {
   type SpeedKey,
 } from "@/lib/supabase/types";
 import { buildComposedGenerateSystem, buildComposedGenerateUser } from "@/lib/ai/prompts";
+import { IMAGE_TOOLS } from "@/lib/tools/registry";
 import { timeAgo } from "@/lib/utils/format";
-import { Users, FileText, Coins, ScrollText, Save, Shield } from "lucide-react";
+import { Users, FileText, Coins, ScrollText, Save, Shield, Wand2 } from "lucide-react";
 
-type Tab = "users" | "prompt" | "pricing" | "log";
+type Tab = "users" | "prompt" | "tools" | "pricing" | "log";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "users", label: "Përdoruesit", icon: Users },
   { key: "prompt", label: "Master Prompt", icon: FileText },
+  { key: "tools", label: "Tools", icon: Wand2 },
   { key: "pricing", label: "Çmimet", icon: Coins },
   { key: "log", label: "Log", icon: ScrollText },
 ];
@@ -92,6 +94,7 @@ function AdminInner() {
         <div className="mt-6">
           {tab === "users" && <UsersTab />}
           {tab === "prompt" && <PromptTab />}
+          {tab === "tools" && <ToolsTab />}
           {tab === "pricing" && <PricingTab />}
           {tab === "log" && <LogTab />}
         </div>
@@ -320,6 +323,101 @@ function PromptTab() {
   );
 }
 
+// ---- Tools (image tools master prompts + cost) ----
+function ToolsTab() {
+  const { toast } = useToast();
+  const [prompts, setPrompts] = React.useState<Record<string, string>>({});
+  const [costs, setCosts] = React.useState<Record<string, number>>({});
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return setLoading(false);
+      const { data } = await getSupabaseBrowser()
+        .from("app_settings")
+        .select("tool_prompts, pricing")
+        .eq("id", 1)
+        .single();
+      setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
+      const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+      setCosts({ ...(DEFAULT_PRICING.tools ?? {}), ...(pricing.tools ?? {}) });
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    // Merge tool costs into the existing pricing json.
+    const { data } = await getSupabaseBrowser()
+      .from("app_settings")
+      .select("pricing")
+      .eq("id", 1)
+      .single();
+    const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    const { error } = await getSupabaseBrowser()
+      .from("app_settings")
+      .update({
+        tool_prompts: prompts,
+        pricing: { ...pricing, tools: { ...(pricing.tools ?? {}), ...costs } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+    setSaving(false);
+    toast(error ? "Gabim: " + error.message : "Tools u ruajtën");
+  };
+
+  if (loading) return <Spinner className="h-6 w-6" />;
+
+  return (
+    <div className="space-y-6">
+      <p className="text-[13.5px] leading-relaxed text-ink-2">
+        Vendos këtu instruksionet (master prompt) të çdo Custom GPT-je. Ky tekst i paraprin
+        përshkrimit të përdoruesit para se t&apos;i dërgohet OpenAI (gpt-image-2).
+      </p>
+      {IMAGE_TOOLS.map((tool) => (
+        <div key={tool.id} className="rounded-xl border border-line bg-surface p-5">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="grid h-9 w-9 place-items-center rounded-xl"
+              style={{ color: tool.accent, background: tool.accentSoft }}
+            >
+              <tool.icon className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-[14px] font-bold text-ink">{tool.name}</div>
+              <div className="text-[12px] text-ink-3">{tool.tagline}</div>
+            </div>
+          </div>
+
+          <Field label="Master prompt (nga Custom GPT)" className="mt-4">
+            <Textarea
+              value={prompts[tool.id] ?? ""}
+              onChange={(e) => setPrompts((p) => ({ ...p, [tool.id]: e.target.value }))}
+              className="min-h-[160px] font-mono text-[12.5px]"
+              placeholder={`Ngjit instruksionet e ${tool.name} këtu…`}
+            />
+          </Field>
+
+          <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
+            <Input
+              type="number"
+              value={costs[tool.id] ?? tool.defaultCost}
+              onChange={(e) =>
+                setCosts((c) => ({ ...c, [tool.id]: parseInt(e.target.value, 10) || 0 }))
+              }
+            />
+          </Field>
+        </div>
+      ))}
+
+      <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
+        Ruaj tools
+      </Button>
+    </div>
+  );
+}
+
 // ---- Pricing ----
 function PricingTab() {
   const { toast } = useToast();
@@ -500,7 +598,7 @@ function LogTab() {
               <td className="max-w-xs px-4 py-3 text-ink">
                 <span className="line-clamp-2">{l.prompt}</span>
               </td>
-              <td className="px-4 py-3 text-ink-2">{l.website_type}</td>
+              <td className="px-4 py-3 text-ink-2">{l.tool_id || l.website_type}</td>
               <td className="px-4 py-3 text-ink-2">{l.speed}</td>
               <td className="px-4 py-3 font-semibold text-brand">{l.credits_spent}</td>
               <td className="px-4 py-3 text-ink-3">{timeAgo(l.created_at)}</td>

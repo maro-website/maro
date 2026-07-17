@@ -10,7 +10,7 @@ import React, {
   useState,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { Project, User } from "@/lib/types";
+import type { ImageCreation, Project, User } from "@/lib/types";
 import type { Profile } from "@/lib/supabase/types";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage/local";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
@@ -21,6 +21,7 @@ interface MaroState {
   session: Session | null;
   profile: Profile | null;
   projects: Project[];
+  creations: ImageCreation[];
 }
 
 interface MaroContextValue {
@@ -46,6 +47,10 @@ interface MaroContextValue {
   duplicateProject: (id: string) => Project | undefined;
   renameProject: (id: string, name: string) => void;
   spendCredits: (amount: number) => void;
+  // image creations (localStorage)
+  creations: ImageCreation[];
+  addCreation: (c: ImageCreation) => void;
+  deleteCreation: (id: string) => void;
 }
 
 const MaroContext = createContext<MaroContextValue | null>(null);
@@ -72,6 +77,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     session: null,
     profile: null,
     projects: [],
+    creations: [],
   });
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -82,7 +88,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     // Beta starts empty. Real user-created projects are kept.
     const projects = stored.filter((p) => !LEGACY_SEED_IDS.has(p.id));
     if (projects.length !== stored.length) writeJSON(StorageKeys.projects, projects);
-    setState((s) => ({ ...s, projects }));
+    const creations = readJSON<ImageCreation[]>(StorageKeys.creations, []);
+    setState((s) => ({ ...s, projects, creations }));
   }, []);
 
   const persistProjects = useCallback((projects: Project[]) => {
@@ -254,6 +261,33 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [updateProject]
   );
 
+  // ---- image creations (localStorage) ----
+  const persistCreations = useCallback((creations: ImageCreation[]) => {
+    writeJSON(StorageKeys.creations, creations);
+  }, []);
+
+  const addCreation = useCallback(
+    (c: ImageCreation) => {
+      setState((s) => {
+        const creations = [c, ...s.creations].slice(0, 100);
+        persistCreations(creations);
+        return { ...s, creations };
+      });
+    },
+    [persistCreations]
+  );
+
+  const deleteCreation = useCallback(
+    (id: string) => {
+      setState((s) => {
+        const creations = s.creations.filter((c) => c.id !== id);
+        persistCreations(creations);
+        return { ...s, creations };
+      });
+    },
+    [persistCreations]
+  );
+
   const profile = state.profile;
   const value = useMemo<MaroContextValue>(
     () => ({
@@ -277,12 +311,16 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       duplicateProject,
       renameProject,
       spendCredits,
+      creations: state.creations,
+      addCreation,
+      deleteCreation,
     }),
     [
       state.ready,
       state.session,
       profile,
       state.projects,
+      state.creations,
       signIn,
       signUp,
       signOut,
@@ -295,6 +333,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       duplicateProject,
       renameProject,
       spendCredits,
+      addCreation,
+      deleteCreation,
     ]
   );
 

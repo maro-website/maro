@@ -41,6 +41,17 @@ export interface User {
   createdAt: string;
 }
 
+// An image generation result (Maro Logo / Maro Reklama), persisted locally.
+export interface ImageCreation {
+  id: string;
+  toolId: string;
+  prompt: string;
+  urls: string[];
+  size?: string;
+  quality?: string;
+  createdAt: string;
+}
+
 export interface BrandProfile {
   logoUrl?: string;
   hasLogo: boolean;

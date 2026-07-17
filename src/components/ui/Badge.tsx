@@ -54,10 +54,12 @@ export function Badge({
   children,
   className,
   tone = "neutral",
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
   tone?: "neutral" | "brand" | "success";
+  style?: React.CSSProperties;
 }) {
   const tones = {
     neutral: "bg-surface-2 text-ink-2 border-line-strong",
@@ -71,6 +73,7 @@ export function Badge({
         tones[tone],
         className
       )}
+      style={style}
     >
       {children}
     </span>

@@ -24,11 +24,15 @@ export interface PricingConfig {
   types: Record<WebsiteKind, number>;
   speed: Record<SpeedKey, SpeedConfig>;
   editCost?: number;
+  /** Credit cost per image tool (e.g. { logo: 5, reklama: 5 }). */
+  tools?: Record<string, number>;
 }
 
 export interface AppSettings {
   master_prompt: string;
   pricing: PricingConfig;
+  /** Per-tool master prompts for image tools (e.g. { logo, reklama }). */
+  tool_prompts: Record<string, string>;
 }
 
 export interface GenerationLog {
@@ -40,6 +44,9 @@ export interface GenerationLog {
   website_type: string | null;
   speed: string | null;
   model: string | null;
+  tool_id: string | null;
+  kind: string | null;
+  output_urls: string[] | null;
   credits_spent: number;
   created_at: string;
 }
@@ -51,7 +58,17 @@ export const DEFAULT_PRICING: PricingConfig = {
     fast: { effort: "high", mult: 1.5 },
     "2x": { effort: "medium", mult: 2 },
   },
+  tools: { logo: 5, reklama: 5 },
 };
+
+// Credit cost for an image tool (falls back to the tool's default).
+export function imageToolCost(
+  pricing: PricingConfig,
+  toolId: string,
+  fallback = 5
+): number {
+  return pricing.tools?.[toolId] ?? DEFAULT_PRICING.tools?.[toolId] ?? fallback;
+}
 
 export const WEBSITE_KINDS: { key: WebsiteKind; label: string; hint: string }[] = [
   { key: "landing", label: "Landing Page", hint: "Një faqe, fokus konvertimi" },

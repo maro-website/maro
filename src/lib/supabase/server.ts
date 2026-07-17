@@ -45,19 +45,43 @@ export async function getAppSettings(): Promise<AppSettings> {
   try {
     const { data } = await getSupabaseAdmin()
       .from("app_settings")
-      .select("master_prompt, pricing")
+      .select("master_prompt, pricing, tool_prompts")
       .eq("id", 1)
       .single();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     return {
       master_prompt: data?.master_prompt ?? "",
+      tool_prompts: (data?.tool_prompts as Record<string, string>) ?? {},
       pricing: {
         types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
         speed: { ...DEFAULT_PRICING.speed, ...(pricing.speed ?? {}) },
+        tools: { ...DEFAULT_PRICING.tools, ...(pricing.tools ?? {}) },
+        editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
       },
     };
   } catch {
-    return { master_prompt: "", pricing: DEFAULT_PRICING };
+    return { master_prompt: "", tool_prompts: {}, pricing: DEFAULT_PRICING };
+  }
+}
+
+// Upload a base64 PNG to the public "generations" bucket and return its public
+// URL. Uses the service role (bypasses Storage RLS).
+export async function uploadGeneratedImage(
+  userId: string,
+  b64: string
+): Promise<string | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const bytes = Buffer.from(b64, "base64");
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+    const { error } = await admin.storage
+      .from("generations")
+      .upload(path, bytes, { contentType: "image/png", upsert: false });
+    if (error) return null;
+    const { data } = admin.storage.from("generations").getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -99,10 +123,13 @@ export async function logGeneration(entry: {
   user_email: string;
   prompt: string;
   final_prompt: string;
-  website_type: string;
-  speed: string;
   model: string;
   credits_spent: number;
+  website_type?: string;
+  speed?: string;
+  tool_id?: string;
+  kind?: string;
+  output_urls?: string[];
 }): Promise<void> {
   try {
     await getSupabaseAdmin().from("generations").insert(entry);

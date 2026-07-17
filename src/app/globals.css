@@ -25,21 +25,33 @@
 @tailwind utilities;
 
 :root {
-  /* ---- Maro brand tokens (single source of truth) ---- */
+  /* ---- Maro brand tokens (single source of truth) ----
+     Redesign #3: light, soft, Google-like. White canvas, brand purple used
+     sparingly as an accent, soft Google accent colors for the tool cards. */
   --brand: #5a28e5;
   --brand-hover: #4a1fc7;
-  --brand-soft: #efeafe;
+  --brand-soft: #f1ecfe;
   --brand-fg: #ffffff;
 
-  --canvas: #fbfbfd;
-  --surface: #ffffff;
-  --surface-2: #f5f5f8;
-  --line: #ececf1;
-  --line-strong: #dcdce4;
+  /* Soft Google-like accents (used per-tool) */
+  --g-blue: #4285f4;
+  --g-blue-soft: #e8f0fe;
+  --g-red: #ea4335;
+  --g-red-soft: #fce8e6;
+  --g-yellow: #fbbc05;
+  --g-yellow-soft: #fef7e0;
+  --g-green: #34a853;
+  --g-green-soft: #e6f4ea;
 
-  --ink: #0f0f17;
-  --ink-2: #52525f;
-  --ink-3: #8a8a97;
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --line: #eef0f3;
+  --line-strong: #e2e5ea;
+
+  --ink: #101014;
+  --ink-2: #55565f;
+  --ink-3: #8b8d97;
   --ink-inv: #ffffff;
 
   --success: #12a150;
@@ -102,6 +114,32 @@ body {
 .bg-dot {
   background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+/* Soft, premium aurora background (light mode). Very subtle Google-ish tints. */
+.bg-aurora {
+  background-image:
+    radial-gradient(40% 55% at 15% 8%, color-mix(in srgb, var(--g-blue) 16%, transparent), transparent 70%),
+    radial-gradient(38% 50% at 85% 4%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%),
+    radial-gradient(45% 55% at 75% 60%, color-mix(in srgb, var(--g-green) 12%, transparent), transparent 70%),
+    radial-gradient(40% 50% at 20% 70%, color-mix(in srgb, var(--g-yellow) 12%, transparent), transparent 70%);
+}
+
+/* Gradient text for hero accents (used sparingly). */
+.text-gradient {
+  background: linear-gradient(100deg, var(--brand), var(--g-blue) 55%, var(--g-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gentle floating animation for ambient blobs / parallax accents. */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-18px) translateX(10px); }
+}
+.animate-float-slow {
+  animation: float-slow 9s ease-in-out infinite;
 }
 
 /* Shimmer skeleton */

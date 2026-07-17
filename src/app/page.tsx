@@ -1,81 +1,184 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
-import { Logo } from "@/components/ui/Logo";
+import { useRouter } from "next/navigation";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { AppShell } from "@/components/app/AppShell";
 import { Badge } from "@/components/ui/Badge";
-import { Composer } from "@/components/app/Composer";
-import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
 import { useMaro } from "@/context/store";
-import { Menu, Coins } from "lucide-react";
+import { TOOLS, type ToolDef } from "@/lib/tools/registry";
+import { ArrowRight, Coins, Sparkles, Wand2, Rocket } from "lucide-react";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 export default function HomePage() {
-  const { user, credits } = useMaro();
-  const [drawer, setDrawer] = React.useState(false);
+  const { user } = useMaro();
+  const firstName = user?.name?.split(" ")[0];
 
-  const greeting = user ? `Mirë se erdhe, ${user.name.split(" ")[0]}` : "Çka po marojmë sot?";
+  const heroRef = React.useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const auroraY = useTransform(scrollYProgress, [0, 1], [0, 140]);
+  const auroraScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const heroFade = useTransform(scrollYProgress, [0, 1], [1, 0]);
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_1fr]">
-      {/* Desktop sidebar */}
-      <aside className="hidden border-r border-line bg-canvas lg:block">
-        <div className="sticky top-0 h-screen">
-          <HomeSidebar />
-        </div>
-      </aside>
+    <AppShell>
+      {/* HERO */}
+      <section ref={heroRef} className="relative overflow-hidden">
+        <motion.div
+          style={{ y: auroraY, scale: auroraScale }}
+          className="pointer-events-none absolute inset-0 -z-10 bg-aurora opacity-70"
+        />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-[0.25] [mask-image:radial-gradient(ellipse_at_top,black_10%,transparent_60%)]" />
 
-      <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
-
-      {/* Main */}
-      <main className="relative flex min-h-screen flex-col">
-        {/* Ambient background */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-brand/10 blur-[120px]" />
-          <div className="absolute inset-0 bg-grid opacity-[0.35] [mask-image:radial-gradient(ellipse_at_top,black_10%,transparent_65%)]" />
-        </div>
-
-        {/* Mobile top bar */}
-        <div className="relative flex items-center justify-between px-4 py-3 lg:hidden">
-          <button
-            onClick={() => setDrawer(true)}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink"
-            aria-label="Menu"
+        <motion.div
+          style={{ opacity: heroFade }}
+          className="mx-auto max-w-3xl px-6 pb-10 pt-20 text-center sm:pt-28"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE }}
           >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Logo />
-          <div className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[12.5px] font-semibold text-ink">
-            <Coins className="h-3.5 w-3.5 text-brand" /> {user ? credits : "—"}
-          </div>
-        </div>
+            <Badge tone="brand" className="mb-6 px-3 py-1 text-[12px]">
+              <Sparkles className="mr-1 inline h-3.5 w-3.5" /> MARO · AI Hub
+            </Badge>
+          </motion.div>
 
-        <div className="relative flex flex-1 flex-col items-center justify-center px-5 py-10">
-          <div className="w-full max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-8 text-center"
-            >
-              <Badge tone="brand" className="mb-5 px-3 py-1 text-[12px]">
-                MARO Beta Version
-              </Badge>
-              <h1 className="text-balance text-[clamp(30px,5vw,50px)] font-extrabold leading-[1.02] tracking-[-0.04em] text-ink">
-                {greeting}
-              </h1>
-              <p className="mx-auto mt-3 max-w-md text-balance text-[15.5px] leading-relaxed text-ink-2">
-                Përshkruaj website-in që ke në mendje. Zgjidh tipin dhe shpejtësinë — Maro e maron.
-              </p>
-            </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE, delay: 0.05 }}
+            className="text-balance text-[clamp(34px,6vw,62px)] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink"
+          >
+            {firstName ? `Mirë se erdhe, ${firstName}.` : "Krijo çdo gjë"}
+            <br />
+            <span className="text-gradient">me një fjali.</span>
+          </motion.h1>
 
-            <Composer />
-          </div>
-        </div>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE, delay: 0.12 }}
+            className="mx-auto mt-5 max-w-xl text-balance text-[16px] leading-relaxed text-ink-2"
+          >
+            Një vend i vetëm për website, logo dhe reklama — të gjitha me AI, të gjitha me kredite.
+            Zgjidh një tool dhe fillo.
+          </motion.p>
+        </motion.div>
+      </section>
 
-        <div className="relative pb-6 text-center text-[12px] text-ink-3">
-          Maro · maro.al — modeli: Claude Opus 4.8
+      {/* TOOLS GRID */}
+      <section className="relative mx-auto w-full max-w-5xl px-6 pb-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TOOLS.map((tool, i) => (
+            <ToolCard key={tool.id} tool={tool} index={i} />
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="mx-auto w-full max-w-5xl px-6 py-14">
+        <Reveal>
+          <h2 className="text-center text-[clamp(22px,3vw,32px)] font-extrabold tracking-[-0.03em] text-ink">
+            Si funksionon
+          </h2>
+        </Reveal>
+        <div className="mt-8 grid gap-5 sm:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.title} delay={i * 0.08}>
+              <div className="h-full rounded-2xl border border-line bg-surface p-6">
+                <div
+                  className="grid h-11 w-11 place-items-center rounded-xl"
+                  style={{ color: s.color, background: `${s.color}14` }}
+                >
+                  <s.icon className="h-5 w-5" />
+                </div>
+                <div className="mt-4 text-[15px] font-bold text-ink">{s.title}</div>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">{s.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-auto border-t border-line py-6 text-center text-[12px] text-ink-3">
+        Maro · maro.al — Website (Claude Opus 4.8) · Imazhe (gpt-image-2)
+      </div>
+    </AppShell>
+  );
+}
+
+const STEPS = [
+  { icon: Wand2, title: "1. Përshkruaj", body: "Shkruaj çka do me pak fjalë — pa nevojë për detaje teknike.", color: "var(--g-blue)" },
+  { icon: Sparkles, title: "2. Maro maron", body: "AI gjeneron rezultatin duke ndjekur stilin e master-promptit tënd.", color: "var(--brand)" },
+  { icon: Rocket, title: "3. Përdore", body: "Shkarko ose publiko menjëherë. Çdo gjë ruhet te profili yt.", color: "var(--g-green)" },
+];
+
+function ToolCard({ tool, index }: { tool: ToolDef; index: number }) {
+  const router = useRouter();
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease: EASE, delay: index * 0.06 }}
+      whileHover={{ y: -6 }}
+      onClick={() => router.push(tool.route)}
+      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 text-left shadow-subtle transition-shadow hover:shadow-pop"
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-40 blur-2xl transition-opacity group-hover:opacity-70"
+        style={{ background: tool.accentSoft }}
+      />
+      <div
+        className="relative grid h-12 w-12 place-items-center rounded-2xl"
+        style={{ color: tool.accent, background: tool.accentSoft }}
+      >
+        <tool.icon className="h-6 w-6" />
+      </div>
+
+      <div className="relative mt-4 text-[17px] font-extrabold tracking-[-0.02em] text-ink">
+        {tool.name}
+      </div>
+      <div className="relative text-[13px] font-medium" style={{ color: tool.accent }}>
+        {tool.tagline}
+      </div>
+      <p className="relative mt-2 flex-1 text-[13.5px] leading-relaxed text-ink-2">
+        {tool.description}
+      </p>
+
+      <div className="relative mt-5 flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-ink-2">
+          <Coins className="h-3.5 w-3.5 text-brand" />
+          {tool.kind === "website" ? "nga 5 kredite" : `${tool.defaultCost} kredite`}
+        </span>
+        <span
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white transition-transform group-hover:translate-x-0.5"
+          style={{ background: tool.accent }}
+        >
+          <ArrowRight className="h-4 w-4" />
+        </span>
+      </div>
+    </motion.button>
+  );
+}
+
+function Reveal({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease: EASE, delay }}
+    >
+      {children}
+    </motion.div>
   );
 }
