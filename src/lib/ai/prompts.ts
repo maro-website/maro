@@ -119,6 +119,95 @@ BUSINESS DETAILS:
 Generate the full website now.`;
 }
 
+// ---------------------------------------------------------------------------
+// HTML mode (max quality). Claude authors complete, standalone HTML documents.
+// We use a delimiter format (not JSON) because escaping large HTML into a JSON
+// string is fragile and a common source of parse failures.
+// ---------------------------------------------------------------------------
+
+const HTML_PAGE_COUNT: Record<string, string> = {
+  landing: "Produce EXACTLY ONE page with slug \"home\".",
+  business:
+    "Produce 3-4 pages (home + about + services/menu/work + contact). Each page is its own complete document.",
+  platform:
+    "Produce 4-5 pages (home, features, pricing, about, contact). Each page is its own complete document.",
+};
+
+const HTML_RULES = `OUTPUT FORMAT (follow EXACTLY, output nothing else, no markdown fences, no commentary):
+For every page output one block:
+===PAGE===
+SLUG: <url-slug>
+NAME: <human name>
+---HTML---
+<!doctype html> ... full document ...
+===END===
+
+HARD RULES for each HTML document:
+1. A COMPLETE, standalone HTML5 document: <!doctype html>, <html>, <head>, <body>.
+2. In <head> include: a <meta name="viewport" content="width=device-width, initial-scale=1">, Tailwind via <script src="https://cdn.tailwindcss.com"></script>, and Google Fonts <link> for the fonts you use.
+3. Design to a premium, modern 2026 standard: strong typographic hierarchy, generous whitespace, tasteful gradients, rounded corners, subtle shadows, smooth hover states, fully responsive (mobile-first). Think top-tier startup landing pages, not templates.
+4. Use Tailwind utility classes for everything. You may add a small <style> block for custom animations (fade/reveal on scroll via CSS, keyframes) and a tiny <script> for scroll reveal or a mobile menu toggle. Keep JS minimal and dependency-free.
+5. NO external images or icon libraries that may 404. For imagery use CSS gradients, CSS patterns and INLINE SVG (including simple SVG icons). Do NOT use <img> with external URLs, emoji, or icon-font CDNs.
+6. Include a sticky header with the business name + nav (anchor links to in-page sections) and a footer.
+7. Write specific, credible, conversion-focused copy (never lorem ipsum) in the requested language.
+8. Keep the primary brand color close to the provided hex; build a coherent palette around it.
+9. Do NOT use the em-dash character. Use commas or periods.`;
+
+export function buildHtmlGenerateSystem(
+  req: AiGenerateRequest,
+  masterPrompt: string
+): string {
+  const count = HTML_PAGE_COUNT[req.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
+  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are Maro, an elite web designer and front-end engineer. You craft complete, production-quality marketing websites as raw HTML + Tailwind CSS. Your work should look hand-crafted and premium.
+
+${count}
+
+All user-facing copy must be in ${langName(req.language)}.
+
+${HTML_RULES}`;
+}
+
+export function buildHtmlGenerateUser(req: AiGenerateRequest): string {
+  return `USER REQUEST (what the user typed):
+${req.userPrompt || req.goal || "(none)"}
+
+BUSINESS DETAILS:
+- Name: ${req.businessName}
+- Tagline: ${req.tagline || "(none)"}
+- Brand color: ${req.primaryColor}
+- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
+- Content language: ${langName(req.language)}
+
+Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
+}
+
+export function buildHtmlEditSystem(businessName: string, language: string): string {
+  return `You are Maro, an elite web designer editing a live, single HTML page for "${businessName}".
+
+You receive the CURRENT full HTML document and an instruction. Apply ONLY what the user asked and keep everything else identical (structure, copy, styles that were not mentioned). Preserve the premium quality and responsiveness. Keep using Tailwind (CDN) and inline SVG; never add external images. Do not use the em-dash character.
+
+All user-facing copy stays in ${language === "en" ? "English" : language === "de" ? "German" : "Albanian (Shqip)"}.
+
+OUTPUT FORMAT (output nothing else):
+===REPLY===
+<one short friendly sentence, in the content language, confirming what you changed>
+===LABEL===
+<<= 6 word version label>
+===COST===
+<a number: 5 for small tweaks, 10 for big changes>
+---HTML---
+<the FULL updated HTML document>
+===END===`;
+}
+
+export function buildHtmlEditUser(instruction: string, html: string): string {
+  return `INSTRUCTION:
+${instruction}
+
+CURRENT HTML DOCUMENT:
+${html}`;
+}
+
 export function buildGenerateSystem(req: AiGenerateRequest): string {
   return `You are Maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 

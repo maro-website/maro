@@ -105,6 +105,14 @@ export interface WebsitePage {
   seo: SeoMeta;
 }
 
+// A full, self-contained HTML document produced by Claude (max-quality mode).
+export interface HtmlPage {
+  id: string;
+  name: string;
+  slug: string;
+  html: string;
+}
+
 export interface SeoMeta {
   title: string;
   description: string;
@@ -196,6 +204,11 @@ export interface Project {
   theme: Theme;
   pages: WebsitePage[];
   activePageId: string;
+  // Max-quality output: Claude-authored full HTML pages. When renderMode is
+  // "html" the preview/editor render these instead of the section components.
+  renderMode?: "sections" | "html";
+  htmlPages?: HtmlPage[];
+  activeHtmlPageId?: string;
   assets: Asset[];
   conversation: Conversation;
   versions: Version[];

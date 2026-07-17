@@ -3,10 +3,10 @@
 // 4.8 when an API key is configured and otherwise leaves the local factory
 // content in place.
 
-import type { Project, Theme, WebsitePage } from "@/lib/types";
-import type { AiGenerateRequest, AiGenerateResponse } from "@/lib/ai/types";
-import { buildPagesFromAi, normalizeTheme } from "@/lib/ai/normalize";
+import type { Project, HtmlPage } from "@/lib/types";
+import type { AiGenerateRequest, AiGenerateHtmlResponse } from "@/lib/ai/types";
 import { getAccessToken } from "@/lib/supabase/client";
+import { uid, slugify } from "@/lib/utils/format";
 
 export class InsufficientCreditsError extends Error {
   needed: number;
@@ -94,13 +94,12 @@ export function runGeneration(opts: {
 }
 
 export interface GeneratedSite {
-  pages: WebsitePage[];
-  activePageId: string;
-  theme?: Partial<Theme>;
+  htmlPages: HtmlPage[];
+  activeHtmlPageId: string;
 }
 
-// Real site generation via Claude Opus 4.8 (/api/ai/generate). Throws on any
-// failure so the generating screen can keep the local factory content.
+// Real site generation via Claude Opus 4.8 (/api/ai/generate). Returns full,
+// Claude-authored HTML pages. Throws on any real failure.
 export async function generateSite(project: Project): Promise<GeneratedSite> {
   const req: AiGenerateRequest = {
     businessName: project.businessName,
@@ -141,13 +140,16 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     throw new GenerationError(code, res.status, code === "no-key", j.detail);
   }
 
-  const data = (await res.json()) as AiGenerateResponse;
-  const pages = buildPagesFromAi(data.pages, project.category, project.businessName);
-  if (!pages.length) throw new Error("ai-generate-empty");
+  const data = (await res.json()) as AiGenerateHtmlResponse;
+  const htmlPages: HtmlPage[] = (data.pages ?? [])
+    .filter((p) => p?.html?.trim())
+    .map((p) => ({
+      id: uid("hpage"),
+      name: p.name?.trim() || "Home",
+      slug: slugify(p.slug || p.name || "home") || "home",
+      html: p.html,
+    }));
+  if (!htmlPages.length) throw new GenerationError("empty", 502, false, "no HTML pages");
 
-  return {
-    pages,
-    activePageId: pages[0].id,
-    theme: data.theme && Object.keys(data.theme).length ? normalizeTheme(data.theme) : undefined,
-  };
+  return { htmlPages, activeHtmlPageId: htmlPages[0].id };
 }

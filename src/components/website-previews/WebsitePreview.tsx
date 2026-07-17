@@ -6,17 +6,74 @@ import { previewVars, buttonStyle } from "./theme";
 import { renderSection } from "./sections";
 import type { EditTarget } from "./Editable";
 
+// Renders Claude-authored full HTML pages inside a sandboxed iframe. Supports
+// switching between multiple pages via a small top nav.
+function HtmlPreview({
+  project,
+  fullHeight,
+}: {
+  project: Pick<Project, "htmlPages" | "activeHtmlPageId">;
+  fullHeight: boolean;
+}) {
+  const pages = project.htmlPages ?? [];
+  const [activeId, setActiveId] = React.useState(
+    project.activeHtmlPageId ?? pages[0]?.id
+  );
+  const active = pages.find((p) => p.id === activeId) ?? pages[0];
+  if (!active) return null;
+
+  return (
+    <div className="flex h-full w-full flex-col bg-white">
+      {pages.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2">
+          {pages.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setActiveId(p.id)}
+              className={
+                "rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
+                (p.id === active.id
+                  ? "bg-brand text-brand-fg"
+                  : "text-ink-2 hover:bg-surface-2")
+              }
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <iframe
+        title={active.name}
+        srcDoc={active.html}
+        sandbox="allow-scripts allow-same-origin allow-popups"
+        className="w-full flex-1"
+        style={{ border: 0, height: fullHeight ? "calc(100dvh - 50px)" : "78dvh" }}
+      />
+    </div>
+  );
+}
+
 // The editor never needs to know if this is local React or (later) a remote
 // iframe. Keep the public interface small and swappable.
 export interface WebsitePreviewProps {
   project: Pick<
     Project,
-    "theme" | "pages" | "activePageId" | "businessName" | "brand" | "category"
+    | "theme"
+    | "pages"
+    | "activePageId"
+    | "businessName"
+    | "brand"
+    | "category"
+    | "renderMode"
+    | "htmlPages"
+    | "activeHtmlPageId"
   >;
   editMode?: boolean;
   selected?: EditTarget | null;
   onSelect?: (t: EditTarget | null) => void;
   className?: string;
+  /** Fill more vertical space (used by the standalone preview page). */
+  fullHeight?: boolean;
 }
 
 export function WebsitePreview({
@@ -25,7 +82,13 @@ export function WebsitePreview({
   selected = null,
   onSelect,
   className,
+  fullHeight = false,
 }: WebsitePreviewProps) {
+  // Max-quality HTML mode: render Claude's document in a sandboxed iframe.
+  if (project?.renderMode === "html" && project.htmlPages?.length) {
+    return <HtmlPreview project={project} fullHeight={fullHeight} />;
+  }
+
   // Defensive: during Fast Refresh / transient states the project or its pages
   // can momentarily be unavailable. Render nothing rather than crashing.
   if (!project || !project.theme || !project.pages?.length) return null;

@@ -70,6 +70,33 @@ export interface AiGenerateResponse {
   pages: AiPage[];
 }
 
+// ---- HTML mode (max quality: Claude authors full HTML pages) ----
+
+export interface AiHtmlPage {
+  name: string;
+  slug: string;
+  html: string;
+}
+
+export interface AiGenerateHtmlResponse {
+  pages: AiHtmlPage[];
+  creditsSpent?: number;
+}
+
+export interface AiEditHtmlRequest {
+  instruction: string;
+  businessName: string;
+  language: string;
+  page: { name: string; slug: string; html: string };
+}
+
+export interface AiEditHtmlResponse {
+  reply: string;
+  versionLabel: string;
+  cost: number;
+  html: string;
+}
+
 export const FONT_KEYS: FontKey[] = [
   "Inter",
   "Manrope",

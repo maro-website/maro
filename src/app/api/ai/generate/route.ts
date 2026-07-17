@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { AI_MODEL, callClaudeJSON, hasAiKey } from "@/lib/ai/anthropic";
+import { AI_MODEL, callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
 import {
-  buildComposedGenerateSystem,
-  buildComposedGenerateUser,
+  buildHtmlGenerateSystem,
+  buildHtmlGenerateUser,
 } from "@/lib/ai/prompts";
-import type { AiGenerateRequest, AiGenerateResponse } from "@/lib/ai/types";
+import { parseHtmlPages } from "@/lib/ai/htmlParse";
+import type { AiGenerateRequest } from "@/lib/ai/types";
 import {
   getAppSettings,
   getProfileCredits,
@@ -79,18 +80,18 @@ export async function POST(req: Request) {
     }
   }
 
-  const system = buildComposedGenerateSystem(body, settings.master_prompt);
-  const user = buildComposedGenerateUser(body);
+  const system = buildHtmlGenerateSystem(body, settings.master_prompt);
+  const user = buildHtmlGenerateUser(body);
 
   try {
-    const result = await callClaudeJSON<AiGenerateResponse>({
-      system,
-      user,
-      effort,
-    });
-    if (!result?.pages?.length) {
+    const { text } = await callClaudeText({ system, user, effort });
+    const pages = parseHtmlPages(text);
+    if (!pages.length) {
       if (userId && cost) await refundCredits(userId, cost);
-      return NextResponse.json({ error: "empty", fallback: true }, { status: 502 });
+      return NextResponse.json(
+        { error: "empty", detail: `no HTML pages parsed (chars=${text.length})`, fallback: true },
+        { status: 502 }
+      );
     }
     if (userId) {
       await logGeneration({
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
         credits_spent: cost,
       });
     }
-    return NextResponse.json({ ...result, creditsSpent: cost });
+    return NextResponse.json({ pages, creditsSpent: cost });
   } catch (err) {
     console.error("[ai/generate] failed:", err);
     if (userId && cost) await refundCredits(userId, cost);

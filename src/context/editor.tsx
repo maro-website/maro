@@ -20,6 +20,7 @@ import {
   InsufficientCreditsError,
   type AiEditResult,
 } from "@/lib/services/aiEditService";
+import { requestHtmlEdit } from "@/lib/services/htmlEditService";
 import { uid, slugify } from "@/lib/utils/format";
 
 export type Device = "desktop" | "tablet" | "mobile";
@@ -393,6 +394,49 @@ export function EditorProvider({
         }));
         setSending(false);
       };
+
+      // HTML mode: edit Claude's full document directly. No local fallback
+      // (there is no offline interpreter for raw HTML).
+      if (projectRef.current.renderMode === "html") {
+        requestHtmlEdit(prompt, projectRef.current)
+          .then((r) => {
+            updateProject(projectRef.current.id, (p) => ({
+              ...p,
+              htmlPages: (p.htmlPages ?? []).map((hp) =>
+                hp.id === r.pageId ? { ...hp, html: r.html } : hp
+              ),
+              conversation: {
+                ...p.conversation,
+                messages: p.conversation.messages.map((m) =>
+                  m.id === thinkingId ? { ...m, content: r.reply, status: "done" } : m
+                ),
+              },
+              credits: [
+                ...p.credits,
+                {
+                  id: uid("ct"),
+                  label: r.versionLabel,
+                  amount: -r.cost,
+                  reason: "ai-edit",
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }));
+            spendCredits(r.cost);
+            markSaving();
+            setSending(false);
+          })
+          .catch((err) => {
+            if (err instanceof InsufficientCreditsError) {
+              showError(
+                `Nuk ke kredite të mjaftueshme për këtë ndryshim (nevojiten ${err.needed}). Shto kredite për të vazhduar.`
+              );
+              return;
+            }
+            showError("Nuk munda ta bëj këtë ndryshim tani. Provo përsëri ose ndrysho kërkesën.");
+          });
+        return;
+      }
 
       // Call the real model; fall back to the local interpreter on failures,
       // except for credit errors which must be surfaced (no free mock edit).

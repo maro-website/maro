@@ -7,7 +7,7 @@ import { WebsitePreview } from "@/components/website-previews/WebsitePreview";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Misc";
 import { MaroSymbol } from "@/components/ui/Logo";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 
 export default function PreviewPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -28,6 +28,24 @@ export default function PreviewPage() {
     );
   }
 
+  const isHtml = project.renderMode === "html" && !!project.htmlPages?.length;
+
+  const downloadHtml = () => {
+    const page =
+      project.htmlPages?.find((p) => p.id === project.activeHtmlPageId) ??
+      project.htmlPages?.[0];
+    if (!page) return;
+    const blob = new Blob([page.html], { type: "text/html" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `${page.slug || "index"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-canvas/90 px-4 py-2 backdrop-blur">
@@ -40,9 +58,15 @@ export default function PreviewPage() {
         <div className="flex items-center gap-2 text-[12px] font-medium text-ink-3">
           <MaroSymbol className="h-5 w-5" /> Preview · {project.previewUrl}
         </div>
-        <span className="w-[130px]" />
+        {isHtml ? (
+          <Button variant="outline" size="sm" icon={<Download className="h-4 w-4" />} onClick={downloadHtml}>
+            Shkarko HTML
+          </Button>
+        ) : (
+          <span className="w-[130px]" />
+        )}
       </div>
-      <WebsitePreview project={project} />
+      <WebsitePreview project={project} fullHeight />
     </div>
   );
 }

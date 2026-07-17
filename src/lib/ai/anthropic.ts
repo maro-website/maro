@@ -102,3 +102,45 @@ export async function callClaudeJSON<T>(opts: {
     throw new ClaudeError(code, `stop_reason=${res.stop_reason} chars=${text.length}`);
   }
 }
+
+// Call Claude and return the raw text (used for HTML generation/editing where the
+// payload is large and JSON string-escaping would be fragile).
+export async function callClaudeText(opts: {
+  system: string;
+  user: string;
+  maxTokens?: number;
+  effort?: string;
+}): Promise<{ text: string; truncated: boolean }> {
+  const stream = client().messages.stream({
+    model: AI_MODEL,
+    max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
+    thinking: { type: "adaptive" },
+    output_config: { effort: opts.effort || AI_EFFORT },
+    system: opts.system,
+    messages: [{ role: "user", content: opts.user }],
+  } as unknown as Anthropic.MessageStreamParams);
+
+  let res: Anthropic.Message;
+  try {
+    res = await stream.finalMessage();
+  } catch (e) {
+    const anyE = e as {
+      status?: number;
+      message?: string;
+      error?: { error?: { message?: string } };
+    };
+    const detail = anyE?.error?.error?.message || anyE?.message || "unknown error";
+    throw new ClaudeError("api-error", detail, anyE?.status);
+  }
+
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  if (!text.trim()) {
+    throw new ClaudeError("empty", `stop_reason=${res.stop_reason}`);
+  }
+
+  return { text, truncated: res.stop_reason === "max_tokens" };
+}

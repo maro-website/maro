@@ -52,18 +52,9 @@ function GeneratingInner() {
       return {
         ...p,
         status: "ready",
-        pages: result.pages,
-        activePageId: result.activePageId,
-        theme: result.theme ? { ...p.theme, ...result.theme } : p.theme,
-        brand: result.theme
-          ? {
-              ...p.brand,
-              primaryColor: result.theme.primaryColor ?? p.brand.primaryColor,
-              secondaryColor: result.theme.secondaryColor ?? p.brand.secondaryColor,
-              backgroundColor: result.theme.backgroundColor ?? p.brand.backgroundColor,
-              textColor: result.theme.textColor ?? p.brand.textColor,
-            }
-          : p.brand,
+        renderMode: "html",
+        htmlPages: result.htmlPages,
+        activeHtmlPageId: result.activeHtmlPageId,
       };
     });
     setActive(GENERATION_STAGES.length - 1);
@@ -133,7 +124,7 @@ function GeneratingInner() {
   }
 
   const prompt = project?.prompt || project?.goal || project?.businessName || "";
-  const pageCount = project?.pages?.length ?? 0;
+  const pageCount = project?.htmlPages?.length ?? project?.pages?.length ?? 0;
 
   return (
     <AppShell>
