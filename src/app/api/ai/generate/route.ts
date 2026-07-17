@@ -19,9 +19,9 @@ import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// 60s is the max on Vercel Hobby. If generation times out there, use a faster
-// speed (lower effort) or upgrade to Pro (up to 300s).
-export const maxDuration = 60;
+// Opus 4.8 needs ~80-90s for a full site. Vercel Hobby allows up to 300s with
+// Fluid Compute (default on new projects), so this fits comfortably.
+export const maxDuration = 300;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");

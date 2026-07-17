@@ -83,7 +83,8 @@ function GeneratingInner() {
         animDoneRef.current = true;
         maybeFinalize();
       },
-      totalMs: 11000,
+      // Opus 4.8 takes ~80-90s for a full site; pace the stages to match.
+      totalMs: 78000,
     });
 
     // Real content generation (Claude Opus 4.8). On any failure we keep the
@@ -201,7 +202,7 @@ function GeneratingInner() {
                 {project?.businessName}
               </h1>
               <p className="mt-1.5 text-[14px] text-ink-2">
-                Po ndërtojmë website-in tënd. Kjo zgjat pak sekonda.
+                Po ndërtojmë website-in tënd me Claude Opus 4.8. Kjo zakonisht zgjat ~1–2 minuta.
               </p>
 
               {/* progress line */}
