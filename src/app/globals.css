@@ -26,38 +26,28 @@
 
 :root {
   /* ---- Maro brand tokens (single source of truth) ----
-     Redesign #3: light, soft, Google-like. White canvas, brand purple used
-     sparingly as an accent, soft Google accent colors for the tool cards. */
-  --brand: #5a28e5;
-  --brand-hover: #4a1fc7;
-  --brand-soft: #f1ecfe;
+     Redesign #3 (v2): near-monochrome light mode. ~90% black/grey/white,
+     ~10% soft purple used only as a gentle accent. */
+  --brand: #6b46e5;
+  --brand-hover: #5a37d1;
+  --brand-soft: #f3f0fe;
   --brand-fg: #ffffff;
-
-  /* Soft Google-like accents (used per-tool) */
-  --g-blue: #4285f4;
-  --g-blue-soft: #e8f0fe;
-  --g-red: #ea4335;
-  --g-red-soft: #fce8e6;
-  --g-yellow: #fbbc05;
-  --g-yellow-soft: #fef7e0;
-  --g-green: #34a853;
-  --g-green-soft: #e6f4ea;
 
   --canvas: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f7f8fa;
-  --line: #eef0f3;
-  --line-strong: #e2e5ea;
+  --surface-2: #f6f6f7;
+  --line: #ededf0;
+  --line-strong: #e0e0e4;
 
-  --ink: #101014;
-  --ink-2: #55565f;
-  --ink-3: #8b8d97;
+  --ink: #131316;
+  --ink-2: #56565c;
+  --ink-3: #90909a;
   --ink-inv: #ffffff;
 
   --success: #12a150;
   --warning: #d97706;
   --danger: #e5484d;
-  --info: #4a1fc7;
+  --info: #6b46e5;
 
   --font-app: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui,
     -apple-system, sans-serif;
@@ -116,21 +106,16 @@ body {
   background-size: 22px 22px;
 }
 
-/* Soft, premium aurora background (light mode). Very subtle Google-ish tints. */
+/* Very subtle, near-monochrome ambient wash with a faint purple hint. */
 .bg-aurora {
   background-image:
-    radial-gradient(40% 55% at 15% 8%, color-mix(in srgb, var(--g-blue) 16%, transparent), transparent 70%),
-    radial-gradient(38% 50% at 85% 4%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%),
-    radial-gradient(45% 55% at 75% 60%, color-mix(in srgb, var(--g-green) 12%, transparent), transparent 70%),
-    radial-gradient(40% 50% at 20% 70%, color-mix(in srgb, var(--g-yellow) 12%, transparent), transparent 70%);
+    radial-gradient(42% 55% at 82% 6%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 72%),
+    radial-gradient(46% 55% at 12% 4%, color-mix(in srgb, var(--ink) 4%, transparent), transparent 72%);
 }
 
-/* Gradient text for hero accents (used sparingly). */
-.text-gradient {
-  background: linear-gradient(100deg, var(--brand), var(--g-blue) 55%, var(--g-green));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* Soft purple accent text (used very sparingly). */
+.text-accent {
+  color: var(--brand);
 }
 
 /* Gentle floating animation for ambient blobs / parallax accents. */

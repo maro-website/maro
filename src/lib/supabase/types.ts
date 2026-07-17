@@ -26,6 +26,8 @@ export interface PricingConfig {
   editCost?: number;
   /** Credit cost per image tool (e.g. { logo: 5, reklama: 5 }). */
   tools?: Record<string, number>;
+  /** Reserve: enable the product-image box in Maro Reklama (admin controlled). */
+  reklamaProduct?: boolean;
 }
 
 export interface AppSettings {
@@ -59,6 +61,7 @@ export const DEFAULT_PRICING: PricingConfig = {
     "2x": { effort: "medium", mult: 2 },
   },
   tools: { logo: 5, reklama: 5 },
+  reklamaProduct: false,
 };
 
 // Credit cost for an image tool (falls back to the tool's default).

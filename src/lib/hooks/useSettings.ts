@@ -37,6 +37,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
           speed: { ...DEFAULT_PRICING.speed, ...(pricing.speed ?? {}) },
           tools: { ...DEFAULT_PRICING.tools, ...(pricing.tools ?? {}) },
           editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
+          reklamaProduct: pricing.reklamaProduct ?? DEFAULT_PRICING.reklamaProduct,
         },
       });
     };

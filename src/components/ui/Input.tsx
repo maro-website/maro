@@ -3,8 +3,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
+// Note: text is 16px on mobile to prevent iOS auto-zoom on focus; a touch
+// smaller on >=sm where zoom isn't an issue.
 const base =
-  "w-full bg-surface border border-line-strong rounded-xl px-3.5 text-[14px] text-ink placeholder:text-ink-3 outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:opacity-60";
+  "w-full bg-surface border border-line-strong rounded-xl px-3.5 text-[16px] sm:text-[14px] text-ink placeholder:text-ink-3 outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:opacity-60";
 
 export const Input = React.forwardRef<
   HTMLInputElement,

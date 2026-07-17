@@ -4,16 +4,19 @@ import { MaroProvider } from "@/context/store";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
-  title: "MARO Beta Version — Website me AI",
+  title: "Maro · AI Hub",
   description:
-    "MARO Beta Version — përshkruaj website-in që do dhe Maro e maron me AI (Claude Opus 4.8).",
+    "Maro AI Hub: krijo website, logo dhe reklama me AI. Përshkruaj çka do dhe Maro e maron.",
   icons: { icon: "/brand/symbol.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5a28e5",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
+  // Prevent iOS auto-zoom when focusing form fields.
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

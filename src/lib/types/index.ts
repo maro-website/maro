@@ -45,10 +45,12 @@ export interface User {
 export interface ImageCreation {
   id: string;
   toolId: string;
+  title?: string;
   prompt: string;
   urls: string[];
   size?: string;
   quality?: string;
+  favourite?: boolean;
   createdAt: string;
 }
 
@@ -174,6 +176,7 @@ export interface CreditTransaction {
 export interface Project {
   id: string;
   name: string;
+  favourite?: boolean;
   businessName: string;
   tagline?: string;
   email?: string;

@@ -6,9 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
+import { ProjectCard } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { createProjectFromComposer } from "@/lib/services/projectService";
+import { getTool } from "@/lib/tools/registry";
 import {
   creditCost,
   MODEL_OPTIONS,
@@ -23,34 +25,29 @@ import {
   Coins,
   Cpu,
   Gauge,
+  Globe,
   LayoutTemplate,
   Sparkles,
   Check,
   ChevronDown,
 } from "lucide-react";
 
-const EXAMPLES = [
-  "Një landing page për një aplikacion fitnesi me çmime dhe dëshmi klientësh",
-  "Website për një restorant mesdhetar me menu, galeri dhe rezervime",
-  "Faqe biznesi për një studio arkitekture me portfolio projektesh",
-  "Platformë SaaS për menaxhim faturash me features dhe pricing",
-];
+const tool = getTool("website")!;
 
 export function Composer() {
   const router = useRouter();
-  const { user, credits, addProject } = useMaro();
+  const { user, credits, projects, addProject } = useMaro();
   const { pricing } = useSettings(Boolean(user));
 
   const [prompt, setPrompt] = React.useState("");
-  const [websiteType, setWebsiteType] = React.useState<WebsiteKind>("business");
-  const [speed, setSpeed] = React.useState<SpeedKey>("fast");
+  const [websiteType, setWebsiteType] = React.useState<WebsiteKind>(tool.defaultType ?? "landing");
+  const [speed, setSpeed] = React.useState<SpeedKey>(tool.defaultSpeed ?? "fast");
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
   const pendingRef = React.useRef(false);
 
   const cost = creditCost(pricing, websiteType, speed);
 
-  // Keep the freshest credits value for use inside deferred callbacks.
   const creditsRef = React.useRef(credits);
   creditsRef.current = credits;
 
@@ -76,12 +73,10 @@ export function Composer() {
     doGenerate();
   };
 
-  // After a successful login/signup from the gate, continue automatically.
   const onAuthDone = () => {
     setShowAuth(false);
     if (pendingRef.current) {
       pendingRef.current = false;
-      // Give the profile a tick to load before checking credits.
       setTimeout(() => {
         if (creditsRef.current < cost) setShowBuy(true);
         else doGenerate();
@@ -90,77 +85,112 @@ export function Composer() {
   };
 
   return (
-    <div className="w-full">
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative"
-      >
-        <div className="group relative rounded-[26px] border border-line-strong bg-surface p-2 shadow-pop transition-shadow focus-within:shadow-brand/20">
-          <div className="pointer-events-none absolute -inset-px rounded-[26px] bg-gradient-to-b from-brand/10 to-transparent opacity-0 transition-opacity group-focus-within:opacity-100" />
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
-            }}
-            rows={3}
-            placeholder="Përshkruaj website-in që do të ndërtosh…"
-            className="relative block max-h-64 min-h-[92px] w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
-          />
+    <div className="flex h-full flex-col">
+      {/* Scroll area: header + recent websites */}
+      <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+        <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center gap-3.5"
+          >
+            <span
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+              style={{ color: tool.accent, background: tool.accentSoft }}
+            >
+              <Globe className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-[24px] font-extrabold tracking-[-0.03em] text-ink sm:text-[28px]">
+                {tool.name}
+              </h1>
+              <p className="text-[14.5px] text-ink-2">{tool.tagline}</p>
+            </div>
+          </motion.div>
 
-          <div className="relative flex flex-wrap items-center gap-2 px-2 pb-1 pt-1">
-            <ModelSelect />
-            <TypeSelect value={websiteType} onChange={setWebsiteType} />
-            <SpeedSelect value={speed} onChange={setSpeed} />
+          {projects.length > 0 ? (
+            <div className="mt-8">
+              <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
+                Website-t e fundit
+              </h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {projects.slice(0, 6).map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    onOpen={(proj) =>
+                      router.push(
+                        proj.status === "generating"
+                          ? `/projects/${proj.id}/generating`
+                          : `/projects/${proj.id}/editor`
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-14 text-center">
+              <Sparkles className="h-8 w-8 text-ink-3" />
+              <p className="mt-3 max-w-sm text-[14.5px] text-ink-3">
+                Përshkruaj biznesin poshtë, zgjidh tipin dhe shpejtësinë, dhe Maro e maron
+                me Claude Opus 4.8.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div className="ml-auto flex items-center gap-2.5">
-              <span className="hidden items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-[12.5px] font-semibold text-brand sm:inline-flex">
-                <Coins className="h-3.5 w-3.5" /> {cost} kredite
-              </span>
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                onClick={onGenerate}
-                disabled={!prompt.trim()}
-                className={cn(
-                  "grid h-11 w-11 place-items-center rounded-xl text-brand-fg transition-all",
-                  prompt.trim()
-                    ? "bg-brand hover:bg-brand-hover shadow-brand/40"
-                    : "cursor-not-allowed bg-line-strong text-ink-3"
-                )}
-                aria-label="Gjenero"
-              >
-                <ArrowUp className="h-5 w-5" />
-              </motion.button>
+      {/* Docked prompt box */}
+      <div className="shrink-0 border-t border-line bg-canvas/90 backdrop-blur">
+        <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-5 sm:py-4">
+          <div className="group relative rounded-[24px] border border-line-strong bg-surface p-2 shadow-pop">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
+              }}
+              rows={2}
+              placeholder="Përshkruaj website-in që do të ndërtosh…"
+              className="relative block max-h-52 min-h-[64px] w-full resize-none rounded-2xl bg-transparent px-3 pt-2.5 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+            />
+
+            <div className="relative flex flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
+              <ModelSelect />
+              <TypeSelect value={websiteType} onChange={setWebsiteType} />
+              <SpeedSelect value={speed} onChange={setSpeed} />
+
+              <div className="ml-auto flex items-center gap-2.5">
+                <span className="hidden items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-[13px] font-semibold text-brand sm:inline-flex">
+                  <Coins className="h-4 w-4" /> {cost}
+                </span>
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={onGenerate}
+                  disabled={!prompt.trim()}
+                  className={cn(
+                    "grid h-11 w-11 place-items-center rounded-xl text-brand-fg transition-all",
+                    prompt.trim()
+                      ? "bg-brand hover:bg-brand-hover"
+                      : "cursor-not-allowed bg-line-strong text-ink-3"
+                  )}
+                  aria-label="Gjenero"
+                >
+                  <ArrowUp className="h-5 w-5" />
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
-      </motion.div>
-
-      {/* Example chips */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25, duration: 0.5 }}
-        className="mt-5 flex flex-wrap justify-center gap-2"
-      >
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setPrompt(ex)}
-            className="rounded-full border border-line bg-surface/70 px-3.5 py-1.5 text-[12.5px] text-ink-2 transition-all hover:border-line-strong hover:text-ink"
-          >
-            {ex.length > 46 ? ex.slice(0, 46) + "…" : ex}
-          </button>
-        ))}
-      </motion.div>
+      </div>
 
       <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm">
         <ModalHeader
           icon={<Sparkles className="h-5 w-5" />}
           title="Hyr për të gjeneruar"
-          description="Krijo llogari ose hyr — pastaj vazhdon menjëherë me gjenerimin."
+          description="Krijo llogari ose hyr, pastaj vazhdon menjëherë me gjenerimin."
         />
         <div className="px-6 pb-6">
           <AuthPanel onDone={onAuthDone} />
@@ -184,9 +214,9 @@ function Segmented({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5">
+    <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-2">
       <span className="text-ink-3">{icon}</span>
-      <span className="hidden text-[12px] font-medium text-ink-3 md:inline">{label}</span>
+      <span className="hidden text-[12.5px] font-medium text-ink-3 md:inline">{label}</span>
       {children}
     </div>
   );
@@ -194,9 +224,9 @@ function Segmented({
 
 function ModelSelect() {
   return (
-    <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5">
+    <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-2.5 py-2">
       <Cpu className="h-3.5 w-3.5 text-brand" />
-      <span className="text-[12.5px] font-semibold text-ink">{MODEL_OPTIONS[0].label}</span>
+      <span className="text-[13px] font-semibold text-ink">{MODEL_OPTIONS[0].label}</span>
     </div>
   );
 }
@@ -283,7 +313,7 @@ function TypeSelect({
     <Popover
       trigger={() => (
         <Segmented icon={<LayoutTemplate className="h-3.5 w-3.5" />} label="Tipi">
-          <span className="text-[12.5px] font-semibold text-ink">{current.label}</span>
+          <span className="text-[13px] font-semibold text-ink">{current.label}</span>
           <ChevronDown className="h-3.5 w-3.5 text-ink-3" />
         </Segmented>
       )}
@@ -314,7 +344,7 @@ function SpeedSelect({ value, onChange }: { value: SpeedKey; onChange: (v: Speed
     <Popover
       trigger={() => (
         <Segmented icon={<Gauge className="h-3.5 w-3.5" />} label="Shpejtësia">
-          <span className="text-[12.5px] font-semibold text-ink">{current.label}</span>
+          <span className="text-[13px] font-semibold text-ink">{current.label}</span>
           <ChevronDown className="h-3.5 w-3.5 text-ink-3" />
         </Segmented>
       )}

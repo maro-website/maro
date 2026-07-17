@@ -5,21 +5,22 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
-import { Badge } from "@/components/ui/Badge";
+import { ItemMenu } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
 import { TOOLS, getTool } from "@/lib/tools/registry";
 import { initials, timeAgo } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import type { Project, ImageCreation } from "@/lib/types";
 import {
   Plus,
   Coins,
   Shield,
   LogOut,
   User as UserIcon,
-  LayoutGrid,
-  Image as ImageIcon,
   Home,
+  Star,
   X,
+  Check,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -41,7 +42,6 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex items-center justify-between px-4 pt-5">
         <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
           <Logo />
-          <Badge tone="brand" className="text-[10px]">Beta</Badge>
         </Link>
         {onNavigate && (
           <button
@@ -49,7 +49,7 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
             className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 lg:hidden"
             aria-label="Mbyll"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>
@@ -57,29 +57,33 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-3 pt-5">
         <button
           onClick={() => go("/")}
-          className="flex w-full items-center gap-2 rounded-xl bg-brand px-3.5 py-2.5 text-[13.5px] font-semibold text-brand-fg shadow-brand/30 transition-colors hover:bg-brand-hover"
+          className="flex w-full items-center gap-2 rounded-xl bg-brand px-4 py-3 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
         >
-          <Plus className="h-4 w-4" /> Krijim i ri
+          <Plus className="h-5 w-5" /> Krijim i ri
         </button>
       </div>
 
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
-        {/* Tools */}
-        <SectionLabel icon={<LayoutGrid className="h-3.5 w-3.5" />}>Tools</SectionLabel>
+        {/* Primary nav */}
         <div className="mb-4 flex flex-col gap-0.5">
           <NavItem
             active={pathname === "/"}
-            icon={<Home className="h-4 w-4" />}
+            icon={<Home className="h-5 w-5" />}
             label="Hub"
             onClick={() => go("/")}
+          />
+          <NavItem
+            active={pathname === "/favourites"}
+            icon={<Star className="h-5 w-5" />}
+            label="Të preferuarat"
+            onClick={() => go("/favourites")}
           />
           {TOOLS.map((t) => (
             <NavItem
               key={t.id}
               active={pathname === t.route}
-              icon={<t.icon className="h-4 w-4" />}
+              icon={<t.icon className="h-5 w-5" />}
               label={t.name}
-              accent={t.accent}
               onClick={() => go(t.route)}
             />
           ))}
@@ -88,27 +92,10 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {/* Website projects */}
         {projects.length > 0 && (
           <>
-            <SectionLabel icon={<LayoutGrid className="h-3.5 w-3.5" />}>Website-t</SectionLabel>
-            <div className="mb-4 flex flex-col gap-0.5">
+            <SectionLabel>Website-t</SectionLabel>
+            <div className="mb-4 flex flex-col gap-1">
               {projects.slice(0, 8).map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => go(projectHref(p.status, p.id))}
-                  className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2"
-                >
-                  <span
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[11px] font-bold text-white"
-                    style={{ background: p.theme?.primaryColor ?? "#5a28e5" }}
-                  >
-                    {initials(p.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-ink">{p.name}</span>
-                    <span className="block truncate text-[11.5px] text-ink-3">
-                      {p.status === "generating" ? "Po gjenerohet…" : timeAgo(p.updatedAt)}
-                    </span>
-                  </span>
-                </button>
+                <SidebarProjectRow key={p.id} project={p} onOpen={() => go(projectHref(p.status, p.id))} />
               ))}
             </div>
           </>
@@ -117,31 +104,16 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {/* Recent images */}
         {creations.length > 0 && (
           <>
-            <SectionLabel icon={<ImageIcon className="h-3.5 w-3.5" />}>Imazhet</SectionLabel>
-            <div className="mb-2 flex flex-col gap-0.5">
-              {creations.slice(0, 6).map((c) => {
+            <SectionLabel>Imazhet</SectionLabel>
+            <div className="mb-2 flex flex-col gap-1">
+              {creations.slice(0, 8).map((c) => {
                 const tool = getTool(c.toolId);
                 return (
-                  <button
+                  <SidebarCreationRow
                     key={c.id}
-                    onClick={() => go(tool?.route ?? "/")}
-                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2"
-                  >
-                    <span className="h-7 w-7 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
-                      {c.urls[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={c.urls[0]} alt="" className="h-full w-full object-cover" />
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-medium text-ink">
-                        {c.prompt || tool?.name}
-                      </span>
-                      <span className="block truncate text-[11.5px] text-ink-3">
-                        {tool?.name} · {timeAgo(c.createdAt)}
-                      </span>
-                    </span>
-                  </button>
+                    creation={c}
+                    onOpen={() => go(tool?.route ?? "/")}
+                  />
                 );
               })}
             </div>
@@ -149,7 +121,7 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
 
         {projects.length === 0 && creations.length === 0 && (
-          <div className="px-2 py-2 text-[13px] leading-relaxed text-ink-3">
+          <div className="px-2 py-2 text-[13.5px] leading-relaxed text-ink-3">
             Ende s&apos;ke krijime. Zgjidh një tool lart dhe fillo.
           </div>
         )}
@@ -159,9 +131,9 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-line p-3">
         {user ? (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2 text-[12.5px]">
+            <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-[13px]">
               <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-                <Coins className="h-3.5 w-3.5 text-brand" /> {credits}
+                <Coins className="h-4 w-4 text-brand" /> {credits}
               </span>
               <span className="text-ink-3">kredite</span>
             </div>
@@ -171,14 +143,14 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-surface-2"
               >
                 <span
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white"
                   style={{ background: user.avatarColor }}
                 >
                   {initials(user.name)}
                 </span>
                 <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-[13px] font-semibold text-ink">{user.name}</span>
-                  <span className="block truncate text-[11.5px] text-ink-3">{user.email}</span>
+                  <span className="block truncate text-[13.5px] font-semibold text-ink">{user.name}</span>
+                  <span className="block truncate text-[12px] text-ink-3">{user.email}</span>
                 </span>
               </button>
               {isAdmin && (
@@ -206,10 +178,10 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <button
             onClick={() => go("/sign-in")}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
+              "flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-surface-2"
             )}
           >
-            <UserIcon className="h-4 w-4" /> Hyr / Regjistrohu
+            <UserIcon className="h-5 w-5" /> Hyr / Regjistrohu
           </button>
         )}
       </div>
@@ -217,10 +189,163 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+// ---- Sidebar rows (compact cards with 3-dot menu) --------------------------
+
+function RowShell({
+  thumb,
+  title,
+  subtitle,
+  favourite,
+  editing,
+  editInitial,
+  onOpen,
+  onSaveName,
+  onCancel,
+  menu,
+}: {
+  thumb: React.ReactNode;
+  title: string;
+  subtitle: string;
+  favourite?: boolean;
+  editing: boolean;
+  editInitial: string;
+  onOpen: () => void;
+  onSaveName: (v: string) => void;
+  onCancel: () => void;
+  menu: React.ReactNode;
+}) {
+  const [value, setValue] = React.useState(editInitial);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  React.useEffect(() => {
+    if (editing) {
+      setValue(editInitial);
+      setTimeout(() => inputRef.current?.select(), 0);
+    }
+  }, [editing, editInitial]);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 rounded-lg border border-brand bg-surface px-2 py-1.5">
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSaveName(value.trim() || editInitial);
+            if (e.key === "Escape") onCancel();
+          }}
+          autoFocus
+          className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none"
+        />
+        <button
+          onClick={() => onSaveName(value.trim() || editInitial)}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-brand hover:bg-brand-soft"
+        >
+          <Check className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="mb-1.5 flex items-center gap-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">
-      {icon} {children}
+    <div className="group relative flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2">
+      <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+        <span className="relative shrink-0">
+          {thumb}
+          {favourite && (
+            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-white text-brand shadow-sm">
+              <Star className="h-2.5 w-2.5 fill-brand" />
+            </span>
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-medium text-ink">{title}</span>
+          <span className="block truncate text-[12px] text-ink-3">{subtitle}</span>
+        </span>
+      </button>
+      <div className="opacity-0 transition-opacity group-hover:opacity-100">{menu}</div>
+    </div>
+  );
+}
+
+function SidebarProjectRow({ project, onOpen }: { project: Project; onOpen: () => void }) {
+  const { renameProject, deleteProject, toggleFavouriteProject } = useMaro();
+  const [editing, setEditing] = React.useState(false);
+  return (
+    <RowShell
+      thumb={
+        <span
+          className="grid h-9 w-9 place-items-center rounded-lg text-[12px] font-bold text-white"
+          style={{ background: project.theme?.primaryColor ?? "#6b46e5" }}
+        >
+          {initials(project.name)}
+        </span>
+      }
+      title={project.name}
+      subtitle={project.status === "generating" ? "Po gjenerohet…" : timeAgo(project.updatedAt)}
+      favourite={project.favourite}
+      editing={editing}
+      editInitial={project.name}
+      onOpen={onOpen}
+      onSaveName={(v) => {
+        renameProject(project.id, v);
+        setEditing(false);
+      }}
+      onCancel={() => setEditing(false)}
+      menu={
+        <ItemMenu
+          favourite={project.favourite}
+          onRename={() => setEditing(true)}
+          onToggleFav={() => toggleFavouriteProject(project.id)}
+          onDelete={() => deleteProject(project.id)}
+        />
+      }
+    />
+  );
+}
+
+function SidebarCreationRow({ creation, onOpen }: { creation: ImageCreation; onOpen: () => void }) {
+  const { renameCreation, deleteCreation, toggleFavouriteCreation } = useMaro();
+  const [editing, setEditing] = React.useState(false);
+  const tool = getTool(creation.toolId);
+  const title = creation.title || creation.prompt || tool?.name || "Imazh";
+  return (
+    <RowShell
+      thumb={
+        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-surface-2">
+          {creation.urls[0] && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={creation.urls[0]} alt="" className="h-full w-full object-cover" />
+          )}
+        </span>
+      }
+      title={title}
+      subtitle={`${tool?.name ?? "Imazh"} · ${timeAgo(creation.createdAt)}`}
+      favourite={creation.favourite}
+      editing={editing}
+      editInitial={title}
+      onOpen={onOpen}
+      onSaveName={(v) => {
+        renameCreation(creation.id, v);
+        setEditing(false);
+      }}
+      onCancel={() => setEditing(false)}
+      menu={
+        <ItemMenu
+          favourite={creation.favourite}
+          onRename={() => setEditing(true)}
+          onToggleFav={() => toggleFavouriteCreation(creation.id)}
+          onDelete={() => deleteCreation(creation.id)}
+        />
+      }
+    />
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-1.5 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">
+      {children}
     </div>
   );
 }
@@ -229,29 +354,22 @@ function NavItem({
   active,
   icon,
   label,
-  accent,
   onClick,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
-  accent?: string;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13.5px] font-medium transition-colors",
+        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-colors",
         active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
       )}
     >
-      <span
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-md"
-        style={accent ? { color: accent, background: `${accent}14` } : { color: "var(--ink-3)" }}
-      >
-        {icon}
-      </span>
+      <span className={cn("shrink-0", active ? "text-brand" : "text-ink-3")}>{icon}</span>
       {label}
     </button>
   );
@@ -274,7 +392,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-[280px] border-r border-line bg-canvas"
+            className="absolute inset-y-0 left-0 w-[284px] border-r border-line bg-canvas"
           >
             <HomeSidebar onNavigate={onClose} />
           </motion.div>

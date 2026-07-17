@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { IMAGE_MODEL, generateImages, hasOpenAiKey } from "@/lib/ai/openai";
+import { IMAGE_MODEL, generateImages, editImages, hasOpenAiKey } from "@/lib/ai/openai";
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
@@ -73,13 +73,25 @@ export async function POST(req: Request) {
     }
   }
 
+  const refs = (body.attachments ?? []).filter(
+    (a) => typeof a === "string" && a.startsWith("data:image/")
+  );
+
   try {
-    const b64s = await generateImages({
-      prompt: finalPrompt,
-      size: body.size,
-      quality: body.quality,
-      n: body.n,
-    });
+    const b64s = refs.length
+      ? await editImages({
+          prompt: finalPrompt,
+          images: refs,
+          size: body.size,
+          quality: body.quality,
+          n: body.n,
+        })
+      : await generateImages({
+          prompt: finalPrompt,
+          size: body.size,
+          quality: body.quality,
+          n: body.n,
+        });
     if (!b64s.length) {
       if (userId && cost) await refundCredits(userId, cost);
       return NextResponse.json({ error: "empty" }, { status: 502 });

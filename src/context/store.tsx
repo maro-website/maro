@@ -46,11 +46,14 @@ interface MaroContextValue {
   deleteProject: (id: string) => void;
   duplicateProject: (id: string) => Project | undefined;
   renameProject: (id: string, name: string) => void;
+  toggleFavouriteProject: (id: string) => void;
   spendCredits: (amount: number) => void;
   // image creations (localStorage)
   creations: ImageCreation[];
   addCreation: (c: ImageCreation) => void;
   deleteCreation: (id: string) => void;
+  renameCreation: (id: string, title: string) => void;
+  toggleFavouriteCreation: (id: string) => void;
 }
 
 const MaroContext = createContext<MaroContextValue | null>(null);
@@ -261,6 +264,12 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [updateProject]
   );
 
+  const toggleFavouriteProject = useCallback(
+    (id: string) =>
+      updateProject(id, (p) => ({ ...p, favourite: !p.favourite })),
+    [updateProject]
+  );
+
   // ---- image creations (localStorage) ----
   const persistCreations = useCallback((creations: ImageCreation[]) => {
     writeJSON(StorageKeys.creations, creations);
@@ -270,6 +279,32 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     (c: ImageCreation) => {
       setState((s) => {
         const creations = [c, ...s.creations].slice(0, 100);
+        persistCreations(creations);
+        return { ...s, creations };
+      });
+    },
+    [persistCreations]
+  );
+
+  const renameCreation = useCallback(
+    (id: string, title: string) => {
+      setState((s) => {
+        const creations = s.creations.map((c) =>
+          c.id === id ? { ...c, title } : c
+        );
+        persistCreations(creations);
+        return { ...s, creations };
+      });
+    },
+    [persistCreations]
+  );
+
+  const toggleFavouriteCreation = useCallback(
+    (id: string) => {
+      setState((s) => {
+        const creations = s.creations.map((c) =>
+          c.id === id ? { ...c, favourite: !c.favourite } : c
+        );
         persistCreations(creations);
         return { ...s, creations };
       });
@@ -310,10 +345,13 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       deleteProject,
       duplicateProject,
       renameProject,
+      toggleFavouriteProject,
       spendCredits,
       creations: state.creations,
       addCreation,
       deleteCreation,
+      renameCreation,
+      toggleFavouriteCreation,
     }),
     [
       state.ready,
@@ -332,9 +370,12 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       deleteProject,
       duplicateProject,
       renameProject,
+      toggleFavouriteProject,
       spendCredits,
       addCreation,
       deleteCreation,
+      renameCreation,
+      toggleFavouriteCreation,
     ]
   );
 

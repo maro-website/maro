@@ -328,6 +328,7 @@ function ToolsTab() {
   const { toast } = useToast();
   const [prompts, setPrompts] = React.useState<Record<string, string>>({});
   const [costs, setCosts] = React.useState<Record<string, number>>({});
+  const [reklamaProduct, setReklamaProduct] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -342,6 +343,7 @@ function ToolsTab() {
       setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setCosts({ ...(DEFAULT_PRICING.tools ?? {}), ...(pricing.tools ?? {}) });
+      setReklamaProduct(Boolean(pricing.reklamaProduct));
       setLoading(false);
     })();
   }, []);
@@ -359,7 +361,11 @@ function ToolsTab() {
       .from("app_settings")
       .update({
         tool_prompts: prompts,
-        pricing: { ...pricing, tools: { ...(pricing.tools ?? {}), ...costs } },
+        pricing: {
+          ...pricing,
+          tools: { ...(pricing.tools ?? {}), ...costs },
+          reklamaProduct,
+        },
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
@@ -408,6 +414,25 @@ function ToolsTab() {
               }
             />
           </Field>
+
+          {tool.hasProductUpload && (
+            <label className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3">
+              <span>
+                <span className="block text-[13.5px] font-semibold text-ink">
+                  Kutia e produktit
+                </span>
+                <span className="block text-[12px] text-ink-3">
+                  Rezervon vendin për ngarkimin e produktit te prompt box i Reklamës.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={reklamaProduct}
+                onChange={(e) => setReklamaProduct(e.target.checked)}
+                className="h-5 w-5 accent-brand"
+              />
+            </label>
+          )}
         </div>
       ))}
 

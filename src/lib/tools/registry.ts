@@ -4,6 +4,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Globe, Sparkles, Megaphone } from "lucide-react";
+import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 
 export type ToolId = "website" | "logo" | "reklama";
 export type ToolKind = "website" | "image";
@@ -48,6 +49,13 @@ export interface ToolDef {
   defaultCost: number;
   /** Built-in master prompt used until an admin sets a custom one (from Custom GPT). */
   defaultPrompt?: string;
+  /** Default selections. */
+  defaultSize?: ImageSize;
+  defaultQuality?: ImageQuality;
+  defaultType?: WebsiteKind;
+  defaultSpeed?: SpeedKey;
+  /** Reklama: reserve a product-image upload box (admin-controlled). */
+  hasProductUpload?: boolean;
   comingSoon?: boolean;
 }
 
@@ -59,12 +67,14 @@ export const TOOLS: ToolDef[] = [
     description:
       "Përshkruaj biznesin dhe Maro ndërton një website profesional shumë-faqesh me Claude Opus 4.8.",
     icon: Globe,
-    accent: "#5a28e5",
-    accentSoft: "#efeafe",
+    accent: "#6b46e5",
+    accentSoft: "#f3f0fe",
     kind: "website",
     route: "/tools/website",
     promptKey: "master_prompt",
     defaultCost: 10,
+    defaultType: "landing",
+    defaultSpeed: "fast",
   },
   {
     id: "logo",
@@ -73,12 +83,14 @@ export const TOOLS: ToolDef[] = [
     description:
       "Gjenero logo dhe simbole marke unike nga një përshkrim, sipas stilit të Logo GPT tënde.",
     icon: Sparkles,
-    accent: "#4285F4",
-    accentSoft: "#e8f0fe",
+    accent: "#6b46e5",
+    accentSoft: "#f3f0fe",
     kind: "image",
     route: "/tools/logo",
     promptKey: "logo",
     defaultCost: 5,
+    defaultSize: "1536x1024",
+    defaultQuality: "high",
     defaultPrompt:
       "You are Maro Logo, an expert brand & logo designer. From the description, produce a single, clean, memorable logo concept. Prefer simple vector-style marks, balanced negative space, a strong silhouette and a limited palette. Center the mark on a plain white background with generous padding. Avoid clutter, gradients-heavy realism, photorealism and text unless explicitly requested.",
   },
@@ -89,12 +101,15 @@ export const TOOLS: ToolDef[] = [
     description:
       "Krijo banner-a dhe kreativë reklamash gati për rrjetet sociale, sipas stilit të Reklama GPT tënde.",
     icon: Megaphone,
-    accent: "#34A853",
-    accentSoft: "#e6f4ea",
+    accent: "#6b46e5",
+    accentSoft: "#f3f0fe",
     kind: "image",
     route: "/tools/reklama",
     promptKey: "reklama",
     defaultCost: 5,
+    defaultSize: "1024x1536",
+    defaultQuality: "high",
+    hasProductUpload: true,
     defaultPrompt:
       "You are Maro Reklama, an expert advertising art director. Produce a scroll-stopping social ad creative with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
   },

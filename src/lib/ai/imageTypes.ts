@@ -6,6 +6,8 @@ export interface AiImageRequest {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
+  /** Optional reference images as data URLs (used as extra prompt context). */
+  attachments?: string[];
 }
 
 export interface AiImageResponse {
