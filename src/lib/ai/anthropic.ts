@@ -31,13 +31,19 @@ function extractJson<T>(text: string): T {
 }
 
 // Call Claude Opus 4.8 (adaptive thinking) and parse the JSON answer.
+//
+// We stream the response. With large max_tokens (a full site can need many
+// output tokens) the SDK refuses NON-streaming requests up front with
+// "Streaming is required for operations that may take longer than 10 minutes".
+// Streaming also keeps the HTTP connection alive during the ~90-110s Opus takes,
+// which is important on serverless platforms.
 export async function callClaudeJSON<T>(opts: {
   system: string;
   user: string;
   maxTokens?: number;
   effort?: string;
 }): Promise<T> {
-  const res = await client().messages.create({
+  const stream = client().messages.stream({
     model: AI_MODEL,
     max_tokens: opts.maxTokens ?? 12000,
     // Opus 4.8 uses adaptive thinking; depth is controlled via effort.
@@ -47,7 +53,9 @@ export async function callClaudeJSON<T>(opts: {
     messages: [{ role: "user", content: opts.user }],
     // Cast: output_config/adaptive are supported at runtime; keep params loose
     // so the build doesn't depend on exact SDK minor-version typings.
-  } as unknown as Anthropic.MessageCreateParamsNonStreaming);
+  } as unknown as Anthropic.MessageStreamParams);
+
+  const res = await stream.finalMessage();
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
