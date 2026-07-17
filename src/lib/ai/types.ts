@@ -46,6 +46,9 @@ export interface AiEditResponse {
 
 // ---- Generate (wizard -> full site) ----
 
+export type WebsiteKind = "landing" | "business" | "platform";
+export type SpeedKey = "slow" | "fast" | "2x";
+
 export interface AiGenerateRequest {
   businessName: string;
   goal: string;
@@ -56,6 +59,10 @@ export interface AiGenerateRequest {
   phone?: string;
   location?: string;
   primaryColor: string;
+  // Beta composer fields
+  userPrompt?: string;
+  websiteType?: WebsiteKind;
+  speed?: SpeedKey;
 }
 
 export interface AiGenerateResponse {

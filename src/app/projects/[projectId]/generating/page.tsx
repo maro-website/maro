@@ -10,6 +10,7 @@ import {
   GENERATION_STAGES,
   runGeneration,
   generateSite,
+  InsufficientCreditsError,
   type GeneratedSite,
 } from "@/lib/services/generationService";
 import { cn } from "@/lib/utils/cn";
@@ -23,6 +24,7 @@ function GeneratingInner() {
 
   const [active, setActive] = React.useState(-1);
   const [done, setDone] = React.useState(false);
+  const [creditError, setCreditError] = React.useState<number | null>(null);
   const startedRef = React.useRef(false);
   const animDoneRef = React.useRef(false);
   const aiSettledRef = React.useRef(false);
@@ -88,8 +90,12 @@ function GeneratingInner() {
       .then((r) => {
         aiResultRef.current = r;
       })
-      .catch(() => {
+      .catch((err) => {
         aiResultRef.current = null;
+        if (err instanceof InsufficientCreditsError) {
+          handle.cancel();
+          setCreditError(err.needed);
+        }
       })
       .finally(() => {
         aiSettledRef.current = true;
@@ -105,6 +111,27 @@ function GeneratingInner() {
     aiSettledRef.current = true;
     finalize();
   };
+
+  if (creditError !== null) {
+    return (
+      <div className="grid min-h-screen place-items-center px-6">
+        <div className="max-w-md text-center">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-danger/10 text-danger">
+            <Sparkles className="h-7 w-7" />
+          </div>
+          <h1 className="mt-5 text-[24px] font-extrabold tracking-[-0.03em] text-ink">
+            Kredite të pamjaftueshme
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
+            Ky gjenerim kërkon {creditError} kredite. Shto kredite dhe provo përsëri.
+          </p>
+          <Button className="mt-6" onClick={() => router.push("/")}>
+            Kthehu në ballinë
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (ready && !project) {
     return (

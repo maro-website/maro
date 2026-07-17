@@ -1,0 +1,81 @@
+// Shared types for the Supabase-backed domain (auth, credits, config).
+// Client-safe: no server-only imports here.
+
+export type WebsiteKind = "landing" | "business" | "platform";
+export type SpeedKey = "slow" | "fast" | "2x";
+export type EffortLevel = "low" | "medium" | "high" | "xhigh";
+export type ModelKey = "claude-opus-4-8";
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  credits: number;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface SpeedConfig {
+  effort: EffortLevel;
+  mult: number;
+}
+
+export interface PricingConfig {
+  types: Record<WebsiteKind, number>;
+  speed: Record<SpeedKey, SpeedConfig>;
+  editCost?: number;
+}
+
+export interface AppSettings {
+  master_prompt: string;
+  pricing: PricingConfig;
+}
+
+export interface GenerationLog {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  prompt: string | null;
+  final_prompt: string | null;
+  website_type: string | null;
+  speed: string | null;
+  model: string | null;
+  credits_spent: number;
+  created_at: string;
+}
+
+export const DEFAULT_PRICING: PricingConfig = {
+  types: { landing: 5, business: 10, platform: 20 },
+  speed: {
+    slow: { effort: "xhigh", mult: 1 },
+    fast: { effort: "high", mult: 1.5 },
+    "2x": { effort: "medium", mult: 2 },
+  },
+};
+
+export const WEBSITE_KINDS: { key: WebsiteKind; label: string; hint: string }[] = [
+  { key: "landing", label: "Landing Page", hint: "Një faqe, fokus konvertimi" },
+  { key: "business", label: "Business Page", hint: "Shumë faqe, biznes i plotë" },
+  { key: "platform", label: "Platform", hint: "Aplikacion / produkt kompleks" },
+];
+
+export const SPEED_OPTIONS: { key: SpeedKey; label: string; hint: string }[] = [
+  { key: "slow", label: "Slow", hint: "Cilësia maksimale" },
+  { key: "fast", label: "Fast", hint: "Balancë" },
+  { key: "2x", label: "2x Faster", hint: "Prioritet, i shpejtë" },
+];
+
+export const MODEL_OPTIONS: { key: ModelKey; label: string }[] = [
+  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+];
+
+// Compute credit cost for a given website type + speed using a pricing config.
+export function creditCost(
+  pricing: PricingConfig,
+  kind: WebsiteKind,
+  speed: SpeedKey
+): number {
+  const base = pricing.types?.[kind] ?? DEFAULT_PRICING.types[kind];
+  const mult = pricing.speed?.[speed]?.mult ?? DEFAULT_PRICING.speed[speed].mult;
+  return Math.ceil(base * mult);
+}

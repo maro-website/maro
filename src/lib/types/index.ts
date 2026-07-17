@@ -27,6 +27,10 @@ export type GenerationMode = "fast" | "smart" | "maximum";
 
 export type LanguageCode = "sq" | "en" | "de";
 
+// Composer selections (Beta): website kind + generation speed.
+export type WebsiteKind = "landing" | "business" | "platform";
+export type SpeedKey = "slow" | "fast" | "2x";
+
 export interface User {
   id: string;
   name: string;
@@ -165,6 +169,10 @@ export interface Project {
   phone?: string;
   location?: string;
   goal: string;
+  // Original free-text prompt the user typed in the composer (Beta).
+  prompt?: string;
+  websiteType?: WebsiteKind;
+  speed?: SpeedKey;
   language: LanguageCode;
   category: WebsiteCategory;
   style: StyleKey;

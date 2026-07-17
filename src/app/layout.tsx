@@ -4,9 +4,9 @@ import { MaroProvider } from "@/context/store";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
-  title: "Maro — Trego çka të duhet. Maro e maron.",
+  title: "MARO Beta Version — Website me AI",
   description:
-    "Maro është platforma me AI që e kthen përshkrimin e biznesit tënd në një website të gatshëm. Trego çka të duhet, Maro e maron.",
+    "MARO Beta Version — përshkruaj website-in që do dhe Maro e maron me AI (Claude Opus 4.8).",
   icons: { icon: "/brand/symbol.svg" },
 };
 

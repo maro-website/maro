@@ -9,22 +9,36 @@ import React, {
   useRef,
   useState,
 } from "react";
+import type { Session } from "@supabase/supabase-js";
 import type { Project, User } from "@/lib/types";
-import { StorageKeys, readJSON, writeJSON, clearAll } from "@/lib/storage/local";
-import { seedProjects, makeNiceAgency, makeCastello } from "@/lib/mock/demo";
+import type { Profile } from "@/lib/supabase/types";
+import { StorageKeys, readJSON, writeJSON } from "@/lib/storage/local";
+import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
 
 interface MaroState {
   ready: boolean;
-  user: User | null;
+  session: Session | null;
+  profile: Profile | null;
   projects: Project[];
 }
 
-interface MaroContextValue extends MaroState {
-  signIn: (email: string, name?: string) => User;
-  signUp: (name: string, email: string) => User;
-  signOut: () => void;
-  resetDemoData: () => void;
+interface MaroContextValue {
+  ready: boolean;
+  session: Session | null;
+  profile: Profile | null;
+  user: User | null;
+  isAdmin: boolean;
+  credits: number;
+  supabaseReady: boolean;
+  projects: Project[];
+  // auth
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
+  // projects (localStorage)
   getProject: (id: string) => Project | undefined;
   addProject: (p: Project) => void;
   updateProject: (id: string, patch: Partial<Project> | ((p: Project) => Project)) => void;
@@ -32,47 +46,38 @@ interface MaroContextValue extends MaroState {
   duplicateProject: (id: string) => Project | undefined;
   renameProject: (id: string, name: string) => void;
   spendCredits: (amount: number) => void;
-  openDemoProject: () => Project;
 }
 
 const MaroContext = createContext<MaroContextValue | null>(null);
 
-const AVATAR_COLORS = ["#5a28e5", "#0ea5b7", "#ea580c", "#12a150", "#8a5a2b"];
-
-function defaultUser(name: string, email: string): User {
+function profileToUser(profile: Profile | null): User | null {
+  if (!profile) return null;
   return {
-    id: uid("user"),
-    name,
-    email,
-    avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+    id: profile.id,
+    name: profile.full_name || profile.email.split("@")[0] || "Ti",
+    email: profile.email,
+    avatarColor: "#5a28e5",
     plan: "free",
-    credits: 100,
-    createdAt: new Date().toISOString(),
+    credits: profile.credits,
+    createdAt: profile.created_at,
   };
 }
 
 export function MaroProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<MaroState>({
     ready: false,
-    user: null,
+    session: null,
+    profile: null,
     projects: [],
   });
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Hydrate once on mount.
+  // ---- projects (localStorage) ----
   useEffect(() => {
-    const user = readJSON<User | null>(StorageKeys.session, null);
-    const seeded = readJSON<boolean>(StorageKeys.seeded, false);
-    let projects = readJSON<Project[]>(StorageKeys.projects, []);
-    if (!seeded || projects.length === 0) {
-      projects = seedProjects();
-      writeJSON(StorageKeys.projects, projects);
-      writeJSON(StorageKeys.seeded, true);
-    }
-    setState({ ready: true, user, projects });
+    const projects = readJSON<Project[]>(StorageKeys.projects, []);
+    setState((s) => ({ ...s, projects }));
   }, []);
 
-  // Persist projects (debounced) whenever they change.
   const persistProjects = useCallback((projects: Project[]) => {
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = setTimeout(() => writeJSON(StorageKeys.projects, projects), 150);
@@ -89,48 +94,116 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [persistProjects]
   );
 
-  const setUser = useCallback((user: User | null) => {
-    writeJSON(StorageKeys.session, user);
-    setState((s) => ({ ...s, user }));
+  // ---- auth / profile ----
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    if (!supabaseConfigured) return null;
+    const sb = getSupabaseBrowser();
+    const { data } = await sb
+      .from("profiles")
+      .select("id, email, full_name, credits, is_admin, created_at")
+      .eq("id", userId)
+      .single();
+    return (data as Profile) ?? null;
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    if (!supabaseConfigured) return;
+    const sb = getSupabaseBrowser();
+    const { data } = await sb.auth.getUser();
+    const u = data.user;
+    if (!u) {
+      setState((s) => ({ ...s, profile: null }));
+      return;
+    }
+    const profile = await fetchProfile(u.id);
+    setState((s) => ({ ...s, profile }));
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    if (!supabaseConfigured) {
+      setState((s) => ({ ...s, ready: true }));
+      return;
+    }
+    const sb = getSupabaseBrowser();
+    let unsub: (() => void) | undefined;
+
+    (async () => {
+      const { data } = await sb.auth.getSession();
+      const session = data.session;
+      const profile = session?.user ? await fetchProfile(session.user.id) : null;
+      setState((s) => ({ ...s, ready: true, session, profile }));
+
+      const { data: sub } = sb.auth.onAuthStateChange(async (_event, newSession) => {
+        const p = newSession?.user ? await fetchProfile(newSession.user.id) : null;
+        setState((s) => ({ ...s, session: newSession, profile: p }));
+      });
+      unsub = () => sub.subscription.unsubscribe();
+    })();
+
+    return () => unsub?.();
+  }, [fetchProfile]);
+
   const signIn = useCallback(
-    (email: string, name?: string) => {
-      const u = defaultUser(name ?? email.split("@")[0] ?? "Ti", email || "ti@maro.al");
-      setUser(u);
-      return u;
+    async (email: string, password: string): Promise<{ error: string | null }> => {
+      if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
+      const sb = getSupabaseBrowser();
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+      await refreshProfile();
+      return { error: null };
     },
-    [setUser]
+    [refreshProfile]
   );
 
   const signUp = useCallback(
-    (name: string, email: string) => {
-      const u = defaultUser(name || "Ti", email || "ti@maro.al");
-      setUser(u);
-      return u;
+    async (name: string, email: string, password: string): Promise<{ error: string | null }> => {
+      if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
+      const sb = getSupabaseBrowser();
+      const { error } = await sb.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      });
+      if (error) return { error: error.message };
+      // If email confirmation is disabled the user is signed in immediately.
+      await refreshProfile();
+      return { error: null };
     },
-    [setUser]
+    [refreshProfile]
   );
 
-  const signOut = useCallback(() => setUser(null), [setUser]);
-
-  const resetDemoData = useCallback(() => {
-    clearAll();
-    const projects = seedProjects();
-    writeJSON(StorageKeys.projects, projects);
-    writeJSON(StorageKeys.seeded, true);
-    setState({ ready: true, user: null, projects });
+  const signOut = useCallback(async () => {
+    if (!supabaseConfigured) return;
+    await getSupabaseBrowser().auth.signOut();
+    setState((s) => ({ ...s, session: null, profile: null }));
   }, []);
 
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    if (!supabaseConfigured) return null;
+    const { data } = await getSupabaseBrowser().auth.getSession();
+    return data.session?.access_token ?? null;
+  }, []);
+
+  // Optimistic local credit decrement; the source of truth is the DB, so we
+  // re-sync shortly after.
+  const spendCredits = useCallback(
+    (amount: number) => {
+      setState((s) => {
+        if (!s.profile) return s;
+        return { ...s, profile: { ...s.profile, credits: Math.max(0, s.profile.credits - amount) } };
+      });
+      setTimeout(() => void refreshProfile(), 1200);
+    },
+    [refreshProfile]
+  );
+
+  // ---- project CRUD ----
   const getProject = useCallback(
     (id: string) => state.projects.find((p) => p.id === id),
     [state.projects]
   );
 
-  const addProject = useCallback(
-    (p: Project) => setProjects((prev) => [p, ...prev]),
-    [setProjects]
-  );
+  const addProject = useCallback((p: Project) => setProjects((prev) => [p, ...prev]), [setProjects]);
 
   const updateProject = useCallback(
     (id: string, patch: Partial<Project> | ((p: Project) => Project)) => {
@@ -174,54 +247,22 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [updateProject]
   );
 
-  const spendCredits = useCallback(
-    (amount: number) => {
-      setState((s) => {
-        if (!s.user) return s;
-        const user = { ...s.user, credits: Math.max(0, s.user.credits - amount) };
-        writeJSON(StorageKeys.session, user);
-        return { ...s, user };
-      });
-    },
-    []
-  );
-
-  const openDemoProject = useCallback((): Project => {
-    let demo = state.projects.find((p) => p.id === "demo-nice");
-    if (!demo) {
-      demo = makeNiceAgency();
-      setProjects((prev) => [demo as Project, ...prev]);
-    }
-    // Ensure a signed-in session for the demo experience.
-    if (!state.user) {
-      setUser({ ...defaultUser("Demo User", "demo@maro.al"), credits: 45 });
-    }
-    return demo;
-  }, [state.projects, state.user, setProjects, setUser]);
-
-  // Guarantee both demo projects exist for the "Try Demo" experience.
-  useEffect(() => {
-    if (!state.ready) return;
-    const hasNice = state.projects.some((p) => p.id === "demo-nice");
-    const hasCastello = state.projects.some((p) => p.id === "demo-castello");
-    if (!hasNice || !hasCastello) {
-      setProjects((prev) => {
-        const additions: Project[] = [];
-        if (!prev.some((p) => p.id === "demo-castello")) additions.push(makeCastello());
-        if (!prev.some((p) => p.id === "demo-nice")) additions.push(makeNiceAgency());
-        return [...additions, ...prev];
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.ready]);
-
+  const profile = state.profile;
   const value = useMemo<MaroContextValue>(
     () => ({
-      ...state,
+      ready: state.ready,
+      session: state.session,
+      profile,
+      user: profileToUser(profile),
+      isAdmin: Boolean(profile?.is_admin),
+      credits: profile?.credits ?? 0,
+      supabaseReady: supabaseConfigured,
+      projects: state.projects,
       signIn,
       signUp,
       signOut,
-      resetDemoData,
+      refreshProfile,
+      getAccessToken,
       getProject,
       addProject,
       updateProject,
@@ -229,14 +270,17 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       duplicateProject,
       renameProject,
       spendCredits,
-      openDemoProject,
     }),
     [
-      state,
+      state.ready,
+      state.session,
+      profile,
+      state.projects,
       signIn,
       signUp,
       signOut,
-      resetDemoData,
+      refreshProfile,
+      getAccessToken,
       getProject,
       addProject,
       updateProject,
@@ -244,7 +288,6 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       duplicateProject,
       renameProject,
       spendCredits,
-      openDemoProject,
     ]
   );
 

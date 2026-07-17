@@ -1,15 +1,15 @@
-# Maro — Phase 1 (Local Prototype)
+# MARO Beta Version
 
 > Trego çka të duhet. **Maro e maron.**
 
-An AI-powered website builder — **Phase 1 local prototype**. Everything runs
-locally with simulated data (no database, auth, or payments). The product looks
-and behaves like a real SaaS app so the complete UX can be tested and demoed.
+An AI-powered website builder — **Beta**. A single-screen, app-first experience:
+you land, type what website you want, pick the type + speed, and Maro generates
+it with **Anthropic Claude Opus 4.8** (`claude-opus-4-8`).
 
-**Real AI is wired in:** website generation and the in-editor chat are powered
-by **Anthropic Claude Opus 4.8** (`claude-opus-4-8`) via local API routes. Add a
-key to use it; without one, Maro falls back to the built-in mock AI so the app
-still runs fully offline.
+Real backend is wired in via **Supabase**: real email/password auth, per-user
+credits, a generation log, and an in-app **Admin** panel (grant credits, edit the
+master prompt, edit pricing). Projects are stored in `localStorage` for this
+iteration. Credits are **test mode** — only the admin grants them.
 
 ## Stack
 
@@ -48,26 +48,51 @@ cp .env.example .env.local
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | _(empty)_ | Your key. Empty = mock AI fallback. |
 | `ANTHROPIC_MODEL` | `claude-opus-4-8` | Model id. |
-| `ANTHROPIC_EFFORT` | `high` | Adaptive-thinking effort (`low`–`xhigh`). |
+| `ANTHROPIC_EFFORT` | `high` | Default adaptive-thinking effort. Speed overrides it per request. |
+| `NEXT_PUBLIC_SUPABASE_URL` | _(empty)_ | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(empty)_ | Supabase anon (public) key. |
+| `SUPABASE_SERVICE_ROLE_KEY` | _(empty)_ | Server-only service role key (credit deduction). Keep secret. |
 
-`.env.local` is gitignored. With no key, the wizard uses the local content
-factory and the editor chat uses the local interpreter — nothing breaks.
+`.env.local` is gitignored. With no Anthropic key the generation falls back to
+the local content factory. With no Supabase keys the app runs but auth/credits
+are disabled.
+
+### Supabase setup (one time)
+
+1. Create a free Supabase project → copy the URL + anon key + service role key
+   into `.env.local` (and into Vercel → Project → Settings → Environment
+   Variables for all environments).
+2. Open Supabase → SQL Editor → run the contents of
+   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql). This
+   creates `profiles`, `app_settings` (master prompt + pricing), `generations`,
+   RLS policies, the signup trigger, and the atomic `spend_credits` function.
+3. The admin account is **`erzen@nice.al`** — sign up with that email and it is
+   auto-flagged as admin (with test credits). Everyone else starts at 0 credits;
+   the admin grants credits from `/admin`.
+
+### Credit model (editable in `/admin`)
+
+- Base per type: Landing = 5, Business = 10, Platform = 20 credits.
+- Speed multiplies cost and sets Opus effort: Slow (`xhigh`, ×1), Fast
+  (`high`, ×1.5), 2x Faster (`medium`, ×2). Cost = `ceil(base × mult)`.
+- Editor chat edits cost a flat `editCost` (default 2). Credits are deducted
+  **atomically server-side** before the model is called, and refunded on failure.
 
 AI endpoints: `POST /api/ai/generate` (wizard → full site) and
 `POST /api/ai/edit` (editor chat → theme/section edits). Both run server-side so
 your key is never exposed to the browser. All imagery stays 100% local
 (deterministic SVGs) — the model never returns external image URLs.
 
-## The full journey (all local)
+## The journey
 
-Landing → Sign up → Dashboard → New project wizard → Simulated generation →
-Editor (AI chat, live text/color/font/image editing, pages, versions, SEO) →
-Publish → fake `*.maro.al` URL → back to Dashboard. State persists in
-`localStorage` across refreshes.
+Home (composer) → type your prompt + pick Type/Speed → Generate → (login gate if
+needed → credit gate if needed) → simulated build → Editor (AI chat, live
+text/color/font/image editing, pages, versions, SEO) → Publish → `*.maro.al`
+preview. Projects persist in `localStorage`; auth + credits live in Supabase.
 
-- **Try Demo** on the landing page opens the flagship demo project (NICE
-  Creative Agency) fully populated.
-- **Reset Demo Data** (user menu) clears local data and restores defaults.
+- **`/`** — app shell: sidebar (projects, account, admin) + centered composer.
+- **`/admin`** — admin only: grant credits, edit master prompt (+ final-prompt
+  preview), edit pricing, view generation log.
 
 ## Structure
 
@@ -76,20 +101,22 @@ src/
   app/                     # routes (landing, auth, dashboard, wizard, editor, ...)
   components/
     ui/                    # reusable primitives (Button, Modal, Toast, ...)
-    marketing/             # landing page
-    dashboard/             # app header, project cards
-    wizard/                # new-project flow
+    app/                   # composer, home sidebar, credit/auth modals
+    auth/                  # auth panel + layout
+    dashboard/             # app header
     editor/                # editor shell + panels
     website-previews/      # live generated-website renderer (swappable)
-  context/                 # global store + editor state
+  context/                 # global store (Supabase auth) + editor state
   lib/
     types/                 # data model
-    mock/                  # themes, content factory, demo/seed data, images
+    supabase/              # browser + server clients, domain types
+    hooks/                 # useSettings (pricing + master prompt)
+    mock/                  # themes, content factory, images
     ai/                    # Claude Opus 4.8 client, prompts, schema, normalize
     services/              # generation / publish / ai-edit / project services
     storage/               # localStorage layer
     utils/
-  hooks/
+supabase/migrations/       # SQL schema (run in Supabase SQL editor)
   app/api/ai/              # server routes: /generate and /edit
 ```
 

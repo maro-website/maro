@@ -29,7 +29,7 @@ export function AuthLayout({
           </div>
         </div>
         <div className="text-center text-[12.5px] text-ink-3">
-          Phase 1 prototype · autentikimi është i simuluar
+          MARO Beta Version · maro.al
         </div>
       </div>
 

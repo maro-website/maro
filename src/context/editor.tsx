@@ -14,7 +14,12 @@ import type {
 } from "@/lib/types";
 import type { EditTarget } from "@/components/website-previews/Editable";
 import { useMaro } from "@/context/store";
-import { interpretPrompt, requestAiEdit, type AiEditResult } from "@/lib/services/aiEditService";
+import {
+  interpretPrompt,
+  requestAiEdit,
+  InsufficientCreditsError,
+  type AiEditResult,
+} from "@/lib/services/aiEditService";
 import { uid, slugify } from "@/lib/utils/format";
 
 export type Device = "desktop" | "tablet" | "mobile";
@@ -376,10 +381,32 @@ export function EditorProvider({
         setSending(false);
       };
 
-      // Call the real model; fall back to the local interpreter on any failure.
+      const showError = (text: string) => {
+        updateProject(projectRef.current.id, (p) => ({
+          ...p,
+          conversation: {
+            ...p.conversation,
+            messages: p.conversation.messages.map((m) =>
+              m.id === thinkingId ? { ...m, content: text, status: "done" } : m
+            ),
+          },
+        }));
+        setSending(false);
+      };
+
+      // Call the real model; fall back to the local interpreter on failures,
+      // except for credit errors which must be surfaced (no free mock edit).
       requestAiEdit(prompt, projectRef.current)
         .then(apply)
-        .catch(() => apply(interpretPrompt(prompt)));
+        .catch((err) => {
+          if (err instanceof InsufficientCreditsError) {
+            showError(
+              `Nuk ke kredite të mjaftueshme për këtë ndryshim (nevojiten ${err.needed}). Shto kredite për të vazhduar.`
+            );
+            return;
+          }
+          apply(interpretPrompt(prompt));
+        });
     },
     [sending, updateProject, spendCredits, markSaving]
   );

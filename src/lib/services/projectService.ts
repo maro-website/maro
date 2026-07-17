@@ -1,6 +1,41 @@
-import type { Project, WizardDraft, Asset } from "@/lib/types";
+import type { Project, WizardDraft, Asset, WebsiteKind, SpeedKey } from "@/lib/types";
 import { makeProject } from "@/lib/mock/demo";
 import { uid } from "@/lib/utils/format";
+
+// Derive a short, human business name from a free-text prompt.
+function deriveName(prompt: string): string {
+  const clean = prompt.trim().replace(/\s+/g, " ");
+  if (!clean) return "Website i ri";
+  // Prefer a quoted name if present.
+  const quoted = clean.match(/["'“”«»]([^"'“”«»]{2,40})["'“”«»]/);
+  if (quoted) return quoted[1].trim();
+  const words = clean.split(" ").slice(0, 5).join(" ");
+  return words.length > 42 ? words.slice(0, 42) + "…" : words;
+}
+
+// Build a Project directly from the Beta composer input (prompt + selectors).
+export function createProjectFromComposer(input: {
+  prompt: string;
+  websiteType: WebsiteKind;
+  speed: SpeedKey;
+  primaryColor?: string;
+}): Project {
+  const name = deriveName(input.prompt);
+  const p = makeProject({
+    name,
+    businessName: name,
+    goal: input.prompt,
+    category: "generic",
+    style: "auto",
+    language: "sq",
+    status: "generating",
+    primaryColor: input.primaryColor || "#5a28e5",
+  });
+  p.prompt = input.prompt;
+  p.websiteType = input.websiteType;
+  p.speed = input.speed;
+  return p;
+}
 
 // Turn a completed wizard draft into a full Project (status: generating).
 export function createProjectFromDraft(draft: WizardDraft): Project {

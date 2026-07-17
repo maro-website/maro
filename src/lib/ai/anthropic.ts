@@ -35,13 +35,14 @@ export async function callClaudeJSON<T>(opts: {
   system: string;
   user: string;
   maxTokens?: number;
+  effort?: string;
 }): Promise<T> {
   const res = await client().messages.create({
     model: AI_MODEL,
     max_tokens: opts.maxTokens ?? 12000,
     // Opus 4.8 uses adaptive thinking; depth is controlled via effort.
     thinking: { type: "adaptive" },
-    output_config: { effort: AI_EFFORT },
+    output_config: { effort: opts.effort || AI_EFFORT },
     system: opts.system,
     messages: [{ role: "user", content: opts.user }],
     // Cast: output_config/adaptive are supported at runtime; keep params loose

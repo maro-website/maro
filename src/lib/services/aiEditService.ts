@@ -2,6 +2,18 @@ import type { Project, WebsiteSection } from "@/lib/types";
 import { uid, slugify } from "@/lib/utils/format";
 import type { AiEditRequest, AiEditResponse } from "@/lib/ai/types";
 import { normalizeSections, normalizeTheme } from "@/lib/ai/normalize";
+import { getAccessToken } from "@/lib/supabase/client";
+
+export class InsufficientCreditsError extends Error {
+  needed: number;
+  have: number;
+  constructor(needed: number, have: number) {
+    super("INSUFFICIENT_CREDITS");
+    this.name = "InsufficientCreditsError";
+    this.needed = needed;
+    this.have = have;
+  }
+}
 
 export interface AiEditResult {
   response: string;
@@ -31,11 +43,19 @@ export async function requestAiEdit(prompt: string, project: Project): Promise<A
       .slice(0, 8),
   };
 
+  const token = await getAccessToken();
   const res = await fetch("/api/ai/edit", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(req),
   });
+  if (res.status === 402) {
+    const j = await res.json().catch(() => ({}));
+    throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
+  }
   if (!res.ok) throw new Error(`ai-edit-http-${res.status}`);
 
   const data = (await res.json()) as AiEditResponse;

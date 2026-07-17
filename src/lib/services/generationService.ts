@@ -6,6 +6,18 @@
 import type { Project, Theme, WebsitePage } from "@/lib/types";
 import type { AiGenerateRequest, AiGenerateResponse } from "@/lib/ai/types";
 import { buildPagesFromAi, normalizeTheme } from "@/lib/ai/normalize";
+import { getAccessToken } from "@/lib/supabase/client";
+
+export class InsufficientCreditsError extends Error {
+  needed: number;
+  have: number;
+  constructor(needed: number, have: number) {
+    super("INSUFFICIENT_CREDITS");
+    this.name = "InsufficientCreditsError";
+    this.needed = needed;
+    this.have = have;
+  }
+}
 
 export interface GenStage {
   key: string;
@@ -83,13 +95,24 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     phone: project.phone,
     location: project.location,
     primaryColor: project.theme.primaryColor,
+    userPrompt: project.prompt ?? project.goal,
+    websiteType: project.websiteType,
+    speed: project.speed,
   };
 
+  const token = await getAccessToken();
   const res = await fetch("/api/ai/generate", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(req),
   });
+  if (res.status === 402) {
+    const j = await res.json().catch(() => ({}));
+    throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
+  }
   if (!res.ok) throw new Error(`ai-generate-http-${res.status}`);
 
   const data = (await res.json()) as AiGenerateResponse;

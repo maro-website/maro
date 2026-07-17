@@ -70,6 +70,55 @@ CURRENT PAGE SECTIONS:
 ${JSON.stringify(req.page.sections)}`;
 }
 
+const WEBSITE_TYPE_GUIDE: Record<string, string> = {
+  landing:
+    "WEBSITE TYPE: Landing Page — produce ONE focused page (slug 'home') with 6-8 high-converting sections (hero, features/services, stats or testimonial, pricing or process, cta, contact). No secondary pages.",
+  business:
+    "WEBSITE TYPE: Business Page — produce 3-4 pages (home + about + services/menu/work + contact). Rich, credible content across pages.",
+  platform:
+    "WEBSITE TYPE: Platform / Product — produce 4-5 pages positioning a software product or platform (home, features, pricing, about/company, contact). Emphasise product value, feature breakdowns, pricing tiers and social proof.",
+};
+
+// Compose the final generation system prompt from the admin-editable master
+// prompt + the fixed schema + the selected website-type guidance.
+export function buildComposedGenerateSystem(
+  req: AiGenerateRequest,
+  masterPrompt: string
+): string {
+  const typeGuide = WEBSITE_TYPE_GUIDE[req.websiteType ?? "business"] ?? WEBSITE_TYPE_GUIDE.business;
+  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are Maro AI. Generate a complete, professional website. The output is rendered by a fixed component library, so you must follow the section schema exactly.
+
+${typeGuide}
+
+${SECTION_SPEC}
+
+${THEME_SPEC}
+
+RULES:
+1. The first page MUST have slug "home". Every page's first section should be a "hero". End pages with "cta" and/or "contact" where appropriate.
+2. Write specific, credible, conversion-focused copy in ${langName(req.language)} tailored to THIS business — never generic placeholder text.
+3. Choose a "theme" that matches the brand: keep primaryColor close to ${req.primaryColor}, pick tasteful fonts and buttonStyle for the industry.
+4. Each page needs "seo": { title, description (<=155 chars), slug }.
+5. Follow the IMAGE RULES strictly (empty strings / empty arrays).
+
+Respond with ONLY a JSON object (no markdown, no prose):
+{"theme": object, "pages": [{"name": string, "slug": string, "sections": array, "seo": {"title": string, "description": string, "slug": string}}]}`;
+}
+
+export function buildComposedGenerateUser(req: AiGenerateRequest): string {
+  return `USER REQUEST (what the user typed):
+${req.userPrompt || req.goal || "(none)"}
+
+BUSINESS DETAILS:
+- Name: ${req.businessName}
+- Tagline: ${req.tagline || "(none)"}
+- Brand color: ${req.primaryColor}
+- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
+- Content language: ${langName(req.language)}
+
+Generate the full website now.`;
+}
+
 export function buildGenerateSystem(req: AiGenerateRequest): string {
   return `You are Maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
