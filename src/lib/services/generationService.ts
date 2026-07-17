@@ -25,12 +25,14 @@ export class GenerationError extends Error {
   code: string;
   fallbackOk: boolean;
   status: number;
-  constructor(code: string, status: number, fallbackOk: boolean) {
+  detail?: string;
+  constructor(code: string, status: number, fallbackOk: boolean, detail?: string) {
     super(code);
     this.name = "GenerationError";
     this.code = code;
     this.status = status;
     this.fallbackOk = fallbackOk;
+    this.detail = detail;
   }
 }
 
@@ -129,10 +131,14 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
   }
   if (!res.ok) {
-    const j = (await res.json().catch(() => ({}))) as { error?: string; fallback?: boolean };
+    const j = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      detail?: string;
+      fallback?: boolean;
+    };
     const code = j.error || `http-${res.status}`;
     // Only a missing API key (dev) justifies falling back to factory content.
-    throw new GenerationError(code, res.status, code === "no-key");
+    throw new GenerationError(code, res.status, code === "no-key", j.detail);
   }
 
   const data = (await res.json()) as AiGenerateResponse;

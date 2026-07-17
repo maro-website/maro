@@ -3,6 +3,21 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
 const AI_EFFORT = process.env.ANTHROPIC_EFFORT || "high";
+const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64000;
+
+// A precise, surfaced Claude failure so the UI can show the real cause.
+export class ClaudeError extends Error {
+  code: string;
+  detail: string;
+  status?: number;
+  constructor(code: string, detail = "", status?: number) {
+    super(code);
+    this.name = "ClaudeError";
+    this.code = code;
+    this.detail = detail;
+    this.status = status;
+  }
+}
 
 export function hasAiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
@@ -45,7 +60,7 @@ export async function callClaudeJSON<T>(opts: {
 }): Promise<T> {
   const stream = client().messages.stream({
     model: AI_MODEL,
-    max_tokens: opts.maxTokens ?? 12000,
+    max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
     // Opus 4.8 uses adaptive thinking; depth is controlled via effort.
     thinking: { type: "adaptive" },
     output_config: { effort: opts.effort || AI_EFFORT },
@@ -55,12 +70,35 @@ export async function callClaudeJSON<T>(opts: {
     // so the build doesn't depend on exact SDK minor-version typings.
   } as unknown as Anthropic.MessageStreamParams);
 
-  const res = await stream.finalMessage();
+  let res: Anthropic.Message;
+  try {
+    res = await stream.finalMessage();
+  } catch (e) {
+    // API-level failure: bad key, no model access, rate limit, overloaded, timeout.
+    const anyE = e as {
+      status?: number;
+      message?: string;
+      error?: { error?: { message?: string; type?: string } };
+    };
+    const detail = anyE?.error?.error?.message || anyE?.message || "unknown error";
+    throw new ClaudeError("api-error", detail, anyE?.status);
+  }
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("\n");
 
-  return extractJson<T>(text);
+  if (!text.trim()) {
+    throw new ClaudeError("empty", `stop_reason=${res.stop_reason}`);
+  }
+
+  try {
+    return extractJson<T>(text);
+  } catch {
+    // The most common real failure: the JSON got cut off because the response
+    // hit the token ceiling (thinking + output combined).
+    const code = res.stop_reason === "max_tokens" ? "truncated" : "parse-failed";
+    throw new ClaudeError(code, `stop_reason=${res.stop_reason} chars=${text.length}`);
+  }
 }

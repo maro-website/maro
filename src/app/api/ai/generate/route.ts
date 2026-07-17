@@ -86,7 +86,6 @@ export async function POST(req: Request) {
     const result = await callClaudeJSON<AiGenerateResponse>({
       system,
       user,
-      maxTokens: 32000,
       effort,
     });
     if (!result?.pages?.length) {
@@ -109,6 +108,15 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("[ai/generate] failed:", err);
     if (userId && cost) await refundCredits(userId, cost);
-    return NextResponse.json({ error: "ai-failed", fallback: true }, { status: 502 });
+    const e = err as { code?: string; detail?: string; message?: string; status?: number };
+    return NextResponse.json(
+      {
+        error: e?.code || "ai-failed",
+        detail: e?.detail || e?.message || undefined,
+        status: e?.status,
+        fallback: true,
+      },
+      { status: 502 }
+    );
   }
 }

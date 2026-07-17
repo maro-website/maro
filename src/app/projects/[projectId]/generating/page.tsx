@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthGate } from "@/components/dashboard/AuthGate";
-import { Logo } from "@/components/ui/Logo";
+import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import {
@@ -15,7 +16,15 @@ import {
   type GeneratedSite,
 } from "@/lib/services/generationService";
 import { cn } from "@/lib/utils/cn";
-import { Check, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Check,
+  ArrowRight,
+  Sparkles,
+  AlertTriangle,
+  Coins,
+  Eye,
+  Globe,
+} from "lucide-react";
 
 function GeneratingInner() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -27,14 +36,13 @@ function GeneratingInner() {
   const [done, setDone] = React.useState(false);
   const [creditError, setCreditError] = React.useState<number | null>(null);
   const [genError, setGenError] = React.useState<string | null>(null);
+  const [genDetail, setGenDetail] = React.useState<string | null>(null);
   const startedRef = React.useRef(false);
   const animDoneRef = React.useRef(false);
   const aiSettledRef = React.useRef(false);
   const aiResultRef = React.useRef<GeneratedSite | null>(null);
   const finalizedRef = React.useRef(false);
 
-  // Apply the AI-generated site (or fall back to the local factory content that
-  // is already on the project) and reveal the success screen.
   const finalize = React.useCallback(() => {
     if (finalizedRef.current) return;
     finalizedRef.current = true;
@@ -68,7 +76,6 @@ function GeneratingInner() {
 
   React.useEffect(() => {
     if (!ready || !project || startedRef.current) return;
-    // Skip re-running if already generated.
     if (project.status !== "generating") {
       finalizedRef.current = true;
       setActive(GENERATION_STAGES.length - 1);
@@ -83,12 +90,9 @@ function GeneratingInner() {
         animDoneRef.current = true;
         maybeFinalize();
       },
-      // Opus 4.8 takes ~80-90s for a full site; pace the stages to match.
       totalMs: 78000,
     });
 
-    // Real content generation (Claude Opus 4.8). On any failure we keep the
-    // local factory content already present on the project.
     generateSite(project)
       .then((r) => {
         aiResultRef.current = r;
@@ -99,12 +103,10 @@ function GeneratingInner() {
           handle.cancel();
           setCreditError(err.needed);
         } else if (err instanceof GenerationError && !err.fallbackOk) {
-          // A real API failure (bad key, timeout, model access, empty output).
-          // Surface it instead of silently serving generic factory content.
           handle.cancel();
           setGenError(err.code);
+          setGenDetail(err.detail ?? null);
         }
-        // no-key (fallbackOk) → keep local factory content (dev without a key).
       })
       .finally(() => {
         aiSettledRef.current = true;
@@ -115,221 +117,236 @@ function GeneratingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, project?.id]);
 
-  const skip = () => {
-    animDoneRef.current = true;
-    aiSettledRef.current = true;
-    finalize();
-  };
-
-  if (genError !== null) {
-    const messages: Record<string, string> = {
-      "no-key": "Çelësi i Anthropic nuk është konfiguruar në server.",
-      unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
-      "ai-failed": "Modeli nuk u përgjigj (mund të jetë timeout ose problem me çelësin/aksesin). Provo me shpejtësi '2x Faster' ose provo përsëri.",
-      empty: "Modeli ktheu një përgjigje bosh. Provo përsëri.",
-      "http-504": "Gjenerimi zgjati shumë dhe u ndërpre (timeout). Provo me shpejtësi më të lartë.",
-    };
-    return (
-      <div className="grid min-h-screen place-items-center px-6">
-        <div className="max-w-md text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-danger/10 text-danger">
-            <Sparkles className="h-7 w-7" />
-          </div>
-          <h1 className="mt-5 text-[24px] font-extrabold tracking-[-0.03em] text-ink">
-            Gjenerimi dështoi
-          </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
-            {messages[genError] || `Ndodhi një gabim (${genError}).`}
-          </p>
-          <p className="mt-1 text-[12.5px] text-ink-3">Kreditet u kthyen automatikisht.</p>
-          <div className="mt-6 flex justify-center gap-2.5">
-            <Button variant="outline" onClick={() => router.push("/")}>
-              Ballina
-            </Button>
-            <Button onClick={() => window.location.reload()}>Provo përsëri</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (creditError !== null) {
-    return (
-      <div className="grid min-h-screen place-items-center px-6">
-        <div className="max-w-md text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-danger/10 text-danger">
-            <Sparkles className="h-7 w-7" />
-          </div>
-          <h1 className="mt-5 text-[24px] font-extrabold tracking-[-0.03em] text-ink">
-            Kredite të pamjaftueshme
-          </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
-            Ky gjenerim kërkon {creditError} kredite. Shto kredite dhe provo përsëri.
-          </p>
-          <Button className="mt-6" onClick={() => router.push("/")}>
-            Kthehu në ballinë
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   if (ready && !project) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <div className="text-center">
-          <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
-          <Button className="mt-4" onClick={() => router.push("/dashboard")}>Kthehu te dashboard</Button>
+      <AppShell>
+        <div className="grid h-full place-items-center px-6">
+          <div className="text-center">
+            <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
+            <Button className="mt-4" onClick={() => router.push("/tools/website")}>
+              Kthehu te Maro Website
+            </Button>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
-  const progress = done ? 1 : Math.max(0, (active + 1) / GENERATION_STAGES.length);
+  const prompt = project?.prompt || project?.goal || project?.businessName || "";
+  const pageCount = project?.pages?.length ?? 0;
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[440px_1fr]">
-      {/* Left: stages */}
-      <div className="flex flex-col border-r border-line bg-canvas px-8 py-8">
-        <Logo />
-        <div className="flex flex-1 flex-col justify-center py-8">
-          {!done ? (
-            <>
-              <div className="mb-1 inline-flex w-fit items-center gap-2 rounded-full bg-brand-soft px-3 py-1 text-[12px] font-semibold text-brand">
-                <Sparkles className="h-3.5 w-3.5" /> Maro po e maron
+    <AppShell>
+      <div className="flex h-full flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+          <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8 sm:py-12">
+            {/* User message */}
+            {prompt && (
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand px-4 py-3 text-[15px] leading-relaxed text-brand-fg">
+                  {prompt}
+                </div>
               </div>
-              <h1 className="mt-3 text-[26px] font-extrabold tracking-[-0.03em] text-ink">
-                {project?.businessName}
-              </h1>
-              <p className="mt-1.5 text-[14px] text-ink-2">
-                Po ndërtojmë website-in tënd me Claude Opus 4.8. Kjo zakonisht zgjat ~1–2 minuta.
-              </p>
+            )}
 
-              {/* progress line */}
-              <div className="mt-7 h-1.5 w-full overflow-hidden rounded-full bg-line-strong">
-                <div
-                  className="h-full rounded-full bg-brand transition-all duration-700 ease-out"
-                  style={{ width: `${progress * 100}%` }}
-                />
-              </div>
-
-              <div className="mt-7 flex flex-col gap-1">
-                {GENERATION_STAGES.map((stage, i) => {
-                  const isDone = i < active || done;
-                  const isActive = i === active && !done;
-                  return (
-                    <div
-                      key={stage.key}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
-                        isActive && "bg-surface"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-all",
-                          isDone
-                            ? "border-brand bg-brand text-white"
-                            : isActive
-                            ? "border-brand text-brand"
-                            : "border-line-strong text-ink-3"
-                        )}
-                      >
-                        {isDone ? (
-                          <Check className="h-3.5 w-3.5" />
-                        ) : isActive ? (
-                          <span className="h-2 w-2 rounded-full bg-brand animate-pulse-soft" />
-                        ) : (
-                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                        )}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[14px] transition-colors",
-                          isDone || isActive ? "font-semibold text-ink" : "text-ink-3"
-                        )}
-                      >
-                        {stage.label}
-                      </span>
+            {/* Assistant */}
+            <div className="flex gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1 space-y-3">
+                {genError ? (
+                  <ErrorCard
+                    code={genError}
+                    detail={genDetail}
+                    onRetry={() => window.location.reload()}
+                  />
+                ) : creditError !== null ? (
+                  <CreditCard needed={creditError} onBack={() => router.push("/tools/website")} />
+                ) : (
+                  <>
+                    <div className="text-[15px] font-semibold text-ink">
+                      {done ? "Faqja jote u maru." : "Po e maroj faqen tënde me Claude Opus 4.8…"}
                     </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="animate-fade-up">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-success/10 text-success">
-                <Check className="h-7 w-7" />
-              </div>
-              <h1 className="mt-5 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
-                Website-i yt u maru.
-              </h1>
-              <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
-                Gjithçka është gati. Hape editorin për të parë dhe redaktuar website-in tënd.
-              </p>
-              <Button
-                size="lg"
-                className="mt-6"
-                iconRight={<ArrowRight className="h-4 w-4" />}
-                onClick={() => router.push(`/projects/${projectId}/editor`)}
-              >
-                Hape editorin
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {!done && (
-          <button
-            onClick={skip}
-            className="text-left text-[12.5px] font-medium text-ink-3 transition-colors hover:text-ink-2"
-          >
-            Skip generation (dev)
-          </button>
-        )}
-      </div>
-
-      {/* Right: preview building up */}
-      <div className="relative hidden overflow-hidden bg-surface-2 lg:block">
-        <div className="absolute inset-0 bg-dot opacity-40" />
-        <div className="relative flex h-full items-center justify-center p-10">
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-line bg-white shadow-pop">
-            <div className="flex h-9 items-center gap-1.5 border-b border-line bg-surface-2 px-4">
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
-            </div>
-            <div className="space-y-4 p-6">
-              <SkeletonBlock show={active >= 0 || done} className="h-8 w-40" />
-              <SkeletonBlock show={active >= 1 || done} className="h-24 w-full" />
-              <div className="grid grid-cols-3 gap-3">
-                <SkeletonBlock show={active >= 2 || done} className="h-20" delay={0} />
-                <SkeletonBlock show={active >= 3 || done} className="h-20" delay={100} />
-                <SkeletonBlock show={active >= 4 || done} className="h-20" delay={200} />
-              </div>
-              <SkeletonBlock show={active >= 5 || done} className="h-32 w-full" />
-              <div className="flex gap-3">
-                <SkeletonBlock show={active >= 6 || done} className="h-10 w-28" />
-                <SkeletonBlock show={active >= 6 || done} className="h-10 w-28" />
+                    <StepList active={active} done={done} />
+                    <AnimatePresence>
+                      {done && project && (
+                        <ResultCard
+                          name={project.businessName}
+                          color={project.theme?.primaryColor ?? "#6b46e5"}
+                          pages={pageCount}
+                          onOpen={() => router.push(`/projects/${projectId}/editor`)}
+                          onPreview={() => router.push(`/projects/${projectId}/preview`)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+    </AppShell>
+  );
+}
+
+function StepList({ active, done }: { active: number; done: boolean }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-2">
+      {GENERATION_STAGES.map((stage, i) => {
+        const isDone = i < active || done;
+        const isActive = i === active && !done;
+        return (
+          <div
+            key={stage.key}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2 transition-colors",
+              isActive && "bg-surface-2"
+            )}
+          >
+            <span
+              className={cn(
+                "grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all",
+                isDone
+                  ? "border-brand bg-brand text-white"
+                  : isActive
+                  ? "border-brand text-brand"
+                  : "border-line-strong text-ink-3"
+              )}
+            >
+              {isDone ? (
+                <Check className="h-3 w-3" />
+              ) : isActive ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse-soft" />
+              ) : (
+                <span className="h-1 w-1 rounded-full bg-current" />
+              )}
+            </span>
+            <span
+              className={cn(
+                "text-[14px] transition-colors",
+                isDone || isActive ? "font-medium text-ink" : "text-ink-3"
+              )}
+            >
+              {stage.label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function SkeletonBlock({ show, className, delay = 0 }: { show: boolean; className?: string; delay?: number }) {
+function ResultCard({
+  name,
+  color,
+  pages,
+  onOpen,
+  onPreview,
+}: {
+  name: string;
+  color: string;
+  pages: number;
+  onOpen: () => void;
+  onPreview: () => void;
+}) {
   return (
-    <div
-      className={cn(
-        "rounded-xl transition-all duration-500",
-        show ? "skeleton opacity-100" : "bg-surface-2 opacity-30",
-        className
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden rounded-2xl border border-line bg-surface shadow-pop"
+    >
+      {/* Mini browser mockup */}
+      <div className="relative h-36 overflow-hidden" style={{ background: color }}>
+        <div className="absolute inset-x-0 top-0 flex h-8 items-center gap-1.5 bg-black/10 px-3">
+          <span className="h-2 w-2 rounded-full bg-white/60" />
+          <span className="h-2 w-2 rounded-full bg-white/60" />
+          <span className="h-2 w-2 rounded-full bg-white/60" />
+        </div>
+        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+          <Globe className="h-6 w-6 text-white/90" />
+          <div className="mt-2 text-[16px] font-extrabold tracking-[-0.02em] text-white">
+            {name}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <div className="text-[14.5px] font-semibold text-ink">{name}</div>
+          <div className="text-[12.5px] text-ink-3">
+            {pages} {pages === 1 ? "faqe" : "faqe"} · gati për editim
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" icon={<Eye className="h-4 w-4" />} onClick={onPreview}>
+            Preview
+          </Button>
+          <Button size="sm" iconRight={<ArrowRight className="h-4 w-4" />} onClick={onOpen}>
+            Editor
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+const ERROR_MESSAGES: Record<string, string> = {
+  "no-key": "Çelësi i Anthropic nuk është konfiguruar në server.",
+  "api-error": "Modeli ktheu një gabim (çelës, akses te modeli, ose rate limit).",
+  truncated: "Përgjigja u ndërpre nga limiti i token-ave. Provo 'Landing Page' ose provo përsëri.",
+  "parse-failed": "Përgjigja e modelit nuk u lexua dot. Provo përsëri.",
+  unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
+  "ai-failed": "Modeli nuk u përgjigj. Provo përsëri.",
+  empty: "Modeli ktheu një përgjigje bosh. Provo përsëri.",
+  "http-504": "Gjenerimi zgjati shumë dhe u ndërpre (timeout). Provo përsëri.",
+};
+
+function ErrorCard({
+  code,
+  detail,
+  onRetry,
+}: {
+  code: string;
+  detail: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+      <div className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+        <AlertTriangle className="h-5 w-5 text-danger" /> Gjenerimi dështoi
+      </div>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+        {ERROR_MESSAGES[code] || `Ndodhi një gabim (${code}).`}
+      </p>
+      {detail && (
+        <p className="mt-2 break-words rounded-lg bg-surface px-3 py-2 font-mono text-[11.5px] text-ink-3">
+          {detail}
+        </p>
       )}
-      style={{ transitionDelay: `${delay}ms` }}
-    />
+      <p className="mt-2 text-[12.5px] text-ink-3">Kreditet u kthyen automatikisht.</p>
+      <Button size="sm" className="mt-3" onClick={onRetry}>
+        Provo përsëri
+      </Button>
+    </div>
+  );
+}
+
+function CreditCard({ needed, onBack }: { needed: number; onBack: () => void }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+        <Coins className="h-5 w-5 text-brand" /> Kredite të pamjaftueshme
+      </div>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+        Ky gjenerim kërkon {needed} kredite. Shto kredite dhe provo përsëri.
+      </p>
+      <Button size="sm" className="mt-3" onClick={onBack}>
+        Kthehu
+      </Button>
+    </div>
   );
 }
 
