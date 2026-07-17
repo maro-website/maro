@@ -19,6 +19,21 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+// A real generation failure. `fallbackOk` is true only when there is no API key
+// configured (dev mode) — in that case the caller may use local factory content.
+export class GenerationError extends Error {
+  code: string;
+  fallbackOk: boolean;
+  status: number;
+  constructor(code: string, status: number, fallbackOk: boolean) {
+    super(code);
+    this.name = "GenerationError";
+    this.code = code;
+    this.status = status;
+    this.fallbackOk = fallbackOk;
+  }
+}
+
 export interface GenStage {
   key: string;
   label: string;
@@ -113,7 +128,12 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     const j = await res.json().catch(() => ({}));
     throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
   }
-  if (!res.ok) throw new Error(`ai-generate-http-${res.status}`);
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string; fallback?: boolean };
+    const code = j.error || `http-${res.status}`;
+    // Only a missing API key (dev) justifies falling back to factory content.
+    throw new GenerationError(code, res.status, code === "no-key");
+  }
 
   const data = (await res.json()) as AiGenerateResponse;
   const pages = buildPagesFromAi(data.pages, project.category, project.businessName);

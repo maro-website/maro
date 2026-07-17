@@ -11,6 +11,7 @@ import {
   runGeneration,
   generateSite,
   InsufficientCreditsError,
+  GenerationError,
   type GeneratedSite,
 } from "@/lib/services/generationService";
 import { cn } from "@/lib/utils/cn";
@@ -25,6 +26,7 @@ function GeneratingInner() {
   const [active, setActive] = React.useState(-1);
   const [done, setDone] = React.useState(false);
   const [creditError, setCreditError] = React.useState<number | null>(null);
+  const [genError, setGenError] = React.useState<string | null>(null);
   const startedRef = React.useRef(false);
   const animDoneRef = React.useRef(false);
   const aiSettledRef = React.useRef(false);
@@ -95,7 +97,13 @@ function GeneratingInner() {
         if (err instanceof InsufficientCreditsError) {
           handle.cancel();
           setCreditError(err.needed);
+        } else if (err instanceof GenerationError && !err.fallbackOk) {
+          // A real API failure (bad key, timeout, model access, empty output).
+          // Surface it instead of silently serving generic factory content.
+          handle.cancel();
+          setGenError(err.code);
         }
+        // no-key (fallbackOk) → keep local factory content (dev without a key).
       })
       .finally(() => {
         aiSettledRef.current = true;
@@ -111,6 +119,38 @@ function GeneratingInner() {
     aiSettledRef.current = true;
     finalize();
   };
+
+  if (genError !== null) {
+    const messages: Record<string, string> = {
+      "no-key": "Çelësi i Anthropic nuk është konfiguruar në server.",
+      unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
+      "ai-failed": "Modeli nuk u përgjigj (mund të jetë timeout ose problem me çelësin/aksesin). Provo me shpejtësi '2x Faster' ose provo përsëri.",
+      empty: "Modeli ktheu një përgjigje bosh. Provo përsëri.",
+      "http-504": "Gjenerimi zgjati shumë dhe u ndërpre (timeout). Provo me shpejtësi më të lartë.",
+    };
+    return (
+      <div className="grid min-h-screen place-items-center px-6">
+        <div className="max-w-md text-center">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-danger/10 text-danger">
+            <Sparkles className="h-7 w-7" />
+          </div>
+          <h1 className="mt-5 text-[24px] font-extrabold tracking-[-0.03em] text-ink">
+            Gjenerimi dështoi
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
+            {messages[genError] || `Ndodhi një gabim (${genError}).`}
+          </p>
+          <p className="mt-1 text-[12.5px] text-ink-3">Kreditet u kthyen automatikisht.</p>
+          <div className="mt-6 flex justify-center gap-2.5">
+            <Button variant="outline" onClick={() => router.push("/")}>
+              Ballina
+            </Button>
+            <Button onClick={() => window.location.reload()}>Provo përsëri</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (creditError !== null) {
     return (
