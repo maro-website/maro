@@ -45,8 +45,9 @@ export async function POST(req: Request) {
   }
 
   const settings = await getAppSettings();
-  const masterPrompt = settings.tool_prompts?.[tool.id] ?? "";
-  const finalPrompt = `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}${body.prompt.trim()}`;
+  // Admin-set prompt wins; otherwise fall back to the tool's built-in prompt.
+  const masterPrompt = settings.tool_prompts?.[tool.id]?.trim() || tool.defaultPrompt || "";
+  const finalPrompt = `${masterPrompt ? masterPrompt + "\n\n" : ""}${body.prompt.trim()}`;
 
   let userId: string | null = null;
   let userEmail = "";

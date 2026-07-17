@@ -46,6 +46,8 @@ export interface ToolDef {
   promptKey: "master_prompt" | ToolId;
   /** Default credit cost for image tools (website cost is computed per type/speed). */
   defaultCost: number;
+  /** Built-in master prompt used until an admin sets a custom one (from Custom GPT). */
+  defaultPrompt?: string;
   comingSoon?: boolean;
 }
 
@@ -77,6 +79,8 @@ export const TOOLS: ToolDef[] = [
     route: "/tools/logo",
     promptKey: "logo",
     defaultCost: 5,
+    defaultPrompt:
+      "You are Maro Logo, an expert brand & logo designer. From the description, produce a single, clean, memorable logo concept. Prefer simple vector-style marks, balanced negative space, a strong silhouette and a limited palette. Center the mark on a plain white background with generous padding. Avoid clutter, gradients-heavy realism, photorealism and text unless explicitly requested.",
   },
   {
     id: "reklama",
@@ -91,6 +95,8 @@ export const TOOLS: ToolDef[] = [
     route: "/tools/reklama",
     promptKey: "reklama",
     defaultCost: 5,
+    defaultPrompt:
+      "You are Maro Reklama, an expert advertising art director. Produce a scroll-stopping social ad creative with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
   },
 ];
 

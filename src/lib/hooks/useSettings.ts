@@ -26,16 +26,11 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
       setState((s) => ({ ...s, loading: false }));
       return;
     }
-    try {
-      const { data } = await getSupabaseBrowser()
-        .from("app_settings")
-        .select("master_prompt, pricing, tool_prompts")
-        .eq("id", 1)
-        .single();
+    const apply = (data: Record<string, unknown> | null) => {
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setState({
         loading: false,
-        masterPrompt: data?.master_prompt ?? "",
+        masterPrompt: (data?.master_prompt as string) ?? "",
         toolPrompts: (data?.tool_prompts as Record<string, string>) ?? {},
         pricing: {
           types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
@@ -44,6 +39,22 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
           editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
         },
       });
+    };
+    try {
+      const sb = getSupabaseBrowser();
+      const { data, error } = await sb
+        .from("app_settings")
+        .select("master_prompt, pricing, tool_prompts")
+        .eq("id", 1)
+        .single();
+      if (!error) return apply(data);
+      // Legacy fallback (tool_prompts column missing before migration 0003).
+      const { data: legacy } = await sb
+        .from("app_settings")
+        .select("master_prompt, pricing")
+        .eq("id", 1)
+        .single();
+      apply(legacy);
     } catch {
       setState((s) => ({ ...s, loading: false }));
     }

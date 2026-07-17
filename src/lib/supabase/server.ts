@@ -41,16 +41,13 @@ export async function getUserFromToken(token: string | null): Promise<User | nul
 }
 
 // Read the single app_settings row (master prompt + pricing) with safe fallbacks.
+// Resilient to the tool_prompts column not existing yet (before migration 0003).
 export async function getAppSettings(): Promise<AppSettings> {
-  try {
-    const { data } = await getSupabaseAdmin()
-      .from("app_settings")
-      .select("master_prompt, pricing, tool_prompts")
-      .eq("id", 1)
-      .single();
+  const admin = getSupabaseAdmin();
+  const build = (data: Record<string, unknown> | null): AppSettings => {
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     return {
-      master_prompt: data?.master_prompt ?? "",
+      master_prompt: (data?.master_prompt as string) ?? "",
       tool_prompts: (data?.tool_prompts as Record<string, string>) ?? {},
       pricing: {
         types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
@@ -59,6 +56,27 @@ export async function getAppSettings(): Promise<AppSettings> {
         editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
       },
     };
+  };
+
+  try {
+    const { data, error } = await admin
+      .from("app_settings")
+      .select("master_prompt, pricing, tool_prompts")
+      .eq("id", 1)
+      .single();
+    if (!error) return build(data);
+  } catch {
+    /* fall through to the legacy select below */
+  }
+
+  // Legacy fallback (tool_prompts column missing).
+  try {
+    const { data } = await admin
+      .from("app_settings")
+      .select("master_prompt, pricing")
+      .eq("id", 1)
+      .single();
+    return build(data);
   } catch {
     return { master_prompt: "", tool_prompts: {}, pricing: DEFAULT_PRICING };
   }
