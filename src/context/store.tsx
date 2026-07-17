@@ -50,6 +50,9 @@ interface MaroContextValue {
 
 const MaroContext = createContext<MaroContextValue | null>(null);
 
+// Old Phase-1 seed project ids to purge from localStorage on first Beta load.
+const LEGACY_SEED_IDS = new Set(["demo-nice", "demo-castello", "seed-dental", "seed-beton"]);
+
 function profileToUser(profile: Profile | null): User | null {
   if (!profile) return null;
   return {
@@ -74,7 +77,11 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
 
   // ---- projects (localStorage) ----
   useEffect(() => {
-    const projects = readJSON<Project[]>(StorageKeys.projects, []);
+    const stored = readJSON<Project[]>(StorageKeys.projects, []);
+    // One-time cleanup: drop the old seeded demo projects from Phase 1 so the
+    // Beta starts empty. Real user-created projects are kept.
+    const projects = stored.filter((p) => !LEGACY_SEED_IDS.has(p.id));
+    if (projects.length !== stored.length) writeJSON(StorageKeys.projects, projects);
     setState((s) => ({ ...s, projects }));
   }, []);
 

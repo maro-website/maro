@@ -15,22 +15,29 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- SECURITY DEFINER helper so admin checks don't recurse through profiles' own
+-- RLS policies (which would raise 42P17 infinite recursion).
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+
 -- Anyone authenticated can read their own profile; admins can read all.
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles
-  for select using (
-    auth.uid() = id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+  for select using (auth.uid() = id or public.is_admin());
 
 -- Only admins can update profiles (e.g. grant credits). Credits are never
 -- changed by normal users from the client; generation spend happens server-side
 -- with the service role (which bypasses RLS).
 drop policy if exists "profiles_admin_update" on public.profiles;
 create policy "profiles_admin_update" on public.profiles
-  for update using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+  for update using (public.is_admin());
 
 -- ---------------------------------------------------------------------------
 -- app_settings: single-row config (master prompt + pricing)
@@ -52,9 +59,7 @@ create policy "settings_select" on public.app_settings
 
 drop policy if exists "settings_admin_update" on public.app_settings;
 create policy "settings_admin_update" on public.app_settings
-  for update using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+  for update using (public.is_admin());
 
 -- Seed the single settings row with a strong default master prompt + pricing.
 insert into public.app_settings (id, master_prompt, pricing)
@@ -99,10 +104,7 @@ alter table public.generations enable row level security;
 
 drop policy if exists "generations_select" on public.generations;
 create policy "generations_select" on public.generations
-  for select using (
-    auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+  for select using (auth.uid() = user_id or public.is_admin());
 
 -- ---------------------------------------------------------------------------
 -- Auto-create a profile on signup. The admin email starts with credits.
