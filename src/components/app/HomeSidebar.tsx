@@ -60,7 +60,7 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
           onClick={() => go("/")}
           className="flex w-full items-center gap-2 rounded-xl bg-brand px-4 py-3 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
         >
-          <Plus className="h-5 w-5" /> Krijim i ri
+          <Plus className="h-5 w-5" /> Maro
         </button>
       </div>
 
@@ -138,11 +138,24 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-line p-3">
         {user ? (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-[13px]">
-              <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-                <Coins className="h-4 w-4 text-brand" /> {credits}
-              </span>
-              <span className="text-ink-3">kredite</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => go("/credits")}
+                className="flex min-w-0 flex-1 items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] transition-colors hover:bg-line"
+              >
+                <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+                  <Coins className="h-4 w-4 text-brand" /> {credits}
+                </span>
+                <span className="text-ink-3">kredite</span>
+              </button>
+              <button
+                onClick={() => go("/credits")}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-fg transition-colors hover:bg-brand-hover"
+                title="Shto kredite"
+                aria-label="Shto kredite"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -210,7 +223,7 @@ function RowShell({
   onCancel,
   menu,
 }: {
-  thumb: React.ReactNode;
+  thumb?: React.ReactNode;
   title: string;
   subtitle: string;
   favourite?: boolean;
@@ -257,16 +270,21 @@ function RowShell({
   return (
     <div className="group relative flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2">
       <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-        <span className="relative shrink-0">
-          {thumb}
-          {favourite && (
-            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-white text-brand shadow-sm">
-              <Star className="h-2.5 w-2.5 fill-brand" />
-            </span>
-          )}
-        </span>
+        {thumb && (
+          <span className="relative shrink-0">
+            {thumb}
+            {favourite && (
+              <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-white text-brand shadow-sm">
+                <Star className="h-2.5 w-2.5 fill-brand" />
+              </span>
+            )}
+          </span>
+        )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-medium text-ink">{title}</span>
+          <span className="flex items-center gap-1.5">
+            {!thumb && favourite && <Star className="h-3 w-3 shrink-0 fill-brand text-brand" />}
+            <span className="truncate text-[14px] font-medium text-ink">{title}</span>
+          </span>
           <span className="block truncate text-[12px] text-ink-3">{subtitle}</span>
         </span>
       </button>
@@ -280,14 +298,6 @@ function SidebarProjectRow({ project, onOpen }: { project: Project; onOpen: () =
   const [editing, setEditing] = React.useState(false);
   return (
     <RowShell
-      thumb={
-        <span
-          className="grid h-9 w-9 place-items-center rounded-lg text-[12px] font-bold text-white"
-          style={{ background: project.theme?.primaryColor ?? "#6b46e5" }}
-        >
-          {initials(project.name)}
-        </span>
-      }
       title={project.name}
       subtitle={project.status === "generating" ? "Po gjenerohet…" : timeAgo(project.updatedAt)}
       favourite={project.favourite}

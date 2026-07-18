@@ -71,7 +71,7 @@ export const DEFAULT_PRICING: PricingConfig = {
     fast: { effort: "high", mult: 1.5 },
     "2x": { effort: "medium", mult: 2 },
   },
-  tools: { logo: 5, reklama: 5 },
+  tools: { logo: 5, logo_bw: 5, logo_brand: 15, reklama: 5 },
   reklamaProduct: false,
 };
 

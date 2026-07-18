@@ -6,10 +6,11 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AdBanner } from "@/components/app/AdBanner";
-import { CreationLightbox } from "@/components/app/cards";
+import { CreationCard } from "@/components/app/cards";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { fetchMyCreations } from "@/lib/services/creationsService";
 import type { ImageCreation } from "@/lib/types";
 import {
   generateImages,
@@ -19,7 +20,9 @@ import {
 import { imageToolCost } from "@/lib/supabase/types";
 import {
   IMAGE_QUALITIES,
-  IMAGE_SIZES,
+  LOGO_TYPES,
+  LOGO_PACKAGES,
+  REKLAMA_FORMATS,
   getTool,
   type ImageQuality,
   type ImageSize,
@@ -35,10 +38,11 @@ import {
   Sparkles,
   Check,
   ChevronDown,
-  Trash2,
   ImageOff,
   Paperclip,
   X,
+  Shapes,
+  Package,
 } from "lucide-react";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -54,24 +58,57 @@ const MAX_ATTACHMENTS = 4;
 export function ImageComposer({ toolId }: { toolId: ToolId }) {
   const tool = getTool(toolId)!;
   const { toast } = useToast();
-  const { user, credits, creations, addCreation, deleteCreation, spendCredits } = useMaro();
+  const { user, credits, creations, addCreation, spendCredits } = useMaro();
   const { pricing } = useSettings(Boolean(user));
 
+  const isLogo = tool.id === "logo";
+
   const [prompt, setPrompt] = React.useState("");
-  const [size, setSize] = React.useState<ImageSize>(tool.defaultSize ?? "1024x1024");
   const [quality, setQuality] = React.useState<ImageQuality>(tool.defaultQuality ?? "high");
   const [attachments, setAttachments] = React.useState<string[]>([]);
+  const [logoType, setLogoType] = React.useState<string>("both");
+  const [pkg, setPkg] = React.useState<string>(LOGO_PACKAGES[0].id);
+  const [format, setFormat] = React.useState<string>(
+    REKLAMA_FORMATS.find((f) => f.id === "2:3")?.id ?? REKLAMA_FORMATS[0].id
+  );
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  const cost = imageToolCost(pricing, tool.id, tool.defaultCost);
+  // Cost: logo uses the selected package price; reklama uses the tool price.
+  const variantCost = LOGO_PACKAGES.find((v) => v.id === pkg)?.defaultCost ?? tool.defaultCost;
+  const cost = isLogo
+    ? imageToolCost(pricing, pkg, variantCost)
+    : imageToolCost(pricing, tool.id, tool.defaultCost);
+
   const creditsRef = React.useRef(credits);
   creditsRef.current = credits;
 
   const toolCreations = creations.filter((c) => c.toolId === tool.id);
+
+  // Heal lost generations: pull server-side image generations into the local
+  // cache. Fixes the case where a user navigated away mid-generation (credits
+  // were charged + image stored, but the local record never got added).
+  const creationsRef = React.useRef(creations);
+  creationsRef.current = creations;
+  React.useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void fetchMyCreations().then((items) => {
+      if (!active) return;
+      for (const it of items) {
+        const url = it.urls?.[0];
+        if (url && !creationsRef.current.some((c) => c.urls?.[0] === url)) {
+          addCreation(it);
+        }
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [user, addCreation]);
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -94,12 +131,29 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
     const text = prompt.trim();
     if (!text) return;
     setLoading(true);
+
+    // Compose the effective prompt + size per tool.
+    let finalPrompt = text;
+    let size: ImageSize;
+    let variant: string | undefined;
+    if (isLogo) {
+      const t = LOGO_TYPES.find((x) => x.id === logoType);
+      finalPrompt = `${text}\n\nLogo type: ${t?.hint ?? "symbol + typography"}.`;
+      size = "1024x1024";
+      variant = pkg;
+    } else {
+      const f = REKLAMA_FORMATS.find((x) => x.id === format) ?? REKLAMA_FORMATS[0];
+      finalPrompt = `${text}\n\nComposition/aspect ratio: ${f.label}.`;
+      size = f.size;
+    }
+
     try {
       const res = await generateImages({
         toolId: tool.id,
-        prompt: text,
+        prompt: finalPrompt,
         size,
         quality,
+        variant,
         attachments: attachments.length ? attachments : undefined,
       });
       spendCredits(res.creditsSpent || cost);
@@ -125,7 +179,20 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, size, quality, attachments, tool.id, cost, spendCredits, addCreation, toast]);
+  }, [
+    prompt,
+    isLogo,
+    logoType,
+    pkg,
+    format,
+    quality,
+    attachments,
+    tool.id,
+    cost,
+    spendCredits,
+    addCreation,
+    toast,
+  ]);
 
   const onGenerate = () => {
     if (!prompt.trim() || loading) return;
@@ -159,15 +226,9 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
         <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
           <ToolHeader tool={tool} />
 
-          {loading && (
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="skeleton aspect-square rounded-2xl" />
-              ))}
-            </div>
-          )}
+          {loading && <GeneratingCard toolName={tool.name} />}
 
-          <ImageResultGallery creations={toolCreations} onDelete={deleteCreation} />
+          <ImageResultGallery creations={toolCreations} />
         </div>
       </div>
 
@@ -203,7 +264,7 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
               }}
               rows={2}
               placeholder={
-                tool.id === "logo"
+                isLogo
                   ? "Përshkruaj logon: brand, stil, simbol, ngjyra…"
                   : "Përshkruaj reklamën: produkt, mesazh, stil, ngjyra…"
               }
@@ -233,22 +294,32 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
                 <Paperclip className="h-4 w-4" />
               </button>
 
-              <SizeSelect value={size} onChange={setSize} />
-              <QualitySelect value={quality} onChange={setQuality} />
+              {isLogo ? (
+                <>
+                  <LogoTypeSelect value={logoType} onChange={setLogoType} />
+                  <PackageSelect value={pkg} onChange={setPkg} />
+                </>
+              ) : (
+                <>
+                  <FormatSelect value={format} onChange={setFormat} />
+                  <QualitySelect value={quality} onChange={setQuality} />
+                </>
+              )}
 
               <div className="ml-auto flex items-center gap-2.5">
-                <span className="hidden items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-[13px] font-semibold text-brand sm:inline-flex">
-                  <Coins className="h-4 w-4" /> {cost}
+                <span className="hidden items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2 sm:inline-flex">
+                  <Coins className="h-4 w-4 text-brand" /> {cost}
                 </span>
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={onGenerate}
                   disabled={!prompt.trim() || loading}
                   className={cn(
-                    "grid h-11 w-11 place-items-center rounded-xl text-white transition-all",
-                    prompt.trim() && !loading ? "" : "cursor-not-allowed bg-line-strong text-ink-3"
+                    "grid h-11 w-11 place-items-center rounded-xl text-brand-fg transition-all",
+                    prompt.trim() && !loading
+                      ? "bg-brand hover:bg-brand-hover"
+                      : "cursor-not-allowed bg-line-strong text-ink-3"
                   )}
-                  style={prompt.trim() && !loading ? { background: tool.accent } : undefined}
                   aria-label="Gjenero"
                 >
                   {loading ? (
@@ -288,10 +359,7 @@ function ToolHeader({ tool }: { tool: ReturnType<typeof getTool> }) {
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="flex items-center gap-3.5"
     >
-      <span
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
-        style={{ color: tool.accent, background: tool.accentSoft }}
-      >
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-surface-2 text-ink">
         <tool.icon className="h-6 w-6" />
       </span>
       <div>
@@ -304,17 +372,66 @@ function ToolHeader({ tool }: { tool: ReturnType<typeof getTool> }) {
   );
 }
 
-// ---- Results ----
+// Animated loop shown while an image is generating.
+function GeneratingCard({ toolName }: { toolName: string }) {
+  const phrases = React.useMemo(
+    () => [
+      "Po e mendoj konceptin…",
+      "Po vizatoj format & ngjyrat…",
+      "Po i jap detajet finale…",
+      "Pothuajse gati…",
+    ],
+    []
+  );
+  const [i, setI] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % phrases.length), 2400);
+    return () => clearInterval(t);
+  }, [phrases.length]);
 
-function ImageResultGallery({
-  creations,
-  onDelete,
-}: {
-  creations: ImageCreation[];
-  onDelete: (id: string) => void;
-}) {
-  const [selected, setSelected] = React.useState<ImageCreation | null>(null);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-8 flex flex-col items-center overflow-hidden rounded-3xl border border-line bg-surface px-6 py-14"
+    >
+      <div className="relative h-24 w-24">
+        {[0, 1, 2].map((n) => (
+          <motion.span
+            key={n}
+            className="absolute inset-0 rounded-full border border-brand/40"
+            animate={{ scale: [1, 1.6], opacity: [0.5, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, delay: n * 0.5, ease: "easeOut" }}
+          />
+        ))}
+        <motion.span
+          className="absolute inset-0 grid place-items-center"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+        >
+          <span className="grid h-16 w-16 place-items-center rounded-2xl bg-brand text-brand-fg">
+            <Sparkles className="h-7 w-7" />
+          </span>
+        </motion.span>
+      </div>
+      <div className="mt-6 text-[15px] font-semibold text-ink">{toolName}</div>
+      <div className="mt-1 h-5 text-[13.5px] text-ink-3">
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {phrases[i]}
+        </motion.span>
+      </div>
+    </motion.div>
+  );
+}
 
+// ---- Results (cards -> lightbox) ----
+
+function ImageResultGallery({ creations }: { creations: ImageCreation[] }) {
   if (creations.length === 0) {
     return (
       <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-14 text-center">
@@ -327,41 +444,15 @@ function ImageResultGallery({
   }
 
   return (
-    <div className="mt-8 space-y-8">
-      {creations.map((c) => (
-        <div key={c.id}>
-          <div className="mb-2.5 flex items-start justify-between gap-3">
-            <p className="line-clamp-2 text-[14px] text-ink-2">{c.prompt}</p>
-            <button
-              onClick={() => onDelete(c.id)}
-              className="shrink-0 rounded-lg p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-danger"
-              title="Fshi"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {c.urls.map((url, i) => (
-              <button
-                key={i}
-                onClick={() => setSelected(c)}
-                className="group relative block overflow-hidden rounded-2xl border border-line bg-surface-2"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="aspect-square w-full object-cover" />
-                <span className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-      {selected && (
-        <CreationLightbox
-          creation={selected}
-          open={Boolean(selected)}
-          onClose={() => setSelected(null)}
-        />
-      )}
+    <div className="mt-8">
+      <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
+        Gjenerimet e kaluara
+      </h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {creations.map((c) => (
+          <CreationCard key={c.id} creation={c} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -457,19 +548,67 @@ function OptionRow({
   );
 }
 
-function SizeSelect({ value, onChange }: { value: ImageSize; onChange: (v: ImageSize) => void }) {
-  const current = IMAGE_SIZES.find((s) => s.value === value)!;
+function LogoTypeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const current = LOGO_TYPES.find((s) => s.id === value) ?? LOGO_TYPES[0];
+  return (
+    <Popover trigger={() => <Segmented icon={<Shapes className="h-3.5 w-3.5" />} label="Lloji" value={current.label} />}>
+      {(close) => (
+        <>
+          {LOGO_TYPES.map((s) => (
+            <OptionRow
+              key={s.id}
+              active={s.id === value}
+              title={s.label}
+              hint={s.hint}
+              onClick={() => {
+                onChange(s.id);
+                close();
+              }}
+            />
+          ))}
+        </>
+      )}
+    </Popover>
+  );
+}
+
+function PackageSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const current = LOGO_PACKAGES.find((s) => s.id === value) ?? LOGO_PACKAGES[0];
+  return (
+    <Popover trigger={() => <Segmented icon={<Package className="h-3.5 w-3.5" />} label="Paketa" value={current.label} />}>
+      {(close) => (
+        <>
+          {LOGO_PACKAGES.map((s) => (
+            <OptionRow
+              key={s.id}
+              active={s.id === value}
+              title={s.label}
+              hint={`${s.hint} · ${s.defaultCost} kredite`}
+              onClick={() => {
+                onChange(s.id);
+                close();
+              }}
+            />
+          ))}
+        </>
+      )}
+    </Popover>
+  );
+}
+
+function FormatSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const current = REKLAMA_FORMATS.find((s) => s.id === value) ?? REKLAMA_FORMATS[0];
   return (
     <Popover trigger={() => <Segmented icon={<Ratio className="h-3.5 w-3.5" />} label="Format" value={current.label} />}>
       {(close) => (
         <>
-          {IMAGE_SIZES.map((s) => (
+          {REKLAMA_FORMATS.map((s) => (
             <OptionRow
-              key={s.key}
-              active={s.value === value}
+              key={s.id}
+              active={s.id === value}
               title={s.label}
               onClick={() => {
-                onChange(s.value);
+                onChange(s.id);
                 close();
               }}
             />

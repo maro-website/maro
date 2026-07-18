@@ -8,6 +8,8 @@ export interface AiImageRequest {
   n?: number;
   /** Optional reference images as data URLs (used as extra prompt context). */
   attachments?: string[];
+  /** Product variant (e.g. logo package) — selects prompt + price. */
+  variant?: string;
 }
 
 export interface AiImageResponse {

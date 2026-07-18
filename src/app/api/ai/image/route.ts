@@ -45,8 +45,18 @@ export async function POST(req: Request) {
   }
 
   const settings = await getAppSettings();
+  // Variant (e.g. logo package) selects its own master prompt + price.
+  const variant =
+    body.variant && tool.variants?.some((v) => v.id === body.variant)
+      ? body.variant
+      : null;
+  const promptKey = variant ?? tool.id;
   // Admin-set prompt wins; otherwise fall back to the tool's built-in prompt.
-  const masterPrompt = settings.tool_prompts?.[tool.id]?.trim() || tool.defaultPrompt || "";
+  const masterPrompt =
+    settings.tool_prompts?.[promptKey]?.trim() ||
+    settings.tool_prompts?.[tool.id]?.trim() ||
+    tool.defaultPrompt ||
+    "";
   const finalPrompt = `${masterPrompt ? masterPrompt + "\n\n" : ""}${body.prompt.trim()}`;
 
   let userId: string | null = null;
@@ -58,7 +68,8 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     userId = user.id;
     userEmail = user.email ?? "";
-    cost = imageToolCost(settings.pricing, tool.id, tool.defaultCost);
+    const variantCost = tool.variants?.find((v) => v.id === variant)?.defaultCost;
+    cost = imageToolCost(settings.pricing, promptKey, variantCost ?? tool.defaultCost);
 
     const profile = await getProfileCredits(userId);
     if (!profile || profile.credits < cost) {

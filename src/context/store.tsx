@@ -38,6 +38,7 @@ interface MaroContextValue {
   signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfileName: (name: string) => Promise<{ error: string | null }>;
   getAccessToken: () => Promise<string | null>;
   // projects (localStorage)
   getProject: (id: string) => Project | undefined;
@@ -195,6 +196,25 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, session: null, profile: null }));
   }, []);
 
+  const updateProfileName = useCallback(
+    async (name: string): Promise<{ error: string | null }> => {
+      if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
+      const clean = name.trim();
+      if (!clean) return { error: "Emri s'mund të jetë bosh." };
+      const sb = getSupabaseBrowser();
+      const { data } = await sb.auth.getUser();
+      const u = data.user;
+      if (!u) return { error: "Nuk je i kyçur." };
+      // Optimistic update.
+      setState((s) => (s.profile ? { ...s, profile: { ...s.profile, full_name: clean } } : s));
+      const { error } = await sb.from("profiles").update({ full_name: clean }).eq("id", u.id);
+      await sb.auth.updateUser({ data: { full_name: clean } }).catch(() => {});
+      await refreshProfile();
+      return { error: error?.message ?? null };
+    },
+    [refreshProfile]
+  );
+
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     if (!supabaseConfigured) return null;
     const { data } = await getSupabaseBrowser().auth.getSession();
@@ -338,6 +358,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       refreshProfile,
+      updateProfileName,
       getAccessToken,
       getProject,
       addProject,
@@ -363,6 +384,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       refreshProfile,
+      updateProfileName,
       getAccessToken,
       getProject,
       addProject,

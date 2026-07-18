@@ -8,17 +8,22 @@ import { Spinner } from "@/components/ui/Misc";
 import { useToast } from "@/components/ui/Toast";
 import { fetchExplore, type ExploreItem } from "@/lib/services/exploreService";
 import { trackEvent } from "@/lib/services/trackService";
-import { getTool } from "@/lib/tools/registry";
+import { getTool, TOOLS } from "@/lib/tools/registry";
+import { cn } from "@/lib/utils/cn";
 import { timeAgo } from "@/lib/utils/format";
 import { Compass, Copy, Check, Download } from "lucide-react";
 
 export default function ExplorePage() {
   const [items, setItems] = React.useState<ExploreItem[] | null>(null);
   const [selected, setSelected] = React.useState<ExploreItem | null>(null);
+  const [filter, setFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
     void fetchExplore().then(setItems);
   }, []);
+
+  const filtered =
+    items?.filter((it) => filter === "all" || it.tool_id === filter) ?? null;
 
   return (
     <AppShell>
@@ -43,11 +48,30 @@ export default function ExplorePage() {
             </p>
           </motion.div>
 
-          {items === null ? (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {[{ id: "all", label: "Të gjitha" }, ...TOOLS.map((t) => ({ id: t.id, label: t.name }))].map(
+              (f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={cn(
+                    "rounded-full border px-4 py-1.5 text-[13.5px] font-semibold transition-colors",
+                    filter === f.id
+                      ? "border-ink bg-ink text-white"
+                      : "border-line-strong bg-surface text-ink-2 hover:bg-surface-2"
+                  )}
+                >
+                  {f.label}
+                </button>
+              )
+            )}
+          </div>
+
+          {filtered === null ? (
             <div className="grid place-items-center py-20">
               <Spinner className="h-6 w-6" />
             </div>
-          ) : items.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-16 text-center">
               <Compass className="h-8 w-8 text-ink-3" />
               <p className="mt-3 max-w-sm text-[15px] text-ink-2">
@@ -56,7 +80,7 @@ export default function ExplorePage() {
             </div>
           ) : (
             <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
-              {items.map((it) => {
+              {filtered.map((it) => {
                 const tool = getTool(it.tool_id);
                 return (
                   <button

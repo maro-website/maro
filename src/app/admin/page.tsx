@@ -89,47 +89,50 @@ function AdminInner() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-5xl px-5 py-8">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-soft text-brand">
-            <Shield className="h-5 w-5" />
+      <main className="mx-auto max-w-6xl px-5 py-10">
+        <div className="flex items-center gap-3.5">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-white">
+            <Shield className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="text-[24px] font-extrabold tracking-[-0.03em] text-ink">Admin</h1>
-            <p className="text-[13.5px] text-ink-3">Menaxho përdoruesit, kreditet, promptin dhe çmimet.</p>
+            <h1 className="text-[32px] font-extrabold tracking-[-0.035em] text-ink">Admin</h1>
+            <p className="text-[14px] text-ink-2">Menaxho përdoruesit, kreditet, promptet, reklamat dhe çmimet.</p>
           </div>
         </div>
 
         {!supabaseConfigured && (
-          <div className="mt-6 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13.5px] text-amber-800">
+          <div className="mt-6 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
             Supabase nuk është konfiguruar. Shto çelësat te .env.local për të aktivizuar panelin.
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13.5px] font-semibold transition-colors ${
-                tab === t.key ? "bg-brand text-brand-fg" : "text-ink-2 hover:bg-surface-2"
-              }`}
-            >
-              <t.icon className="h-4 w-4" /> {t.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[220px_1fr]">
+          {/* Vertical nav */}
+          <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-line bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col lg:overflow-visible">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`inline-flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-[14px] font-semibold transition-colors lg:w-full ${
+                  tab === t.key ? "bg-ink text-white" : "text-ink-2 hover:bg-surface-2"
+                }`}
+              >
+                <t.icon className="h-4 w-4" /> {t.label}
+              </button>
+            ))}
+          </nav>
 
-        <div className="mt-6">
-          {tab === "overview" && <OverviewTab />}
-          {tab === "users" && <UsersTab />}
-          {tab === "prompt" && <PromptTab />}
-          {tab === "tools" && <ToolsTab />}
-          {tab === "reklamat" && <ReklamatTab />}
-          {tab === "pricing" && <PricingTab />}
-          {tab === "analytics" && <AnalyticsTab />}
-          {tab === "orders" && <OrdersTab />}
-          {tab === "log" && <LogTab />}
+          <div className="min-w-0">
+            {tab === "overview" && <OverviewTab />}
+            {tab === "users" && <UsersTab />}
+            {tab === "prompt" && <PromptTab />}
+            {tab === "tools" && <ToolsTab />}
+            {tab === "reklamat" && <ReklamatTab />}
+            {tab === "pricing" && <PricingTab />}
+            {tab === "analytics" && <AnalyticsTab />}
+            {tab === "orders" && <OrdersTab />}
+            {tab === "log" && <LogTab />}
+          </div>
         </div>
       </main>
     </div>
@@ -471,38 +474,67 @@ function ToolsTab() {
         përshkrimit të përdoruesit para se t&apos;i dërgohet OpenAI (gpt-image-2).
       </p>
       {IMAGE_TOOLS.map((tool) => (
-        <div key={tool.id} className="rounded-xl border border-line bg-surface p-5">
+        <div key={tool.id} className="rounded-2xl border border-line bg-surface p-6">
           <div className="flex items-center gap-2.5">
-            <span
-              className="grid h-9 w-9 place-items-center rounded-xl"
-              style={{ color: tool.accent, background: tool.accentSoft }}
-            >
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-ink">
               <tool.icon className="h-5 w-5" />
             </span>
             <div>
-              <div className="text-[14px] font-bold text-ink">{tool.name}</div>
+              <div className="text-[15px] font-bold text-ink">{tool.name}</div>
               <div className="text-[12px] text-ink-3">{tool.tagline}</div>
             </div>
           </div>
 
-          <Field label="Master prompt (nga Custom GPT)" className="mt-4">
-            <Textarea
-              value={prompts[tool.id] ?? ""}
-              onChange={(e) => setPrompts((p) => ({ ...p, [tool.id]: e.target.value }))}
-              className="min-h-[160px] font-mono text-[12.5px]"
-              placeholder={`Ngjit instruksionet e ${tool.name} këtu…`}
-            />
-          </Field>
+          {tool.variants ? (
+            <div className="mt-4 space-y-5">
+              {tool.variants.map((v) => (
+                <div key={v.id} className="rounded-xl border border-line bg-surface-2/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[13.5px] font-bold text-ink">{v.label}</div>
+                    <span className="text-[12px] text-ink-3">{v.hint}</span>
+                  </div>
+                  <Field label="Master prompt" className="mt-3">
+                    <Textarea
+                      value={prompts[v.id] ?? ""}
+                      onChange={(e) => setPrompts((p) => ({ ...p, [v.id]: e.target.value }))}
+                      className="min-h-[140px] font-mono text-[12.5px]"
+                      placeholder={`Ngjit promptin për "${v.label}" këtu…`}
+                    />
+                  </Field>
+                  <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
+                    <Input
+                      type="number"
+                      value={costs[v.id] ?? v.defaultCost}
+                      onChange={(e) =>
+                        setCosts((c) => ({ ...c, [v.id]: parseInt(e.target.value, 10) || 0 }))
+                      }
+                    />
+                  </Field>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <Field label="Master prompt (nga Custom GPT)" className="mt-4">
+                <Textarea
+                  value={prompts[tool.id] ?? ""}
+                  onChange={(e) => setPrompts((p) => ({ ...p, [tool.id]: e.target.value }))}
+                  className="min-h-[160px] font-mono text-[12.5px]"
+                  placeholder={`Ngjit instruksionet e ${tool.name} këtu…`}
+                />
+              </Field>
 
-          <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
-            <Input
-              type="number"
-              value={costs[tool.id] ?? tool.defaultCost}
-              onChange={(e) =>
-                setCosts((c) => ({ ...c, [tool.id]: parseInt(e.target.value, 10) || 0 }))
-              }
-            />
-          </Field>
+              <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
+                <Input
+                  type="number"
+                  value={costs[tool.id] ?? tool.defaultCost}
+                  onChange={(e) =>
+                    setCosts((c) => ({ ...c, [tool.id]: parseInt(e.target.value, 10) || 0 }))
+                  }
+                />
+              </Field>
+            </>
+          )}
         </div>
       ))}
 
@@ -687,7 +719,7 @@ function ReklamatTab() {
         </div>
       </div>
 
-      <Field label="Link (opsional) — hapet kur klikohet banner-i">
+      <Field label="Link (opsional), hapet kur klikohet banner-i">
         <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
       </Field>
 
@@ -737,7 +769,7 @@ function AnalyticsTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13.5px] text-amber-800">
+      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>prompt_events</code> nuk ekziston ende. Ekzekuto migrimin
         0005_prompt_events.sql në Supabase për të aktivizuar analitikën.
       </div>
@@ -857,7 +889,7 @@ function OrdersTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13.5px] text-amber-800">
+      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>credit_orders</code> nuk ekziston ende. Ekzekuto migrimin
         0004_explore_orders.sql në Supabase për të aktivizuar porositë.
       </div>
@@ -1018,15 +1050,19 @@ function PricingTab() {
       <div className="mt-5 rounded-xl border border-line bg-surface p-5">
         <div className="text-[13px] font-bold text-ink">Kosto për imazh (kredite)</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {IMAGE_TOOLS.map((t) => (
-            <Field key={t.id} label={t.name}>
+          {IMAGE_TOOLS.flatMap((t) =>
+            t.variants
+              ? t.variants.map((v) => ({ id: v.id, label: `${t.name} · ${v.label}`, def: v.defaultCost }))
+              : [{ id: t.id, label: t.name, def: t.defaultCost }]
+          ).map((row) => (
+            <Field key={row.id} label={row.label}>
               <Input
                 type="number"
-                value={pricing.tools?.[t.id] ?? t.defaultCost}
+                value={pricing.tools?.[row.id] ?? row.def}
                 onChange={(e) =>
                   setPricing((p) => ({
                     ...p,
-                    tools: { ...(p.tools ?? {}), [t.id]: parseInt(e.target.value, 10) || 0 },
+                    tools: { ...(p.tools ?? {}), [row.id]: parseInt(e.target.value, 10) || 0 },
                   }))
                 }
               />

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
-import { ProjectCard } from "@/components/app/cards";
 import { AdBanner } from "@/components/app/AdBanner";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -26,7 +25,6 @@ import {
   Coins,
   Cpu,
   Gauge,
-  Globe,
   LayoutTemplate,
   Sparkles,
   Check,
@@ -37,7 +35,7 @@ const tool = getTool("website")!;
 
 export function Composer() {
   const router = useRouter();
-  const { user, credits, projects, addProject } = useMaro();
+  const { user, credits, addProject } = useMaro();
   const { pricing } = useSettings(Boolean(user));
 
   const [prompt, setPrompt] = React.useState("");
@@ -87,61 +85,8 @@ export function Composer() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Scroll area: header + recent websites */}
-      <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-        <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center gap-3.5"
-          >
-            <span
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
-              style={{ color: tool.accent, background: tool.accentSoft }}
-            >
-              <Globe className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="text-[24px] font-extrabold tracking-[-0.03em] text-ink sm:text-[28px]">
-                {tool.name}
-              </h1>
-              <p className="text-[14.5px] text-ink-2">{tool.tagline}</p>
-            </div>
-          </motion.div>
-
-          {projects.length > 0 ? (
-            <div className="mt-8">
-              <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
-                Website-t e fundit
-              </h2>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {projects.slice(0, 6).map((p) => (
-                  <ProjectCard
-                    key={p.id}
-                    project={p}
-                    onOpen={(proj) =>
-                      router.push(
-                        proj.status === "generating"
-                          ? `/projects/${proj.id}/generating`
-                          : `/projects/${proj.id}/editor`
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-14 text-center">
-              <Sparkles className="h-8 w-8 text-ink-3" />
-              <p className="mt-3 max-w-sm text-[14.5px] text-ink-3">
-                Përshkruaj biznesin poshtë, zgjidh tipin dhe shpejtësinë, dhe Maro e maron
-                me Claude Opus 4.8.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Ultra-minimal blank canvas: no title, no greeting, just the prompt. */}
+      <div className="min-h-0 flex-1 overflow-y-auto scroll-thin" />
 
       {/* Docked prompt box */}
       <div className="shrink-0 border-t border-line bg-canvas/90 backdrop-blur">

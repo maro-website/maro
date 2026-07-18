@@ -31,13 +31,16 @@ export function AppHeader() {
             href="/"
             className="hidden items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-[13px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover sm:flex"
           >
-            <Plus className="h-4 w-4" /> Website i ri
+            <Plus className="h-4 w-4" /> Maro
           </Link>
-          <span className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink">
+          <Link
+            href="/credits"
+            className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
+          >
             <Coins className="h-4 w-4 text-brand" />
             {credits}
             <span className="text-ink-3">kredite</span>
-          </span>
+          </Link>
 
           <Dropdown
             align="right"
