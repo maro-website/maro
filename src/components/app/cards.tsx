@@ -11,6 +11,7 @@ import type { Project, ImageCreation } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { shareToExplore } from "@/lib/services/exploreService";
+import { trackEvent } from "@/lib/services/trackService";
 import {
   MoreVertical,
   Pencil,
@@ -372,8 +373,14 @@ export function CreationLightbox({
       setActive(0);
       setShared(false);
       setCopied(false);
+      void trackEvent({
+        kind: "view",
+        toolId: creation.toolId,
+        prompt: creation.prompt || "",
+        url: creation.urls[0],
+      });
     }
-  }, [open]);
+  }, [open, creation.id]);
 
   const url = creation.urls[active] ?? creation.urls[0];
 
@@ -382,6 +389,12 @@ export function CreationLightbox({
       await navigator.clipboard.writeText(creation.prompt || "");
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
+      void trackEvent({
+        kind: "copy",
+        toolId: creation.toolId,
+        prompt: creation.prompt || "",
+        url: creation.urls[0],
+      });
     } catch {
       toast("Nuk u kopjua dot.");
     }
@@ -465,7 +478,7 @@ export function CreationLightbox({
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">
             Prompt
           </div>
-          <div className="mt-1.5 flex-1 overflow-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
+          <div className="scroll-thin mt-1.5 h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
             {creation.prompt || "Pa prompt"}
           </div>
 

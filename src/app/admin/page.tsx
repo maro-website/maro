@@ -35,6 +35,9 @@ import {
   ShoppingCart,
   UploadCloud,
   Trash2,
+  BarChart3,
+  Eye,
+  Copy,
 } from "lucide-react";
 
 type Tab =
@@ -44,6 +47,7 @@ type Tab =
   | "tools"
   | "reklamat"
   | "pricing"
+  | "analytics"
   | "orders"
   | "log";
 
@@ -54,6 +58,7 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "tools", label: "Tools", icon: Wand2 },
   { key: "reklamat", label: "Reklamat", icon: Megaphone },
   { key: "pricing", label: "Çmimet", icon: Coins },
+  { key: "analytics", label: "Analitika", icon: BarChart3 },
   { key: "orders", label: "Porositë", icon: ShoppingCart },
   { key: "log", label: "Log", icon: ScrollText },
 ];
@@ -122,6 +127,7 @@ function AdminInner() {
           {tab === "tools" && <ToolsTab />}
           {tab === "reklamat" && <ReklamatTab />}
           {tab === "pricing" && <PricingTab />}
+          {tab === "analytics" && <AnalyticsTab />}
           {tab === "orders" && <OrdersTab />}
           {tab === "log" && <LogTab />}
         </div>
@@ -688,6 +694,128 @@ function ReklamatTab() {
       <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
         Ruaj reklamën
       </Button>
+    </div>
+  );
+}
+
+// ---- Analytics (prompt views & copies) ----
+interface PromptEvent {
+  kind: "view" | "copy";
+  tool_id: string | null;
+  prompt: string;
+}
+
+interface PromptStat {
+  prompt: string;
+  tool_id: string | null;
+  views: number;
+  copies: number;
+}
+
+function AnalyticsTab() {
+  const [events, setEvents] = React.useState<PromptEvent[] | null>(null);
+  const [missing, setMissing] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return setEvents([]);
+      const { data, error } = await getSupabaseBrowser()
+        .from("prompt_events")
+        .select("kind, tool_id, prompt")
+        .order("created_at", { ascending: false })
+        .limit(8000);
+      if (error) {
+        setMissing(true);
+        setEvents([]);
+        return;
+      }
+      setEvents((data as PromptEvent[]) ?? []);
+    })();
+  }, []);
+
+  if (events === null) return <Spinner className="h-6 w-6" />;
+
+  if (missing) {
+    return (
+      <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13.5px] text-amber-800">
+        Tabela <code>prompt_events</code> nuk ekziston ende. Ekzekuto migrimin
+        0005_prompt_events.sql në Supabase për të aktivizuar analitikën.
+      </div>
+    );
+  }
+
+  const totalViews = events.filter((e) => e.kind === "view").length;
+  const totalCopies = events.filter((e) => e.kind === "copy").length;
+
+  const byPrompt = new Map<string, PromptStat>();
+  for (const e of events) {
+    const key = e.prompt || "(pa prompt)";
+    const cur =
+      byPrompt.get(key) ?? { prompt: key, tool_id: e.tool_id, views: 0, copies: 0 };
+    if (e.kind === "view") cur.views += 1;
+    else cur.copies += 1;
+    byPrompt.set(key, cur);
+  }
+  const rows = Array.from(byPrompt.values())
+    .sort((a, b) => b.copies - a.copies || b.views - a.views)
+    .slice(0, 100);
+
+  const cards = [
+    { label: "Views (prompt të parë)", value: totalViews, icon: Eye },
+    { label: "Kopjime prompt", value: totalCopies, icon: Copy },
+    {
+      label: "Norma e kopjimit",
+      value: totalViews ? `${Math.round((totalCopies / totalViews) * 100)}%` : "0%",
+      icon: BarChart3,
+    },
+  ];
+
+  return (
+    <div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
+            <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
+              <c.icon className="h-4 w-4" /> {c.label}
+            </div>
+            <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
+              {typeof c.value === "number" ? c.value.toLocaleString() : c.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 overflow-hidden rounded-xl border border-line">
+        <table className="w-full text-left text-[13.5px]">
+          <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">Prompt</th>
+              <th className="px-4 py-2.5 font-semibold">Tool</th>
+              <th className="px-4 py-2.5 font-semibold">Views</th>
+              <th className="px-4 py-2.5 font-semibold">Kopjime</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((r, i) => (
+              <tr key={i} className="bg-surface align-top">
+                <td className="max-w-md px-4 py-3 text-ink">
+                  <span className="line-clamp-2">{r.prompt}</span>
+                </td>
+                <td className="px-4 py-3 text-ink-2">{r.tool_id ?? ""}</td>
+                <td className="px-4 py-3 font-semibold text-ink">{r.views}</td>
+                <td className="px-4 py-3 font-semibold text-brand">{r.copies}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-ink-3">
+                  Ende s&apos;ka të dhëna. Do të mbushen kur useri sheh/kopjon promptet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

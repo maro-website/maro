@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Misc";
 import { useToast } from "@/components/ui/Toast";
 import { fetchExplore, type ExploreItem } from "@/lib/services/exploreService";
+import { trackEvent } from "@/lib/services/trackService";
 import { getTool } from "@/lib/tools/registry";
 import { timeAgo } from "@/lib/utils/format";
 import { Compass, Copy, Check, Download } from "lucide-react";
@@ -91,11 +92,16 @@ function ExploreLightbox({ item, onClose }: { item: ExploreItem; onClose: () => 
   const tool = getTool(item.tool_id);
   const [copied, setCopied] = React.useState(false);
 
+  React.useEffect(() => {
+    void trackEvent({ kind: "view", toolId: item.tool_id, prompt: item.prompt || "", url: item.url });
+  }, [item.id]);
+
   const copyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(item.prompt || "");
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
+      void trackEvent({ kind: "copy", toolId: item.tool_id, prompt: item.prompt || "", url: item.url });
     } catch {
       toast("Nuk u kopjua dot.");
     }
@@ -119,7 +125,7 @@ function ExploreLightbox({ item, onClose }: { item: ExploreItem; onClose: () => 
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">
             Prompt
           </div>
-          <div className="mt-1.5 flex-1 overflow-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
+          <div className="scroll-thin mt-1.5 h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
             {item.prompt || "Pa prompt"}
           </div>
           <div className="mt-4 grid gap-2">
