@@ -39,6 +39,7 @@ interface MaroContextValue {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfileName: (name: string) => Promise<{ error: string | null }>;
+  updateAvatar: (dataUrl: string) => Promise<{ error: string | null }>;
   getAccessToken: () => Promise<string | null>;
   // projects (localStorage)
   getProject: (id: string) => Project | undefined;
@@ -215,6 +216,33 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [refreshProfile]
   );
 
+  const updateAvatar = useCallback(
+    async (dataUrl: string): Promise<{ error: string | null }> => {
+      if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
+      const sb = getSupabaseBrowser();
+      const { data } = await sb.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return { error: "Nuk je i kyçur." };
+      try {
+        const res = await fetch("/api/avatar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ dataUrl }),
+        });
+        const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+        if (!res.ok || !j.url) return { error: j.error ?? "upload-failed" };
+        const { data: upd, error } = await sb.auth.updateUser({ data: { avatar_url: j.url } });
+        if (error) return { error: error.message };
+        // Reflect immediately in the session so the UI updates.
+        setState((s) => (upd.user ? { ...s, session: { ...s.session!, user: upd.user } } : s));
+        return { error: null };
+      } catch {
+        return { error: "upload-failed" };
+      }
+    },
+    []
+  );
+
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     if (!supabaseConfigured) return null;
     const { data } = await getSupabaseBrowser().auth.getSession();
@@ -344,12 +372,16 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   );
 
   const profile = state.profile;
+  const avatarUrl =
+    (state.session?.user?.user_metadata?.avatar_url as string | undefined) || undefined;
+  const baseUser = profileToUser(profile);
+  const user = baseUser ? { ...baseUser, avatarUrl } : null;
   const value = useMemo<MaroContextValue>(
     () => ({
       ready: state.ready,
       session: state.session,
       profile,
-      user: profileToUser(profile),
+      user,
       isAdmin: Boolean(profile?.is_admin),
       credits: profile?.credits ?? 0,
       supabaseReady: supabaseConfigured,
@@ -359,6 +391,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       updateProfileName,
+      updateAvatar,
       getAccessToken,
       getProject,
       addProject,
@@ -378,6 +411,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       state.ready,
       state.session,
       profile,
+      user,
       state.projects,
       state.creations,
       signIn,
@@ -385,6 +419,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       updateProfileName,
+      updateAvatar,
       getAccessToken,
       getProject,
       addProject,

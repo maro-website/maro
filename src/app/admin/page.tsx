@@ -91,7 +91,7 @@ function AdminInner() {
       <AppHeader />
       <main className="mx-auto max-w-6xl px-5 py-10">
         <div className="flex items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-white">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-ink-inv">
             <Shield className="h-6 w-6" />
           </span>
           <div>
@@ -114,7 +114,7 @@ function AdminInner() {
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 className={`inline-flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-[14px] font-semibold transition-colors lg:w-full ${
-                  tab === t.key ? "bg-ink text-white" : "text-ink-2 hover:bg-surface-2"
+                  tab === t.key ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
                 }`}
               >
                 <t.icon className="h-4 w-4" /> {t.label}

@@ -3,28 +3,19 @@
 import * as React from "react";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
-import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
+import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
 import { timeAgo } from "@/lib/utils/format";
-import type { CreditTransaction } from "@/lib/types";
-import { Coins, Zap, Sparkles, Clock, Check, ArrowRight } from "lucide-react";
+import { Coins, ArrowRight, Sparkles, Wand2, Image as ImageIcon, Globe, Heart } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 // 1 credit = 1 cent (€0.01).
-const CENT_PER_CREDIT = 1;
 const PRESETS = [100, 500, 1000, 5000];
 
-const PLANS = [
-  { key: "free", name: "Free", price: "€0", features: ["1 website", "Subdomain maro.al", "Editor bazik"] },
-  { key: "starter", name: "Starter", price: "€9", features: ["3 website", "Domain i personalizuar", "Heqja e badge"] },
-  { key: "growth", name: "Growth", price: "€19", features: ["10 website", "AI i avancuar", "Analytics"], featured: true },
-  { key: "business", name: "Business", price: "€49", features: ["Të pakufizuar", "Ekip & role", "Mbështetje 24/7"] },
-];
-
 function euros(credits: number): string {
-  return `€${((credits * CENT_PER_CREDIT) / 100).toFixed(2)}`;
+  return `€${(credits / 100).toFixed(2)}`;
 }
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -41,18 +32,34 @@ function AnimatedNumber({ value }: { value: number }) {
   return <>{display.toLocaleString("de-DE")}</>;
 }
 
+function actionLabel(item: UsageItem): { noun: string; icon: React.ElementType } {
+  if (item.toolId === "logo") return { noun: "një logo", icon: Sparkles };
+  if (item.toolId === "reklama") return { noun: "një reklamë", icon: ImageIcon };
+  if (item.kind === "image") return { noun: "një imazh", icon: ImageIcon };
+  return { noun: "një website", icon: Globe };
+}
+
 export default function CreditsPage() {
-  const { user, credits, projects } = useMaro();
+  const { user, credits } = useMaro();
   const { toast } = useToast();
   const [amount, setAmount] = React.useState<number>(500);
   const [custom, setCustom] = React.useState<string>("");
 
-  const chosen = custom.trim() ? Math.max(1, parseInt(custom, 10) || 0) : amount;
+  const [usage, setUsage] = React.useState<{ items: UsageItem[]; count: number; spent: number } | null>(
+    null
+  );
+  React.useEffect(() => {
+    if (!user) {
+      setUsage({ items: [], count: 0, spent: 0 });
+      return;
+    }
+    void fetchUsage().then((u) =>
+      setUsage({ items: u.items, count: u.totalCount, spent: u.totalCredits })
+    );
+  }, [user]);
 
-  const transactions: CreditTransaction[] = projects
-    .flatMap((p) => p.credits)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 8);
+  const chosen = custom.trim() ? Math.max(1, parseInt(custom, 10) || 0) : amount;
+  const firstName = user?.name?.split(" ")[0] ?? "Ti";
 
   const pay = () => {
     if (!user) {
@@ -81,9 +88,11 @@ export default function CreditsPage() {
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
                   <Coins className="h-4 w-4 text-brand" /> Balanca jote
                 </span>
-                <div className="mt-4 flex items-baseline gap-2 text-[clamp(44px,9vw,76px)] font-extrabold leading-none tracking-[-0.04em] text-ink">
-                  <AnimatedNumber value={credits} />
-                  <span className="text-[20px] font-semibold text-ink-3">kredite</span>
+                <div className="mt-4 flex items-baseline gap-3 leading-none">
+                  <span className="text-[clamp(44px,9vw,76px)] font-extrabold tracking-[-0.04em] text-ink">
+                    <AnimatedNumber value={credits} />
+                  </span>
+                  <span className="text-[18px] font-semibold tracking-normal text-ink-3">kredite</span>
                 </div>
                 <p className="mt-2 text-[14px] text-ink-2">≈ {euros(credits)} · 1 kredit = 1 cent</p>
               </div>
@@ -168,88 +177,88 @@ export default function CreditsPage() {
             </p>
           </motion.div>
 
-          {/* Plans */}
-          <div className="mt-12">
-            <h2 className="mb-4 text-[18px] font-bold tracking-tight text-ink">Planet</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {PLANS.map((p) => {
-                const current = user?.plan === p.key;
-                return (
-                  <div
-                    key={p.key}
-                    className={`relative flex flex-col rounded-2xl border p-5 ${
-                      p.featured ? "border-brand" : "border-line"
-                    } bg-surface`}
-                  >
-                    {current && (
-                      <span className="absolute -top-3 left-5 rounded-full bg-ink px-2.5 py-1 text-[10.5px] font-bold text-white">
-                        Plani aktual
-                      </span>
-                    )}
-                    {p.featured && !current && (
-                      <span className="absolute -top-3 left-5 rounded-full bg-brand px-2.5 py-1 text-[10.5px] font-bold text-white">
-                        Popullor
-                      </span>
-                    )}
-                    <div className="text-[14px] font-bold text-ink">{p.name}</div>
-                    <div className="mt-1 text-[26px] font-extrabold tracking-tight text-ink">
-                      {p.price}
-                      <span className="text-[13px] font-medium text-ink-3">/muaj</span>
-                    </div>
-                    <ul className="mt-4 flex flex-1 flex-col gap-2">
-                      {p.features.map((f) => (
-                        <li key={f} className="flex items-start gap-1.5 text-[12.5px] text-ink-2">
-                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant={current ? "subtle" : p.featured ? "primary" : "outline"}
-                      className="mt-4 w-full"
-                      disabled={current}
-                      onClick={() => toast("Abonimet vijnë së shpejti.")}
-                    >
-                      {current ? "Aktiv" : "Zgjidh"}
-                    </Button>
-                  </div>
-                );
-              })}
+          {/* Mission */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE, delay: 0.12 }}
+            className="mt-8 overflow-hidden rounded-[28px] border border-brand/40 bg-brand-soft p-6 sm:p-8"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand text-brand-fg">
+                <Heart className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-[17px] font-extrabold tracking-[-0.02em] text-ink">
+                  Ti po e ndihmon Maro të bëhet realitet
+                </h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+                  Për momentin, paratë e tua shkojnë direkt te Anthropic dhe OpenAI, plus koston
+                  për ta mbajtur platformën gjallë. Por me ndihmën tënde, projekti{" "}
+                  <span className="font-semibold text-ink">Maro Imazh 1.0</span> — i pari gjenerator
+                  shqiptar i imazheve me AI — bëhet realitet. Sa më shumë të rritemi, aq më lirë
+                  bëhen gjenerimet, sepse ndërtojmë modelin tonë. Faleminderit që je pjesë e këtij
+                  zhvillimi real.
+                </p>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Usage */}
+          {/* Usage feed */}
           <div className="mt-12 mb-6">
-            <h2 className="mb-4 text-[18px] font-bold tracking-tight text-ink">Përdorimi i krediteve</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[18px] font-bold tracking-tight text-ink">Aktiviteti yt</h2>
+              {usage && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
+                    <Wand2 className="h-3.5 w-3.5 text-brand" /> {usage.count} gjenerime
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
+                    <Coins className="h-3.5 w-3.5 text-brand" /> {usage.spent} kredite gjithsej
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-              <AnimatePresence initial={false}>
-                {transactions.length === 0 ? (
-                  <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">Ende s&apos;ka përdorim.</div>
-                ) : (
-                  transactions.map((t, i) => (
-                    <motion.div
-                      key={t.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className={`flex items-center justify-between px-5 py-3.5 ${
-                        i !== transactions.length - 1 ? "border-b border-line" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface-2 text-ink-2">
-                          {t.reason === "generation" ? <Zap className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+              {!usage ? (
+                <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">Duke ngarkuar…</div>
+              ) : usage.items.length === 0 ? (
+                <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">
+                  Ende s&apos;ka gjenerime. Fillo me një logo ose website.
+                </div>
+              ) : (
+                <AnimatePresence initial={false}>
+                  {usage.items.slice(0, 20).map((it, i) => {
+                    const { noun, icon: Icon } = actionLabel(it);
+                    return (
+                      <motion.div
+                        key={it.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: Math.min(i * 0.03, 0.4) }}
+                        className={`flex items-center gap-3 px-5 py-3.5 ${
+                          i !== Math.min(usage.items.length, 20) - 1 ? "border-b border-line" : ""
+                        }`}
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-ink-2">
+                          <Icon className="h-4 w-4" />
                         </span>
-                        <div>
-                          <div className="text-[13.5px] font-semibold text-ink">{t.label}</div>
-                          <div className="flex items-center gap-1 text-[11.5px] text-ink-3">
-                            <Clock className="h-3 w-3" /> {timeAgo(t.createdAt)}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[13.5px] text-ink">
+                            <span className="font-semibold">{firstName}</span> maroi{" "}
+                            <span className="font-semibold">{noun}</span>
                           </div>
+                          <div className="text-[11.5px] text-ink-3">{timeAgo(it.createdAt)}</div>
                         </div>
-                      </div>
-                      <span className="text-[14px] font-bold text-ink">{t.amount} kredite</span>
-                    </motion.div>
-                  ))
-                )}
-              </AnimatePresence>
+                        <span className="shrink-0 text-[13px] font-bold text-ink">
+                          {it.credits} kredite
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              )}
             </div>
           </div>
         </div>

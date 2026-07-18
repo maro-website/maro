@@ -36,6 +36,7 @@ export interface User {
   name: string;
   email: string;
   avatarColor: string;
+  avatarUrl?: string;
   plan: "free" | "starter" | "growth" | "business";
   credits: number;
   createdAt: string;

@@ -4,7 +4,9 @@ import * as React from "react";
 import { Logo } from "@/components/ui/Logo";
 import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
 import { useMaro } from "@/context/store";
-import { Menu, Coins } from "lucide-react";
+import { Menu, Coins, PanelLeftOpen } from "lucide-react";
+
+const COLLAPSE_KEY = "maro.sidebar.collapsed";
 
 // The persistent app frame: left sidebar (desktop), mobile drawer + top bar,
 // and a full-height main area. The children area fills the viewport so tool
@@ -12,12 +14,31 @@ import { Menu, Coins } from "lucide-react";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, credits } = useMaro();
   const [drawer, setDrawer] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+  }, []);
+
+  const toggleCollapse = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      return next;
+    });
+  };
 
   return (
-    <div className="grid h-[100dvh] grid-cols-1 overflow-hidden lg:grid-cols-[280px_1fr]">
-      <aside className="hidden h-[100dvh] border-r border-line bg-canvas lg:block">
-        <HomeSidebar />
-      </aside>
+    <div
+      className={`grid h-[100dvh] grid-cols-1 overflow-hidden ${
+        collapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]"
+      }`}
+    >
+      {!collapsed && (
+        <aside className="hidden h-[100dvh] border-r border-line bg-canvas lg:block">
+          <HomeSidebar onCollapse={toggleCollapse} />
+        </aside>
+      )}
 
       <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
 
@@ -36,6 +57,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Coins className="h-4 w-4 text-brand" /> {user ? credits : 0}
           </div>
         </div>
+
+        {/* Desktop expand button (shown only when collapsed) */}
+        {collapsed && (
+          <button
+            onClick={toggleCollapse}
+            className="absolute left-4 top-4 z-40 hidden h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink-2 shadow-subtle transition-colors hover:text-ink lg:grid"
+            aria-label="Hap sidebar"
+            title="Hap sidebar"
+          >
+            <PanelLeftOpen className="h-5 w-5" />
+          </button>
+        )}
 
         <div className="min-h-0 flex-1">{children}</div>
       </main>

@@ -52,12 +52,19 @@ export function AppHeader() {
             }
             trigger={
               <button className="flex items-center gap-2 rounded-full p-0.5 pr-2 transition-colors hover:bg-surface-2">
-                <span
-                  className="grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold text-white"
-                  style={{ background: user?.avatarColor ?? "#5a28e5" }}
-                >
-                  {initials(user?.name ?? "U")}
-                </span>
+                {user?.avatarUrl ? (
+                  <span className="h-8 w-8 overflow-hidden rounded-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  </span>
+                ) : (
+                  <span
+                    className="grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold text-white"
+                    style={{ background: user?.avatarColor ?? "#5a28e5" }}
+                  >
+                    {initials(user?.name ?? "U")}
+                  </span>
+                )}
               </button>
             }
             items={[

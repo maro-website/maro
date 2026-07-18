@@ -7,6 +7,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AdBanner } from "@/components/app/AdBanner";
+import { PromptExpand } from "@/components/app/PromptExpand";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { createProjectFromComposer } from "@/lib/services/projectService";
@@ -29,6 +30,7 @@ import {
   Sparkles,
   Check,
   ChevronDown,
+  Maximize2,
 } from "lucide-react";
 
 const tool = getTool("website")!;
@@ -43,6 +45,7 @@ export function Composer() {
   const [speed, setSpeed] = React.useState<SpeedKey>(tool.defaultSpeed ?? "fast");
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
   const pendingRef = React.useRef(false);
 
   const cost = creditCost(pricing, websiteType, speed);
@@ -105,13 +108,22 @@ export function Composer() {
             />
 
             <div className="relative flex flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-surface-2 text-ink-2 transition-colors hover:text-ink"
+                title="Zgjero"
+                aria-label="Zgjero promptin"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
               <ModelSelect />
               <TypeSelect value={websiteType} onChange={setWebsiteType} />
               <SpeedSelect value={speed} onChange={setSpeed} />
 
               <div className="ml-auto flex items-center gap-2.5">
-                <span className="hidden items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-[13px] font-semibold text-brand sm:inline-flex">
-                  <Coins className="h-4 w-4" /> {cost}
+                <span className="hidden items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2 sm:inline-flex">
+                  <Coins className="h-4 w-4 text-brand" /> {cost}
                 </span>
                 <motion.button
                   whileTap={{ scale: 0.94 }}
@@ -145,6 +157,18 @@ export function Composer() {
       </Modal>
 
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
+
+      <PromptExpand
+        open={expanded}
+        value={prompt}
+        onChange={setPrompt}
+        onClose={() => setExpanded(false)}
+        onSubmit={() => {
+          setExpanded(false);
+          onGenerate();
+        }}
+        placeholder="Përshkruaj website-in që do të ndërtosh…"
+      />
     </div>
   );
 }

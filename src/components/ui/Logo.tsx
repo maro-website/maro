@@ -2,12 +2,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 export function MaroSymbol({ className }: { className?: string }) {
-  // Brand mark, sized via className (default 28px square).
+  // Brand mark, sized via className (default 34px square).
   return (
     <img
       src="/brand/symbol.svg"
       alt="Maro"
-      className={cn("h-7 w-7 select-none", className)}
+      className={cn("h-[34px] w-[34px] select-none", className)}
       draggable={false}
     />
   );
@@ -17,7 +17,7 @@ export function Logo({
   className,
   wordClassName,
   symbolClassName,
-  showWord = true,
+  showWord = false,
 }: {
   className?: string;
   wordClassName?: string;

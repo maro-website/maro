@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { MaroProvider } from "@/context/store";
+import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
+
+// Set the theme before first paint to avoid a flash of the wrong theme.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme');if(t&&t!=='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "Maro · AI Hub",
@@ -26,10 +30,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sq">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="min-h-screen bg-canvas text-ink antialiased">
-        <MaroProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </MaroProvider>
+        <ThemeProvider>
+          <MaroProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </MaroProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

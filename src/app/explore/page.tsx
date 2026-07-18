@@ -57,7 +57,7 @@ export default function ExplorePage() {
                   className={cn(
                     "rounded-full border px-4 py-1.5 text-[13.5px] font-semibold transition-colors",
                     filter === f.id
-                      ? "border-ink bg-ink text-white"
+                      ? "border-ink bg-ink text-ink-inv"
                       : "border-line-strong bg-surface text-ink-2 hover:bg-surface-2"
                   )}
                 >

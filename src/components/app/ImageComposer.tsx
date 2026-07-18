@@ -7,6 +7,7 @@ import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AdBanner } from "@/components/app/AdBanner";
 import { CreationCard } from "@/components/app/cards";
+import { PromptExpand } from "@/components/app/PromptExpand";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -43,6 +44,7 @@ import {
   X,
   Shapes,
   Package,
+  Maximize2,
 } from "lucide-react";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -74,6 +76,7 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -294,6 +297,16 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
                 <Paperclip className="h-4 w-4" />
               </button>
 
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-surface-2 text-ink-2 transition-colors hover:text-ink"
+                title="Zgjero"
+                aria-label="Zgjero promptin"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+
               {isLogo ? (
                 <>
                   <LogoTypeSelect value={logoType} onChange={setLogoType} />
@@ -346,6 +359,23 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
       </Modal>
 
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
+
+      <PromptExpand
+        open={expanded}
+        value={prompt}
+        onChange={setPrompt}
+        onClose={() => setExpanded(false)}
+        onSubmit={() => {
+          setExpanded(false);
+          onGenerate();
+        }}
+        canSubmit={!loading}
+        placeholder={
+          isLogo
+            ? "Përshkruaj logon: brand, stil, simbol, ngjyra…"
+            : "Përshkruaj reklamën: produkt, mesazh, stil, ngjyra…"
+        }
+      />
     </div>
   );
 }

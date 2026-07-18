@@ -53,6 +53,61 @@
     -apple-system, sans-serif;
 }
 
+/* ---- Dark (soft) theme: dark but not pure black ---- */
+[data-theme="dark"] {
+  --brand: #8b6cf0;
+  --brand-hover: #7a5be0;
+  --brand-soft: #221f33;
+  --brand-fg: #ffffff;
+
+  --canvas: #16161c;
+  --surface: #1d1d25;
+  --surface-2: #26262f;
+  --line: #2c2c37;
+  --line-strong: #3a3a46;
+
+  --ink: #f3f3f6;
+  --ink-2: #b4b4bf;
+  --ink-3: #80808c;
+  --ink-inv: #16161c;
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #8b6cf0;
+}
+
+/* ---- Mono: full black + strictly black/white UI (no color) ---- */
+[data-theme="mono"] {
+  --brand: #ffffff;
+  --brand-hover: #e5e5e5;
+  --brand-soft: #1a1a1a;
+  --brand-fg: #000000;
+
+  --canvas: #000000;
+  --surface: #0c0c0c;
+  --surface-2: #171717;
+  --line: #262626;
+  --line-strong: #383838;
+
+  --ink: #ffffff;
+  --ink-2: #b0b0b0;
+  --ink-3: #7a7a7a;
+  --ink-inv: #000000;
+
+  --success: #ffffff;
+  --warning: #ffffff;
+  --danger: #ffffff;
+  --info: #ffffff;
+}
+
+/* Smoothly cross-fade colors when switching themes. */
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color 0.35s ease, border-color 0.35s ease,
+    color 0.35s ease, fill 0.35s ease;
+}
+
 * {
   border-color: var(--line);
 }

@@ -9,12 +9,28 @@ import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { initials } from "@/lib/utils/format";
-import { Coins, Pencil, Check, X, Plus } from "lucide-react";
+import { Coins, Pencil, Check, X, Plus, Camera } from "lucide-react";
 
 function AccountInner() {
   const router = useRouter();
-  const { user, credits, updateProfileName } = useMaro();
+  const { user, credits, updateProfileName, updateAvatar } = useMaro();
   const { toast } = useToast();
+  const [uploading, setUploading] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const pickAvatar = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
+    if (file.size > 6 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 6MB).");
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setUploading(true);
+      const { error } = await updateAvatar(reader.result as string);
+      setUploading(false);
+      toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen">
@@ -26,12 +42,42 @@ function AccountInner() {
           {/* Profile with inline editing */}
           <div className="rounded-2xl border border-line bg-surface p-6">
             <div className="flex items-center gap-4">
-              <span
-                className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-[20px] font-bold text-white"
-                style={{ background: user?.avatarColor }}
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="group relative h-16 w-16 shrink-0"
+                title="Ndrysho foton"
               >
-                {initials(user?.name ?? "U")}
-              </span>
+                {user?.avatarUrl ? (
+                  <span className="block h-16 w-16 overflow-hidden rounded-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  </span>
+                ) : (
+                  <span
+                    className="grid h-16 w-16 place-items-center rounded-full text-[20px] font-bold text-white"
+                    style={{ background: user?.avatarColor }}
+                  >
+                    {initials(user?.name ?? "U")}
+                  </span>
+                )}
+                <span className="absolute inset-0 grid place-items-center rounded-full bg-ink/45 opacity-0 transition-opacity group-hover:opacity-100">
+                  {uploading ? (
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-white" />
+                  )}
+                </span>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  pickAvatar(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
               <div className="min-w-0">
                 <div className="text-[18px] font-bold text-ink">{user?.name}</div>
                 <Badge tone="neutral" className="mt-1 capitalize">
