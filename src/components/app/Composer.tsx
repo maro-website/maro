@@ -7,6 +7,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { ProjectCard } from "@/components/app/cards";
+import { AdBanner } from "@/components/app/AdBanner";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { createProjectFromComposer } from "@/lib/services/projectService";
@@ -145,6 +146,7 @@ export function Composer() {
       {/* Docked prompt box */}
       <div className="shrink-0 border-t border-line bg-canvas/90 backdrop-blur">
         <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-5 sm:py-4">
+          <AdBanner toolId="website" />
           <div className="group relative rounded-[24px] border border-line-strong bg-surface p-2 shadow-pop">
             <textarea
               value={prompt}

@@ -13,6 +13,29 @@ const SUGGESTIONS = [
   "Ndrysho stilin e butonave",
 ];
 
+const THINKING_PHRASES = [
+  "Po e analizoj kërkesën…",
+  "Po planifikoj ndryshimet…",
+  "Po e ndreq dizajnin…",
+  "Po i rregulloj detajet…",
+  "Pothuajse gati…",
+];
+
+// Rotating "thinking" label so the wait doesn't feel static.
+function ThinkingBubble({ content }: { content: string }) {
+  const [i, setI] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % THINKING_PHRASES.length), 2200);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="flex items-center gap-2">
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      {THINKING_PHRASES[i] || content}
+    </span>
+  );
+}
+
 export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
   const { project, sendChat, sending } = useEditor();
   const [input, setInput] = React.useState("");
@@ -73,9 +96,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
                 )}
               >
                 {m.status === "thinking" ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {m.content}
-                  </span>
+                  <ThinkingBubble content={m.content} />
                 ) : (
                   m.content
                 )}

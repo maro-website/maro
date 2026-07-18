@@ -23,7 +23,7 @@ function HtmlPreview({
   if (!active) return null;
 
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className="w-full bg-white">
       {pages.length > 1 && (
         <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2">
           {pages.map((p) => (
@@ -46,8 +46,11 @@ function HtmlPreview({
         title={active.name}
         srcDoc={active.html}
         sandbox="allow-scripts allow-same-origin allow-popups"
-        className="w-full flex-1"
-        style={{ border: 0, height: fullHeight ? "calc(100dvh - 50px)" : "78dvh" }}
+        className="block w-full"
+        style={{
+          border: 0,
+          height: fullHeight ? "calc(100dvh - 60px)" : "calc(100dvh - 150px)",
+        }}
       />
     </div>
   );

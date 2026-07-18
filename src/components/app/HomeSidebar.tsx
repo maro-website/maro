@@ -19,6 +19,7 @@ import {
   User as UserIcon,
   Home,
   Star,
+  Compass,
   X,
   Check,
 } from "lucide-react";
@@ -71,6 +72,12 @@ export function HomeSidebar({ onNavigate }: { onNavigate?: () => void }) {
             icon={<Home className="h-5 w-5" />}
             label="Hub"
             onClick={() => go("/")}
+          />
+          <NavItem
+            active={pathname === "/explore"}
+            icon={<Compass className="h-5 w-5" />}
+            label="Explore"
+            onClick={() => go("/explore")}
           />
           <NavItem
             active={pathname === "/favourites"}

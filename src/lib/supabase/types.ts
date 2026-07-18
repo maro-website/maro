@@ -20,6 +20,15 @@ export interface SpeedConfig {
   mult: number;
 }
 
+export interface AdBanner {
+  /** Public URL of the uploaded banner image. */
+  imageUrl?: string;
+  /** Tool routes/ids where the banner is shown (e.g. ["website","logo"]). */
+  pages?: string[];
+  /** Optional link opened when the banner is clicked. */
+  link?: string;
+}
+
 export interface PricingConfig {
   types: Record<WebsiteKind, number>;
   speed: Record<SpeedKey, SpeedConfig>;
@@ -28,6 +37,8 @@ export interface PricingConfig {
   tools?: Record<string, number>;
   /** Reserve: enable the product-image box in Maro Reklama (admin controlled). */
   reklamaProduct?: boolean;
+  /** Admin-managed ad banner shown above the composer on selected tools. */
+  ads?: AdBanner;
 }
 
 export interface AppSettings {

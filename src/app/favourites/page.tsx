@@ -79,11 +79,7 @@ export default function FavouritesPage() {
               </h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {favCreations.map((c) => (
-                  <CreationCard
-                    key={c.id}
-                    creation={c}
-                    onOpen={(cr) => cr.urls[0] && window.open(cr.urls[0], "_blank")}
-                  />
+                  <CreationCard key={c.id} creation={c} />
                 ))}
               </div>
             </section>

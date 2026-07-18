@@ -20,17 +20,41 @@ import {
   type SpeedKey,
 } from "@/lib/supabase/types";
 import { buildComposedGenerateSystem, buildComposedGenerateUser } from "@/lib/ai/prompts";
-import { IMAGE_TOOLS } from "@/lib/tools/registry";
+import { IMAGE_TOOLS, TOOLS } from "@/lib/tools/registry";
 import { timeAgo } from "@/lib/utils/format";
-import { Users, FileText, Coins, ScrollText, Save, Shield, Wand2 } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Coins,
+  ScrollText,
+  Save,
+  Shield,
+  Wand2,
+  LayoutDashboard,
+  Megaphone,
+  ShoppingCart,
+  UploadCloud,
+  Trash2,
+} from "lucide-react";
 
-type Tab = "users" | "prompt" | "tools" | "pricing" | "log";
+type Tab =
+  | "overview"
+  | "users"
+  | "prompt"
+  | "tools"
+  | "reklamat"
+  | "pricing"
+  | "orders"
+  | "log";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "overview", label: "Dashboard", icon: LayoutDashboard },
   { key: "users", label: "Përdoruesit", icon: Users },
   { key: "prompt", label: "Master Prompt", icon: FileText },
   { key: "tools", label: "Tools", icon: Wand2 },
+  { key: "reklamat", label: "Reklamat", icon: Megaphone },
   { key: "pricing", label: "Çmimet", icon: Coins },
+  { key: "orders", label: "Porositë", icon: ShoppingCart },
   { key: "log", label: "Log", icon: ScrollText },
 ];
 
@@ -56,7 +80,7 @@ export default function AdminPage() {
 }
 
 function AdminInner() {
-  const [tab, setTab] = React.useState<Tab>("users");
+  const [tab, setTab] = React.useState<Tab>("overview");
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -92,13 +116,75 @@ function AdminInner() {
         </div>
 
         <div className="mt-6">
+          {tab === "overview" && <OverviewTab />}
           {tab === "users" && <UsersTab />}
           {tab === "prompt" && <PromptTab />}
           {tab === "tools" && <ToolsTab />}
+          {tab === "reklamat" && <ReklamatTab />}
           {tab === "pricing" && <PricingTab />}
+          {tab === "orders" && <OrdersTab />}
           {tab === "log" && <LogTab />}
         </div>
       </main>
+    </div>
+  );
+}
+
+// ---- Overview / Dashboard ----
+function OverviewTab() {
+  const [stats, setStats] = React.useState<{
+    users: number;
+    admins: number;
+    credits: number;
+    gens: number;
+    images: number;
+    websites: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return;
+      const sb = getSupabaseBrowser();
+      const [{ data: profiles }, { data: gens }] = await Promise.all([
+        sb.from("profiles").select("credits, is_admin"),
+        sb.from("generations").select("kind").limit(5000),
+      ]);
+      const rows = (profiles as { credits: number; is_admin: boolean }[]) ?? [];
+      const g = (gens as { kind: string | null }[]) ?? [];
+      setStats({
+        users: rows.length,
+        admins: rows.filter((r) => r.is_admin).length,
+        credits: rows.reduce((a, r) => a + (r.credits ?? 0), 0),
+        gens: g.length,
+        images: g.filter((x) => x.kind === "image").length,
+        websites: g.filter((x) => x.kind !== "image").length,
+      });
+    })();
+  }, []);
+
+  if (!stats) return <Spinner className="h-6 w-6" />;
+
+  const cards = [
+    { label: "Përdorues", value: stats.users, icon: Users },
+    { label: "Adminë", value: stats.admins, icon: Shield },
+    { label: "Kredite në qarkullim", value: stats.credits, icon: Coins },
+    { label: "Gjenerime gjithsej", value: stats.gens, icon: Wand2 },
+    { label: "Imazhe", value: stats.images, icon: Megaphone },
+    { label: "Website", value: stats.websites, icon: FileText },
+  ];
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {cards.map((c) => (
+        <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
+          <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
+            <c.icon className="h-4 w-4" /> {c.label}
+          </div>
+          <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
+            {c.value.toLocaleString()}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -328,7 +414,6 @@ function ToolsTab() {
   const { toast } = useToast();
   const [prompts, setPrompts] = React.useState<Record<string, string>>({});
   const [costs, setCosts] = React.useState<Record<string, number>>({});
-  const [reklamaProduct, setReklamaProduct] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -343,7 +428,6 @@ function ToolsTab() {
       setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setCosts({ ...(DEFAULT_PRICING.tools ?? {}), ...(pricing.tools ?? {}) });
-      setReklamaProduct(Boolean(pricing.reklamaProduct));
       setLoading(false);
     })();
   }, []);
@@ -364,7 +448,6 @@ function ToolsTab() {
         pricing: {
           ...pricing,
           tools: { ...(pricing.tools ?? {}), ...costs },
-          reklamaProduct,
         },
         updated_at: new Date().toISOString(),
       })
@@ -414,31 +497,282 @@ function ToolsTab() {
               }
             />
           </Field>
-
-          {tool.hasProductUpload && (
-            <label className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3">
-              <span>
-                <span className="block text-[13.5px] font-semibold text-ink">
-                  Kutia e produktit
-                </span>
-                <span className="block text-[12px] text-ink-3">
-                  Rezervon vendin për ngarkimin e produktit te prompt box i Reklamës.
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={reklamaProduct}
-                onChange={(e) => setReklamaProduct(e.target.checked)}
-                className="h-5 w-5 accent-brand"
-              />
-            </label>
-          )}
         </div>
       ))}
 
       <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
         Ruaj tools
       </Button>
+    </div>
+  );
+}
+
+// ---- Reklamat (ad banners) ----
+function ReklamatTab() {
+  const { toast } = useToast();
+  const { getAccessToken } = useMaro();
+  const [imageUrl, setImageUrl] = React.useState("");
+  const [link, setLink] = React.useState("");
+  const [pages, setPages] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const [drag, setDrag] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return setLoading(false);
+      const { data } = await getSupabaseBrowser()
+        .from("app_settings")
+        .select("pricing")
+        .eq("id", 1)
+        .single();
+      const ads = ((data?.pricing as PricingConfig) ?? DEFAULT_PRICING).ads;
+      setImageUrl(ads?.imageUrl ?? "");
+      setLink(ads?.link ?? "");
+      setPages(ads?.pages ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const upload = async (file: File) => {
+    if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
+    if (file.size > 8 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 8MB).");
+    setUploading(true);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const token = await getAccessToken();
+      const res = await fetch("/api/admin/ad-upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ dataUrl }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok || !j.url) return toast("Ngarkimi dështoi: " + (j.error ?? res.status));
+      setImageUrl(j.url);
+      toast("Imazhi u ngarkua");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const togglePage = (id: string) =>
+    setPages((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  const save = async () => {
+    setSaving(true);
+    const { data } = await getSupabaseBrowser()
+      .from("app_settings")
+      .select("pricing")
+      .eq("id", 1)
+      .single();
+    const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    const { error } = await getSupabaseBrowser()
+      .from("app_settings")
+      .update({
+        pricing: {
+          ...pricing,
+          ads: { imageUrl: imageUrl || undefined, link: link || undefined, pages },
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+    setSaving(false);
+    toast(error ? "Gabim: " + error.message : "Reklama u ruajt");
+  };
+
+  if (loading) return <Spinner className="h-6 w-6" />;
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <p className="text-[13.5px] leading-relaxed text-ink-2">
+        Ngarko një banner reklame dhe zgjidh në cilat tools shfaqet mbi prompt box. Useri e
+        sheh banner-in kur hap ato faqe.
+      </p>
+
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) void upload(f);
+        }}
+        className={`grid place-items-center rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+          drag ? "border-brand bg-brand-soft" : "border-line-strong bg-surface-2/50"
+        }`}
+      >
+        {imageUrl ? (
+          <div className="w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="" className="mx-auto max-h-56 rounded-xl object-contain" />
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} loading={uploading}>
+                Ndrysho
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Trash2 className="h-4 w-4" />}
+                onClick={() => setImageUrl("")}
+              >
+                Hiq
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex flex-col items-center text-ink-3"
+          >
+            <UploadCloud className="h-8 w-8" />
+            <span className="mt-2 text-[14px] font-semibold text-ink">
+              {uploading ? "Duke ngarkuar…" : "Kliko ose tërhiq një imazh këtu"}
+            </span>
+            <span className="mt-1 text-[12.5px]">PNG / JPG, deri 8MB</span>
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void upload(f);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      <div className="rounded-2xl border border-line bg-surface p-5">
+        <div className="text-[13px] font-bold text-ink">Shfaqet te</div>
+        <div className="mt-3 flex flex-col gap-2">
+          {TOOLS.map((t) => (
+            <label
+              key={t.id}
+              className="flex items-center justify-between rounded-xl border border-line px-4 py-3"
+            >
+              <span className="flex items-center gap-2.5 text-[14px] font-medium text-ink">
+                <t.icon className="h-4 w-4 text-brand" /> {t.name}
+              </span>
+              <input
+                type="checkbox"
+                checked={pages.includes(t.id)}
+                onChange={() => togglePage(t.id)}
+                className="h-5 w-5 accent-brand"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <Field label="Link (opsional) — hapet kur klikohet banner-i">
+        <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
+      </Field>
+
+      <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
+        Ruaj reklamën
+      </Button>
+    </div>
+  );
+}
+
+// ---- Orders ----
+interface CreditOrder {
+  id: string;
+  user_email: string | null;
+  credits: number;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  provider: string | null;
+  created_at: string;
+}
+
+function OrdersTab() {
+  const [orders, setOrders] = React.useState<CreditOrder[] | null>(null);
+  const [missing, setMissing] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return setOrders([]);
+      const { data, error } = await getSupabaseBrowser()
+        .from("credit_orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) {
+        setMissing(true);
+        setOrders([]);
+        return;
+      }
+      setOrders((data as CreditOrder[]) ?? []);
+    })();
+  }, []);
+
+  if (orders === null) return <Spinner className="h-6 w-6" />;
+
+  if (missing) {
+    return (
+      <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-[13.5px] text-amber-800">
+        Tabela <code>credit_orders</code> nuk ekziston ende. Ekzekuto migrimin
+        0004_explore_orders.sql në Supabase për të aktivizuar porositë.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-line">
+      <table className="w-full text-left text-[13.5px]">
+        <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
+          <tr>
+            <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
+            <th className="px-4 py-2.5 font-semibold">Kredite</th>
+            <th className="px-4 py-2.5 font-semibold">Shuma</th>
+            <th className="px-4 py-2.5 font-semibold">Statusi</th>
+            <th className="px-4 py-2.5 font-semibold">Koha</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {orders.map((o) => (
+            <tr key={o.id} className="bg-surface">
+              <td className="px-4 py-3 text-ink-2">{o.user_email}</td>
+              <td className="px-4 py-3 font-semibold text-ink">{o.credits}</td>
+              <td className="px-4 py-3 text-ink-2">
+                {(o.amount_cents / 100).toFixed(2)} {o.currency}
+              </td>
+              <td className="px-4 py-3">
+                <Badge tone={o.status === "paid" ? "brand" : "neutral"} className="text-[11px]">
+                  {o.status}
+                </Badge>
+              </td>
+              <td className="px-4 py-3 text-ink-3">{timeAgo(o.created_at)}</td>
+            </tr>
+          ))}
+          {orders.length === 0 && (
+            <tr>
+              <td colSpan={5} className="px-4 py-8 text-center text-ink-3">
+                Ende s&apos;ka porosi. Kur të lidhen pagesat, porositë shfaqen këtu.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -459,9 +793,12 @@ function PricingTab() {
         .eq("id", 1)
         .single();
       const p = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+      // Keep the full config so save() never wipes tools/ads/reklamaProduct.
       setPricing({
+        ...p,
         types: { ...DEFAULT_PRICING.types, ...(p.types ?? {}) },
         speed: { ...DEFAULT_PRICING.speed, ...(p.speed ?? {}) },
+        tools: { ...DEFAULT_PRICING.tools, ...(p.tools ?? {}) },
         editCost: p.editCost ?? DEFAULT_PRICING.editCost ?? 2,
       });
       setLoading(false);
@@ -546,6 +883,26 @@ function PricingTab() {
                 </select>
               </Field>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-line bg-surface p-5">
+        <div className="text-[13px] font-bold text-ink">Kosto për imazh (kredite)</div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {IMAGE_TOOLS.map((t) => (
+            <Field key={t.id} label={t.name}>
+              <Input
+                type="number"
+                value={pricing.tools?.[t.id] ?? t.defaultCost}
+                onChange={(e) =>
+                  setPricing((p) => ({
+                    ...p,
+                    tools: { ...(p.tools ?? {}), [t.id]: parseInt(e.target.value, 10) || 0 },
+                  }))
+                }
+              />
+            </Field>
           ))}
         </div>
       </div>

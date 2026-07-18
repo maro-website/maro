@@ -38,6 +38,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
           tools: { ...DEFAULT_PRICING.tools, ...(pricing.tools ?? {}) },
           editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
           reklamaProduct: pricing.reklamaProduct ?? DEFAULT_PRICING.reklamaProduct,
+          ads: pricing.ads,
         },
       });
     };

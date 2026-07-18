@@ -157,7 +157,7 @@ function GeneratingInner() {
                 ) : (
                   <>
                     <div className="text-[15px] font-semibold text-ink">
-                      {done ? "Faqja jote u maru." : "Po e maroj faqen tënde me Claude Opus 4.8…"}
+                      {done ? "Faqja jote u maru." : <RotatingHeading />}
                     </div>
                     <StepList active={active} done={done} />
                     <AnimatePresence>
@@ -180,6 +180,23 @@ function GeneratingInner() {
       </div>
     </AppShell>
   );
+}
+
+const HEADINGS = [
+  "Po e mendoj strukturën e faqes…",
+  "Po e maroj faqen tënde me Claude Opus 4.8…",
+  "Po shkruaj HTML & CSS premium…",
+  "Po i rregulloj detajet e dizajnit…",
+  "Pothuajse gati…",
+];
+
+function RotatingHeading() {
+  const [i, setI] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % HEADINGS.length), 3200);
+    return () => clearInterval(t);
+  }, []);
+  return <>{HEADINGS[i]}</>;
 }
 
 function StepList({ active, done }: { active: number; done: boolean }) {

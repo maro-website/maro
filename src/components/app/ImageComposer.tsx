@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
+import { AdBanner } from "@/components/app/AdBanner";
+import { CreationLightbox } from "@/components/app/cards";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
+import type { ImageCreation } from "@/lib/types";
 import {
   generateImages,
   InsufficientCreditsError,
@@ -32,12 +35,10 @@ import {
   Sparkles,
   Check,
   ChevronDown,
-  Download,
   Trash2,
   ImageOff,
   Paperclip,
   X,
-  Package,
 } from "lucide-react";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -151,8 +152,6 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
     }
   };
 
-  const showProductBox = Boolean(tool.hasProductUpload);
-
   return (
     <div className="flex h-full flex-col">
       {/* Scroll area: header + gallery */}
@@ -168,18 +167,14 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
             </div>
           )}
 
-          <ImageResultGallery
-            creations={toolCreations}
-            accent={tool.accent}
-            onDelete={deleteCreation}
-          />
+          <ImageResultGallery creations={toolCreations} onDelete={deleteCreation} />
         </div>
       </div>
 
       {/* Docked prompt box (bottom, ChatGPT-style) */}
       <div className="shrink-0 border-t border-line bg-canvas/90 backdrop-blur">
         <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-5 sm:py-4">
-          {showProductBox && <ReklamaProductBox enabled={Boolean(pricing.reklamaProduct)} />}
+          <AdBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
             <div className="mb-2.5 flex flex-wrap gap-2">
@@ -309,36 +304,17 @@ function ToolHeader({ tool }: { tool: ReturnType<typeof getTool> }) {
   );
 }
 
-// Reserved product-image box for Maro Reklama (upload controlled from Admin).
-function ReklamaProductBox({ enabled }: { enabled: boolean }) {
-  return (
-    <div className="mb-2.5 flex items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-surface-2/60 px-4 py-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface text-ink-3">
-        <Package className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13.5px] font-semibold text-ink">Produkti</div>
-        <div className="text-[12.5px] text-ink-3">
-          {enabled
-            ? "Ngarkimi i produktit aktivizohet së shpejti nga Admin."
-            : "Kontrollohet nga Admin. Vendoset së shpejti."}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---- Results ----
 
 function ImageResultGallery({
   creations,
-  accent,
   onDelete,
 }: {
-  creations: { id: string; prompt: string; urls: string[]; createdAt: string }[];
-  accent: string;
+  creations: ImageCreation[];
   onDelete: (id: string) => void;
 }) {
+  const [selected, setSelected] = React.useState<ImageCreation | null>(null);
+
   if (creations.length === 0) {
     return (
       <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-14 text-center">
@@ -366,52 +342,26 @@ function ImageResultGallery({
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {c.urls.map((url, i) => (
-              <ImageTile key={i} url={url} accent={accent} name={`maro-${c.id}-${i + 1}`} />
+              <button
+                key={i}
+                onClick={() => setSelected(c)}
+                className="group relative block overflow-hidden rounded-2xl border border-line bg-surface-2"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="aspect-square w-full object-cover" />
+                <span className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
+              </button>
             ))}
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ImageTile({ url, accent, name }: { url: string; accent: string; name: string }) {
-  const [busy, setBusy] = React.useState(false);
-
-  const download = async () => {
-    setBusy(true);
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const href = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = `${name}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(href);
-    } catch {
-      window.open(url, "_blank");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" className="aspect-square w-full object-cover" />
-      <div className="pointer-events-none absolute inset-0 flex items-end justify-end bg-gradient-to-t from-ink/50 to-transparent p-2.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          onClick={download}
-          disabled={busy}
-          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-2.5 py-1.5 text-[12.5px] font-semibold text-ink shadow-sm transition-transform hover:scale-[1.03]"
-          style={{ color: accent }}
-        >
-          <Download className="h-3.5 w-3.5" /> {busy ? "…" : "Shkarko"}
-        </button>
-      </div>
+      {selected && (
+        <CreationLightbox
+          creation={selected}
+          open={Boolean(selected)}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
