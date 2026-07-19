@@ -38,11 +38,18 @@ import {
   BarChart3,
   Eye,
   Copy,
+  Ticket,
+  Star,
+  Plus,
+  Check,
+  X,
 } from "lucide-react";
 
 type Tab =
   | "overview"
   | "users"
+  | "creators"
+  | "promos"
   | "prompt"
   | "tools"
   | "reklamat"
@@ -54,6 +61,8 @@ type Tab =
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "overview", label: "Dashboard", icon: LayoutDashboard },
   { key: "users", label: "Përdoruesit", icon: Users },
+  { key: "creators", label: "Kreatorët", icon: Star },
+  { key: "promos", label: "Promo Kode", icon: Ticket },
   { key: "prompt", label: "Master Prompt", icon: FileText },
   { key: "tools", label: "Tools", icon: Wand2 },
   { key: "reklamat", label: "Reklamat", icon: Megaphone },
@@ -125,6 +134,8 @@ function AdminInner() {
           <div className="min-w-0">
             {tab === "overview" && <OverviewTab />}
             {tab === "users" && <UsersTab />}
+            {tab === "creators" && <CreatorsTab />}
+            {tab === "promos" && <PromosTab />}
             {tab === "prompt" && <PromptTab />}
             {tab === "tools" && <ToolsTab />}
             {tab === "reklamat" && <ReklamatTab />}
@@ -212,11 +223,25 @@ function UsersTab() {
     setLoading(true);
     const { data } = await getSupabaseBrowser()
       .from("profiles")
-      .select("id, email, full_name, credits, is_admin, created_at")
+      .select("*")
       .order("created_at", { ascending: false });
     setProfiles((data as Profile[]) ?? []);
     setLoading(false);
   }, []);
+
+  const toggleCreator = async (p: Profile) => {
+    const next = !p.is_creator;
+    const { error } = await getSupabaseBrowser()
+      .from("profiles")
+      .update({ is_creator: next })
+      .eq("id", p.id);
+    if (error) {
+      toast("Gabim: " + error.message);
+      return;
+    }
+    toast(next ? "U bë Kreator" : "U hoq nga Kreatorët");
+    void load();
+  };
 
   React.useEffect(() => {
     void load();
@@ -270,6 +295,7 @@ function UsersTab() {
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
               <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
+              <th className="px-4 py-2.5 font-semibold">Kreator</th>
               <th className="px-4 py-2.5 font-semibold">Kredite</th>
               <th className="px-4 py-2.5 font-semibold">Cakto</th>
             </tr>
@@ -283,6 +309,20 @@ function UsersTab() {
                     {p.is_admin && <Badge tone="brand" className="text-[10px]">admin</Badge>}
                   </div>
                   <div className="text-[12px] text-ink-3">{p.email}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => toggleCreator(p)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                      p.is_creator
+                        ? "border-brand bg-brand-soft text-brand"
+                        : "border-line-strong text-ink-3 hover:bg-surface-2"
+                    }`}
+                    title={p.is_creator ? "Hiq nga Kreatorët" : "Bëje Kreator"}
+                  >
+                    <Star className={`h-3.5 w-3.5 ${p.is_creator ? "fill-brand" : ""}`} />
+                    {p.is_creator ? "Kreator" : "Bëje"}
+                  </button>
                 </td>
                 <td className="px-4 py-3 font-bold text-ink">{p.credits}</td>
                 <td className="px-4 py-3">
@@ -322,13 +362,351 @@ function UsersTab() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-ink-3">
+                <td colSpan={4} className="px-4 py-8 text-center text-ink-3">
                   Asnjë përdorues.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ---- Promo codes ----
+interface PromoRow {
+  id: string;
+  code: string;
+  slug: string | null;
+  discount_percent: number;
+  active: boolean;
+  creator_id: string | null;
+  created_at: string;
+}
+
+function PromosTab() {
+  const { toast } = useToast();
+  const [rows, setRows] = React.useState<PromoRow[] | null>(null);
+  const [missing, setMissing] = React.useState(false);
+  const [creators, setCreators] = React.useState<Profile[]>([]);
+  const [draft, setDraft] = React.useState({ code: "", slug: "", discount: 10, creator_id: "" });
+  const [adding, setAdding] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    if (!supabaseConfigured) return setRows([]);
+    const sb = getSupabaseBrowser();
+    const { data, error } = await sb
+      .from("promo_codes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setMissing(true);
+      setRows([]);
+      return;
+    }
+    setRows((data as PromoRow[]) ?? []);
+    const { data: profs } = await sb.from("profiles").select("*").eq("is_creator", true);
+    setCreators((profs as Profile[]) ?? []);
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const emailFor = (id: string | null) =>
+    id ? creators.find((c) => c.id === id)?.email ?? "" : "";
+
+  const add = async () => {
+    const code = draft.code.trim().toUpperCase();
+    if (!code) return toast("Shkruaj një kod.");
+    setAdding(true);
+    const { error } = await getSupabaseBrowser().from("promo_codes").insert({
+      code,
+      slug: draft.slug.trim() || null,
+      discount_percent: draft.discount,
+      creator_id: draft.creator_id || null,
+      active: true,
+    });
+    setAdding(false);
+    if (error) return toast("Gabim: " + error.message);
+    toast("Kodi u shtua");
+    setDraft({ code: "", slug: "", discount: 10, creator_id: "" });
+    void load();
+  };
+
+  const update = async (id: string, patch: Partial<PromoRow>) => {
+    const { error } = await getSupabaseBrowser().from("promo_codes").update(patch).eq("id", id);
+    if (error) return toast("Gabim: " + error.message);
+    void load();
+  };
+
+  const remove = async (id: string) => {
+    const { error } = await getSupabaseBrowser().from("promo_codes").delete().eq("id", id);
+    if (error) return toast("Gabim: " + error.message);
+    toast("Kodi u fshi");
+    void load();
+  };
+
+  if (rows === null) return <Spinner className="h-6 w-6" />;
+
+  if (missing) {
+    return (
+      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+        Tabela <code>promo_codes</code> nuk ekziston ende. Ekzekuto migrimin
+        0006_creators_promos.sql në Supabase për të aktivizuar promo kodet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* New code */}
+      <div className="rounded-2xl border border-line bg-surface p-5">
+        <div className="text-[14px] font-bold text-ink">Shto kod të ri</div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Kodi (p.sh. KREATORI-10)">
+            <Input
+              value={draft.code}
+              onChange={(e) => setDraft((d) => ({ ...d, code: e.target.value }))}
+              className="uppercase"
+            />
+          </Field>
+          <Field label="Slug linku (maro.al/r/…)">
+            <Input
+              value={draft.slug}
+              onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+              placeholder="kreatori"
+            />
+          </Field>
+          <Field label="Zbritje %">
+            <Input
+              type="number"
+              value={draft.discount}
+              onChange={(e) => setDraft((d) => ({ ...d, discount: parseInt(e.target.value, 10) || 0 }))}
+            />
+          </Field>
+          <Field label="Kreator (opsional)">
+            <select
+              value={draft.creator_id}
+              onChange={(e) => setDraft((d) => ({ ...d, creator_id: e.target.value }))}
+              className="h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-[13.5px] text-ink outline-none"
+            >
+              <option value="">— asnjë —</option>
+              {creators.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.email}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Button className="mt-3" icon={<Plus className="h-4 w-4" />} loading={adding} onClick={add}>
+          Shto kod
+        </Button>
+      </div>
+
+      {/* Existing codes */}
+      <div className="overflow-hidden rounded-xl border border-line">
+        <table className="w-full text-left text-[13.5px]">
+          <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">Kodi</th>
+              <th className="px-4 py-2.5 font-semibold">Slug</th>
+              <th className="px-4 py-2.5 font-semibold">Zbritje</th>
+              <th className="px-4 py-2.5 font-semibold">Kreator</th>
+              <th className="px-4 py-2.5 font-semibold">Aktiv</th>
+              <th className="px-4 py-2.5 font-semibold"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((r) => (
+              <tr key={r.id} className="bg-surface">
+                <td className="px-4 py-3 font-bold text-ink">{r.code}</td>
+                <td className="px-4 py-3 text-ink-2">{r.slug || ""}</td>
+                <td className="px-4 py-3">
+                  <Input
+                    type="number"
+                    value={r.discount_percent}
+                    onChange={(e) =>
+                      void update(r.id, { discount_percent: parseInt(e.target.value, 10) || 0 })
+                    }
+                    className="h-9 w-20"
+                  />
+                </td>
+                <td className="px-4 py-3 text-ink-2">{emailFor(r.creator_id)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => void update(r.id, { active: !r.active })}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold ${
+                      r.active
+                        ? "border-brand bg-brand-soft text-brand"
+                        : "border-line-strong text-ink-3"
+                    }`}
+                  >
+                    {r.active ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                    {r.active ? "Aktiv" : "Joaktiv"}
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => void remove(r.id)}
+                    className="grid h-9 w-9 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-ink"
+                    aria-label="Fshi"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-ink-3">
+                  Ende s&apos;ka promo kode.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---- Creators (applications + active creators) ----
+interface CreatorApp {
+  id: string;
+  name: string;
+  email: string;
+  instagram: string | null;
+  tiktok: string | null;
+  facebook: string | null;
+  youtube: string | null;
+  website: string | null;
+  status: string;
+  created_at: string;
+}
+
+function CreatorsTab() {
+  const { toast } = useToast();
+  const [apps, setApps] = React.useState<CreatorApp[] | null>(null);
+  const [missing, setMissing] = React.useState(false);
+  const [creators, setCreators] = React.useState<Profile[]>([]);
+
+  const load = React.useCallback(async () => {
+    if (!supabaseConfigured) return setApps([]);
+    const sb = getSupabaseBrowser();
+    const { data, error } = await sb
+      .from("creator_applications")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setMissing(true);
+      setApps([]);
+      return;
+    }
+    setApps((data as CreatorApp[]) ?? []);
+    const { data: profs } = await sb.from("profiles").select("*").eq("is_creator", true);
+    setCreators((profs as Profile[]) ?? []);
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const setStatus = async (id: string, status: string) => {
+    const { error } = await getSupabaseBrowser()
+      .from("creator_applications")
+      .update({ status })
+      .eq("id", id);
+    if (error) return toast("Gabim: " + error.message);
+    toast(status === "approved" ? "U aprovua" : "U refuzua");
+    void load();
+  };
+
+  if (apps === null) return <Spinner className="h-6 w-6" />;
+
+  if (missing) {
+    return (
+      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+        Tabela <code>creator_applications</code> nuk ekziston ende. Ekzekuto migrimin
+        0006_creators_promos.sql në Supabase.
+      </div>
+    );
+  }
+
+  const socials = (a: CreatorApp) =>
+    [
+      a.instagram && `IG: ${a.instagram}`,
+      a.tiktok && `TikTok: ${a.tiktok}`,
+      a.facebook && `FB: ${a.facebook}`,
+      a.youtube && `YT: ${a.youtube}`,
+      a.website && `Web: ${a.website}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+  return (
+    <div className="space-y-8">
+      {/* Active creators */}
+      <div>
+        <div className="mb-3 text-[14px] font-bold text-ink">Kreatorët aktivë ({creators.length})</div>
+        <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+          Bëje një përdorues Kreator te tabi <span className="font-semibold text-ink">Përdoruesit</span>,
+          pastaj krijo kodin/linkun e tij te <span className="font-semibold text-ink">Promo Kode</span>.
+        </div>
+        {creators.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {creators.map((c) => (
+              <span
+                key={c.id}
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] text-ink"
+              >
+                <Star className="h-3.5 w-3.5 fill-brand text-brand" /> {c.email}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Applications */}
+      <div>
+        <div className="mb-3 text-[14px] font-bold text-ink">Aplikimet</div>
+        <div className="space-y-3">
+          {apps.map((a) => (
+            <div key={a.id} className="rounded-2xl border border-line bg-surface p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[15px] font-bold text-ink">
+                    {a.name}
+                    <Badge
+                      tone={a.status === "approved" ? "brand" : "neutral"}
+                      className="text-[10px] capitalize"
+                    >
+                      {a.status}
+                    </Badge>
+                  </div>
+                  <div className="text-[12.5px] text-ink-3">{a.email}</div>
+                  <div className="mt-1.5 text-[12.5px] text-ink-2">{socials(a)}</div>
+                  <div className="mt-1 text-[11.5px] text-ink-3">{timeAgo(a.created_at)}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => void setStatus(a.id, "approved")}>
+                    Aprovo
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void setStatus(a.id, "rejected")}>
+                    Refuzo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {apps.length === 0 && (
+            <div className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-[13.5px] text-ink-3">
+              Ende s&apos;ka aplikime për Kreator.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ export function HomeSidebar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAdmin, credits, projects, creations, signOut } = useMaro();
+  const { user, isAdmin, isCreator, credits, projects, creations, signOut } = useMaro();
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const go = (href: string) => {
@@ -172,6 +172,7 @@ export function HomeSidebar({
                 onClose={() => setSettingsOpen(false)}
                 onGo={go}
                 isAdmin={isAdmin}
+                isCreator={isCreator}
                 signOut={signOut}
               />
             ) : (
@@ -267,11 +268,13 @@ function SettingsPanel({
   onClose,
   onGo,
   isAdmin,
+  isCreator,
   signOut,
 }: {
   onClose: () => void;
   onGo: (href: string) => void;
   isAdmin: boolean;
+  isCreator: boolean;
   signOut: () => Promise<void>;
 }) {
   const { user, updateAvatar } = useMaro();
@@ -374,6 +377,9 @@ function SettingsPanel({
       {/* Links */}
       <div className="flex flex-col gap-0.5">
         <SettingsRow icon={<UserIcon className="h-4 w-4" />} label="Llogaria" onClick={() => onGo("/account")} />
+        {isCreator && (
+          <SettingsRow icon={<Star className="h-4 w-4" />} label="Maro Kreator" onClick={() => onGo("/kreator")} />
+        )}
         {isAdmin && (
           <SettingsRow icon={<Shield className="h-4 w-4" />} label="Admin" onClick={() => onGo("/admin")} />
         )}

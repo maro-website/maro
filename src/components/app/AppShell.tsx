@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
 import { useMaro } from "@/context/store";
-import { Menu, Coins, PanelLeftOpen } from "lucide-react";
+import { Menu, Coins, Plus, PanelLeftOpen } from "lucide-react";
 
 const COLLAPSE_KEY = "maro.sidebar.collapsed";
 
@@ -53,9 +54,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5" />
           </button>
           <Logo />
-          <div className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink">
+          <Link
+            href="/credits"
+            className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
+            aria-label="Kredite"
+          >
             <Coins className="h-4 w-4 text-brand" /> {user ? credits : 0}
-          </div>
+            <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-brand-fg">
+              <Plus className="h-3 w-3" />
+            </span>
+          </Link>
         </div>
 
         {/* Desktop expand button (shown only when collapsed) */}

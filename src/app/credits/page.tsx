@@ -6,12 +6,25 @@ import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
+import { validatePromo, trackPromo, type PromoInfo } from "@/lib/services/promoService";
 import { timeAgo } from "@/lib/utils/format";
-import { Coins, ArrowRight, Sparkles, Wand2, Image as ImageIcon, Globe, Heart } from "lucide-react";
+import {
+  Coins,
+  ArrowRight,
+  Sparkles,
+  Wand2,
+  Image as ImageIcon,
+  Globe,
+  Heart,
+  Ticket,
+  Check,
+  X,
+} from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// 1 credit = 1 cent (€0.01).
+// 1 credit = 1 cent (€0.01). Minimum purchase is 100 credits (€1.00).
+const MIN_CREDITS = 100;
 const PRESETS = [100, 500, 1000, 5000];
 
 function euros(credits: number): string {
@@ -58,15 +71,61 @@ export default function CreditsPage() {
     );
   }, [user]);
 
-  const chosen = custom.trim() ? Math.max(1, parseInt(custom, 10) || 0) : amount;
+  // Promo code
+  const [promoInput, setPromoInput] = React.useState("");
+  const [promo, setPromo] = React.useState<PromoInfo | null>(null);
+  const [promoState, setPromoState] = React.useState<"idle" | "checking" | "invalid">("idle");
+
+  const applyPromo = React.useCallback(
+    async (raw: string, viaLink = false) => {
+      const code = raw.trim();
+      if (!code) return;
+      setPromoState("checking");
+      const info = await validatePromo(code);
+      if (info) {
+        setPromo(info);
+        setPromoInput(info.code);
+        setPromoState("idle");
+        // A link visit is already tracked by /r/[slug]; only track code entry.
+        if (!viaLink) void trackPromo(info.code, "code");
+      } else {
+        setPromo(null);
+        setPromoState("invalid");
+      }
+    },
+    []
+  );
+
+  // Pre-apply a promo passed via the URL (?promo=CODE, from a referral link).
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("promo");
+    if (code) void applyPromo(code, params.get("via") === "link");
+  }, [applyPromo]);
+
+  const chosenRaw = custom.trim() ? parseInt(custom, 10) || 0 : amount;
+  const chosen = Math.max(MIN_CREDITS, chosenRaw);
+  const discount = promo?.discount ?? 0;
+  const totalCents = Math.round(chosen * (1 - discount / 100));
   const firstName = user?.name?.split(" ")[0] ?? "Ti";
+
+  const clearPromo = () => {
+    setPromo(null);
+    setPromoInput("");
+    setPromoState("idle");
+  };
 
   const pay = () => {
     if (!user) {
       toast("Hyr për të blerë kredite.");
       return;
     }
-    toast(`Paysera vjen së shpejti · ${chosen} kredite (${euros(chosen)})`);
+    if (chosen < MIN_CREDITS) {
+      toast(`Minimumi është ${MIN_CREDITS} kredite.`);
+      return;
+    }
+    const promoNote = promo ? ` · zbritje ${discount}%` : "";
+    toast(`Paysera vjen së shpejti · ${chosen} kredite (${euros(totalCents)})${promoNote}`);
   };
 
   return (
@@ -145,13 +204,13 @@ export default function CreditsPage() {
             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
               <div className="flex-1">
                 <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-2">
-                  Sasi e personalizuar (min. 1)
+                  Sasi e personalizuar (min. {MIN_CREDITS})
                 </label>
                 <div className="flex items-center gap-2 rounded-2xl border border-line-strong bg-surface px-4 py-3">
                   <Coins className="h-4 w-4 text-brand" />
                   <input
                     type="number"
-                    min={1}
+                    min={MIN_CREDITS}
                     value={custom}
                     onChange={(e) => setCustom(e.target.value)}
                     placeholder="p.sh. 250"
@@ -161,15 +220,78 @@ export default function CreditsPage() {
               </div>
               <div className="text-right">
                 <div className="text-[12.5px] text-ink-3">Totali</div>
-                <div className="text-[26px] font-extrabold tracking-tight text-ink">{euros(chosen)}</div>
+                {discount > 0 ? (
+                  <div className="flex items-baseline justify-end gap-2">
+                    <span className="text-[15px] font-semibold text-ink-3 line-through">{euros(chosen)}</span>
+                    <span className="text-[26px] font-extrabold tracking-tight text-ink">
+                      {euros(totalCents)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[26px] font-extrabold tracking-tight text-ink">{euros(totalCents)}</div>
+                )}
               </div>
+            </div>
+
+            {/* Promo code */}
+            <div className="mt-5">
+              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-2">Kod promocional</label>
+              {promo ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3">
+                  <div className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-fg">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    {promo.code} · zbritje {promo.discount}%
+                  </div>
+                  <button
+                    onClick={clearPromo}
+                    className="grid h-7 w-7 place-items-center rounded-full text-ink-3 transition-colors hover:bg-surface hover:text-ink"
+                    aria-label="Hiq kodin"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-stretch gap-2">
+                  <div
+                    className={`flex flex-1 items-center gap-2 rounded-2xl border bg-surface px-4 py-3 ${
+                      promoState === "invalid" ? "border-ink-3" : "border-line-strong"
+                    }`}
+                  >
+                    <Ticket className="h-4 w-4 text-brand" />
+                    <input
+                      value={promoInput}
+                      onChange={(e) => {
+                        setPromoInput(e.target.value);
+                        if (promoState === "invalid") setPromoState("idle");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void applyPromo(promoInput);
+                      }}
+                      placeholder="p.sh. KREATORI-10"
+                      className="w-full bg-transparent text-[15px] uppercase text-ink outline-none placeholder:text-ink-3 placeholder:normal-case"
+                    />
+                  </div>
+                  <button
+                    onClick={() => void applyPromo(promoInput)}
+                    disabled={promoState === "checking" || !promoInput.trim()}
+                    className="shrink-0 rounded-2xl border border-line-strong bg-surface px-5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
+                  >
+                    {promoState === "checking" ? "…" : "Apliko"}
+                  </button>
+                </div>
+              )}
+              {promoState === "invalid" && (
+                <p className="mt-1.5 text-[12.5px] text-ink-3">Ky kod nuk është valid ose ka skaduar.</p>
+              )}
             </div>
 
             <button
               onClick={pay}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-[16px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
             >
-              Paguaj me Paysera · {chosen.toLocaleString("de-DE")} kredite
+              Paguaj me Paysera · {euros(totalCents)}
               <ArrowRight className="h-5 w-5" />
             </button>
             <p className="mt-2.5 text-center text-[12.5px] text-ink-3">

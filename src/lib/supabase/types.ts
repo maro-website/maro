@@ -12,6 +12,7 @@ export interface Profile {
   full_name: string;
   credits: number;
   is_admin: boolean;
+  is_creator?: boolean;
   created_at: string;
 }
 

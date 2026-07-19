@@ -30,6 +30,7 @@ interface MaroContextValue {
   profile: Profile | null;
   user: User | null;
   isAdmin: boolean;
+  isCreator: boolean;
   credits: number;
   supabaseReady: boolean;
   projects: Project[];
@@ -117,11 +118,9 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     if (!supabaseConfigured) return null;
     const sb = getSupabaseBrowser();
-    const { data } = await sb
-      .from("profiles")
-      .select("id, email, full_name, credits, is_admin, created_at")
-      .eq("id", userId)
-      .single();
+    // select("*") so newly-added columns (e.g. is_creator) don't break login
+    // before the migration has run.
+    const { data } = await sb.from("profiles").select("*").eq("id", userId).single();
     return (data as Profile) ?? null;
   }, []);
 
@@ -383,6 +382,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       profile,
       user,
       isAdmin: Boolean(profile?.is_admin),
+      isCreator: Boolean(profile?.is_creator),
       credits: profile?.credits ?? 0,
       supabaseReady: supabaseConfigured,
       projects: state.projects,
