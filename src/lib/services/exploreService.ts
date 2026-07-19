@@ -8,6 +8,7 @@ export interface ExploreItem {
   prompt: string;
   url: string;
   author: string | null;
+  author_avatar?: string | null;
   created_at: string;
 }
 

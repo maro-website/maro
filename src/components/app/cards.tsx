@@ -349,6 +349,62 @@ export function CreationCard({
   );
 }
 
+// Compact horizontal row (thumbnail + title + time + 3-dot menu). Used for the
+// past-generations list on mobile so items don't take up huge squares.
+export function CreationListRow({ creation }: { creation: ImageCreation }) {
+  const { renameCreation, deleteCreation, toggleFavouriteCreation } = useMaro();
+  const [editing, setEditing] = React.useState(false);
+  const [lightbox, setLightbox] = React.useState(false);
+  const tool = getTool(creation.toolId);
+  const title = creation.title || creation.prompt || tool?.name || "Imazh";
+  return (
+    <div className="group flex items-center gap-3 rounded-xl border border-line bg-surface p-2 pr-1">
+      <button
+        onClick={() => setLightbox(true)}
+        className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-2"
+      >
+        {creation.urls[0] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={creation.urls[0]} alt="" className="h-full w-full object-cover" />
+        )}
+        {creation.favourite && (
+          <span className="absolute left-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
+            <Star className="h-2.5 w-2.5 fill-brand" />
+          </span>
+        )}
+      </button>
+      <CreationLightbox creation={creation} open={lightbox} onClose={() => setLightbox(false)} />
+      {editing ? (
+        <div className="min-w-0 flex-1 pr-2">
+          <RenameInput
+            initial={title}
+            onCancel={() => setEditing(false)}
+            onSave={(v) => {
+              renameCreation(creation.id, v);
+              setEditing(false);
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <button onClick={() => setLightbox(true)} className="min-w-0 flex-1 text-left">
+            <div className="truncate text-[14px] font-semibold text-ink">{title}</div>
+            <div className="truncate text-[12px] text-ink-3">
+              {tool?.name} · {timeAgo(creation.createdAt)}
+            </div>
+          </button>
+          <ItemMenu
+            favourite={creation.favourite}
+            onRename={() => setEditing(true)}
+            onToggleFav={() => toggleFavouriteCreation(creation.id)}
+            onDelete={() => deleteCreation(creation.id)}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---- Image lightbox (full image + prompt + copy + download + publish) ------
 
 export function CreationLightbox({

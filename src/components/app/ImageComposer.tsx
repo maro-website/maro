@@ -6,12 +6,11 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AdBanner } from "@/components/app/AdBanner";
-import { CreationCard } from "@/components/app/cards";
+import { CreationCard, CreationListRow } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { fetchMyCreations } from "@/lib/services/creationsService";
 import type { ImageCreation } from "@/lib/types";
 import {
   generateImages,
@@ -90,28 +89,6 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
   creditsRef.current = credits;
 
   const toolCreations = creations.filter((c) => c.toolId === tool.id);
-
-  // Heal lost generations: pull server-side image generations into the local
-  // cache. Fixes the case where a user navigated away mid-generation (credits
-  // were charged + image stored, but the local record never got added).
-  const creationsRef = React.useRef(creations);
-  creationsRef.current = creations;
-  React.useEffect(() => {
-    if (!user) return;
-    let active = true;
-    void fetchMyCreations().then((items) => {
-      if (!active) return;
-      for (const it of items) {
-        const url = it.urls?.[0];
-        if (url && !creationsRef.current.some((c) => c.urls?.[0] === url)) {
-          addCreation(it);
-        }
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [user, addCreation]);
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -478,7 +455,13 @@ function ImageResultGallery({ creations }: { creations: ImageCreation[] }) {
       <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
         Gjenerimet e kaluara
       </h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      {/* Mobile: compact list. Desktop: grid of cards. */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        {creations.map((c) => (
+          <CreationListRow key={c.id} creation={c} />
+        ))}
+      </div>
+      <div className="hidden grid-cols-2 gap-4 sm:grid sm:grid-cols-3">
         {creations.map((c) => (
           <CreationCard key={c.id} creation={c} />
         ))}

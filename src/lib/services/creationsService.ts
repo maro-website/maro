@@ -20,3 +20,38 @@ export async function fetchMyCreations(): Promise<ImageCreation[]> {
     return [];
   }
 }
+
+// Persist a favourite/title change server-side (keyed by first image URL).
+export async function updateMyCreation(
+  url: string | undefined,
+  patch: { favourite?: boolean; title?: string }
+): Promise<void> {
+  if (!url || url.startsWith("data:")) return;
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch("/api/creations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ url, ...patch }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
+// Delete a creation server-side so it doesn't re-appear after a re-sync.
+export async function deleteMyCreation(url: string | undefined): Promise<void> {
+  if (!url || url.startsWith("data:")) return;
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch("/api/creations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}

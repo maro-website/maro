@@ -11,8 +11,38 @@ import { trackEvent } from "@/lib/services/trackService";
 import { getTool, TOOLS } from "@/lib/tools/registry";
 import { PromptHoverIcon } from "@/components/app/cards";
 import { cn } from "@/lib/utils/cn";
-import { timeAgo } from "@/lib/utils/format";
+import { initials, timeAgo } from "@/lib/utils/format";
 import { Compass, Copy, Check, Download } from "lucide-react";
+
+// Small round author avatar: photo if available, otherwise initials.
+function AuthorAvatar({
+  name,
+  avatar,
+  className,
+}: {
+  name: string | null;
+  avatar?: string | null;
+  className?: string;
+}) {
+  if (avatar) {
+    return (
+      <span className={cn("block shrink-0 overflow-hidden rounded-full", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatar} alt="" className="h-full w-full object-cover" />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full bg-surface-2 text-[10px] font-bold text-ink-2",
+        className
+      )}
+    >
+      {initials(name || "A")}
+    </span>
+  );
+}
 
 export default function ExplorePage() {
   const [items, setItems] = React.useState<ExploreItem[] | null>(null);
@@ -92,10 +122,10 @@ export default function ExplorePage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={it.url} alt="" className="w-full object-cover" />
                     <div className="flex items-center justify-between gap-2 px-3 py-2">
-                      <span className="truncate text-[12.5px] font-medium text-ink-2">
-                        {it.author || "Anonim"}
+                      <AuthorAvatar name={it.author} avatar={it.author_avatar} className="h-6 w-6" />
+                      <span className="shrink-0 text-[11.5px] font-medium text-ink-3">
+                        {tool?.name}
                       </span>
-                      <span className="shrink-0 text-[11.5px] text-ink-3">{tool?.name}</span>
                     </div>
                   </button>
                 );
@@ -144,8 +174,14 @@ function ExploreLightbox({ item, onClose }: { item: ExploreItem; onClose: () => 
             {tool?.icon && <tool.icon className="h-4 w-4" />}
             {tool?.name ?? "Imazh"}
           </div>
-          <div className="mt-1 text-[12.5px] text-ink-3">
-            nga {item.author || "Anonim"} · {timeAgo(item.created_at)}
+          <div className="mt-2.5 flex items-center gap-2">
+            <AuthorAvatar name={item.author} avatar={item.author_avatar} className="h-7 w-7" />
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-semibold text-ink">
+                {item.author || "Anonim"}
+              </div>
+              <div className="text-[11.5px] text-ink-3">{timeAgo(item.created_at)}</div>
+            </div>
           </div>
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">
             Prompt

@@ -14,6 +14,11 @@ import type { ImageCreation, Project, User } from "@/lib/types";
 import type { Profile } from "@/lib/supabase/types";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage/local";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
+import {
+  fetchMyCreations,
+  updateMyCreation,
+  deleteMyCreation,
+} from "@/lib/services/creationsService";
 import { uid } from "@/lib/utils/format";
 
 interface MaroState {
@@ -317,10 +322,47 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [updateProject]
   );
 
-  // ---- image creations (localStorage) ----
+  // ---- image creations (localStorage + server sync) ----
   const persistCreations = useCallback((creations: ImageCreation[]) => {
     writeJSON(StorageKeys.creations, creations);
   }, []);
+
+  // Cross-device sync: the server (generations table) is the source of truth for
+  // image creations (existence + favourite + title). On login we reconcile the
+  // local cache with the server so all devices show the same content.
+  const userId = state.session?.user?.id ?? null;
+  useEffect(() => {
+    if (!supabaseConfigured || !userId) return;
+    let active = true;
+    void fetchMyCreations().then((server) => {
+      if (!active || server.length === 0) return;
+      setState((s) => {
+        const byUrl = new Map<string, ImageCreation>();
+        for (const c of s.creations) {
+          const u = c.urls?.[0];
+          if (u) byUrl.set(u, c);
+        }
+        // Update existing (favourite/title) and collect new server items.
+        const merged = s.creations.map((c) => {
+          const u = c.urls?.[0];
+          const srv = u ? server.find((x) => x.urls?.[0] === u) : undefined;
+          return srv ? { ...c, favourite: srv.favourite, title: srv.title ?? c.title } : c;
+        });
+        const additions = server.filter((srv) => {
+          const u = srv.urls?.[0];
+          return u && !byUrl.has(u);
+        });
+        const next = [...additions, ...merged].sort((a, b) =>
+          (b.createdAt || "").localeCompare(a.createdAt || "")
+        );
+        persistCreations(next);
+        return { ...s, creations: next };
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [userId, persistCreations]);
 
   const addCreation = useCallback(
     (c: ImageCreation) => {
@@ -336,6 +378,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const renameCreation = useCallback(
     (id: string, title: string) => {
       setState((s) => {
+        const target = s.creations.find((c) => c.id === id);
+        if (target) void updateMyCreation(target.urls?.[0], { title });
         const creations = s.creations.map((c) =>
           c.id === id ? { ...c, title } : c
         );
@@ -349,6 +393,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const toggleFavouriteCreation = useCallback(
     (id: string) => {
       setState((s) => {
+        const target = s.creations.find((c) => c.id === id);
+        if (target) void updateMyCreation(target.urls?.[0], { favourite: !target.favourite });
         const creations = s.creations.map((c) =>
           c.id === id ? { ...c, favourite: !c.favourite } : c
         );
@@ -362,6 +408,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const deleteCreation = useCallback(
     (id: string) => {
       setState((s) => {
+        const target = s.creations.find((c) => c.id === id);
+        if (target) void deleteMyCreation(target.urls?.[0]);
         const creations = s.creations.filter((c) => c.id !== id);
         persistCreations(creations);
         return { ...s, creations };

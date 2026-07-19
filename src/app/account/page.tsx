@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/dashboard/AuthGate";
 import { AppHeader } from "@/components/dashboard/AppHeader";
+import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
@@ -16,6 +17,7 @@ function AccountInner() {
   const { user, credits, updateProfileName, updateAvatar } = useMaro();
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState(false);
+  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const pickAvatar = (file: File | undefined) => {
@@ -23,13 +25,16 @@ function AccountInner() {
     if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
     if (file.size > 6 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 6MB).");
     const reader = new FileReader();
-    reader.onload = async () => {
-      setUploading(true);
-      const { error } = await updateAvatar(reader.result as string);
-      setUploading(false);
-      toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
-    };
+    reader.onload = () => setCropSrc(reader.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const saveCrop = async (dataUrl: string) => {
+    setUploading(true);
+    const { error } = await updateAvatar(dataUrl);
+    setUploading(false);
+    setCropSrc(null);
+    toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
   };
 
   return (
@@ -132,6 +137,14 @@ function AccountInner() {
           </div>
         </div>
       </main>
+
+      <AvatarCropper
+        src={cropSrc}
+        open={cropSrc !== null}
+        saving={uploading}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={saveCrop}
+      />
     </div>
   );
 }

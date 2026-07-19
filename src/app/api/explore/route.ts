@@ -18,13 +18,23 @@ function bearer(req: Request): string | null {
 // Public feed of shared image generations.
 export async function GET() {
   if (!supabaseServerConfigured()) return NextResponse.json({ items: [] });
+  const admin = getSupabaseAdmin();
   try {
-    const { data, error } = await getSupabaseAdmin()
+    const { data, error } = await admin
+      .from("public_creations")
+      .select("id, tool_id, prompt, url, author, author_avatar, created_at")
+      .order("created_at", { ascending: false })
+      .limit(90);
+    if (!error) return NextResponse.json({ items: data ?? [] });
+  } catch {
+    /* fall through (author_avatar column may be missing) */
+  }
+  try {
+    const { data } = await admin
       .from("public_creations")
       .select("id, tool_id, prompt, url, author, created_at")
       .order("created_at", { ascending: false })
       .limit(90);
-    if (error) return NextResponse.json({ items: [] });
     return NextResponse.json({ items: data ?? [] });
   } catch {
     return NextResponse.json({ items: [] });
@@ -62,16 +72,25 @@ export async function POST(req: Request) {
     (profile?.full_name as string) ||
     (profile?.email as string | undefined)?.split("@")[0] ||
     "Anonim";
+  const authorAvatar =
+    (user.user_metadata?.avatar_url as string | undefined) || null;
+
+  const base = {
+    user_id: user.id,
+    tool_id: tool.id,
+    prompt: (body.prompt ?? "").slice(0, 2000),
+    url: body.url,
+    author,
+  };
 
   try {
-    const { error } = await admin.from("public_creations").insert({
-      user_id: user.id,
-      tool_id: tool.id,
-      prompt: (body.prompt ?? "").slice(0, 2000),
-      url: body.url,
-      author,
-    });
-    if (error) return NextResponse.json({ error: "insert-failed" }, { status: 500 });
+    // Try with author_avatar; fall back if the column doesn't exist yet.
+    const { error } = await admin
+      .from("public_creations")
+      .insert({ ...base, author_avatar: authorAvatar });
+    if (!error) return NextResponse.json({ ok: true });
+    const { error: e2 } = await admin.from("public_creations").insert(base);
+    if (e2) return NextResponse.json({ error: "insert-failed" }, { status: 500 });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "insert-failed" }, { status: 500 });

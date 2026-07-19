@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 import { ItemMenu } from "@/components/app/cards";
+import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { useMaro } from "@/context/store";
 import { useTheme, type Theme } from "@/context/theme";
 import { useToast } from "@/components/ui/Toast";
@@ -242,7 +243,7 @@ function Avatar({
 }) {
   if (user.avatarUrl) {
     return (
-      <span className={cn("shrink-0 overflow-hidden rounded-full", className)}>
+      <span className={cn("block shrink-0 overflow-hidden rounded-full", className)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
       </span>
@@ -281,6 +282,7 @@ function SettingsPanel({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState(false);
+  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const pick = (file: File | undefined) => {
@@ -288,13 +290,16 @@ function SettingsPanel({
     if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
     if (file.size > 6 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 6MB).");
     const reader = new FileReader();
-    reader.onload = async () => {
-      setUploading(true);
-      const { error } = await updateAvatar(reader.result as string);
-      setUploading(false);
-      toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
-    };
+    reader.onload = () => setCropSrc(reader.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const saveCrop = async (dataUrl: string) => {
+    setUploading(true);
+    const { error } = await updateAvatar(dataUrl);
+    setUploading(false);
+    setCropSrc(null);
+    toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
   };
 
   if (!user) return null;
@@ -393,6 +398,14 @@ function SettingsPanel({
           }}
         />
       </div>
+
+      <AvatarCropper
+        src={cropSrc}
+        open={cropSrc !== null}
+        saving={uploading}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={saveCrop}
+      />
     </motion.div>
   );
 }
