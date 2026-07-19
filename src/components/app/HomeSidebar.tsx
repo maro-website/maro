@@ -481,7 +481,7 @@ function RowShell({
           <span className="relative shrink-0">
             {thumb}
             {favourite && (
-              <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-white text-brand shadow-sm">
+              <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-surface text-brand shadow-sm">
                 <Star className="h-2.5 w-2.5 fill-brand" />
               </span>
             )}

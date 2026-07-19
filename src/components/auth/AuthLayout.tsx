@@ -33,8 +33,8 @@ export function AuthLayout({
         </div>
       </div>
 
-      {/* Brand side */}
-      <div className="relative hidden overflow-hidden bg-ink lg:block">
+      {/* Brand side — always a dark showcase, independent of app theme */}
+      <div className="relative hidden overflow-hidden bg-[#131316] lg:block">
         <div className="absolute inset-0 bg-grid opacity-[0.09]" />
         <div className="absolute -right-24 top-1/4 h-96 w-96 rounded-full bg-brand/40 blur-3xl" />
         <div className="absolute -left-16 bottom-10 h-80 w-80 rounded-full bg-brand/20 blur-3xl" />

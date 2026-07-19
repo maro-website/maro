@@ -55,7 +55,7 @@ export function AuthPanel({
   return (
     <div className="flex flex-col gap-4">
       {!supabaseReady && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 px-3.5 py-3 text-[13px] text-amber-800">
+        <div className="flex items-start gap-2 rounded-xl border border-line-strong bg-surface-2 px-3.5 py-3 text-[13px] text-ink-2">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           Supabase nuk është konfiguruar ende. Shto çelësat te .env.local për të aktivizuar autentikimin.
         </div>

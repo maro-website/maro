@@ -240,7 +240,7 @@ export function ProjectCard({
         </div>
       </button>
       {project.favourite && (
-        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-brand shadow-sm">
+        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
           <Star className="h-4 w-4 fill-brand" />
         </span>
       )}
@@ -312,7 +312,7 @@ export function CreationCard({
         onClose={() => setLightbox(false)}
       />
       {creation.favourite && (
-        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-brand shadow-sm">
+        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
           <Star className="h-4 w-4 fill-brand" />
         </span>
       )}
@@ -361,6 +361,7 @@ export function CreationLightbox({
   onClose: () => void;
 }) {
   const { toast } = useToast();
+  const { toggleFavouriteCreation } = useMaro();
   const tool = getTool(creation.toolId);
   const [active, setActive] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
@@ -478,8 +479,22 @@ export function CreationLightbox({
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">
             Prompt
           </div>
-          <div className="scroll-thin mt-1.5 h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
-            {creation.prompt || "Pa prompt"}
+          <div className="group/prompt relative mt-1.5">
+            <div className="scroll-thin h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 pr-16 text-[13.5px] leading-relaxed text-ink-2">
+              {creation.prompt || "Pa prompt"}
+            </div>
+            <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover/prompt:opacity-100">
+              <PromptHoverIcon
+                label={creation.favourite ? "Hiq nga të preferuarat" : "Shto te të preferuarat"}
+                active={creation.favourite}
+                onClick={() => toggleFavouriteCreation(creation.id)}
+              >
+                <Star className={cn("h-4 w-4", creation.favourite && "fill-brand text-brand")} />
+              </PromptHoverIcon>
+              <PromptHoverIcon label="Kopjo prompt" onClick={copyPrompt}>
+                {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
+              </PromptHoverIcon>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-2">
@@ -515,5 +530,32 @@ export function CreationLightbox({
         </div>
       </div>
     </Modal>
+  );
+}
+
+// Small hover icon used on prompt boxes (favourite / copy).
+export function PromptHoverIcon({
+  children,
+  onClick,
+  label,
+  active,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "grid h-8 w-8 place-items-center rounded-lg border border-line bg-surface text-ink-2 shadow-subtle transition-colors hover:text-ink",
+        active && "text-brand"
+      )}
+    >
+      {children}
+    </button>
   );
 }

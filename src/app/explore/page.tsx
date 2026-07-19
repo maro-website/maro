@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { fetchExplore, type ExploreItem } from "@/lib/services/exploreService";
 import { trackEvent } from "@/lib/services/trackService";
 import { getTool, TOOLS } from "@/lib/tools/registry";
+import { PromptHoverIcon } from "@/components/app/cards";
 import { cn } from "@/lib/utils/cn";
 import { timeAgo } from "@/lib/utils/format";
 import { Compass, Copy, Check, Download } from "lucide-react";
@@ -149,8 +150,15 @@ function ExploreLightbox({ item, onClose }: { item: ExploreItem; onClose: () => 
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">
             Prompt
           </div>
-          <div className="scroll-thin mt-1.5 h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 text-[13.5px] leading-relaxed text-ink-2">
-            {item.prompt || "Pa prompt"}
+          <div className="group/prompt relative mt-1.5">
+            <div className="scroll-thin h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 pr-12 text-[13.5px] leading-relaxed text-ink-2">
+              {item.prompt || "Pa prompt"}
+            </div>
+            <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover/prompt:opacity-100">
+              <PromptHoverIcon label="Kopjo prompt" onClick={copyPrompt}>
+                {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
+              </PromptHoverIcon>
+            </div>
           </div>
           <div className="mt-4 grid gap-2">
             <button

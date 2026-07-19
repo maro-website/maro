@@ -336,7 +336,7 @@ export function ImageComposer({ toolId }: { toolId: ToolId }) {
                   aria-label="Gjenero"
                 >
                   {loading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-brand-fg" />
                   ) : (
                     <ArrowUp className="h-5 w-5" />
                   )}
@@ -429,7 +429,7 @@ function GeneratingCard({ toolName }: { toolName: string }) {
         {[0, 1, 2].map((n) => (
           <motion.span
             key={n}
-            className="absolute inset-0 rounded-full border border-brand/40"
+            className="absolute inset-0 rounded-full border border-brand"
             animate={{ scale: [1, 1.6], opacity: [0.5, 0] }}
             transition={{ duration: 2.2, repeat: Infinity, delay: n * 0.5, ease: "easeOut" }}
           />

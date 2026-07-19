@@ -13,6 +13,7 @@ import { ArrowRight, Coins } from "lucide-react";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 function toolCostLabel(tool: ToolDef, pricing: PricingConfig): string {
+  if (tool.comingSoon) return "Së shpejti";
   if (tool.kind === "website") {
     const min = Math.min(
       creditCost(pricing, "landing", "fast"),
@@ -81,15 +82,20 @@ function ToolRow({ tool, index, cost }: { tool: ToolDef; index: number; cost: st
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[19px] font-extrabold tracking-[-0.02em] text-ink sm:text-[22px]">
+        <span className="flex items-center gap-2 text-[19px] font-extrabold tracking-[-0.02em] text-ink sm:text-[22px]">
           {tool.name}
+          {tool.comingSoon && (
+            <span className="rounded-full bg-ink px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-inv">
+              Së shpejti
+            </span>
+          )}
         </span>
         <span className="mt-1 block text-[14.5px] leading-relaxed text-ink-2 sm:text-[15px]">
           {tool.description}
         </span>
         <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
           <Coins className="h-4 w-4 text-brand" />
-          {cost}
+          {tool.comingSoon ? "Së shpejti" : cost}
         </span>
       </span>
 

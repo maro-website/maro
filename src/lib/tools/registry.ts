@@ -3,11 +3,11 @@
 // as simple as appending an entry here (+ its master prompt in Admin).
 
 import type { LucideIcon } from "lucide-react";
-import { Globe, Sparkles, Megaphone } from "lucide-react";
+import { Globe, Sparkles, Megaphone, Clapperboard } from "lucide-react";
 import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 
-export type ToolId = "website" | "logo" | "reklama";
-export type ToolKind = "website" | "image";
+export type ToolId = "website" | "logo" | "reklama" | "filma";
+export type ToolKind = "website" | "image" | "video";
 
 // gpt-image-2 supports many sizes; we expose the three canonical aspect ratios.
 export type ImageSize = "1024x1024" | "1024x1536" | "1536x1024";
@@ -146,6 +146,21 @@ export const TOOLS: ToolDef[] = [
     hasProductUpload: true,
     defaultPrompt:
       "You are Maro Reklama, an expert advertising art director. Produce a scroll-stopping social ad creative with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
+  },
+  {
+    id: "filma",
+    name: "Maro Filma",
+    tagline: "AI Video Generator",
+    description:
+      "Gjenero video të shkurtra me AI nga një përshkrim: reels, reklama dhe klipe. Së shpejti.",
+    icon: Clapperboard,
+    accent: "#6b46e5",
+    accentSoft: "#f3f0fe",
+    kind: "video",
+    route: "/tools/filma",
+    promptKey: "filma",
+    defaultCost: 0,
+    comingSoon: true,
   },
 ];
 
