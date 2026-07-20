@@ -5,103 +5,115 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
-import { useSettings } from "@/lib/hooks/useSettings";
-import { creditCost, imageToolCost, type PricingConfig } from "@/lib/supabase/types";
-import { TOOLS, LOGO_PACKAGES, type ToolDef } from "@/lib/tools/registry";
-import { ArrowRight, Coins } from "lucide-react";
+import { TOOLS, type ToolDef } from "@/lib/tools/registry";
+import { saveLastTool } from "@/lib/tools/selections";
+import { cn } from "@/lib/utils/cn";
+import { ArrowUp, Lock } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-function toolCostLabel(tool: ToolDef, pricing: PricingConfig): string {
-  if (tool.comingSoon) return "Së shpejti";
-  if (tool.kind === "website") {
-    const min = Math.min(
-      creditCost(pricing, "landing", "fast"),
-      creditCost(pricing, "business", "fast")
-    );
-    return `nga ${min} kredite`;
-  }
-  if (tool.id === "logo") {
-    const min = Math.min(
-      ...LOGO_PACKAGES.map((v) => imageToolCost(pricing, v.id, v.defaultCost))
-    );
-    return `nga ${min} kredite`;
-  }
-  return `${imageToolCost(pricing, tool.id, tool.defaultCost)} kredite`;
-}
-
 export default function HomePage() {
   const { user } = useMaro();
-  const { pricing } = useSettings(Boolean(user));
+  const router = useRouter();
   const firstName = user?.name?.split(" ")[0];
+  const [prompt, setPrompt] = React.useState("");
+  const [picked, setPicked] = React.useState<string>("website");
+
+  const go = (tool: ToolDef) => {
+    setPicked(tool.id);
+    try {
+      if (prompt.trim()) sessionStorage.setItem("maro:hubdraft", prompt.trim());
+    } catch {
+      /* ignore */
+    }
+    saveLastTool(tool.id);
+    router.push(tool.route);
+  };
+
+  const active = TOOLS.find((t) => t.id === picked) ?? TOOLS[0];
 
   return (
     <AppShell>
-      <div className="relative h-full overflow-y-auto scroll-thin">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[360px] bg-aurora" />
+      <div className="relative flex h-full flex-col items-center justify-center overflow-y-auto scroll-thin px-5 py-10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-aurora" />
 
-        <div className="mx-auto w-full max-w-4xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="w-full max-w-2xl">
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE }}
-            className="text-balance text-[clamp(34px,6vw,58px)] font-extrabold leading-[1.03] tracking-[-0.045em] text-ink"
+            className="text-balance text-center text-[clamp(28px,5vw,46px)] font-extrabold leading-[1.05] tracking-[-0.04em] text-ink"
           >
             {firstName ? `Çka po marojmë sot, ${firstName}?` : "Çka po marojmë sot?"}
           </motion.h1>
 
-          <div className="mt-12 flex flex-col gap-4">
+          {/* Centered prompt box */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE, delay: 0.08 }}
+            className="mt-8 rounded-[26px] border border-line-strong bg-surface p-2.5 shadow-pop"
+          >
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) go(active);
+              }}
+              rows={2}
+              placeholder="Përshkruaj çka do të marosh…"
+              className="block max-h-52 min-h-[68px] w-full resize-none rounded-2xl bg-transparent px-3.5 pt-3 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+            />
+
+            <div className="flex items-center justify-between gap-2 px-1.5 pb-0.5 pt-1.5">
+              <span className="text-[12.5px] text-ink-3">Zgjidh një tool për të vazhduar</span>
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                onClick={() => go(active)}
+                className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-brand-fg transition-colors hover:bg-brand-hover"
+                aria-label="Vazhdo"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Tool selector */}
+          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {TOOLS.map((tool, i) => (
-              <ToolRow
+              <motion.button
                 key={tool.id}
-                tool={tool}
-                index={i}
-                cost={toolCostLabel(tool, pricing)}
-              />
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: EASE, delay: 0.12 + i * 0.05 }}
+                onClick={() => go(tool)}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl border bg-surface p-3.5 text-left transition-all hover:shadow-pop",
+                  picked === tool.id ? "border-brand" : "border-line"
+                )}
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink">
+                  <tool.icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[14.5px] font-bold tracking-[-0.01em] text-ink">
+                    {tool.name}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-3">
+                    {tool.functional ? (
+                      tool.tagline
+                    ) : (
+                      <>
+                        <Lock className="h-3 w-3" /> Së shpejti
+                      </>
+                    )}
+                  </span>
+                </span>
+              </motion.button>
             ))}
           </div>
         </div>
       </div>
     </AppShell>
-  );
-}
-
-function ToolRow({ tool, index, cost }: { tool: ToolDef; index: number; cost: string }) {
-  const router = useRouter();
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE, delay: 0.1 + index * 0.07 }}
-      whileHover={{ x: 4 }}
-      onClick={() => router.push(tool.route)}
-      className="group flex items-center gap-5 rounded-3xl border border-line bg-surface p-5 text-left shadow-subtle transition-shadow hover:shadow-pop sm:p-6"
-    >
-      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-surface-2 text-ink sm:h-16 sm:w-16">
-        <tool.icon className="h-7 w-7 sm:h-8 sm:w-8" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2 text-[19px] font-extrabold tracking-[-0.02em] text-ink sm:text-[22px]">
-          {tool.name}
-          {tool.comingSoon && (
-            <span className="rounded-full bg-ink px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-inv">
-              Së shpejti
-            </span>
-          )}
-        </span>
-        <span className="mt-1 block text-[14.5px] leading-relaxed text-ink-2 sm:text-[15px]">
-          {tool.description}
-        </span>
-        <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
-          <Coins className="h-4 w-4 text-brand" />
-          {tool.comingSoon ? "Së shpejti" : cost}
-        </span>
-      </span>
-
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-ink-inv transition-transform group-hover:translate-x-1">
-        <ArrowRight className="h-5 w-5" />
-      </span>
-    </motion.button>
   );
 }

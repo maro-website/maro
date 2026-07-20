@@ -20,7 +20,6 @@ import {
   Shield,
   LogOut,
   User as UserIcon,
-  Home,
   Star,
   Compass,
   X,
@@ -32,6 +31,7 @@ import {
   Sun,
   Moon,
   Contrast,
+  Wallet,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -59,7 +59,7 @@ export function HomeSidebar({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-4 pt-5">
         <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <Logo />
+          <Logo showWord />
         </Link>
         <div className="flex items-center gap-1">
           {onCollapse && (
@@ -94,14 +94,23 @@ export function HomeSidebar({
       </div>
 
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
-        {/* Primary nav */}
+        {/* Maro tools */}
+        <div className="mb-3 flex flex-col gap-0.5">
+          {TOOLS.map((t) => (
+            <NavItem
+              key={t.id}
+              active={pathname === t.route}
+              icon={<t.icon className="h-5 w-5" />}
+              label={t.name}
+              onClick={() => go(t.route)}
+            />
+          ))}
+        </div>
+
+        {/* Thin line separating tools from Explore / Favourites */}
+        <div className="mx-2 mb-3 border-t border-line" />
+
         <div className="mb-4 flex flex-col gap-0.5">
-          <NavItem
-            active={pathname === "/"}
-            icon={<Home className="h-5 w-5" />}
-            label="Hub"
-            onClick={() => go("/")}
-          />
           <NavItem
             active={pathname === "/explore"}
             icon={<Compass className="h-5 w-5" />}
@@ -114,44 +123,34 @@ export function HomeSidebar({
             label="Të preferuarat"
             onClick={() => go("/favourites")}
           />
-          {TOOLS.map((t) => (
-            <NavItem
-              key={t.id}
-              active={pathname === t.route}
-              icon={<t.icon className="h-5 w-5" />}
-              label={t.name}
-              onClick={() => go(t.route)}
-            />
-          ))}
         </div>
 
-        {/* Website projects */}
-        {projects.length > 0 && (
+        {/* Recently done: websites + images merged, newest first */}
+        {(projects.length > 0 || creations.length > 0) && (
           <>
-            <SectionLabel>Website-t</SectionLabel>
-            <div className="mb-4 flex flex-col gap-1">
-              {projects.slice(0, 8).map((p) => (
-                <SidebarProjectRow key={p.id} project={p} onOpen={() => go(projectHref(p.status, p.id))} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Recent images */}
-        {creations.length > 0 && (
-          <>
-            <SectionLabel>Imazhet</SectionLabel>
+            <SectionLabel>Së fundmi</SectionLabel>
             <div className="mb-2 flex flex-col gap-1">
-              {creations.slice(0, 8).map((c) => {
-                const tool = getTool(c.toolId);
-                return (
-                  <SidebarCreationRow
-                    key={c.id}
-                    creation={c}
-                    onOpen={() => go(tool?.route ?? "/")}
-                  />
-                );
-              })}
+              {[
+                ...projects.map((p) => ({ kind: "p" as const, time: p.updatedAt, p })),
+                ...creations.map((c) => ({ kind: "c" as const, time: c.createdAt, c })),
+              ]
+                .sort((a, b) => +new Date(b.time) - +new Date(a.time))
+                .slice(0, 12)
+                .map((row) =>
+                  row.kind === "p" ? (
+                    <SidebarProjectRow
+                      key={row.p.id}
+                      project={row.p}
+                      onOpen={() => go(projectHref(row.p.status, row.p.id))}
+                    />
+                  ) : (
+                    <SidebarCreationRow
+                      key={row.c.id}
+                      creation={row.c}
+                      onOpen={() => go(getTool(row.c.toolId)?.route ?? "/")}
+                    />
+                  )
+                )}
             </div>
           </>
         )}
@@ -201,7 +200,7 @@ export function HomeSidebar({
                     title="Shto kredite"
                     aria-label="Shto kredite"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Wallet className="h-4 w-4" />
                   </button>
                 </div>
                 <button
@@ -522,8 +521,14 @@ function RowShell({
 function SidebarProjectRow({ project, onOpen }: { project: Project; onOpen: () => void }) {
   const { renameProject, deleteProject, toggleFavouriteProject } = useMaro();
   const [editing, setEditing] = React.useState(false);
+  const WebIcon = getTool("website")?.icon;
   return (
     <RowShell
+      thumb={
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line bg-surface-2 text-ink-2">
+          {WebIcon && <WebIcon className="h-4 w-4" />}
+        </span>
+      }
       title={project.name}
       subtitle={project.status === "generating" ? "Po gjenerohet…" : timeAgo(project.updatedAt)}
       favourite={project.favourite}

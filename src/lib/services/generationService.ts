@@ -114,6 +114,7 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     userPrompt: project.prompt ?? project.goal,
     websiteType: project.websiteType,
     speed: project.speed,
+    selections: project.toolSelections,
   };
 
   const token = await getAccessToken();

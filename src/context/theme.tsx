@@ -23,11 +23,14 @@ function apply(theme: Theme, animate: boolean) {
   else el.setAttribute("data-theme", theme);
 }
 
+// Full dark is the default experience.
+const DEFAULT_THEME: Theme = "mono";
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<Theme>("light");
+  const [theme, setThemeState] = React.useState<Theme>(DEFAULT_THEME);
 
   React.useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? "light";
+    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? DEFAULT_THEME;
     setThemeState(stored);
     apply(stored, false);
   }, []);

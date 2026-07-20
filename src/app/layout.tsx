@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
 
 // Set the theme before first paint to avoid a flash of the wrong theme.
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme');if(t&&t!=='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme')||'mono';if(t!=='light')document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','mono');}})();`;
 
 export const metadata: Metadata = {
   title: "Maro · AI Hub",

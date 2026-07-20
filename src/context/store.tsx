@@ -62,6 +62,7 @@ interface MaroContextValue {
   deleteCreation: (id: string) => void;
   renameCreation: (id: string, title: string) => void;
   toggleFavouriteCreation: (id: string) => void;
+  setCreationReaction: (id: string, reaction: "like" | "dislike" | undefined) => void;
 }
 
 const MaroContext = createContext<MaroContextValue | null>(null);
@@ -418,6 +419,17 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [persistCreations]
   );
 
+  const setCreationReaction = useCallback(
+    (id: string, reaction: "like" | "dislike" | undefined) => {
+      setState((s) => {
+        const creations = s.creations.map((c) => (c.id === id ? { ...c, reaction } : c));
+        persistCreations(creations);
+        return { ...s, creations };
+      });
+    },
+    [persistCreations]
+  );
+
   const profile = state.profile;
   const avatarUrl =
     (state.session?.user?.user_metadata?.avatar_url as string | undefined) || undefined;
@@ -454,6 +466,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       deleteCreation,
       renameCreation,
       toggleFavouriteCreation,
+      setCreationReaction,
     }),
     [
       state.ready,
@@ -481,6 +494,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       deleteCreation,
       renameCreation,
       toggleFavouriteCreation,
+      setCreationReaction,
     ]
   );
 

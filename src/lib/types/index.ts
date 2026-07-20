@@ -52,6 +52,8 @@ export interface ImageCreation {
   size?: string;
   quality?: string;
   favourite?: boolean;
+  /** User's reaction to their own creation. */
+  reaction?: "like" | "dislike";
   createdAt: string;
 }
 
@@ -196,6 +198,8 @@ export interface Project {
   prompt?: string;
   websiteType?: WebsiteKind;
   speed?: SpeedKey;
+  /** Prompt-box selections (model/type/speed) used for cost + prompt. */
+  toolSelections?: Record<string, string>;
   language: LanguageCode;
   category: WebsiteCategory;
   style: StyleKey;

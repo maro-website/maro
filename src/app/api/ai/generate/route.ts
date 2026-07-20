@@ -17,6 +17,7 @@ import {
 } from "@/lib/supabase/server";
 import { creditCost } from "@/lib/supabase/types";
 import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
+import { getTool, toolSelectionCost } from "@/lib/tools/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,13 +48,35 @@ export async function POST(req: Request) {
 
   const kind = (body.websiteType ?? "business") as WebsiteKind;
   const speed = (body.speed ?? "fast") as SpeedKey;
+  const selections = body.selections;
+  const settings = await getAppSettings();
+
+  // Per-option prompt fragments (Lloji/MaroSpeed etc.) appended to the master.
+  const webTool = getTool("website");
+  let extraPrompt = "";
+  if (webTool && selections) {
+    const frags: string[] = [];
+    for (const s of webTool.settings) {
+      const optId = selections[s.id] ?? s.default;
+      const frag = settings.tool_prompts?.[`website.${s.id}.${optId}`];
+      if (frag && frag.trim()) frags.push(frag.trim());
+    }
+    extraPrompt = frags.join("\n\n");
+  }
+  // Speed -> Claude effort. New ids: kadale/normal/fast; legacy: slow/fast/2x.
+  const effortBySpeed: Record<string, string> = {
+    kadale: "xhigh",
+    normal: "high",
+    fast: "medium",
+    slow: "xhigh",
+    "2x": "medium",
+  };
 
   // ---- Auth + credits (required when Supabase is configured) ----
   let userId: string | null = null;
   let userEmail = "";
   let cost = 0;
   let effort: string | undefined;
-  const settings = await getAppSettings();
 
   if (supabaseServerConfigured()) {
     const user = await getUserFromToken(bearer(req));
@@ -63,8 +86,13 @@ export async function POST(req: Request) {
     userId = user.id;
     userEmail = user.email ?? "";
 
-    cost = creditCost(settings.pricing, kind, speed);
-    effort = settings.pricing.speed?.[speed]?.effort;
+    cost =
+      webTool && selections
+        ? toolSelectionCost(webTool, selections, settings.pricing.options)
+        : creditCost(settings.pricing, kind, speed);
+    effort = selections?.speed
+      ? effortBySpeed[selections.speed]
+      : settings.pricing.speed?.[speed]?.effort;
 
     const profile = await getProfileCredits(userId);
     if (!profile || profile.credits < cost) {
@@ -80,7 +108,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const system = buildHtmlGenerateSystem(body, settings.master_prompt);
+  const masterPlusOptions = [settings.master_prompt, extraPrompt].filter(Boolean).join("\n\n");
+  const system = buildHtmlGenerateSystem(body, masterPlusOptions);
   const user = buildHtmlGenerateUser(body);
 
   try {

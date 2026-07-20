@@ -1,13 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { Composer } from "@/components/app/Composer";
+import { ToolComposer } from "@/components/app/ToolComposer";
 
 export default function WebsiteToolPage() {
   return (
     <AppShell>
-      <Composer />
+      <ToolComposer toolId="website" />
     </AppShell>
   );
 }

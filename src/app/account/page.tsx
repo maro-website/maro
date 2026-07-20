@@ -10,7 +10,17 @@ import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { initials } from "@/lib/utils/format";
-import { Coins, Pencil, Check, X, Plus, Camera } from "lucide-react";
+import { Coins, Pencil, Check, X, Plus, Camera, Lock, ShieldCheck, Phone } from "lucide-react";
+
+const COUNTRY_CODES = [
+  { code: "+383", label: "Kosovë (+383)" },
+  { code: "+355", label: "Shqipëri (+355)" },
+  { code: "+389", label: "Maqedoni (+389)" },
+  { code: "+41", label: "Zvicër (+41)" },
+  { code: "+49", label: "Gjermani (+49)" },
+  { code: "+44", label: "MB (+44)" },
+  { code: "+1", label: "SHBA (+1)" },
+];
 
 function AccountInner() {
   const router = useRouter();
@@ -136,6 +146,8 @@ function AccountInner() {
             </button>
           </div>
         </div>
+
+        <SecuritySection />
       </main>
 
       <AvatarCropper
@@ -223,6 +235,136 @@ function EditableField({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Security: phone, password, 2FA ----
+function SecuritySection() {
+  const { session } = useMaro();
+  const { toast } = useToast();
+  const meta = (session?.user?.user_metadata ?? {}) as Record<string, unknown>;
+
+  // Phone (required)
+  const savedPhone = (meta.phone as string) || "";
+  const savedPrefix = COUNTRY_CODES.find((c) => savedPhone.startsWith(c.code))?.code ?? "+383";
+  const [prefix, setPrefix] = React.useState(savedPrefix);
+  const [phone, setPhone] = React.useState(savedPhone.replace(savedPrefix, ""));
+  const [savingPhone, setSavingPhone] = React.useState(false);
+
+  const savePhone = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 6) return toast("Shkruaj një numër të vlefshëm.");
+    setSavingPhone(true);
+    const { error } = await getSupabaseBrowser().auth.updateUser({
+      data: { phone: `${prefix}${digits}` },
+    });
+    setSavingPhone(false);
+    toast(error ? `Gabim: ${error.message}` : "Numri u ruajt.");
+  };
+
+  // Password
+  const [pw, setPw] = React.useState("");
+  const [pw2, setPw2] = React.useState("");
+  const [savingPw, setSavingPw] = React.useState(false);
+
+  const savePassword = async () => {
+    if (pw.length < 8) return toast("Fjalëkalimi duhet të ketë të paktën 8 karaktere.");
+    if (pw !== pw2) return toast("Fjalëkalimet nuk përputhen.");
+    setSavingPw(true);
+    const { error } = await getSupabaseBrowser().auth.updateUser({ password: pw });
+    setSavingPw(false);
+    if (error) return toast(`Gabim: ${error.message}`);
+    setPw("");
+    setPw2("");
+    toast("Fjalëkalimi u ndryshua.");
+  };
+
+  return (
+    <div className="mt-5 grid gap-5 md:grid-cols-2">
+      {/* Phone */}
+      <div className="rounded-2xl border border-line bg-surface p-6">
+        <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+          <Phone className="h-4 w-4 text-ink-2" /> Numri i telefonit *
+        </div>
+        <div className="mt-4 flex gap-2">
+          <select
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            className="h-11 shrink-0 rounded-xl border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none"
+          >
+            {COUNTRY_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="tel"
+            placeholder="44 123 456"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+          />
+        </div>
+        <button
+          onClick={savePhone}
+          disabled={savingPhone}
+          className="mt-3 rounded-xl bg-brand px-4 py-2.5 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover disabled:opacity-60"
+        >
+          {savingPhone ? "Duke ruajtur…" : "Ruaj numrin"}
+        </button>
+      </div>
+
+      {/* Password */}
+      <div className="rounded-2xl border border-line bg-surface p-6">
+        <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+          <Lock className="h-4 w-4 text-ink-2" /> Ndrysho fjalëkalimin
+        </div>
+        <div className="mt-4 flex flex-col gap-2">
+          <input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Fjalëkalimi i ri"
+            className="h-11 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+          />
+          <input
+            type="password"
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value)}
+            placeholder="Konfirmo fjalëkalimin"
+            className="h-11 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+          />
+        </div>
+        <button
+          onClick={savePassword}
+          disabled={savingPw}
+          className="mt-3 rounded-xl bg-brand px-4 py-2.5 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover disabled:opacity-60"
+        >
+          {savingPw ? "Duke ruajtur…" : "Ruaj fjalëkalimin"}
+        </button>
+      </div>
+
+      {/* 2FA */}
+      <div className="rounded-2xl border border-line bg-surface p-6 md:col-span-2">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+              <ShieldCheck className="h-4 w-4 text-ink-2" /> Verifikimi me dy hapa (2FA)
+            </div>
+            <p className="mt-1 text-[13px] text-ink-2">
+              Shto një shtresë sigurie me Google Authenticator. Integrimi aktivizohet së shpejti.
+            </p>
+          </div>
+          <button
+            disabled
+            className="shrink-0 cursor-not-allowed rounded-xl border border-line-strong bg-surface-2 px-4 py-2.5 text-[13.5px] font-semibold text-ink-3"
+          >
+            Së shpejti
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

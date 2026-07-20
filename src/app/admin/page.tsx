@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/dashboard/AppHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Misc";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
@@ -18,9 +19,9 @@ import {
   type GenerationLog,
   type WebsiteKind,
   type SpeedKey,
+  type Announcement,
 } from "@/lib/supabase/types";
-import { buildComposedGenerateSystem, buildComposedGenerateUser } from "@/lib/ai/prompts";
-import { IMAGE_TOOLS, TOOLS } from "@/lib/tools/registry";
+import { TOOLS } from "@/lib/tools/registry";
 import { timeAgo } from "@/lib/utils/format";
 import {
   Users,
@@ -43,6 +44,12 @@ import {
   Plus,
   Check,
   X,
+  Flag,
+  ChevronDown,
+  RotateCcw,
+  Archive,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 type Tab =
@@ -51,7 +58,7 @@ type Tab =
   | "creators"
   | "promos"
   | "prompt"
-  | "tools"
+  | "reports"
   | "reklamat"
   | "pricing"
   | "analytics"
@@ -63,9 +70,9 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "users", label: "Përdoruesit", icon: Users },
   { key: "creators", label: "Kreatorët", icon: Star },
   { key: "promos", label: "Promo Kode", icon: Ticket },
-  { key: "prompt", label: "Master Prompt", icon: FileText },
-  { key: "tools", label: "Tools", icon: Wand2 },
-  { key: "reklamat", label: "Reklamat", icon: Megaphone },
+  { key: "prompt", label: "Master Prompts", icon: FileText },
+  { key: "reports", label: "Raporto", icon: Flag },
+  { key: "reklamat", label: "Njoftimet", icon: Megaphone },
   { key: "pricing", label: "Çmimet", icon: Coins },
   { key: "analytics", label: "Analitika", icon: BarChart3 },
   { key: "orders", label: "Porositë", icon: ShoppingCart },
@@ -136,8 +143,8 @@ function AdminInner() {
             {tab === "users" && <UsersTab />}
             {tab === "creators" && <CreatorsTab />}
             {tab === "promos" && <PromosTab />}
-            {tab === "prompt" && <PromptTab />}
-            {tab === "tools" && <ToolsTab />}
+            {tab === "prompt" && <MasterPromptsTab />}
+            {tab === "reports" && <ReportsTab />}
             {tab === "reklamat" && <ReklamatTab />}
             {tab === "pricing" && <PricingTab />}
             {tab === "analytics" && <AnalyticsTab />}
@@ -465,7 +472,7 @@ function PromosTab() {
       <div className="rounded-2xl border border-line bg-surface p-5">
         <div className="text-[14px] font-bold text-ink">Shto kod të ri</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Kodi (p.sh. KREATORI-10)">
+          <Field label="Kodi i shitjes">
             <Input
               value={draft.code}
               onChange={(e) => setDraft((d) => ({ ...d, code: e.target.value }))}
@@ -614,13 +621,61 @@ function CreatorsTab() {
     void load();
   }, [load]);
 
-  const setStatus = async (id: string, status: string) => {
+  const reject = async (id: string) => {
     const { error } = await getSupabaseBrowser()
       .from("creator_applications")
-      .update({ status })
+      .update({ status: "rejected" })
       .eq("id", id);
     if (error) return toast("Gabim: " + error.message);
-    toast(status === "approved" ? "U aprovua" : "U refuzua");
+    toast("U refuzua");
+    void load();
+  };
+
+  // Approving must actually make the person a creator + give them a promo code,
+  // otherwise "nothing happens". Do all three steps here.
+  const approve = async (a: CreatorApp) => {
+    const sb = getSupabaseBrowser();
+    const { error: e1 } = await sb
+      .from("creator_applications")
+      .update({ status: "approved" })
+      .eq("id", a.id);
+    if (e1) return toast("Gabim: " + e1.message);
+
+    const { data: prof } = await sb
+      .from("profiles")
+      .select("id")
+      .ilike("email", a.email)
+      .maybeSingle();
+    if (!prof?.id) {
+      toast("U aprovua, por s'u gjet përdoruesi me këtë email. Kërko t'i regjistrohet me këtë email.");
+      void load();
+      return;
+    }
+    await sb.from("profiles").update({ is_creator: true }).eq("id", prof.id);
+
+    // Auto-create a promo code if the creator doesn't have one yet.
+    const { data: existing } = await sb
+      .from("promo_codes")
+      .select("id")
+      .eq("creator_id", prof.id)
+      .maybeSingle();
+    if (!existing) {
+      const base =
+        (a.name || a.email.split("@")[0] || "kreator")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 16) || "kreator";
+      const rnd = Math.floor(100 + Math.random() * 900);
+      await sb.from("promo_codes").insert({
+        code: `${base.toUpperCase()}-10`,
+        slug: `${base}${rnd}`,
+        discount_percent: 10,
+        creator_id: prof.id,
+        active: true,
+      });
+    }
+    toast("U aprovua dhe u aktivizua si Kreator");
     void load();
   };
 
@@ -691,10 +746,10 @@ function CreatorsTab() {
                   <div className="mt-1 text-[11.5px] text-ink-3">{timeAgo(a.created_at)}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void setStatus(a.id, "approved")}>
+                  <Button size="sm" onClick={() => void approve(a)}>
                     Aprovo
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => void setStatus(a.id, "rejected")}>
+                  <Button size="sm" variant="outline" onClick={() => void reject(a.id)}>
                     Refuzo
                   </Button>
                 </div>
@@ -712,95 +767,47 @@ function CreatorsTab() {
   );
 }
 
-// ---- Master prompt ----
-function PromptTab() {
-  const { toast } = useToast();
-  const [prompt, setPrompt] = React.useState("");
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving] = React.useState(false);
-
-  React.useEffect(() => {
-    (async () => {
-      if (!supabaseConfigured) return setLoading(false);
-      const { data } = await getSupabaseBrowser()
-        .from("app_settings")
-        .select("master_prompt")
-        .eq("id", 1)
-        .single();
-      setPrompt(data?.master_prompt ?? "");
-      setLoading(false);
-    })();
-  }, []);
-
-  const save = async () => {
-    setSaving(true);
-    const { error } = await getSupabaseBrowser()
-      .from("app_settings")
-      .update({ master_prompt: prompt, updated_at: new Date().toISOString() })
-      .eq("id", 1);
-    setSaving(false);
-    toast(error ? "Gabim: " + error.message : "Master prompt u ruajt");
-  };
-
-  const previewSystem = buildComposedGenerateSystem(
-    {
-      businessName: "Shembull Biznesi",
-      goal: "",
-      category: "generic",
-      language: "sq",
-      primaryColor: "#5a28e5",
-      userPrompt: "Një website për një kafe artizanale me menu dhe galeri",
-      websiteType: "business",
-      speed: "fast",
-    },
-    prompt
-  );
-  const previewUser = buildComposedGenerateUser({
-    businessName: "Shembull Biznesi",
-    goal: "",
-    category: "generic",
-    language: "sq",
-    primaryColor: "#5a28e5",
-    userPrompt: "Një website për një kafe artizanale me menu dhe galeri",
-    websiteType: "business",
-    speed: "fast",
-  });
-
-  if (loading) return <Spinner className="h-6 w-6" />;
-
+// ---- Master Prompts (per tool, per input: prompt + cost) ----
+function Collapse({
+  title,
+  subtitle,
+  right,
+  defaultOpen,
+  children,
+}: {
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  right?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = React.useState(Boolean(defaultOpen));
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div>
-        <Field label="Master prompt" hint="Ky tekst i paraprin promptit të përdoruesit para se t'i dërgohet modelit.">
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="min-h-[360px] font-mono text-[12.5px]"
-          />
-        </Field>
-        <Button className="mt-3" icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
-          Ruaj master prompt
-        </Button>
-      </div>
-      <div>
-        <div className="mb-1.5 text-[13px] font-semibold text-ink">Preview i promptit final</div>
-        <div className="max-h-[440px] overflow-auto rounded-xl border border-line bg-surface-2 p-4">
-          <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-relaxed text-ink-2">
-{previewSystem}
-{"\n\n===== USER MESSAGE =====\n\n"}
-{previewUser}
-          </pre>
-        </div>
-      </div>
+    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2/60"
+      >
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-ink-3 transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-bold text-ink">{title}</span>
+          {subtitle && <span className="block truncate text-[12px] text-ink-3">{subtitle}</span>}
+        </span>
+        {right}
+      </button>
+      {open && <div className="border-t border-line px-4 py-4">{children}</div>}
     </div>
   );
 }
 
-// ---- Tools (image tools master prompts + cost) ----
-function ToolsTab() {
+function MasterPromptsTab() {
   const { toast } = useToast();
   const [prompts, setPrompts] = React.useState<Record<string, string>>({});
   const [costs, setCosts] = React.useState<Record<string, number>>({});
+  const [masterPrompt, setMasterPrompt] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -809,132 +816,284 @@ function ToolsTab() {
       if (!supabaseConfigured) return setLoading(false);
       const { data } = await getSupabaseBrowser()
         .from("app_settings")
-        .select("tool_prompts, pricing")
+        .select("master_prompt, tool_prompts, pricing")
         .eq("id", 1)
         .single();
       setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
+      setMasterPrompt((data?.master_prompt as string) ?? "");
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
-      setCosts({ ...(DEFAULT_PRICING.tools ?? {}), ...(pricing.tools ?? {}) });
+      setCosts((pricing.options as Record<string, number>) ?? {});
       setLoading(false);
     })();
   }, []);
 
   const save = async () => {
     setSaving(true);
-    // Merge tool costs into the existing pricing json.
     const { data } = await getSupabaseBrowser()
       .from("app_settings")
       .select("pricing")
       .eq("id", 1)
       .single();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    // Website base prompt is mirrored into master_prompt for the generate route.
+    const webBase = prompts["website.base"] ?? masterPrompt;
     const { error } = await getSupabaseBrowser()
       .from("app_settings")
       .update({
         tool_prompts: prompts,
-        pricing: {
-          ...pricing,
-          tools: { ...(pricing.tools ?? {}), ...costs },
-        },
+        master_prompt: webBase,
+        pricing: { ...pricing, options: { ...(pricing.options ?? {}), ...costs } },
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
     setSaving(false);
-    toast(error ? "Gabim: " + error.message : "Tools u ruajtën");
+    toast(error ? "Gabim: " + error.message : "Master Prompts u ruajtën");
   };
 
   if (loading) return <Spinner className="h-6 w-6" />;
 
   return (
-    <div className="space-y-6">
-      <p className="text-[13.5px] leading-relaxed text-ink-2">
-        Vendos këtu instruksionet (master prompt) të çdo Custom GPT-je. Ky tekst i paraprin
-        përshkrimit të përdoruesit para se t&apos;i dërgohet OpenAI (gpt-image-2).
-      </p>
-      {IMAGE_TOOLS.map((tool) => (
-        <div key={tool.id} className="rounded-2xl border border-line bg-surface p-6">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-ink">
-              <tool.icon className="h-5 w-5" />
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        Prompti final = <span className="font-semibold text-ink">Baza</span> e tool-it + prompti i çdo
+        opsioni të zgjedhur nga përdoruesi + teksti i tij. Çdo opsion ka koston e vet.
+      </div>
+
+      {TOOLS.map((tool) => (
+        <Collapse
+          key={tool.id}
+          title={
+            <span className="flex items-center gap-2">
+              <tool.icon className="h-4 w-4 text-ink-2" /> {tool.name}
             </span>
-            <div>
-              <div className="text-[15px] font-bold text-ink">{tool.name}</div>
-              <div className="text-[12px] text-ink-3">{tool.tagline}</div>
-            </div>
-          </div>
+          }
+          subtitle={tool.tagline}
+        >
+          <Field label="Baza (prompt fillestar për këtë tool)">
+            <Textarea
+              value={prompts[`${tool.id}.base`] ?? (tool.id === "website" ? masterPrompt : "")}
+              onChange={(e) => setPrompts((p) => ({ ...p, [`${tool.id}.base`]: e.target.value }))}
+              className="min-h-[120px] font-mono text-[12.5px]"
+              placeholder={`Instruksionet bazë për ${tool.name}…`}
+            />
+          </Field>
 
-          {tool.variants ? (
-            <div className="mt-4 space-y-5">
-              {tool.variants.map((v) => (
-                <div key={v.id} className="rounded-xl border border-line bg-surface-2/40 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[13.5px] font-bold text-ink">{v.label}</div>
-                    <span className="text-[12px] text-ink-3">{v.hint}</span>
-                  </div>
-                  <Field label="Master prompt" className="mt-3">
-                    <Textarea
-                      value={prompts[v.id] ?? ""}
-                      onChange={(e) => setPrompts((p) => ({ ...p, [v.id]: e.target.value }))}
-                      className="min-h-[140px] font-mono text-[12.5px]"
-                      placeholder={`Ngjit promptin për "${v.label}" këtu…`}
-                    />
-                  </Field>
-                  <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
-                    <Input
-                      type="number"
-                      value={costs[v.id] ?? v.defaultCost}
-                      onChange={(e) =>
-                        setCosts((c) => ({ ...c, [v.id]: parseInt(e.target.value, 10) || 0 }))
-                      }
-                    />
-                  </Field>
+          <div className="mt-4 space-y-3">
+            {tool.settings.map((s) => (
+              <div key={s.id}>
+                <div className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-ink-3">
+                  <s.icon className="h-3.5 w-3.5" /> {s.label}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <Field label="Master prompt (nga Custom GPT)" className="mt-4">
-                <Textarea
-                  value={prompts[tool.id] ?? ""}
-                  onChange={(e) => setPrompts((p) => ({ ...p, [tool.id]: e.target.value }))}
-                  className="min-h-[160px] font-mono text-[12.5px]"
-                  placeholder={`Ngjit instruksionet e ${tool.name} këtu…`}
-                />
-              </Field>
-
-              <Field label="Kosto për gjenerim (kredite)" className="mt-3 max-w-[220px]">
-                <Input
-                  type="number"
-                  value={costs[tool.id] ?? tool.defaultCost}
-                  onChange={(e) =>
-                    setCosts((c) => ({ ...c, [tool.id]: parseInt(e.target.value, 10) || 0 }))
-                  }
-                />
-              </Field>
-            </>
-          )}
-        </div>
+                <div className="space-y-2">
+                  {s.options.map((o) => {
+                    const key = `${tool.id}.${s.id}.${o.id}`;
+                    return (
+                      <Collapse
+                        key={o.id}
+                        title={o.label}
+                        subtitle={o.hint}
+                        right={
+                          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-ink-2">
+                            {costs[key] ?? o.cost ?? 0} kredite
+                          </span>
+                        }
+                      >
+                        <Field label="Prompt për këtë opsion">
+                          <Textarea
+                            value={prompts[key] ?? ""}
+                            onChange={(e) => setPrompts((p) => ({ ...p, [key]: e.target.value }))}
+                            className="min-h-[90px] font-mono text-[12px]"
+                            placeholder={`Shto në prompt kur zgjidhet "${o.label}"…`}
+                          />
+                        </Field>
+                        <Field label="Kosto (kredite)" className="mt-3 max-w-[200px]">
+                          <Input
+                            type="number"
+                            value={costs[key] ?? o.cost ?? 0}
+                            onChange={(e) =>
+                              setCosts((c) => ({ ...c, [key]: parseInt(e.target.value, 10) || 0 }))
+                            }
+                          />
+                        </Field>
+                      </Collapse>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Collapse>
       ))}
 
       <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
-        Ruaj tools
+        Ruaj Master Prompts
       </Button>
     </div>
   );
 }
 
-// ---- Reklamat (ad banners) ----
+// ---- Raporto (reports) ----
+interface ReportRow {
+  id: string;
+  user_email: string | null;
+  tool_id: string | null;
+  kind: string | null;
+  message: string | null;
+  prompt: string | null;
+  target_url: string | null;
+  credits_spent: number | null;
+  status: string | null;
+  created_at: string;
+}
+
+function ReportsTab() {
+  const { toast } = useToast();
+  const { getAccessToken } = useMaro();
+  const [rows, setRows] = React.useState<ReportRow[] | null>(null);
+  const [missing, setMissing] = React.useState(false);
+  const [big, setBig] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    if (!supabaseConfigured) return setRows([]);
+    const { data, error } = await getSupabaseBrowser()
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setMissing(true);
+      setRows([]);
+      return;
+    }
+    setRows((data as ReportRow[]) ?? []);
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const act = async (id: string, action: "refund" | "archive") => {
+    setBusy(id);
+    const token = await getAccessToken();
+    const res = await fetch("/api/admin/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ id, action }),
+    });
+    setBusy(null);
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      return toast("Gabim: " + (j.error || res.status));
+    }
+    toast(action === "refund" ? "Kreditet u kthyen" : "U arkivua");
+    void load();
+  };
+
+  if (rows === null) return <Spinner className="h-6 w-6" />;
+
+  if (missing) {
+    return (
+      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+        Tabela <code>reports</code> nuk ekziston ende. Ekzekuto migrimin{" "}
+        <code>0008_reports_announcements.sql</code> në Supabase.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.map((r) => (
+        <div key={r.id} className="rounded-2xl border border-line bg-surface p-4">
+          <div className="flex flex-wrap items-start gap-4">
+            {r.target_url && !r.target_url.startsWith("data:") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={r.target_url}
+                alt=""
+                onClick={() => setBig(r.target_url)}
+                className="h-16 w-16 shrink-0 cursor-zoom-in rounded-xl border border-line object-cover"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-[13.5px] font-bold text-ink">
+                {r.user_email}
+                <Badge tone={r.status === "open" ? "neutral" : "brand"} className="text-[10px] capitalize">
+                  {r.status}
+                </Badge>
+                {r.tool_id && <span className="text-[12px] font-normal text-ink-3">· {r.tool_id}</span>}
+              </div>
+              {r.message && <div className="mt-1 text-[13px] text-ink-2">{r.message}</div>}
+              {r.prompt && <div className="mt-1 line-clamp-2 text-[12px] text-ink-3">{r.prompt}</div>}
+              <div className="mt-1 text-[11.5px] text-ink-3">
+                {timeAgo(r.created_at)} · {r.credits_spent ?? 0} kredite
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<RotateCcw className="h-3.5 w-3.5" />}
+                loading={busy === r.id}
+                onClick={() => void act(r.id, "refund")}
+              >
+                Kthe kreditet
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Archive className="h-3.5 w-3.5" />}
+                onClick={() => void act(r.id, "archive")}
+              >
+                Arkivo
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+      {rows.length === 0 && (
+        <div className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
+          Ende s&apos;ka raporte.
+        </div>
+      )}
+
+      {big && (
+        <div
+          onClick={() => setBig(null)}
+          className="fixed inset-0 z-[100] grid cursor-zoom-out place-items-center bg-ink/80 p-6"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={big} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Njoftimet (multiple announcements) ----
+function newAnnouncement(): Announcement {
+  return {
+    id: `an_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    pages: [],
+    kind: "text",
+    active: true,
+    title: "",
+    body: "",
+    ctaLabel: "",
+    ctaLink: "",
+    bg: "#f3f0fe",
+    textColor: "#131316",
+    btnColor: "#6b46e5",
+    btnTextColor: "#ffffff",
+  };
+}
+
 function ReklamatTab() {
   const { toast } = useToast();
   const { getAccessToken } = useMaro();
-  const [imageUrl, setImageUrl] = React.useState("");
-  const [link, setLink] = React.useState("");
-  const [pages, setPages] = React.useState<string[]>([]);
+  const [list, setList] = React.useState<Announcement[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [drag, setDrag] = React.useState(false);
-  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [uploadingId, setUploadingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -944,18 +1103,31 @@ function ReklamatTab() {
         .select("pricing")
         .eq("id", 1)
         .single();
-      const ads = ((data?.pricing as PricingConfig) ?? DEFAULT_PRICING).ads;
-      setImageUrl(ads?.imageUrl ?? "");
-      setLink(ads?.link ?? "");
-      setPages(ads?.pages ?? []);
+      const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+      const existing = pricing.announcements ?? [];
+      // Migrate a legacy single ad banner into the list.
+      if (!existing.length && pricing.ads?.imageUrl) {
+        existing.push({
+          id: "legacy",
+          pages: pricing.ads.pages ?? [],
+          kind: "image",
+          imageUrl: pricing.ads.imageUrl,
+          link: pricing.ads.link,
+          active: true,
+        });
+      }
+      setList(existing);
       setLoading(false);
     })();
   }, []);
 
-  const upload = async (file: File) => {
+  const update = (id: string, patch: Partial<Announcement>) =>
+    setList((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+
+  const upload = async (id: string, file: File) => {
     if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
     if (file.size > 8 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 8MB).");
-    setUploading(true);
+    setUploadingId(id);
     try {
       const dataUrl: string = await new Promise((resolve, reject) => {
         const r = new FileReader();
@@ -966,144 +1138,185 @@ function ReklamatTab() {
       const token = await getAccessToken();
       const res = await fetch("/api/admin/ad-upload", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ dataUrl }),
       });
       const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !j.url) return toast("Ngarkimi dështoi: " + (j.error ?? res.status));
-      setImageUrl(j.url);
+      update(id, { imageUrl: j.url });
       toast("Imazhi u ngarkua");
     } finally {
-      setUploading(false);
+      setUploadingId(null);
     }
   };
 
-  const togglePage = (id: string) =>
-    setPages((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-
   const save = async () => {
     setSaving(true);
-    const { data } = await getSupabaseBrowser()
-      .from("app_settings")
-      .select("pricing")
-      .eq("id", 1)
-      .single();
+    const { data } = await getSupabaseBrowser().from("app_settings").select("pricing").eq("id", 1).single();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     const { error } = await getSupabaseBrowser()
       .from("app_settings")
       .update({
-        pricing: {
-          ...pricing,
-          ads: { imageUrl: imageUrl || undefined, link: link || undefined, pages },
-        },
+        pricing: { ...pricing, announcements: list, ads: undefined },
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
     setSaving(false);
-    toast(error ? "Gabim: " + error.message : "Reklama u ruajt");
+    toast(error ? "Gabim: " + error.message : "Njoftimet u ruajtën");
   };
 
   if (loading) return <Spinner className="h-6 w-6" />;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <p className="text-[13.5px] leading-relaxed text-ink-2">
-        Ngarko një banner reklame dhe zgjidh në cilat tools shfaqet mbi prompt box. Useri e
-        sheh banner-in kur hap ato faqe.
-      </p>
+    <div className="max-w-2xl space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[13.5px] text-ink-2">Krijo njoftime (imazh ose tekst me buton) mbi prompt box.</p>
+        <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setList((l) => [...l, newAnnouncement()])}>
+          Shto
+        </Button>
+      </div>
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) void upload(f);
-        }}
-        className={`grid place-items-center rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-          drag ? "border-brand bg-brand-soft" : "border-line-strong bg-surface-2/50"
-        }`}
-      >
-        {imageUrl ? (
-          <div className="w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="" className="mx-auto max-h-56 rounded-xl object-contain" />
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} loading={uploading}>
-                Ndrysho
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                icon={<Trash2 className="h-4 w-4" />}
-                onClick={() => setImageUrl("")}
+      {list.map((a) => (
+        <div key={a.id} className="rounded-2xl border border-line bg-surface p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="inline-flex rounded-xl border border-line p-0.5">
+              {(["text", "image"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => update(a.id, { kind: k })}
+                  className={`rounded-lg px-3 py-1.5 text-[12.5px] font-semibold capitalize ${
+                    a.kind === k ? "bg-ink text-ink-inv" : "text-ink-2"
+                  }`}
+                >
+                  {k === "text" ? "Tekst" : "Imazh"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-[12.5px] text-ink-2">
+                <input
+                  type="checkbox"
+                  checked={a.active !== false}
+                  onChange={(e) => update(a.id, { active: e.target.checked })}
+                  className="h-4 w-4 accent-brand"
+                />
+                Aktiv
+              </label>
+              <button
+                onClick={() => setList((l) => l.filter((x) => x.id !== a.id))}
+                className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-ink"
+                aria-label="Fshi"
               >
-                Hiq
-              </Button>
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex flex-col items-center text-ink-3"
-          >
-            <UploadCloud className="h-8 w-8" />
-            <span className="mt-2 text-[14px] font-semibold text-ink">
-              {uploading ? "Duke ngarkuar…" : "Kliko ose tërhiq një imazh këtu"}
-            </span>
-            <span className="mt-1 text-[12.5px]">PNG / JPG, deri 8MB</span>
-          </button>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void upload(f);
-            e.target.value = "";
-          }}
-        />
-      </div>
 
-      <div className="rounded-2xl border border-line bg-surface p-5">
-        <div className="text-[13px] font-bold text-ink">Shfaqet te</div>
-        <div className="mt-3 flex flex-col gap-2">
-          {TOOLS.map((t) => (
-            <label
-              key={t.id}
-              className="flex items-center justify-between rounded-xl border border-line px-4 py-3"
-            >
-              <span className="flex items-center gap-2.5 text-[14px] font-medium text-ink">
-                <t.icon className="h-4 w-4 text-brand" /> {t.name}
-              </span>
-              <input
-                type="checkbox"
-                checked={pages.includes(t.id)}
-                onChange={() => togglePage(t.id)}
-                className="h-5 w-5 accent-brand"
-              />
-            </label>
-          ))}
+          {a.kind === "image" ? (
+            <div className="space-y-3">
+              {a.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={a.imageUrl} alt="" className="max-h-48 w-full rounded-xl object-contain" />
+              ) : null}
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong bg-surface-2/50 px-4 py-4 text-[13px] font-semibold text-ink-2">
+                <UploadCloud className="h-4 w-4" />
+                {uploadingId === a.id ? "Duke ngarkuar…" : a.imageUrl ? "Ndrysho imazhin" : "Ngarko imazh"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void upload(a.id, f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <Field label="Link (opsional)">
+                <Input value={a.link ?? ""} onChange={(e) => update(a.id, { link: e.target.value })} placeholder="https://…" />
+              </Field>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Titulli">
+                  <Input value={a.title ?? ""} onChange={(e) => update(a.id, { title: e.target.value })} />
+                </Field>
+                <Field label="Butoni (tekst)">
+                  <Input value={a.ctaLabel ?? ""} onChange={(e) => update(a.id, { ctaLabel: e.target.value })} />
+                </Field>
+              </div>
+              <Field label="Përshkrimi">
+                <Input value={a.body ?? ""} onChange={(e) => update(a.id, { body: e.target.value })} />
+              </Field>
+              <Field label="Butoni (link)">
+                <Input value={a.ctaLink ?? ""} onChange={(e) => update(a.id, { ctaLink: e.target.value })} placeholder="https://…" />
+              </Field>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <ColorField label="Sfondi" value={a.bg} onChange={(v) => update(a.id, { bg: v })} />
+                <ColorField label="Teksti" value={a.textColor} onChange={(v) => update(a.id, { textColor: v })} />
+                <ColorField label="Butoni" value={a.btnColor} onChange={(v) => update(a.id, { btnColor: v })} />
+                <ColorField label="Teksti i butonit" value={a.btnTextColor} onChange={(v) => update(a.id, { btnTextColor: v })} />
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">Shfaqet te</div>
+            <div className="flex flex-wrap gap-2">
+              {TOOLS.map((t) => {
+                const on = a.pages?.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() =>
+                      update(a.id, {
+                        pages: on ? a.pages.filter((x) => x !== t.id) : [...(a.pages ?? []), t.id],
+                      })
+                    }
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${
+                      on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2"
+                    }`}
+                  >
+                    <t.icon className="h-3.5 w-3.5" /> {t.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
 
-      <Field label="Link (opsional), hapet kur klikohet banner-i">
-        <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
-      </Field>
+      {list.length === 0 && (
+        <div className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
+          Ende s&apos;ka njoftime. Kliko &laquo;Shto&raquo;.
+        </div>
+      )}
 
       <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
-        Ruaj reklamën
+        Ruaj njoftimet
       </Button>
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[12px] font-medium text-ink-2">{label}</div>
+      <div className="flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-2 py-1.5">
+        <input
+          type="color"
+          value={value || "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent p-0"
+        />
+        <input
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-[12.5px] text-ink outline-none"
+        />
+      </div>
     </div>
   );
 }
@@ -1425,28 +1638,9 @@ function PricingTab() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl border border-line bg-surface p-5">
-        <div className="text-[13px] font-bold text-ink">Kosto për imazh (kredite)</div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {IMAGE_TOOLS.flatMap((t) =>
-            t.variants
-              ? t.variants.map((v) => ({ id: v.id, label: `${t.name} · ${v.label}`, def: v.defaultCost }))
-              : [{ id: t.id, label: t.name, def: t.defaultCost }]
-          ).map((row) => (
-            <Field key={row.id} label={row.label}>
-              <Input
-                type="number"
-                value={pricing.tools?.[row.id] ?? row.def}
-                onChange={(e) =>
-                  setPricing((p) => ({
-                    ...p,
-                    tools: { ...(p.tools ?? {}), [row.id]: parseInt(e.target.value, 10) || 0 },
-                  }))
-                }
-              />
-            </Field>
-          ))}
-        </div>
+      <div className="mt-5 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        Kostot për çdo tool (Web / Logo / Reklama…) tani menaxhohen për çdo opsion te tabi{" "}
+        <span className="font-semibold text-ink">Master Prompts</span> — çmim + prompt në një vend.
       </div>
 
       <div className="mt-5 flex items-end gap-4">
@@ -1484,8 +1678,11 @@ function PricingTab() {
 
 // ---- Log ----
 function LogTab() {
+  const { toast } = useToast();
   const [logs, setLogs] = React.useState<GenerationLog[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [detail, setDetail] = React.useState<GenerationLog | null>(null);
+  const [big, setBig] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -1500,43 +1697,119 @@ function LogTab() {
     })();
   }, []);
 
+  const copyPrompt = async (l: GenerationLog) => {
+    try {
+      await navigator.clipboard.writeText(l.final_prompt || l.prompt || "");
+      toast("Prompti u kopjua");
+    } catch {
+      toast("S'u kopjua dot");
+    }
+  };
+
   if (loading) return <Spinner className="h-6 w-6" />;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line">
-      <table className="w-full text-left text-[13px]">
-        <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
-          <tr>
-            <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
-            <th className="px-4 py-2.5 font-semibold">Prompt</th>
-            <th className="px-4 py-2.5 font-semibold">Tip</th>
-            <th className="px-4 py-2.5 font-semibold">Shpejt.</th>
-            <th className="px-4 py-2.5 font-semibold">Kredite</th>
-            <th className="px-4 py-2.5 font-semibold">Koha</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {logs.map((l) => (
-            <tr key={l.id} className="bg-surface align-top">
-              <td className="px-4 py-3 text-ink-2">{l.user_email}</td>
-              <td className="max-w-xs px-4 py-3 text-ink">
-                <span className="line-clamp-2">{l.prompt}</span>
-              </td>
-              <td className="px-4 py-3 text-ink-2">{l.tool_id || l.website_type}</td>
-              <td className="px-4 py-3 text-ink-2">{l.speed}</td>
-              <td className="px-4 py-3 font-semibold text-brand">{l.credits_spent}</td>
-              <td className="px-4 py-3 text-ink-3">{timeAgo(l.created_at)}</td>
-            </tr>
-          ))}
-          {logs.length === 0 && (
+    <>
+      <div className="overflow-hidden rounded-xl border border-line">
+        <table className="w-full text-left text-[13px]">
+          <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-ink-3">
-                Ende s'ka gjenerime.
-              </td>
+              <th className="px-4 py-2.5 font-semibold">Imazh</th>
+              <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
+              <th className="px-4 py-2.5 font-semibold">Prompt</th>
+              <th className="px-4 py-2.5 font-semibold">Tip</th>
+              <th className="px-4 py-2.5 font-semibold">Kredite</th>
+              <th className="px-4 py-2.5 font-semibold">Koha</th>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {logs.map((l) => {
+              const thumb = l.output_urls?.find((u) => !u.startsWith("data:"));
+              return (
+                <tr
+                  key={l.id}
+                  onClick={() => setDetail(l)}
+                  className="cursor-pointer bg-surface align-top hover:bg-surface-2/60"
+                >
+                  <td className="px-4 py-3">
+                    {thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumb} alt="" className="h-10 w-10 rounded-lg border border-line object-cover" />
+                    ) : (
+                      <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2 text-ink-3">
+                        <FileText className="h-4 w-4" />
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-ink-2">{l.user_email}</td>
+                  <td className="max-w-xs px-4 py-3 text-ink">
+                    <span className="line-clamp-2">{l.prompt}</span>
+                  </td>
+                  <td className="px-4 py-3 text-ink-2">{l.tool_id || l.website_type}</td>
+                  <td className="px-4 py-3 font-semibold text-brand">{l.credits_spent}</td>
+                  <td className="px-4 py-3 text-ink-3">{timeAgo(l.created_at)}</td>
+                </tr>
+              );
+            })}
+            {logs.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-ink-3">
+                  Ende s&apos;ka gjenerime.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal open={detail !== null} onClose={() => setDetail(null)} size="lg">
+        {detail && (
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[15px] font-bold text-ink">{detail.user_email}</div>
+                <div className="text-[12px] text-ink-3">
+                  {detail.tool_id || detail.website_type} · {detail.credits_spent} kredite · {timeAgo(detail.created_at)}
+                </div>
+              </div>
+              <Button size="sm" icon={<Copy className="h-4 w-4" />} onClick={() => void copyPrompt(detail)}>
+                Kopjo promptin
+              </Button>
+            </div>
+
+            {detail.output_urls && detail.output_urls.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {detail.output_urls.map((u, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={u}
+                    alt=""
+                    onClick={() => setBig(u)}
+                    className="h-28 w-28 cursor-zoom-in rounded-xl border border-line object-cover"
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 max-h-[40vh] overflow-auto rounded-xl border border-line bg-surface-2 p-4">
+              <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-relaxed text-ink-2">
+                {detail.final_prompt || detail.prompt || "—"}
+              </pre>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {big && (
+        <div
+          onClick={() => setBig(null)}
+          className="fixed inset-0 z-[110] grid cursor-zoom-out place-items-center bg-ink/80 p-6"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={big} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain" />
+        </div>
+      )}
+    </>
   );
 }

@@ -11,8 +11,12 @@ import {
   supabaseServerConfigured,
   uploadGeneratedImage,
 } from "@/lib/supabase/server";
-import { imageToolCost } from "@/lib/supabase/types";
-import { getTool } from "@/lib/tools/registry";
+import {
+  composeToolPrompt,
+  findOption,
+  toolSelectionCost,
+  getTool,
+} from "@/lib/tools/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,19 +49,16 @@ export async function POST(req: Request) {
   }
 
   const settings = await getAppSettings();
-  // Variant (e.g. logo package) selects its own master prompt + price.
-  const variant =
-    body.variant && tool.variants?.some((v) => v.id === body.variant)
-      ? body.variant
-      : null;
-  const promptKey = variant ?? tool.id;
-  // Admin-set prompt wins; otherwise fall back to the tool's built-in prompt.
-  const masterPrompt =
-    settings.tool_prompts?.[promptKey]?.trim() ||
-    settings.tool_prompts?.[tool.id]?.trim() ||
-    tool.defaultPrompt ||
-    "";
-  const finalPrompt = `${masterPrompt ? masterPrompt + "\n\n" : ""}${body.prompt.trim()}`;
+  // Compose the final prompt: base + each selected option's fragment + user text.
+  const selections = body.selections ?? {};
+  const finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
+
+  // Derive the requested image size from the selected format option, if any.
+  let size = body.size;
+  for (const s of tool.settings) {
+    const opt = findOption(s, selections[s.id] ?? s.default);
+    if (opt?.size) size = opt.size;
+  }
 
   let userId: string | null = null;
   let userEmail = "";
@@ -68,8 +69,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     userId = user.id;
     userEmail = user.email ?? "";
-    const variantCost = tool.variants?.find((v) => v.id === variant)?.defaultCost;
-    cost = imageToolCost(settings.pricing, promptKey, variantCost ?? tool.defaultCost);
+    cost = toolSelectionCost(tool, selections, settings.pricing.options);
 
     const profile = await getProfileCredits(userId);
     if (!profile || profile.credits < cost) {
@@ -93,13 +93,13 @@ export async function POST(req: Request) {
       ? await editImages({
           prompt: finalPrompt,
           images: refs,
-          size: body.size,
+          size,
           quality: body.quality,
           n: body.n,
         })
       : await generateImages({
           prompt: finalPrompt,
-          size: body.size,
+          size,
           quality: body.quality,
           n: body.n,
         });

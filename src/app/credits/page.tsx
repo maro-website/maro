@@ -269,7 +269,7 @@ export default function CreditsPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") void applyPromo(promoInput);
                       }}
-                      placeholder="p.sh. KREATORI-10"
+                      placeholder="Kodi i zbritjes"
                       className="w-full bg-transparent text-[15px] uppercase text-ink outline-none placeholder:text-ink-3 placeholder:normal-case"
                     />
                   </div>

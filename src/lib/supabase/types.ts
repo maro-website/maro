@@ -34,12 +34,37 @@ export interface PricingConfig {
   types: Record<WebsiteKind, number>;
   speed: Record<SpeedKey, SpeedConfig>;
   editCost?: number;
-  /** Credit cost per image tool (e.g. { logo: 5, reklama: 5 }). */
+  /** Credit cost per image tool (e.g. { logo: 5, reklama: 5 }). Legacy. */
   tools?: Record<string, number>;
+  /** Per-option credit cost overrides, keyed by `${toolId}.${settingId}.${optionId}`. */
+  options?: Record<string, number>;
   /** Reserve: enable the product-image box in Maro Reklama (admin controlled). */
   reklamaProduct?: boolean;
-  /** Admin-managed ad banner shown above the composer on selected tools. */
+  /** Admin-managed ad banner shown above the composer on selected tools. Legacy. */
   ads?: AdBanner;
+  /** Admin-managed announcements shown above the composer on selected tools. */
+  announcements?: Announcement[];
+}
+
+// An announcement/banner shown above a tool's prompt box. Either an uploaded
+// image, or a text card with a CTA — fully color-customizable by the admin.
+export interface Announcement {
+  id: string;
+  /** Tool ids where this announcement appears. */
+  pages: string[];
+  /** "image" or "text". */
+  kind: "image" | "text";
+  imageUrl?: string;
+  link?: string;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  bg?: string;
+  textColor?: string;
+  btnColor?: string;
+  btnTextColor?: string;
+  active?: boolean;
 }
 
 export interface AppSettings {

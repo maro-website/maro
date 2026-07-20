@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { shareToExplore } from "@/lib/services/exploreService";
 import { trackEvent } from "@/lib/services/trackService";
+import { submitReport } from "@/lib/services/reportService";
 import {
   MoreVertical,
   Pencil,
@@ -23,6 +24,9 @@ import {
   Download,
   Globe2,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  Flag,
 } from "lucide-react";
 
 // ---- 3-dot menu (Rename / Favourite / Delete) -----------------------------
@@ -582,7 +586,152 @@ export function CreationLightbox({
                 {shared ? "Publikuar" : "Publiko"}
               </button>
             </div>
+
+            <ReportControls creation={creation} />
           </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ---- Like / Dislike / Report (own generations only) -----------------------
+function ReportControls({ creation }: { creation: ImageCreation }) {
+  const { toast } = useToast();
+  const { setCreationReaction } = useMaro();
+  const [reportOpen, setReportOpen] = React.useState(false);
+  const reaction = creation.reaction;
+
+  const react = (next: "like" | "dislike") => {
+    setCreationReaction(creation.id, reaction === next ? undefined : next);
+  };
+
+  return (
+    <>
+      <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+        <button
+          onClick={() => react("like")}
+          className={cn(
+            "grid h-9 w-9 place-items-center rounded-xl border transition-colors",
+            reaction === "like" ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2 hover:text-ink"
+          )}
+          aria-label="Pëlqej"
+          title="Pëlqej"
+        >
+          <ThumbsUp className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => react("dislike")}
+          className={cn(
+            "grid h-9 w-9 place-items-center rounded-xl border transition-colors",
+            reaction === "dislike" ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2 hover:text-ink"
+          )}
+          aria-label="Nuk pëlqej"
+          title="Nuk pëlqej"
+        >
+          <ThumbsDown className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setReportOpen(true)}
+          className="ml-auto grid h-9 w-9 place-items-center rounded-xl border border-line text-ink-2 transition-colors hover:text-ink"
+          aria-label="Raporto"
+          title="Raporto"
+        >
+          <Flag className="h-4 w-4" />
+        </button>
+      </div>
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        creation={creation}
+        onDone={() => {
+          setReportOpen(false);
+          toast("Raporti u dërgua. Faleminderit!");
+        }}
+      />
+    </>
+  );
+}
+
+function ReportModal({
+  open,
+  onClose,
+  creation,
+  onDone,
+}: {
+  open: boolean;
+  onClose: () => void;
+  creation: ImageCreation;
+  onDone: () => void;
+}) {
+  const { user } = useMaro();
+  const { toast } = useToast();
+  const [message, setMessage] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+
+  const send = async () => {
+    if (!message.trim()) return toast("Shkruaj çka nuk shkoi.");
+    setSending(true);
+    const { error } = await submitReport({
+      toolId: creation.toolId,
+      kind: "image",
+      targetId: creation.id,
+      targetUrl: creation.urls[0],
+      prompt: creation.prompt,
+      message: message.trim(),
+    });
+    setSending(false);
+    if (error) return toast("Gabim: " + error);
+    setMessage("");
+    onDone();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} size="sm">
+      <div className="p-6">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-ink">
+            <Flag className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-[16px] font-bold text-ink">Raporto gjenerimin</div>
+            <div className="text-[12.5px] text-ink-3">Do ta shqyrtojmë dhe të kthejmë përgjigje.</div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Email</div>
+          <div className="rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2">
+            {user?.email ?? "—"}
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Mesazhi</div>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={4}
+            placeholder="Përshkruaj problemin…"
+            className="w-full resize-none rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-3"
+          />
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
+          >
+            Anulo
+          </button>
+          <button
+            onClick={send}
+            disabled={sending}
+            className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover disabled:opacity-60"
+          >
+            {sending ? "Duke dërguar…" : "Dërgo raportin"}
+          </button>
         </div>
       </div>
     </Modal>

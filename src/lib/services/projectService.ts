@@ -13,12 +13,21 @@ function deriveName(prompt: string): string {
   return words.length > 42 ? words.slice(0, 42) + "…" : words;
 }
 
+// Map the new "Lloji" option ids onto the legacy WebsiteKind pipeline.
+const TYPE_TO_KIND: Record<string, WebsiteKind> = {
+  landing: "landing",
+  standard: "business",
+  pro: "platform",
+  expert: "platform",
+};
+
 // Build a Project directly from the Beta composer input (prompt + selectors).
 export function createProjectFromComposer(input: {
   prompt: string;
   websiteType: WebsiteKind;
   speed: SpeedKey;
   primaryColor?: string;
+  selections?: Record<string, string>;
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -34,8 +43,11 @@ export function createProjectFromComposer(input: {
   p.prompt = input.prompt;
   p.websiteType = input.websiteType;
   p.speed = input.speed;
+  p.toolSelections = input.selections;
   return p;
 }
+
+export { TYPE_TO_KIND };
 
 // Turn a completed wizard draft into a full Project (status: generating).
 export function createProjectFromDraft(draft: WizardDraft): Project {

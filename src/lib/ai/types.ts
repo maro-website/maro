@@ -63,6 +63,8 @@ export interface AiGenerateRequest {
   userPrompt?: string;
   websiteType?: WebsiteKind;
   speed?: SpeedKey;
+  /** New prompt-box selections (model/type/speed) — drives cost + prompt. */
+  selections?: Record<string, string>;
 }
 
 export interface AiGenerateResponse {

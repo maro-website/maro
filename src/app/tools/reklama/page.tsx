@@ -1,13 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { ImageComposer } from "@/components/app/ImageComposer";
+import { ToolComposer } from "@/components/app/ToolComposer";
 
 export default function ReklamaToolPage() {
   return (
     <AppShell>
-      <ImageComposer toolId="reklama" />
+      <ToolComposer toolId="reklama" />
     </AppShell>
   );
 }
