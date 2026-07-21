@@ -51,7 +51,15 @@ export async function POST(req: Request) {
   const settings = await getAppSettings();
   // Compose the final prompt: base + each selected option's fragment + user text.
   const selections = body.selections ?? {};
-  const finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
+  let finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
+
+  // If the user attached reference images, tell the model to actually use them.
+  const hasRefs = (body.attachments ?? []).some(
+    (a) => typeof a === "string" && a.startsWith("data:image/")
+  );
+  if (hasRefs) {
+    finalPrompt = `${finalPrompt}\n\nIMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.`;
+  }
 
   // Derive the requested image size from the selected format option, if any.
   let size = body.size;

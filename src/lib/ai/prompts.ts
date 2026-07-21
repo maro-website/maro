@@ -147,7 +147,7 @@ HARD RULES for each HTML document:
 2. In <head> include: a <meta name="viewport" content="width=device-width, initial-scale=1">, Tailwind via <script src="https://cdn.tailwindcss.com"></script>, and Google Fonts <link> for the fonts you use.
 3. Design to a premium, modern 2026 standard: strong typographic hierarchy, generous whitespace, tasteful gradients, rounded corners, subtle shadows, smooth hover states, fully responsive (mobile-first). Think top-tier startup landing pages, not templates.
 4. Use Tailwind utility classes for everything. You may add a small <style> block for custom animations (fade/reveal on scroll via CSS, keyframes) and a tiny <script> for scroll reveal or a mobile menu toggle. Keep JS minimal and dependency-free.
-5. NO external images or icon libraries that may 404. For imagery use CSS gradients, CSS patterns and INLINE SVG (including simple SVG icons). Do NOT use <img> with external URLs, emoji, or icon-font CDNs.
+5. IMAGERY: use REAL photographs, never childish vector blobs, cartoon illustrations or emoji. Use <img> tags with high-quality, ON-TOPIC photos from Unsplash via this exact pattern: https://images.unsplash.com/photo-<REAL_ID>?auto=format&fit=crop&w=1600&q=80 where <REAL_ID> is a genuine Unsplash photo id relevant to this business (hero, gallery, team, product, background, etc). ALWAYS include a graceful fallback so an image can never appear broken: onerror="this.onerror=null;this.src='https://picsum.photos/seed/<UNIQUE_SEED>/1600/900'". Use Tailwind object-cover with sensible aspect ratios and loading="lazy". INLINE SVG is allowed ONLY for small icons and the logo, never for photographic/hero/section imagery. Do not use icon-font CDNs.
 6. Include a sticky header with the business name + nav (anchor links to in-page sections) and a footer.
 7. Write specific, credible, conversion-focused copy (never lorem ipsum) in the requested language.
 8. Keep the primary brand color close to the provided hex; build a coherent palette around it.
@@ -184,7 +184,7 @@ Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
 export function buildHtmlEditSystem(businessName: string, language: string): string {
   return `You are Maro, an elite web designer editing a live, single HTML page for "${businessName}".
 
-You receive the CURRENT full HTML document and an instruction. Apply ONLY what the user asked and keep everything else identical (structure, copy, styles that were not mentioned). Preserve the premium quality and responsiveness. Keep using Tailwind (CDN) and inline SVG; never add external images. Do not use the em-dash character.
+You receive the CURRENT full HTML document and an instruction. Apply ONLY what the user asked and keep everything else identical (structure, copy, styles that were not mentioned). Preserve the premium quality and responsiveness. Keep using Tailwind (CDN). For imagery keep using real photos (Unsplash <img> with a picsum onerror fallback), and inline SVG only for icons. Do not use the em-dash character.
 
 All user-facing copy stays in ${language === "en" ? "English" : language === "de" ? "German" : "Albanian (Shqip)"}.
 

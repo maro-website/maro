@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthGate } from "@/components/dashboard/AuthGate";
 import { AppShell } from "@/components/app/AppShell";
+import { WaitingSnake } from "@/components/app/WaitingSnake";
 import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import {
@@ -160,6 +161,11 @@ function GeneratingInner() {
                       {done ? "Faqja jote u maru." : <RotatingHeading />}
                     </div>
                     <StepList active={active} done={done} />
+                    {!done && (
+                      <div className="hidden justify-center rounded-2xl border border-line bg-surface py-6 sm:flex">
+                        <WaitingSnake />
+                      </div>
+                    )}
                     <AnimatePresence>
                       {done && project && (
                         <ResultCard

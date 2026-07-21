@@ -7,6 +7,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
+import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { CreationCard, CreationListRow } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { useToast } from "@/components/ui/Toast";
@@ -542,48 +543,7 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
 
 // ---- Image generating loop ----
 function GeneratingCard({ toolName }: { toolName: string }) {
-  const phrases = React.useMemo(
-    () => ["Po e mendoj konceptin…", "Po vizatoj format & ngjyrat…", "Po i jap detajet finale…", "Pothuajse gati…"],
-    []
-  );
-  const [i, setI] = React.useState(0);
-  React.useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % phrases.length), 2400);
-    return () => clearInterval(t);
-  }, [phrases.length]);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mt-8 flex flex-col items-center overflow-hidden rounded-3xl border border-line bg-surface px-6 py-14"
-    >
-      <div className="relative h-24 w-24">
-        {[0, 1, 2].map((n) => (
-          <motion.span
-            key={n}
-            className="absolute inset-0 rounded-full border border-brand"
-            animate={{ scale: [1, 1.6], opacity: [0.5, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, delay: n * 0.5, ease: "easeOut" }}
-          />
-        ))}
-        <motion.span
-          className="absolute inset-0 grid place-items-center"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-        >
-          <span className="grid h-16 w-16 place-items-center rounded-2xl bg-brand text-brand-fg">
-            <Sparkles className="h-7 w-7" />
-          </span>
-        </motion.span>
-      </div>
-      <div className="mt-6 text-[15px] font-semibold text-ink">{toolName}</div>
-      <div className="mt-1 h-5 text-[13.5px] text-ink-3">
-        <motion.span key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          {phrases[i]}
-        </motion.span>
-      </div>
-    </motion.div>
-  );
+  return <GenerationLoader variant="image" title={toolName} className="mt-8" />;
 }
 
 function ResultGallery({ creations }: { creations: Parameters<typeof CreationCard>[0]["creation"][] }) {
