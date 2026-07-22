@@ -50,7 +50,7 @@ export function AuthLayout({
             <p className="max-w-md text-balance text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em] text-white">
               Trego çka të duhet.
               <br />
-              <span className="text-brand/90" style={{ color: "#b79cff" }}>Maro e maron.</span>
+              <span className="text-brand/90" style={{ color: "#b79cff" }}>maro e maron.</span>
             </p>
             <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-white/60">
               Bashkohu me bizneset që e ndërtojnë praninë e tyre online në minuta, jo javë.

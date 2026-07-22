@@ -12,6 +12,7 @@ import { useTheme, type Theme } from "@/context/theme";
 import { useToast } from "@/components/ui/Toast";
 import { TOOLS, getTool } from "@/lib/tools/registry";
 import { initials, timeAgo } from "@/lib/utils/format";
+import { randomMaroLabel } from "@/lib/utils/maroButton";
 import { cn } from "@/lib/utils/cn";
 import type { Project, ImageCreation } from "@/lib/types";
 import {
@@ -21,7 +22,6 @@ import {
   LogOut,
   User as UserIcon,
   Star,
-  Compass,
   X,
   Check,
   PanelLeftClose,
@@ -49,6 +49,9 @@ export function HomeSidebar({
   const pathname = usePathname();
   const { user, isAdmin, isCreator, credits, projects, creations, signOut } = useMaro();
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  // A different playful label each refresh.
+  const [maroLabel, setMaroLabel] = React.useState("maro");
+  React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
 
   const go = (href: string) => {
     router.push(href);
@@ -89,7 +92,7 @@ export function HomeSidebar({
           onClick={() => go("/")}
           className="flex w-full items-center gap-2 rounded-xl bg-brand px-4 py-3 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
         >
-          <Plus className="h-5 w-5" /> Maro
+          <Plus className="h-5 w-5 shrink-0" /> <span className="truncate">{maroLabel}</span>
         </button>
       </div>
 
@@ -107,23 +110,8 @@ export function HomeSidebar({
           ))}
         </div>
 
-        {/* Thin line separating tools from Explore / Favourites */}
+        {/* Thin line separating tools from recent work */}
         <div className="mx-2 mb-3 border-t border-line" />
-
-        <div className="mb-4 flex flex-col gap-0.5">
-          <NavItem
-            active={pathname === "/explore"}
-            icon={<Compass className="h-5 w-5" />}
-            label="Explore"
-            onClick={() => go("/explore")}
-          />
-          <NavItem
-            active={pathname === "/favourites"}
-            icon={<Star className="h-5 w-5" />}
-            label="Të preferuarat"
-            onClick={() => go("/favourites")}
-          />
-        </div>
 
         {/* Recently done: websites + images merged, newest first */}
         {(projects.length > 0 || creations.length > 0) && (
@@ -380,9 +368,10 @@ function SettingsPanel({
 
       {/* Links */}
       <div className="flex flex-col gap-0.5">
+        <SettingsRow icon={<Star className="h-4 w-4" />} label="Të preferuarat" onClick={() => onGo("/favourites")} />
         <SettingsRow icon={<UserIcon className="h-4 w-4" />} label="Llogaria" onClick={() => onGo("/account")} />
         {isCreator && (
-          <SettingsRow icon={<Star className="h-4 w-4" />} label="Maro Kreator" onClick={() => onGo("/kreator")} />
+          <SettingsRow icon={<Star className="h-4 w-4" />} label="maro Kreator" onClick={() => onGo("/kreator")} />
         )}
         {isAdmin && (
           <SettingsRow icon={<Shield className="h-4 w-4" />} label="Admin" onClick={() => onGo("/admin")} />
@@ -521,14 +510,8 @@ function RowShell({
 function SidebarProjectRow({ project, onOpen }: { project: Project; onOpen: () => void }) {
   const { renameProject, deleteProject, toggleFavouriteProject } = useMaro();
   const [editing, setEditing] = React.useState(false);
-  const WebIcon = getTool("website")?.icon;
   return (
     <RowShell
-      thumb={
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line bg-surface-2 text-ink-2">
-          {WebIcon && <WebIcon className="h-4 w-4" />}
-        </span>
-      }
       title={project.name}
       subtitle={project.status === "generating" ? "Po gjenerohet…" : timeAgo(project.updatedAt)}
       favourite={project.favourite}
@@ -559,14 +542,6 @@ function SidebarCreationRow({ creation, onOpen }: { creation: ImageCreation; onO
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
   return (
     <RowShell
-      thumb={
-        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-surface-2">
-          {creation.urls[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={creation.urls[0]} alt="" className="h-full w-full object-cover" />
-          )}
-        </span>
-      }
       title={title}
       subtitle={`${tool?.name ?? "Imazh"} · ${timeAgo(creation.createdAt)}`}
       favourite={creation.favourite}

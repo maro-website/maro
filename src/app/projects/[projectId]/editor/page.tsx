@@ -85,9 +85,9 @@ function EditorInner() {
           <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
             <Monitor className="h-6 w-6" />
           </div>
-          <h1 className="text-[20px] font-bold tracking-tight text-ink">Hape Maro në desktop</h1>
+          <h1 className="text-[20px] font-bold tracking-tight text-ink">Hape maro në desktop</h1>
           <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-            Për eksperiencën më të mirë të editimit, hape Maro në desktop. Nga telefoni mund të
+            Për eksperiencën më të mirë të editimit, hape maro në desktop. Nga telefoni mund të
             shohësh dashboard-in dhe llogarinë.
           </p>
           <Button className="mt-5" onClick={() => router.push("/dashboard")}>Kthehu te dashboard</Button>

@@ -116,7 +116,7 @@ function GeneratingInner() {
           <div className="text-center">
             <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
             <Button className="mt-4" onClick={() => router.push("/tools/website")}>
-              Kthehu te Maro Website
+              Kthehu te maro Web
             </Button>
           </div>
         </div>

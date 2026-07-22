@@ -56,7 +56,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
     <div className="flex h-full flex-col bg-canvas">
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3">
         <div className="flex items-center gap-2 text-[13px] font-bold text-ink">
-          <Sparkles className="h-4 w-4 text-brand" /> Maro AI
+          <Sparkles className="h-4 w-4 text-brand" /> maro AI
         </div>
         <button
           onClick={onCollapse}

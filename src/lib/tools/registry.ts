@@ -23,10 +23,11 @@ import {
   Clock,
   Languages,
   Users,
+  Lightbulb,
 } from "lucide-react";
 
-export type ToolId = "website" | "logo" | "reklama" | "filma" | "zo";
-export type ToolKind = "website" | "image" | "video" | "audio";
+export type ToolId = "website" | "logo" | "reklama" | "filma" | "zo" | "prompte";
+export type ToolKind = "website" | "image" | "video" | "audio" | "prompts";
 
 // gpt-image-2 supports three canonical sizes; social formats map to the nearest.
 export type ImageSize = "1024x1024" | "1024x1536" | "1536x1024";
@@ -85,7 +86,7 @@ export interface ToolDef {
 // ---------------------------------------------------------------------------
 const MARO_SPEED: ToolSetting = {
   id: "speed",
-  label: "MaroSpeed",
+  label: "maroSpeed",
   icon: Gauge,
   default: "normal",
   options: [
@@ -102,7 +103,7 @@ const WEB_MODELS: ToolOption[] = [
   { id: "gpt-5-6-sol", label: "GPT-5.6 Sol", available: false },
   { id: "gemini-3-1-pro", label: "Gemini 3.1 Pro", available: false },
   { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro", available: false },
-  { id: "marokod-1", label: "MaroKod 1.0", available: false },
+  { id: "marokod-1", label: "maroKod 1.0", available: false },
 ];
 
 const IMAGE_MODELS: ToolOption[] = [
@@ -111,7 +112,7 @@ const IMAGE_MODELS: ToolOption[] = [
   { id: "nano-banana-2-lite", label: "Nano Banana 2 Lite", available: false },
   { id: "flux-2-max", label: "FLUX.2 Max", available: false },
   { id: "seedream-5-pro", label: "Seedream 5 Pro", available: false },
-  { id: "maroart-1", label: "MaroArt 1.0", available: false },
+  { id: "maroart-1", label: "maroArt 1.0", available: false },
 ];
 
 // ---------------------------------------------------------------------------
@@ -120,10 +121,10 @@ const IMAGE_MODELS: ToolOption[] = [
 export const TOOLS: ToolDef[] = [
   {
     id: "website",
-    name: "Maro Web",
+    name: "maro Web",
     tagline: "Website i plotë nga një fjali",
     description:
-      "Përshkruaj biznesin dhe Maro ndërton një website profesional me Claude Opus 4.8.",
+      "Përshkruaj biznesin dhe maro ndërton një website profesional me Claude Opus 4.8.",
     icon: Globe,
     kind: "website",
     route: "/tools/website",
@@ -156,7 +157,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "logo",
-    name: "Maro Logo",
+    name: "maro Logo",
     tagline: "Logo & ikona me AI",
     description: "Gjenero logo dhe simbole marke unike nga një përshkrim.",
     icon: Sparkles,
@@ -165,7 +166,7 @@ export const TOOLS: ToolDef[] = [
     functional: true,
     baseCost: 0,
     defaultPrompt:
-      "You are Maro Logo, an expert brand & logo designer. From the description, produce a single, clean, memorable logo concept. Prefer simple vector-style marks, balanced negative space, a strong silhouette and a limited palette. Center the mark on a plain background with generous padding. Avoid clutter, photorealism and text unless explicitly requested.",
+      "You are maro Logo, an expert brand & logo designer. From the description, produce a single, clean, memorable logo concept. Prefer simple vector-style marks, balanced negative space, a strong silhouette and a limited palette. Center the mark on a plain background with generous padding. Avoid clutter, photorealism and text unless explicitly requested.",
     settings: [
       { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
       {
@@ -196,16 +197,16 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "reklama",
-    name: "Maro Reklama",
-    tagline: "Vizuale reklamash që konvertojnë",
-    description: "Krijo kreativë reklamash gati për rrjetet sociale.",
+    name: "maro Imazh",
+    tagline: "Imazhe & vizuale që konvertojnë",
+    description: "Krijo imazhe dhe kreativë vizualë gati për rrjetet sociale.",
     icon: Megaphone,
     kind: "image",
     route: "/tools/reklama",
     functional: true,
     baseCost: 0,
     defaultPrompt:
-      "You are Maro Reklama, an expert advertising art director. Produce a scroll-stopping social ad creative with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
+      "You are maro Imazh, an expert visual art director. Produce a scroll-stopping, high-quality image with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
     settings: [
       { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
       {
@@ -224,8 +225,22 @@ export const TOOLS: ToolDef[] = [
     ],
   },
   {
+    id: "prompte",
+    name: "maro Prompte",
+    tagline: "Prompte gati për t'u përdorur",
+    description:
+      "Prompte profesionale çdo ditë: 1 falas + 2 premium. Ngarko produktin tënd dhe gjenero. Së shpejti.",
+    icon: Lightbulb,
+    kind: "prompts",
+    route: "/tools/prompte",
+    functional: false,
+    comingSoon: true,
+    baseCost: 0,
+    settings: [],
+  },
+  {
     id: "filma",
-    name: "Maro Filma",
+    name: "maro Filma",
     tagline: "AI Video Generator",
     description: "Gjenero video të shkurtra me AI nga një përshkrim. Së shpejti.",
     icon: Clapperboard,
@@ -274,7 +289,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "zo",
-    name: "Maro Zo",
+    name: "maro Zo",
     tagline: "Zëra me AI",
     description: "Kthe tekstin në zë natyral me AI. Së shpejti.",
     icon: AudioLines,

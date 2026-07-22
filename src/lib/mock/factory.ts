@@ -446,7 +446,7 @@ export function buildPages(i: FactoryInput): WebsitePage[] {
     sections: homeSections,
     seo: seo(
       `${i.businessName}${i.tagline ? " · " + i.tagline : ""}`,
-      i.tagline ?? "Website i krijuar me Maro.",
+      i.tagline ?? "Website i krijuar me maro.",
       "home"
     ),
   };

@@ -8,16 +8,23 @@ import { useMaro } from "@/context/store";
 import { TOOLS, type ToolDef } from "@/lib/tools/registry";
 import { saveLastTool } from "@/lib/tools/selections";
 import { cn } from "@/lib/utils/cn";
-import { ArrowUp, Lock } from "lucide-react";
+import { ArrowUp, Lock, Coins } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export default function HomePage() {
-  const { user } = useMaro();
+  const { user, credits } = useMaro();
   const router = useRouter();
   const firstName = user?.name?.split(" ")[0];
   const [prompt, setPrompt] = React.useState("");
   const [picked, setPicked] = React.useState<string>("website");
+  // Day (06:00–18:00) => "sot"; night (18:00–06:00) => "sonte".
+  const [dayPart, setDayPart] = React.useState<"sot" | "sonte">("sot");
+  React.useEffect(() => {
+    const h = new Date().getHours();
+    setDayPart(h >= 6 && h < 18 ? "sot" : "sonte");
+  }, []);
+  const isFree = !user?.plan || user.plan === "free";
 
   const go = (tool: ToolDef) => {
     setPicked(tool.id);
@@ -38,13 +45,38 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-aurora" />
 
         <div className="w-full max-w-2xl">
+          {user && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE }}
+              className="mb-4 flex items-center justify-center gap-2 text-[13px]"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 font-semibold text-ink-2">
+                <Coins className="h-3.5 w-3.5 text-brand" /> {credits} kredite
+              </span>
+              <span className="text-ink-3">·</span>
+              <span className="capitalize text-ink-3">Plani {user.plan || "free"}</span>
+              {isFree && (
+                <button
+                  onClick={() => router.push("/credits")}
+                  className="font-semibold text-brand underline-offset-2 hover:underline"
+                >
+                  Abonohu?
+                </button>
+              )}
+            </motion.div>
+          )}
+
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE }}
-            className="text-balance text-center text-[clamp(28px,5vw,46px)] font-extrabold leading-[1.05] tracking-[-0.04em] text-ink"
+            className="text-balance text-center text-[clamp(28px,5vw,46px)] font-light leading-[1.08] tracking-[-0.03em] text-ink"
           >
-            {firstName ? `Çka po marojmë sot, ${firstName}?` : "Çka po marojmë sot?"}
+            {firstName
+              ? `Çka po marojmë ${dayPart}, ${firstName}?`
+              : `Çka po marojmë ${dayPart}?`}
           </motion.h1>
 
           {/* Centered prompt box */}

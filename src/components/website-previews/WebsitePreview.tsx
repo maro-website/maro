@@ -216,7 +216,7 @@ export function WebsitePreview({
             {project.businessName}
           </span>
           <span style={{ fontSize: 13, color: "var(--muted)", fontFamily: "var(--bf)" }}>
-            © {new Date().getFullYear()} · Maro me Maro
+            © {new Date().getFullYear()} · maro me maro
           </span>
         </div>
       </footer>

@@ -146,7 +146,7 @@ function CreatorDashboard() {
           transition={{ duration: 0.6, ease: EASE }}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
-            <Star className="h-3.5 w-3.5 text-brand" /> Maro Kreator
+            <Star className="h-3.5 w-3.5 text-brand" /> maro Kreator
           </span>
           <h1 className="mt-4 text-[clamp(30px,6vw,46px)] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink">
             Mirë se erdhe, {firstName}
@@ -160,7 +160,7 @@ function CreatorDashboard() {
         {/* Link + code */}
         {stats && !stats.hasCode ? (
           <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-[14px] text-ink-2">
-            Kodi yt i Kreatorit po përgatitet nga ekipi i Maro. Kthehu së shpejti.
+            Kodi yt i Kreatorit po përgatitet nga ekipi i maro. Kthehu së shpejti.
           </div>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -285,7 +285,7 @@ function JoinView() {
           </span>
           <h2 className="mt-5 text-[22px] font-extrabold tracking-[-0.02em] text-ink">Kërkesa u dërgua</h2>
           <p className="mt-2 text-[14px] text-ink-2">
-            Faleminderit! Ekipi i Maro do ta shqyrtojë aplikimin tënd dhe do të kontaktojë me email.
+            Faleminderit! Ekipi i maro do ta shqyrtojë aplikimin tënd dhe do të kontaktojë me email.
           </p>
         </motion.div>
       </div>
@@ -302,13 +302,13 @@ function JoinView() {
           transition={{ duration: 0.6, ease: EASE }}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
-            <Star className="h-3.5 w-3.5 text-brand" /> Maro Kreator
+            <Star className="h-3.5 w-3.5 text-brand" /> maro Kreator
           </span>
           <h1 className="mt-4 text-[clamp(28px,6vw,42px)] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink">
-            Bëhu Kreator i Maro
+            Bëhu Kreator i maro
           </h1>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">
-            Programi ynë shpërblen kreatorët që bëjnë përmbajtje rreth Maro. Merr kodin dhe linkun
+            Programi ynë shpërblen kreatorët që bëjnë përmbajtje rreth maro. Merr kodin dhe linkun
             tënd, ndaji me ndjekësit, dhe fito 10% nga çdo shitje. Kjo faqe hapet vetëm për Kreatorët
             e aprovuar. Apliko më poshtë.
           </p>

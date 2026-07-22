@@ -23,7 +23,7 @@ const SECTION_SPEC = `SECTION KINDS and their "data" shape (fill realistic, spec
 
 ICON values (use only these): zap, shield-check, sparkles, smile, sun, palette, layout, play, compass, building-2, hammer, wrench, trees, star, heart, check, phone, mail, map-pin, calendar, clock, users, award, leaf, camera, scissors, dumbbell, briefcase.
 
-IMAGE RULES: For any "image" or "avatar" field, output an empty string "". For "gallery.images" output an empty array []. Maro fills these with on-brand local artwork automatically. NEVER invent external image URLs.`;
+IMAGE RULES: For any "image" or "avatar" field, output an empty string "". For "gallery.images" output an empty array []. maro fills these with on-brand local artwork automatically. NEVER invent external image URLs.`;
 
 const THEME_SPEC = `THEME fields:
 - primaryColor, secondaryColor, backgroundColor, textColor: hex strings.
@@ -37,7 +37,7 @@ function langName(code: string) {
 }
 
 export function buildEditSystem(req: AiEditRequest): string {
-  return `You are Maro AI, the in-editor assistant of an AI website builder. You edit ONE page of a live website based on the user's instruction.
+  return `You are maro AI, the in-editor assistant of an AI website builder. You edit ONE page of a live website based on the user's instruction.
 
 Business: "${req.businessName}" · Category: ${req.category} · Content language: ${langName(req.language)}.
 Editing page: "${req.page.name}".
@@ -86,7 +86,7 @@ export function buildComposedGenerateSystem(
   masterPrompt: string
 ): string {
   const typeGuide = WEBSITE_TYPE_GUIDE[req.websiteType ?? "business"] ?? WEBSITE_TYPE_GUIDE.business;
-  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are Maro AI. Generate a complete, professional website. The output is rendered by a fixed component library, so you must follow the section schema exactly.
+  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are maro AI. Generate a complete, professional website. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${typeGuide}
 
@@ -158,7 +158,7 @@ export function buildHtmlGenerateSystem(
   masterPrompt: string
 ): string {
   const count = HTML_PAGE_COUNT[req.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
-  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are Maro, an elite web designer and front-end engineer. You craft complete, production-quality marketing websites as raw HTML + Tailwind CSS. Your work should look hand-crafted and premium.
+  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are maro, an elite web designer and front-end engineer. You craft complete, production-quality marketing websites as raw HTML + Tailwind CSS. Your work should look hand-crafted and premium.
 
 ${count}
 
@@ -182,7 +182,7 @@ Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
 }
 
 export function buildHtmlEditSystem(businessName: string, language: string): string {
-  return `You are Maro, an elite web designer editing a live, single HTML page for "${businessName}".
+  return `You are maro, an elite web designer editing a live, single HTML page for "${businessName}".
 
 You receive the CURRENT full HTML document and an instruction. Apply ONLY what the user asked and keep everything else identical (structure, copy, styles that were not mentioned). Preserve the premium quality and responsiveness. Keep using Tailwind (CDN). For imagery keep using real photos (Unsplash <img> with a picsum onerror fallback), and inline SVG only for icons. Do not use the em-dash character.
 
@@ -209,7 +209,7 @@ ${html}`;
 }
 
 export function buildGenerateSystem(req: AiGenerateRequest): string {
-  return `You are Maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
+  return `You are maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${SECTION_SPEC}
 

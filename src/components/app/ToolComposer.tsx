@@ -211,9 +211,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       : tool.id === "logo"
       ? "Përshkruaj logon: brand, stil, simbol, ngjyra…"
       : tool.id === "reklama"
-      ? "Përshkruaj reklamën: produkt, mesazh, stil, ngjyra…"
+      ? "Përshkruaj imazhin: produkt, mesazh, stil, ngjyra…"
       : tool.id === "filma"
       ? "Përshkruaj videon që do të krijosh…"
+      : tool.id === "prompte"
+      ? "Prompte gati për t'u përdorur. Së shpejti…"
       : "Shkruaj tekstin që do të kthehet në zë…";
 
   return (

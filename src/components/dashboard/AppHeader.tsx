@@ -8,11 +8,14 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { initials } from "@/lib/utils/format";
+import { randomMaroLabel } from "@/lib/utils/maroButton";
 import { Coins, LogOut, Settings, Shield, User as UserIcon, Plus } from "lucide-react";
 
 export function AppHeader() {
   const { user, isAdmin, credits, signOut } = useMaro();
   const router = useRouter();
+  const [maroLabel, setMaroLabel] = React.useState("maro");
+  React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-lg">
@@ -31,7 +34,7 @@ export function AppHeader() {
             href="/"
             className="hidden items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-[13px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover sm:flex"
           >
-            <Plus className="h-4 w-4" /> Maro
+            <Plus className="h-4 w-4" /> {maroLabel}
           </Link>
           <Link
             href="/credits"

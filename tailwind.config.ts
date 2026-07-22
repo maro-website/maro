@@ -25,6 +25,12 @@ const config: Config = {
         warning: "var(--warning)",
         danger: "var(--danger)",
         info: "var(--info)",
+        // Brand accent palette (logo shapes)
+        "c-blue": "var(--c-blue)",
+        "c-teal": "var(--c-teal)",
+        "c-red": "var(--c-red)",
+        "c-pale": "var(--c-pale)",
+        "c-yellow": "var(--c-yellow)",
       },
       fontFamily: {
         sans: ["var(--font-app)", "system-ui", "sans-serif"],
@@ -46,7 +52,7 @@ const config: Config = {
         subtle: "0 1px 2px 0 rgb(16 16 24 / 0.04), 0 1px 1px 0 rgb(16 16 24 / 0.03)",
         card: "0 1px 3px 0 rgb(16 16 24 / 0.06), 0 1px 2px -1px rgb(16 16 24 / 0.05)",
         pop: "0 10px 30px -12px rgb(16 16 24 / 0.18), 0 4px 10px -6px rgb(16 16 24 / 0.10)",
-        brand: "0 10px 30px -10px rgb(90 40 229 / 0.45)",
+        brand: "0 10px 30px -10px rgb(59 23 255 / 0.40)",
       },
       keyframes: {
         "fade-in": {

@@ -25,13 +25,20 @@
 @tailwind utilities;
 
 :root {
-  /* ---- Maro brand tokens (single source of truth) ----
-     Redesign #3 (v2): near-monochrome light mode. ~90% black/grey/white,
-     ~10% soft purple used only as a gentle accent. */
-  --brand: #6b46e5;
-  --brand-hover: #5a37d1;
-  --brand-soft: #f3f0fe;
+  /* ---- maro brand tokens (single source of truth) ----
+     Brand refresh (v3): electric indigo primary with a playful multi-color
+     accent set drawn straight from the logo shapes. */
+  --brand: #3b17ff;
+  --brand-hover: #2d0fd6;
+  --brand-soft: #ece9ff;
   --brand-fg: #ffffff;
+
+  /* Logo palette (brand constants, used for shapes / accents everywhere). */
+  --c-blue: #3b17ff;
+  --c-teal: #00fdba;
+  --c-red: #ff0000;
+  --c-pale: #d0e6fd;
+  --c-yellow: #ffff00;
 
   --canvas: #ffffff;
   --surface: #ffffff;
@@ -47,7 +54,7 @@
   --success: #12a150;
   --warning: #d97706;
   --danger: #e5484d;
-  --info: #6b46e5;
+  --info: #3b17ff;
 
   --font-app: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui,
     -apple-system, sans-serif;
@@ -55,9 +62,9 @@
 
 /* ---- Dark (soft) theme: dark but not pure black ---- */
 [data-theme="dark"] {
-  --brand: #8b6cf0;
-  --brand-hover: #7a5be0;
-  --brand-soft: #221f33;
+  --brand: #6a4dff;
+  --brand-hover: #5a3bff;
+  --brand-soft: #211a45;
   --brand-fg: #ffffff;
 
   --canvas: #16161c;
@@ -74,7 +81,7 @@
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
-  --info: #8b6cf0;
+  --info: #6a4dff;
 }
 
 /* ---- Mono: full black + strictly black/white UI (no color) ---- */
@@ -181,6 +188,30 @@ body {
 .animate-float-slow {
   animation: float-slow 9s ease-in-out infinite;
 }
+
+/* ---- Brand shapes loader (used in generation animations) ---- */
+@keyframes maro-spin { to { transform: rotate(360deg); } }
+@keyframes maro-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes maro-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes maro-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  55% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes maro-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(6px, -8px) rotate(8deg); }
+  66% { transform: translate(-6px, 6px) rotate(-6deg); }
+}
+@keyframes maro-orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit, 34px)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--orbit, 34px)) rotate(-360deg); }
+}
+/* In full-dark (mono) keep the brand loader monochrome to respect the theme. */
+[data-theme="mono"] .maro-shapes { filter: grayscale(1) brightness(1.6) contrast(1.1); }
 
 /* Shimmer skeleton */
 .skeleton {

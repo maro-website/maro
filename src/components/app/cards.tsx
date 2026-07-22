@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils/cn";
 import type { Project, ImageCreation } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { shareToExplore } from "@/lib/services/exploreService";
 import { trackEvent } from "@/lib/services/trackService";
 import { submitReport } from "@/lib/services/reportService";
 import {
@@ -22,8 +21,6 @@ import {
   X,
   Copy,
   Download,
-  Globe2,
-  Loader2,
   ThumbsUp,
   ThumbsDown,
   Flag,
@@ -425,14 +422,11 @@ export function CreationLightbox({
   const tool = getTool(creation.toolId);
   const [active, setActive] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
-  const [sharing, setSharing] = React.useState(false);
-  const [shared, setShared] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setActive(0);
-      setShared(false);
       setCopied(false);
       void trackEvent({
         kind: "view",
@@ -478,27 +472,6 @@ export function CreationLightbox({
       window.open(url, "_blank");
     } finally {
       setBusy(false);
-    }
-  };
-
-  const publish = async () => {
-    if (url.startsWith("data:")) {
-      toast("Ky imazh s'mund të publikohet (ruaje me Supabase Storage).");
-      return;
-    }
-    setSharing(true);
-    try {
-      await shareToExplore({
-        toolId: creation.toolId,
-        prompt: creation.prompt || "",
-        url,
-      });
-      setShared(true);
-      toast("U publikua te Explore.");
-    } catch {
-      toast("Nuk u publikua dot. Provo përsëri.");
-    } finally {
-      setSharing(false);
     }
   };
 
@@ -565,27 +538,13 @@ export function CreationLightbox({
               {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
               {copied ? "U kopjua" : "Kopjo prompt"}
             </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={download}
-                disabled={busy}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" /> Shkarko
-              </button>
-              <button
-                onClick={publish}
-                disabled={sharing || shared}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover disabled:opacity-60"
-              >
-                {sharing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Globe2 className="h-4 w-4" />
-                )}
-                {shared ? "Publikuar" : "Publiko"}
-              </button>
-            </div>
+            <button
+              onClick={download}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" /> Shkarko
+            </button>
 
             <ReportControls creation={creation} />
           </div>

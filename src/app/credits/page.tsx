@@ -312,13 +312,13 @@ export default function CreditsPage() {
               </span>
               <div>
                 <h3 className="text-[17px] font-extrabold tracking-[-0.02em] text-ink">
-                  Ti po e ndihmon Maro të bëhet realitet
+                  Ti po e ndihmon maro të bëhet realitet
                 </h3>
                 <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
                   Për momentin, paratë e tua shkojnë direkt te Anthropic dhe OpenAI, plus koston
                   për ta mbajtur platformën gjallë. Por me ndihmën tënde, projekti{" "}
-                  <span className="font-semibold text-ink">Maro Imazh 1.0</span> — i pari gjenerator
-                  shqiptar i imazheve me AI — bëhet realitet. Sa më shumë të rritemi, aq më lirë
+                  <span className="font-semibold text-ink">maro Imazh 1.0</span>, i pari gjenerator
+                  shqiptar i imazheve me AI, bëhet realitet. Sa më shumë të rritemi, aq më lirë
                   bëhen gjenerimet, sepse ndërtojmë modelin tonë. Faleminderit që je pjesë e këtij
                   zhvillimi real.
                 </p>

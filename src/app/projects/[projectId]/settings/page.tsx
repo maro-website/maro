@@ -96,7 +96,7 @@ function SettingsInner() {
               <Card title="Domain">
                 <div className="rounded-xl border border-line bg-surface p-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[13px] font-bold text-ink">Maro Domain</span>
+                    <span className="text-[13px] font-bold text-ink">maro Domain</span>
                     <Badge tone="success"><Check className="h-3 w-3" /> Aktiv</Badge>
                   </div>
                   <div className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5">

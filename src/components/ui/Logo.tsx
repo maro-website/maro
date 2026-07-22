@@ -6,7 +6,7 @@ export function MaroSymbol({ className }: { className?: string }) {
   return (
     <img
       src="/brand/symbol.svg"
-      alt="Maro"
+      alt="maro"
       className={cn("h-[34px] w-[34px] select-none", className)}
       draggable={false}
     />

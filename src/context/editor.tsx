@@ -340,7 +340,7 @@ export function EditorProvider({
       const thinking: ChatMessage = {
         id: thinkingId,
         role: "assistant",
-        content: "Maro është tu e ndreq...",
+        content: "maro është tu e ndreq...",
         status: "thinking",
         createdAt: new Date().toISOString(),
       };
