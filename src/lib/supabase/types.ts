@@ -50,6 +50,8 @@ export interface PricingConfig {
   ads?: AdBanner;
   /** Admin-managed announcements shown above the composer on selected tools. */
   announcements?: Announcement[];
+  /** Credit cost to reveal-and-copy a maro Prompt (one-time per user). */
+  promptRevealCost?: number;
 }
 
 // An announcement/banner shown above a tool's prompt box. Either an uploaded

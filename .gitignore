@@ -12,3 +12,4 @@ next-env.d.ts
 
 # local one-off diagnostic scripts (read .env.local)
 /scripts
+.env*

@@ -4,7 +4,9 @@ import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
   getProfileCredits,
+  getPromptTemplate,
   getUserFromToken,
+  incrementPromptUse,
   logGeneration,
   refundCredits,
   spendCredits,
@@ -55,6 +57,17 @@ export async function POST(req: Request) {
   // Compose the final prompt: base + each selected option's fragment + user text.
   const selections = body.selections ?? {};
   let finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
+
+  // maro Prompts: if a curated prompt is attached, prepend its hidden template
+  // as the leading instruction. Fetched server-side; never exposed to the client.
+  let maroPromptId: string | undefined;
+  if (body.maroPrompt?.id) {
+    const tpl = await getPromptTemplate(body.maroPrompt.id);
+    if (tpl?.full_prompt?.trim()) {
+      finalPrompt = `${tpl.full_prompt.trim()}\n\n${finalPrompt}`;
+      maroPromptId = body.maroPrompt.id;
+    }
+  }
 
   // If the user attached reference images, tell the model to actually use them.
   const hasRefs = (body.attachments ?? []).some(
@@ -194,6 +207,9 @@ export async function POST(req: Request) {
         fort: fortLog,
       });
     }
+
+    // Count the curated-prompt usage (best-effort analytics).
+    if (maroPromptId) await incrementPromptUse(maroPromptId);
 
     return NextResponse.json({ images: urls, creditsSpent: cost });
   } catch (err) {

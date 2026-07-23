@@ -9,7 +9,9 @@ import type { AiGenerateRequest } from "@/lib/ai/types";
 import {
   getAppSettings,
   getProfileCredits,
+  getPromptTemplate,
   getUserFromToken,
+  incrementPromptUse,
   logGeneration,
   refundCredits,
   spendCredits,
@@ -64,6 +66,16 @@ export async function POST(req: Request) {
       if (frag && frag.trim()) frags.push(frag.trim());
     }
     extraPrompt = frags.join("\n\n");
+  }
+
+  // maro Prompts: prepend the hidden curated template (fetched server-side).
+  let maroPromptId: string | undefined;
+  if (body.maroPrompt?.id) {
+    const tpl = await getPromptTemplate(body.maroPrompt.id);
+    if (tpl?.full_prompt?.trim()) {
+      extraPrompt = extraPrompt ? `${tpl.full_prompt.trim()}\n\n${extraPrompt}` : tpl.full_prompt.trim();
+      maroPromptId = body.maroPrompt.id;
+    }
   }
   // Speed -> Claude effort. New ids: kadale/normal/fast; legacy: slow/fast/2x.
   const effortBySpeed: Record<string, string> = {
@@ -174,6 +186,7 @@ export async function POST(req: Request) {
         fort: fortLog,
       });
     }
+    if (maroPromptId) await incrementPromptUse(maroPromptId);
     return NextResponse.json({ pages, creditsSpent: cost });
   } catch (err) {
     console.error("[ai/generate] failed:", err);

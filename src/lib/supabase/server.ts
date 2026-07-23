@@ -58,6 +58,7 @@ export async function getAppSettings(): Promise<AppSettings> {
         options: pricing.options ?? {},
         editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
         announcements: pricing.announcements ?? [],
+        promptRevealCost: pricing.promptRevealCost,
       },
     };
   };
@@ -189,6 +190,38 @@ export async function hasFort(userId: string): Promise<boolean> {
     return (data?.plan as string) === "fort";
   } catch {
     return false;
+  }
+}
+
+// maro Prompts — fetch a curated prompt's hidden template by id (service role).
+// Returns null if missing/inactive. The `full_prompt` NEVER reaches the client
+// except through the paid reveal endpoint.
+export async function getPromptTemplate(
+  id: string
+): Promise<{ full_prompt: string; target_tool: string } | null> {
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("maro_prompts")
+      .select("full_prompt, target_tool, active")
+      .eq("id", id)
+      .single();
+    if (error || !data || data.active === false) return null;
+    return {
+      full_prompt: (data.full_prompt as string) ?? "",
+      target_tool: (data.target_tool as string) ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Best-effort: increment a prompt's use counter when it is attached to a
+// generation (+maro). Never throws.
+export async function incrementPromptUse(id: string): Promise<void> {
+  try {
+    await getSupabaseAdmin().rpc("bump_prompt_use", { p_prompt: id });
+  } catch {
+    /* best-effort */
   }
 }
 

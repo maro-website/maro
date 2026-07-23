@@ -30,6 +30,7 @@ export function createProjectFromComposer(input: {
   primaryColor?: string;
   selections?: Record<string, string>;
   fort?: FortPayload;
+  maroPromptId?: string;
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -47,6 +48,7 @@ export function createProjectFromComposer(input: {
   p.speed = input.speed;
   p.toolSelections = input.selections;
   if (input.fort?.enabled) p.fort = input.fort;
+  if (input.maroPromptId) p.maroPromptId = input.maroPromptId;
   return p;
 }
 

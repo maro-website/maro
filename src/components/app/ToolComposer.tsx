@@ -37,6 +37,7 @@ import {
   type ToolSetting,
 } from "@/lib/tools/registry";
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
+import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -52,6 +53,7 @@ import {
   Lock,
   AudioLines,
   Mic,
+  Lightbulb,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -82,9 +84,18 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   fast: "2x",
 };
 
+const PROMPT_TEAL = "#00fdba";
+
 // A single message in the image tool's ChatGPT-style conversation.
 type ChatMessage =
-  | { id: string; role: "user"; text: string; attachments?: string[]; fort?: boolean }
+  | {
+      id: string;
+      role: "user";
+      text: string;
+      attachments?: string[];
+      fort?: boolean;
+      promptCode?: string;
+    }
   | {
       id: string;
       role: "maro";
@@ -121,6 +132,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [fortDirty, setFortDirty] = React.useState(false);
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
+  // maro Prompts: a curated prompt attached from /prompts (hidden template).
+  const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
   const pendingRef = React.useRef(false);
@@ -160,6 +173,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     setFortActive(false);
     setFortModalOpen(false);
     setFortDirty(false);
+    // Pull a curated prompt attached from /prompts (only if it targets this tool).
+    let attach: PromptAttach | null = null;
+    try {
+      const raw = sessionStorage.getItem(PROMPT_ATTACH_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as PromptAttach;
+        if (parsed?.targetTool === tool.id) attach = parsed;
+        sessionStorage.removeItem(PROMPT_ATTACH_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+    setPromptAttach(attach);
     saveLastTool(tool.id);
 
     // Open a specific past creation as a conversation (clicked from sidebar).
@@ -363,6 +389,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       fortAvailable && fortActive && hasFort
         ? { enabled: true, values: fortValues }
         : undefined;
+    const maroPromptPayload = promptAttach ? { id: promptAttach.id } : undefined;
 
     if (tool.kind === "website") {
       const kind = (TYPE_TO_KIND[selections.type] ?? "business") as WebsiteKind;
@@ -373,6 +400,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         speed,
         selections,
         fort: fortPayload,
+        maroPromptId: promptAttach?.id,
       });
       addProject(project);
       router.push(`/projects/${project.id}/generating`);
@@ -385,7 +413,14 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     const maroId = uid("m");
     setMessages((m) => [
       ...m,
-      { id: uid("u"), role: "user", text, attachments: sentAttachments, fort: Boolean(fortPayload) },
+      {
+        id: uid("u"),
+        role: "user",
+        text,
+        attachments: sentAttachments,
+        fort: Boolean(fortPayload),
+        promptCode: promptAttach?.code,
+      },
       { id: maroId, role: "maro", status: "thinking" },
     ]);
     setPrompt("");
@@ -401,6 +436,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         quality: "high",
         attachments: sentAttachments,
         fort: fortPayload,
+        maroPrompt: maroPromptPayload,
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
@@ -435,7 +471,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
@@ -508,7 +544,13 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             <div className="mb-4 flex flex-col gap-4">
               {messages.map((m) =>
                 m.role === "user" ? (
-                  <UserBubble key={m.id} text={m.text} attachments={m.attachments} fort={m.fort} />
+                  <UserBubble
+                    key={m.id}
+                    text={m.text}
+                    attachments={m.attachments}
+                    fort={m.fort}
+                    promptCode={m.promptCode}
+                  />
                 ) : (
                   <MaroBubble
                     key={m.id}
@@ -600,6 +642,32 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onUpgrade={() => router.push("/credits#fort")}
                 />
               )}
+            </div>
+          )}
+
+          {promptAttach && !loading && (
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <span
+                className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-bold"
+                style={{
+                  color: PROMPT_TEAL,
+                  borderColor: "rgba(0,253,186,0.5)",
+                  background: "rgba(0,253,186,0.1)",
+                }}
+              >
+                <Lightbulb className="h-4 w-4" />
+                maro Prompt
+                <span className="font-mono text-[11px] font-semibold opacity-80">
+                  {promptAttach.code}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setPromptAttach(null)}
+                className="text-[12px] font-semibold text-ink-3 transition-colors hover:text-ink"
+              >
+                Hiq
+              </button>
             </div>
           )}
 
@@ -1034,10 +1102,12 @@ function UserBubble({
   text,
   attachments,
   fort,
+  promptCode,
 }: {
   text: string;
   attachments?: string[];
   fort?: boolean;
+  promptCode?: string;
 }) {
   return (
     <motion.div
@@ -1046,14 +1116,24 @@ function UserBubble({
       transition={{ duration: 0.25 }}
       className="flex flex-col items-end"
     >
-      {fort && (
-        <span
-          className="mb-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
-          style={{ background: "#ff0000" }}
-        >
-          <Sparkles className="h-3 w-3" /> maroFort
-        </span>
-      )}
+      <div className="mb-1 flex items-center gap-1.5">
+        {promptCode && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
+            style={{ background: PROMPT_TEAL, color: "#04231b" }}
+          >
+            <Lightbulb className="h-3 w-3" /> maro Prompt
+          </span>
+        )}
+        {fort && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
+            style={{ background: "#ff0000" }}
+          >
+            <Sparkles className="h-3 w-3" /> maroFort
+          </span>
+        )}
+      </div>
       <div className="max-w-[80%] rounded-3xl rounded-br-lg bg-brand px-4 py-2.5 text-[15px] leading-relaxed text-brand-fg">
         {attachments && attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">

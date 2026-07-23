@@ -68,6 +68,8 @@ export interface AiGenerateRequest {
   selections?: Record<string, string>;
   /** maroFort expert payload (ignored server-side unless the user is entitled). */
   fort?: FortPayload;
+  /** maro Prompts: id of an attached curated prompt (hidden template). */
+  maroPrompt?: { id: string };
 }
 
 export interface AiGenerateResponse {

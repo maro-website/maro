@@ -15,6 +15,9 @@ export interface AiImageRequest {
   selections?: Record<string, string>;
   /** maroFort expert payload (ignored server-side unless the user is entitled). */
   fort?: FortPayload;
+  /** maro Prompts: id of an attached curated prompt. The hidden template text
+   * is fetched server-side and never sent from the client. */
+  maroPrompt?: { id: string };
 }
 
 export interface AiImageResponse {

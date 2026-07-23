@@ -116,6 +116,7 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     speed: project.speed,
     selections: project.toolSelections,
     fort: project.fort,
+    maroPrompt: project.maroPromptId ? { id: project.maroPromptId } : undefined,
   };
 
   const token = await getAccessToken();

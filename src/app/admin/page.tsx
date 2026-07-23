@@ -52,6 +52,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Sparkles,
+  Lightbulb,
 } from "lucide-react";
 import type { FortConfig, FortModuleId, FortPromptLayer } from "@/lib/fort/types";
 import { getFortModuleSchema } from "@/lib/fort/schema";
@@ -108,19 +109,29 @@ export default function AdminPage() {
 }
 
 function AdminInner() {
+  const router = useRouter();
   const [tab, setTab] = React.useState<Tab>("overview");
   return (
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-6xl px-5 py-10">
-        <div className="flex items-center gap-3.5">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-ink-inv">
-            <Shield className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="text-[32px] font-extrabold tracking-[-0.035em] text-ink">Admin</h1>
-            <p className="text-[14px] text-ink-2">Menaxho përdoruesit, kreditet, promptet, reklamat dhe çmimet.</p>
+        <div className="flex items-center justify-between gap-3.5">
+          <div className="flex items-center gap-3.5">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-ink-inv">
+              <Shield className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="text-[32px] font-extrabold tracking-[-0.035em] text-ink">Admin</h1>
+              <p className="text-[14px] text-ink-2">Menaxho përdoruesit, kreditet, promptet, reklamat dhe çmimet.</p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            icon={<Lightbulb className="h-4 w-4" />}
+            onClick={() => router.push("/admin/prompts")}
+          >
+            Prompts Admin
+          </Button>
         </div>
 
         {!supabaseConfigured && (

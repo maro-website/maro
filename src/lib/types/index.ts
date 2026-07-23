@@ -209,6 +209,8 @@ export interface Project {
   toolSelections?: Record<string, string>;
   /** maroFort expert payload captured at generation time. */
   fort?: import("@/lib/fort/types").FortPayload;
+  /** maro Prompts: id of an attached curated prompt (hidden template). */
+  maroPromptId?: string;
   language: LanguageCode;
   category: WebsiteCategory;
   style: StyleKey;
