@@ -12,31 +12,47 @@ export function FortSelect({
   field,
   value,
   onChange,
+  otherValue,
+  onOtherChange,
 }: {
   field: FortFieldSchema;
   value: string | undefined;
   onChange: (v: string) => void;
+  otherValue?: string;
+  onOtherChange?: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {(field.options ?? []).map((o) => {
-        const active = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(active ? "" : o.id)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
-              active
-                ? "border-brand bg-brand-soft text-brand"
-                : "border-line-strong bg-surface text-ink-2 hover:text-ink"
-            )}
-          >
-            {o.label}
-          </button>
-        );
-      })}
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {(field.options ?? []).map((o) => {
+          const active = value === o.id;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => onChange(active ? "" : o.id)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
+                active
+                  ? "border-brand bg-brand-soft text-brand"
+                  : "border-line-strong bg-surface text-ink-2 hover:text-ink"
+              )}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {value === "other" && onOtherChange && (
+        <input
+          type="text"
+          autoFocus
+          value={otherValue ?? ""}
+          placeholder="Shkruaj zgjedhjen tënde…"
+          onChange={(e) => onOtherChange(e.target.value)}
+          className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+        />
+      )}
     </div>
   );
 }
@@ -48,10 +64,14 @@ export function FortMultiSelect({
   field,
   value,
   onChange,
+  otherValue,
+  onOtherChange,
 }: {
   field: FortFieldSchema;
   value: string[] | undefined;
   onChange: (v: string[]) => void;
+  otherValue?: string;
+  onOtherChange?: (v: string) => void;
 }) {
   const selected = value ?? [];
   const toggle = (id: string) => {
@@ -63,30 +83,42 @@ export function FortMultiSelect({
     }
   };
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {(field.options ?? []).map((o) => {
-        const active = selected.includes(o.id);
-        const full = Boolean(field.maxSelect && selected.length >= field.maxSelect && !active);
-        return (
-          <button
-            key={o.id}
-            type="button"
-            disabled={full}
-            onClick={() => toggle(o.id)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
-              active
-                ? "border-brand bg-brand-soft text-brand"
-                : full
-                ? "cursor-not-allowed border-line bg-surface text-ink-3 opacity-60"
-                : "border-line-strong bg-surface text-ink-2 hover:text-ink"
-            )}
-          >
-            {active && <Check className="h-3 w-3" />}
-            {o.label}
-          </button>
-        );
-      })}
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {(field.options ?? []).map((o) => {
+          const active = selected.includes(o.id);
+          const full = Boolean(field.maxSelect && selected.length >= field.maxSelect && !active);
+          return (
+            <button
+              key={o.id}
+              type="button"
+              disabled={full}
+              onClick={() => toggle(o.id)}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
+                active
+                  ? "border-brand bg-brand-soft text-brand"
+                  : full
+                  ? "cursor-not-allowed border-line bg-surface text-ink-3 opacity-60"
+                  : "border-line-strong bg-surface text-ink-2 hover:text-ink"
+              )}
+            >
+              {active && <Check className="h-3 w-3" />}
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {selected.includes("other") && onOtherChange && (
+        <input
+          type="text"
+          autoFocus
+          value={otherValue ?? ""}
+          placeholder="Shkruaj zgjedhjen tënde…"
+          onChange={(e) => onOtherChange(e.target.value)}
+          className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+        />
+      )}
     </div>
   );
 }
@@ -313,16 +345,36 @@ export function FortField({
   field,
   value,
   onChange,
+  otherValue,
+  onOtherChange,
 }: {
   field: FortFieldSchema;
   value: FortValue | undefined;
   onChange: (v: FortValue) => void;
+  otherValue?: string;
+  onOtherChange?: (v: string) => void;
 }) {
   switch (field.type) {
     case "select":
-      return <FortSelect field={field} value={value as string} onChange={onChange} />;
+      return (
+        <FortSelect
+          field={field}
+          value={value as string}
+          onChange={onChange}
+          otherValue={otherValue}
+          onOtherChange={onOtherChange}
+        />
+      );
     case "multiselect":
-      return <FortMultiSelect field={field} value={value as string[]} onChange={onChange} />;
+      return (
+        <FortMultiSelect
+          field={field}
+          value={value as string[]}
+          onChange={onChange}
+          otherValue={otherValue}
+          onOtherChange={onOtherChange}
+        />
+      );
     case "text":
       return <FortTextInput field={field} value={value as string} onChange={onChange} />;
     case "textarea":

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
@@ -10,6 +10,7 @@ import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { CreationLightbox } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
+import { Switch } from "@/components/ui/Switch";
 import { FortToggle } from "@/components/fort/FortToggle";
 import { FortPanel } from "@/components/fort/FortPanel";
 import { useToast } from "@/components/ui/Toast";
@@ -83,7 +84,7 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
 
 // A single message in the image tool's ChatGPT-style conversation.
 type ChatMessage =
-  | { id: string; role: "user"; text: string; attachments?: string[] }
+  | { id: string; role: "user"; text: string; attachments?: string[]; fort?: boolean }
   | {
       id: string;
       role: "maro";
@@ -95,6 +96,8 @@ type ChatMessage =
 export function ToolComposer({ toolId }: { toolId: string }) {
   const tool = getTool(toolId)!;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const openId = searchParams.get("open");
   const { toast } = useToast();
   const { user, credits, hasFort, creations, addProject, addCreation, spendCredits } = useMaro();
   const { pricing, fortConfig } = useSettings(Boolean(user));
@@ -111,7 +114,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [showBuy, setShowBuy] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
-  const [fortEnabled, setFortEnabled] = React.useState(false);
+  // maroFort: opens as a pop-up. `active` means a saved config is applied to
+  // generation (shows the red button); `modalOpen` controls the pop-up.
+  const [fortActive, setFortActive] = React.useState(false);
+  const [fortModalOpen, setFortModalOpen] = React.useState(false);
+  const [fortDirty, setFortDirty] = React.useState(false);
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -150,27 +157,26 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     setPrompt(draft);
     setAttachments([]);
     setAudioInput(null);
-    setFortEnabled(false);
+    setFortActive(false);
+    setFortModalOpen(false);
+    setFortDirty(false);
     saveLastTool(tool.id);
 
     // Open a specific past creation as a conversation (clicked from sidebar).
     let seeded: ChatMessage[] = [];
-    try {
-      const openId = new URLSearchParams(window.location.search).get("open");
-      if (openId) {
-        const c = creationsRef.current.find((x) => x.id === openId && x.toolId === tool.id);
-        if (c) {
-          seeded = [
-            { id: uid("u"), role: "user", text: c.prompt || "" },
-            { id: uid("m"), role: "maro", status: "done", creation: c },
-          ];
-        }
+    if (openId) {
+      const c = creationsRef.current.find((x) => x.id === openId && x.toolId === tool.id);
+      if (c) {
+        seeded = [
+          { id: uid("u"), role: "user", text: c.prompt || "" },
+          { id: uid("m"), role: "maro", status: "done", creation: c },
+        ];
       }
-    } catch {
-      /* ignore */
     }
     setMessages(seeded);
-  }, [tool]);
+    // Re-seed whenever the tool OR the ?open= target changes (clicking another
+    // recent card while already on the same tool page).
+  }, [tool, openId]);
 
   // Keep the conversation scrolled to the newest message.
   React.useEffect(() => {
@@ -187,6 +193,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   }, [tool.id, fortModule, fortConfig]);
 
   const setFortValue = (id: string, value: FortValue) => {
+    setFortDirty(true);
     setFortValues((prev) => {
       const next = { ...prev, [id]: value };
       saveFortValues(tool.id, next);
@@ -194,12 +201,44 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     });
   };
 
-  const onToggleFort = (next: boolean) => {
+  // Open the maroFort pop-up (or trigger the upgrade flow when not entitled).
+  const openFortModal = () => {
     if (!hasFort) {
       router.push("/credits#fort");
       return;
     }
-    setFortEnabled(next);
+    setFortDirty(false);
+    setFortModalOpen(true);
+  };
+
+  // "Ruaj" — apply the config and show the red button in the composer.
+  const saveFort = () => {
+    saveFortValues(tool.id, fortValues);
+    setFortActive(true);
+    setFortDirty(false);
+    setFortModalOpen(false);
+  };
+
+  // "Fshije" — clear all maroFort settings for this tool and deactivate.
+  const clearFort = () => {
+    const base = fortModule
+      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
+      : {};
+    setFortValues(base);
+    saveFortValues(tool.id, base);
+    setFortActive(false);
+    setFortDirty(false);
+    setFortModalOpen(false);
+  };
+
+  // Reset — back to defaults but keep the pop-up open (fresh start).
+  const resetFort = () => {
+    const base = fortModule
+      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
+      : {};
+    setFortValues(base);
+    saveFortValues(tool.id, base);
+    setFortDirty(true);
   };
 
   const cost = toolSelectionCost(tool, selections, pricing.options);
@@ -321,7 +360,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     if (!text) return;
 
     const fortPayload =
-      fortAvailable && fortEnabled && hasFort
+      fortAvailable && fortActive && hasFort
         ? { enabled: true, values: fortValues }
         : undefined;
 
@@ -346,11 +385,13 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     const maroId = uid("m");
     setMessages((m) => [
       ...m,
-      { id: uid("u"), role: "user", text, attachments: sentAttachments },
+      { id: uid("u"), role: "user", text, attachments: sentAttachments, fort: Boolean(fortPayload) },
       { id: maroId, role: "maro", status: "thinking" },
     ]);
     setPrompt("");
     setAttachments([]);
+    // Generation started — the maroFort pop-up is no longer needed on screen.
+    setFortModalOpen(false);
     setLoading(true);
     try {
       const res = await generateImages({
@@ -394,7 +435,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortEnabled, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
@@ -467,7 +508,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             <div className="mb-4 flex flex-col gap-4">
               {messages.map((m) =>
                 m.role === "user" ? (
-                  <UserBubble key={m.id} text={m.text} attachments={m.attachments} />
+                  <UserBubble key={m.id} text={m.text} attachments={m.attachments} fort={m.fort} />
                 ) : (
                   <MaroBubble
                     key={m.id}
@@ -480,24 +521,6 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          {functional && fortAvailable && fortEnabled && (
-            <div className="mb-2">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="text-[13px] font-bold uppercase tracking-wider text-brand">
-                  {fortResolved.label}
-                </span>
-                <span className="text-[12.5px] text-ink-3">Brief ekspert</span>
-              </div>
-              {fortModule && (
-                <FortPanel
-                  module={fortModule}
-                  config={fortConfig}
-                  values={fortValues}
-                  onChange={setFortValue}
-                />
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -538,18 +561,44 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          {fortAvailable && (
-            <div className="mb-2 flex items-center justify-between px-1">
-              <FortToggle
-                enabled={fortEnabled}
-                locked={!hasFort}
-                label={fortResolved.label}
-                badgeText={fortResolved.badgeText}
-                onToggle={onToggleFort}
-                onUpgrade={() => router.push("/credits#fort")}
-              />
-              {fortEnabled && hasFort && (
-                <span className="text-[12px] text-ink-3">Modaliteti ekspert aktiv</span>
+          {fortAvailable && !loading && (
+            <div className="mb-2 flex items-center gap-2 px-1">
+              {fortActive && hasFort ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFortDirty(false);
+                      setFortModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-bold transition-colors"
+                    style={{
+                      color: "#ff0000",
+                      borderColor: "rgba(255,0,0,0.45)",
+                      background: "rgba(255,0,0,0.08)",
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {fortResolved.label}
+                    <span className="text-[11px] font-semibold opacity-80">aktiv</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearFort}
+                    className="text-[12px] font-semibold text-ink-3 transition-colors hover:text-ink"
+                  >
+                    Fshije
+                  </button>
+                </>
+              ) : (
+                <FortToggle
+                  enabled={false}
+                  locked={!hasFort}
+                  label={fortResolved.label}
+                  badgeText={fortResolved.badgeText}
+                  onToggle={() => openFortModal()}
+                  onUpgrade={() => router.push("/credits#fort")}
+                />
               )}
             </div>
           )}
@@ -618,20 +667,29 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 </IconBtn>
               )}
 
-              {shownSettings.map((s) => (
-                <SettingSelect
-                  key={s.id}
-                  setting={s}
-                  value={selections[s.id] ?? s.default}
-                  onChange={(optId, opt) => {
-                    if (opt.confirm) {
-                      setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
-                    } else {
-                      setOption(s.id, optId);
-                    }
-                  }}
-                />
-              ))}
+              {shownSettings.map((s) =>
+                s.toggle ? (
+                  <ToggleSetting
+                    key={s.id}
+                    setting={s}
+                    value={selections[s.id] ?? s.default}
+                    onChange={(optId) => setOption(s.id, optId)}
+                  />
+                ) : (
+                  <SettingSelect
+                    key={s.id}
+                    setting={s}
+                    value={selections[s.id] ?? s.default}
+                    onChange={(optId, opt) => {
+                      if (opt.confirm) {
+                        setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
+                      } else {
+                        setOption(s.id, optId);
+                      }
+                    }}
+                  />
+                )
+              )}
 
               <div className="ml-auto flex items-center gap-2.5">
                 {functional && (
@@ -702,6 +760,71 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </Modal>
 
+      {/* maroFort pop-up */}
+      <Modal open={fortModalOpen} onClose={() => setFortModalOpen(false)} size="lg" className="max-w-2xl">
+        <div className="h-1 w-full" style={{ background: "#ff0000" }} />
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="grid h-9 w-9 place-items-center rounded-xl"
+              style={{ background: "rgba(255,0,0,0.1)", color: "#ff0000" }}
+            >
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div>
+              <div className="text-[12.5px] text-ink-3">Modaliteti ekspert — kontroll i plotë</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={resetFort}
+            className="rounded-xl border border-line-strong bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+          >
+            Rikthe fillimin
+          </button>
+        </div>
+
+        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 py-4">
+          {fortModule && (
+            <FortPanel
+              module={fortModule}
+              config={fortConfig}
+              values={fortValues}
+              onChange={setFortValue}
+            />
+          )}
+        </div>
+
+        <div className="flex gap-2 border-t border-line px-5 py-4">
+          {fortActive && (
+            <button
+              type="button"
+              onClick={clearFort}
+              className="rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-danger transition-colors hover:bg-danger/10"
+            >
+              Fshije
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setFortModalOpen(false)}
+            className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+          >
+            Anulo
+          </button>
+          <button
+            type="button"
+            onClick={saveFort}
+            disabled={!fortDirty}
+            className="flex-1 rounded-xl px-4 py-3 text-[14px] font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-45"
+            style={{ background: fortDirty ? "#ff0000" : "#ff0000" }}
+          >
+            Ruaj
+          </button>
+        </div>
+      </Modal>
+
       <PromptExpand
         open={expanded}
         value={prompt}
@@ -748,6 +871,34 @@ function IconBtn({
     >
       {children}
     </button>
+  );
+}
+
+// ---- Toggle setting (renders a Switch; second option id == "on") ----
+function ToggleSetting({
+  setting,
+  value,
+  onChange,
+}: {
+  setting: ToolSetting;
+  value: string;
+  onChange: (optionId: string) => void;
+}) {
+  const offId = setting.options[0]?.id ?? "off";
+  const onId = setting.options[1]?.id ?? "on";
+  const checked = value === onId;
+  const Icon = setting.icon;
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-2.5 py-1.5">
+      <Icon className="h-3.5 w-3.5 text-ink-3" />
+      <span className="text-[13px] font-semibold text-ink">{setting.label}</span>
+      <Switch
+        size="sm"
+        checked={checked}
+        onChange={(next) => onChange(next ? onId : offId)}
+        aria-label={setting.label}
+      />
+    </div>
   );
 }
 
@@ -879,14 +1030,30 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
 }
 
 // ---- Chat bubbles (image tools) ----
-function UserBubble({ text, attachments }: { text: string; attachments?: string[] }) {
+function UserBubble({
+  text,
+  attachments,
+  fort,
+}: {
+  text: string;
+  attachments?: string[];
+  fort?: boolean;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex justify-end"
+      className="flex flex-col items-end"
     >
+      {fort && (
+        <span
+          className="mb-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
+          style={{ background: "#ff0000" }}
+        >
+          <Sparkles className="h-3 w-3" /> maroFort
+        </span>
+      )}
       <div className="max-w-[80%] rounded-3xl rounded-br-lg bg-brand px-4 py-2.5 text-[15px] leading-relaxed text-brand-fg">
         {attachments && attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">

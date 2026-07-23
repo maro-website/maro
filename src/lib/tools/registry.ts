@@ -24,6 +24,7 @@ import {
   Languages,
   Users,
   Lightbulb,
+  Type,
 } from "lucide-react";
 
 export type ToolId = "website" | "logo" | "reklama" | "filma" | "zo" | "prompte";
@@ -74,6 +75,12 @@ export interface ToolSetting {
    * current value is in `in`. Used by mode-based tools (maro Zo).
    */
   showWhen?: { setting: string; in: string[] };
+  /**
+   * Render as an on/off Switch instead of a dropdown. The setting must have
+   * exactly two options; `default` decides the initial state. The second
+   * option id is treated as the "on" value.
+   */
+  toggle?: boolean;
 }
 
 export interface ToolDef {
@@ -140,7 +147,7 @@ export const TOOLS: ToolDef[] = [
       "Përshkruaj biznesin dhe maro ndërton një website profesional me Claude Opus 4.8.",
     icon: Globe,
     kind: "website",
-    route: "/tools/website",
+    route: "/web",
     functional: true,
     baseCost: 0,
     defaultPrompt: "",
@@ -175,7 +182,7 @@ export const TOOLS: ToolDef[] = [
     description: "Gjenero logo dhe simbole marke unike nga një përshkrim.",
     icon: Sparkles,
     kind: "image",
-    route: "/tools/logo",
+    route: "/logo",
     functional: true,
     baseCost: 0,
     defaultPrompt:
@@ -215,7 +222,7 @@ export const TOOLS: ToolDef[] = [
     description: "Krijo imazhe dhe kreativë vizualë gati për rrjetet sociale.",
     icon: Megaphone,
     kind: "image",
-    route: "/tools/reklama",
+    route: "/imazh",
     functional: true,
     baseCost: 0,
     defaultPrompt:
@@ -234,6 +241,31 @@ export const TOOLS: ToolDef[] = [
           { id: "yt-thumb", label: "YouTube Thumbnail", hint: "1920×1080px", cost: 5, available: true, size: "1536x1024" },
         ],
       },
+      {
+        id: "text",
+        label: "Tekst",
+        icon: Type,
+        default: "off",
+        toggle: true,
+        options: [
+          { id: "off", label: "Pa tekst", hint: "Asnjë tekst në imazh", cost: 0, available: true },
+          { id: "on", label: "Me tekst", hint: "Shto tekst në imazh", cost: 0, available: true },
+        ],
+      },
+      {
+        id: "font",
+        label: "Fonti",
+        icon: Type,
+        default: "modern",
+        showWhen: { setting: "text", in: ["on"] },
+        options: [
+          { id: "modern", label: "Modern Sans", hint: "I pastër, modern", cost: 0, available: true },
+          { id: "elegant", label: "Elegant Serif", hint: "Elegant, klasik", cost: 0, available: true },
+          { id: "bold", label: "Bold Display", hint: "I fortë, i madh", cost: 0, available: true },
+          { id: "handwritten", label: "Handwritten", hint: "Shkrim dore", cost: 0, available: true },
+          { id: "minimal", label: "Minimal", hint: "Minimalist, i hollë", cost: 0, available: true },
+        ],
+      },
       MARO_SPEED,
     ],
   },
@@ -245,7 +277,7 @@ export const TOOLS: ToolDef[] = [
       "Prompte profesionale çdo ditë: 1 falas + 2 premium. Ngarko produktin tënd dhe gjenero. Së shpejti.",
     icon: Lightbulb,
     kind: "prompts",
-    route: "/tools/prompte",
+    route: "/prompts",
     functional: false,
     comingSoon: true,
     baseCost: 0,
@@ -258,7 +290,7 @@ export const TOOLS: ToolDef[] = [
     description: "Gjenero video të shkurtra me AI nga një përshkrim. Së shpejti.",
     icon: Clapperboard,
     kind: "video",
-    route: "/tools/filma",
+    route: "/filma",
     functional: false,
     comingSoon: true,
     baseCost: 0,
@@ -308,8 +340,9 @@ export const TOOLS: ToolDef[] = [
       "Kthe tekstin në zë natyral, gjenero muzikë e efekte zanore, ose transkripto dhe pastro audio, me AI (ElevenLabs).",
     icon: AudioLines,
     kind: "audio",
-    route: "/tools/zo",
-    functional: true,
+    route: "/zo",
+    functional: false,
+    comingSoon: true,
     baseCost: 0,
     defaultPrompt: "",
     settings: [

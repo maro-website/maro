@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234.91 235.26" fill="none" role="img" aria-label="maro">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234.91 234.91" role="img" aria-label="maro">
   <polygon fill="#d0e6fd" points="58.73 117.45 0 117.45 29.36 0 29.36 0 58.73 117.45"/>
   <polygon fill="#d0e6fd" points="117.45 117.45 58.73 117.45 88.09 0 88.09 0 117.45 117.45"/>
   <polygon fill="#00fdba" points="234.91 117.45 117.45 117.45 176.18 0 176.18 0 234.91 117.45"/>
-  <path fill="#ff0000" d="M20.21,235.26c-26.83-26.83-26.83-70.32,0-97.15,26.83-26.83,70.32-26.83,97.15,0"/>
+  <path fill="#ff0000" d="M0,234.91h34.26c.05-22.2,8.71-43.07,24.42-58.77,15.7-15.7,36.57-24.37,58.77-24.42v-34.26C52.63,117.56.1,170.09,0,234.91Z"/>
   <circle fill="#3b17ff" cx="176.18" cy="176.18" r="58.73"/>
 </svg>

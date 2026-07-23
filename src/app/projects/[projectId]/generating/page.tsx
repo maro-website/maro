@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthGate } from "@/components/dashboard/AuthGate";
 import { AppShell } from "@/components/app/AppShell";
-import { WaitingSnake } from "@/components/app/WaitingSnake";
 import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import {
@@ -115,7 +114,7 @@ function GeneratingInner() {
         <div className="grid h-full place-items-center px-6">
           <div className="text-center">
             <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
-            <Button className="mt-4" onClick={() => router.push("/tools/website")}>
+            <Button className="mt-4" onClick={() => router.push("/web")}>
               Kthehu te maro Web
             </Button>
           </div>
@@ -154,18 +153,13 @@ function GeneratingInner() {
                     onRetry={() => window.location.reload()}
                   />
                 ) : creditError !== null ? (
-                  <CreditCard needed={creditError} onBack={() => router.push("/tools/website")} />
+                  <CreditCard needed={creditError} onBack={() => router.push("/web")} />
                 ) : (
                   <>
                     <div className="text-[15px] font-semibold text-ink">
                       {done ? "Faqja jote u maru." : <RotatingHeading />}
                     </div>
                     <StepList active={active} done={done} />
-                    {!done && (
-                      <div className="hidden justify-center rounded-2xl border border-line bg-surface py-6 sm:flex">
-                        <WaitingSnake />
-                      </div>
-                    )}
                     <AnimatePresence>
                       {done && project && (
                         <ResultCard

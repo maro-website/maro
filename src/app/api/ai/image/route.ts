@@ -64,6 +64,22 @@ export async function POST(req: Request) {
     finalPrompt = `${finalPrompt}\n\nIMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.`;
   }
 
+  // maro Imazh: honour the Text on/off switch and the selected font style.
+  const textSetting = tool.settings.find((s) => s.id === "text");
+  if (textSetting) {
+    const textOn = (selections.text ?? textSetting.default) === "on";
+    if (textOn) {
+      const fontSetting = tool.settings.find((s) => s.id === "font");
+      const fontOpt = fontSetting
+        ? findOption(fontSetting, selections.font ?? fontSetting.default)
+        : undefined;
+      const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
+      finalPrompt = `${finalPrompt}\n\nText: render any requested headline/text cleanly and legibly, spelling every word correctly.${fontNote}`;
+    } else {
+      finalPrompt = `${finalPrompt}\n\nDo not include any text, letters, words, numbers or watermarks in the image.`;
+    }
+  }
+
   // Derive the requested image size from the selected format option, if any.
   let size = body.size;
   for (const s of tool.settings) {

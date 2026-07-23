@@ -131,8 +131,15 @@ export function buildFortBrief(input: {
     if (!isMeaningful(raw)) continue;
     if (f.mapsTo) mapped[f.mapsTo] = raw;
     const label = f.briefLabel ?? f.label;
-    const rendered = renderValue(f, raw);
+    let rendered = renderValue(f, raw);
     if (!rendered) continue;
+    // If the user picked "Tjetër" (other) and typed a custom value, fold it in.
+    const other = values[`${f.id}__other`];
+    const picksOther =
+      f.type === "multiselect" ? Array.isArray(raw) && raw.includes("other") : raw === "other";
+    if (picksOther && typeof other === "string" && other.trim()) {
+      rendered = rendered.replace(/Tjetër/g, `Tjetër (${other.trim()})`);
+    }
     push(f.briefSection ?? "creative", `${label}: ${rendered}`, f.priority ?? 10);
   }
 

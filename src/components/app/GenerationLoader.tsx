@@ -2,11 +2,9 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { WaitingSnake } from "@/components/app/WaitingSnake";
 import { MaroShapesLoader } from "@/components/app/MaroShapesLoader";
 
-// Text-free generation animation: the maro symbol animated with the brand
-// shapes. Snake stays available on desktop as a fun way to pass the wait.
+// Text-free generation animation: the maro symbol animated with the brand shapes.
 export function GenerationLoader({
   className,
 }: {
@@ -25,11 +23,6 @@ export function GenerationLoader({
       }
     >
       <MaroShapesLoader />
-
-      {/* Snake — desktop only, so it never loads/annoys on mobile. */}
-      <div className="mt-6 hidden sm:block">
-        <WaitingSnake />
-      </div>
     </motion.div>
   );
 }

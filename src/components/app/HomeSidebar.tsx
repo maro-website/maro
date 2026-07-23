@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 import { ItemMenu } from "@/components/app/cards";
+import { NotificationBell } from "@/components/app/NotificationBell";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { useMaro } from "@/context/store";
 import { useTheme, type Theme } from "@/context/theme";
@@ -34,6 +35,8 @@ import {
   RefreshCw,
   Wallet,
   Lightbulb,
+  History,
+  ChevronDown,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -67,6 +70,7 @@ export function HomeSidebar({
           <Logo showWord />
         </Link>
         <div className="flex items-center gap-1">
+          {user && <NotificationBell />}
           <button
             onClick={() => window.location.reload()}
             className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
@@ -107,15 +111,16 @@ export function HomeSidebar({
       </div>
 
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
-        {/* Maro tools */}
+        {/* Maro tools — the active tool expands to show its 3 latest items */}
         <div className="mb-3 flex flex-col gap-0.5">
           {MAIN_TOOLS.map((t) => (
-            <NavItem
+            <ToolNav
               key={t.id}
+              tool={t}
               active={pathname === t.route}
-              icon={<t.icon className="h-5 w-5" />}
-              label={t.name}
-              onClick={() => go(t.route)}
+              projects={projects}
+              creations={creations}
+              go={go}
             />
           ))}
         </div>
@@ -123,56 +128,21 @@ export function HomeSidebar({
         {/* Thin line separating tools from the rest */}
         <div className="mx-2 mb-3 border-t border-line" />
 
-        {/* maro Prompts — separate from the generation tools (coming soon) */}
+        {/* maro Prompts + Çka ke maru — separate from the generation tools */}
         <div className="mb-3 flex flex-col gap-0.5">
           <NavItem
-            active={pathname === "/tools/prompte"}
+            active={pathname === "/prompts"}
             icon={<Lightbulb className="h-5 w-5" />}
             label="maro Prompts"
-            onClick={() => go("/tools/prompte")}
+            onClick={() => go("/prompts")}
+          />
+          <NavItem
+            active={pathname === "/krijimet"}
+            icon={<History className="h-5 w-5" />}
+            label="Çka ke maru"
+            onClick={() => go("/krijimet")}
           />
         </div>
-
-        <div className="mx-2 mb-3 border-t border-line" />
-
-        {/* Recently done: websites + images merged, newest first */}
-        {(projects.length > 0 || creations.length > 0) && (
-          <>
-            <SectionLabel>Së fundmi</SectionLabel>
-            <div className="mb-2 flex flex-col gap-1">
-              {[
-                ...projects.map((p) => ({ kind: "p" as const, time: p.updatedAt, p })),
-                ...creations.map((c) => ({ kind: "c" as const, time: c.createdAt, c })),
-              ]
-                .sort((a, b) => +new Date(b.time) - +new Date(a.time))
-                .slice(0, 12)
-                .map((row) =>
-                  row.kind === "p" ? (
-                    <SidebarProjectRow
-                      key={row.p.id}
-                      project={row.p}
-                      onOpen={() => go(projectHref(row.p.status, row.p.id))}
-                    />
-                  ) : (
-                    <SidebarCreationRow
-                      key={row.c.id}
-                      creation={row.c}
-                      onOpen={() => {
-                        const route = getTool(row.c.toolId)?.route ?? "/";
-                        go(`${route}?open=${row.c.id}`);
-                      }}
-                    />
-                  )
-                )}
-            </div>
-          </>
-        )}
-
-        {projects.length === 0 && creations.length === 0 && (
-          <div className="px-2 py-2 text-[13.5px] leading-relaxed text-ink-3">
-            Ende s&apos;ke krijime. Zgjidh një tool lart dhe fillo.
-          </div>
-        )}
       </div>
 
       {/* Footer: account / settings */}
@@ -590,10 +560,94 @@ function SidebarCreationRow({ creation, onOpen }: { creation: ImageCreation; onO
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// A tool row that, when active, expands to reveal its 3 most recent items
+// plus a "Shiko të gjitha" link into the Çka ke maru page.
+function ToolNav({
+  tool,
+  active,
+  projects,
+  creations,
+  go,
+}: {
+  tool: (typeof MAIN_TOOLS)[number];
+  active: boolean;
+  projects: Project[];
+  creations: ImageCreation[];
+  go: (href: string) => void;
+}) {
+  const recentProjects =
+    tool.kind === "website"
+      ? [...projects].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)).slice(0, 3)
+      : [];
+  const recentCreations =
+    tool.kind === "image"
+      ? creations
+          .filter((c) => c.toolId === tool.id)
+          .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+          .slice(0, 3)
+      : [];
+  const hasRecent = recentProjects.length > 0 || recentCreations.length > 0;
+  const canExpand = tool.functional && (tool.kind === "website" || tool.kind === "image");
+
   return (
-    <div className="mb-1.5 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">
-      {children}
+    <div>
+      <button
+        onClick={() => go(tool.route)}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-colors",
+          active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+        )}
+      >
+        <span className={cn("shrink-0", active ? "text-brand" : "text-ink-3")}>
+          <tool.icon className="h-5 w-5" />
+        </span>
+        <span className="flex-1 truncate">{tool.name}</span>
+        {active && canExpand && (
+          <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
+        )}
+      </button>
+
+      <AnimatePresence initial={false}>
+        {active && canExpand && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-line pl-2">
+              {!hasRecent && (
+                <div className="px-2 py-2 text-[12.5px] text-ink-3">
+                  Ende s&apos;ke krijime këtu.
+                </div>
+              )}
+              {recentProjects.map((p) => (
+                <SidebarProjectRow
+                  key={p.id}
+                  project={p}
+                  onOpen={() => go(projectHref(p.status, p.id))}
+                />
+              ))}
+              {recentCreations.map((c) => (
+                <SidebarCreationRow
+                  key={c.id}
+                  creation={c}
+                  onOpen={() => go(`${tool.route}?open=${c.id}`)}
+                />
+              ))}
+              {hasRecent && (
+                <button
+                  onClick={() => go(`/krijimet?tool=${tool.id}`)}
+                  className="mt-0.5 rounded-lg px-2 py-1.5 text-left text-[12.5px] font-semibold text-brand transition-colors hover:bg-surface-2"
+                >
+                  Shiko të gjitha
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

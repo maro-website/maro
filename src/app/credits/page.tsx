@@ -9,6 +9,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { resolveFortConfig } from "@/lib/fort/config";
 import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
 import { validatePromo, trackPromo, type PromoInfo } from "@/lib/services/promoService";
+import { pushNotification } from "@/lib/notifications/store";
 import { timeAgo } from "@/lib/utils/format";
 import {
   Coins,
@@ -17,7 +18,6 @@ import {
   Wand2,
   Image as ImageIcon,
   Globe,
-  Heart,
   Ticket,
   Check,
   X,
@@ -25,8 +25,8 @@ import {
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// 1 credit = 1 cent (€0.01). Minimum purchase is 100 credits (€1.00).
-const MIN_CREDITS = 100;
+// 1 credit = 1 cent (€0.01). Minimum purchase is 500 credits (€5.00).
+const MIN_CREDITS = 500;
 
 // Coin bundles. Large bundles are discounted (worth > price).
 interface CoinTier {
@@ -35,7 +35,6 @@ interface CoinTier {
   worth?: number;
 }
 const COIN_TIERS: CoinTier[] = [
-  { credits: 100, eur: 1 },
   { credits: 500, eur: 5 },
   { credits: 1000, eur: 10 },
   { credits: 5000, eur: 39.99, worth: 50 },
@@ -170,6 +169,12 @@ export default function CreditsPage() {
     }
     const promoNote = promo ? ` · zbritje ${discount}%` : "";
     toast(`Paysera vjen së shpejti · ${chosen} kredite (${fmtEur(totalEur)})${promoNote}`);
+    // Record a notification for the (demo) purchase so the feature is visible.
+    pushNotification(user.id, {
+      type: "credits",
+      title: `Bleve ${chosen.toLocaleString("de-DE")} kredite`,
+      body: `Porosia jote (${fmtEur(totalEur)}) u regjistrua.${promoNote}`,
+    });
   };
 
   return (
@@ -272,7 +277,7 @@ export default function CreditsPage() {
             <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">Shto kredite</h2>
             <p className="mt-1 text-[14px] text-ink-2">Zgjidh një paketë ose shkruaj sasinë që dëshiron.</p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {COIN_TIERS.map((t) => {
                 const active = !custom.trim() && amount === t.credits;
                 return (
@@ -319,7 +324,7 @@ export default function CreditsPage() {
                     min={MIN_CREDITS}
                     value={custom}
                     onChange={(e) => setCustom(e.target.value)}
-                    placeholder="p.sh. 250"
+                    placeholder="p.sh. 750"
                     className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-ink-3"
                   />
                 </div>
@@ -403,33 +408,6 @@ export default function CreditsPage() {
             <p className="mt-2.5 text-center text-[12.5px] text-ink-3">
               Pagesat aktivizohen së shpejti. Për momentin ky është një demonstrim.
             </p>
-          </motion.div>
-
-          {/* Mission */}
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: EASE, delay: 0.12 }}
-            className="mt-8 overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-8"
-          >
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-surface-2 text-brand">
-                <Heart className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-                  Ti po e ndihmon maro të bëhet realitet
-                </h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-                  Për momentin, paratë e tua shkojnë direkt te Anthropic dhe OpenAI, plus koston
-                  për ta mbajtur platformën gjallë. Por me ndihmën tënde, projekti{" "}
-                  <span className="font-semibold text-ink">maro Imazh 1.0</span>, i pari gjenerator
-                  shqiptar i imazheve me AI, bëhet realitet. Sa më shumë të rritemi, aq më lirë
-                  bëhen gjenerimet, sepse ndërtojmë modelin tonë. Faleminderit që je pjesë e këtij
-                  zhvillimi real.
-                </p>
-              </div>
-            </div>
           </motion.div>
 
           {/* Usage feed */}

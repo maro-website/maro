@@ -68,10 +68,14 @@ function FieldRow({
   field,
   value,
   onChange,
+  otherValue,
+  onOtherChange,
 }: {
   field: FortFieldSchema;
   value: FortValue | undefined;
   onChange: (v: FortValue) => void;
+  otherValue?: string;
+  onOtherChange?: (v: string) => void;
 }) {
   return (
     <div>
@@ -80,7 +84,13 @@ function FieldRow({
         {field.required && <span className="text-c-red">*</span>}
       </label>
       {field.description && <p className="mb-2 text-[12px] text-ink-3">{field.description}</p>}
-      <FortField field={field} value={value} onChange={onChange} />
+      <FortField
+        field={field}
+        value={value}
+        onChange={onChange}
+        otherValue={otherValue}
+        onOtherChange={onOtherChange}
+      />
     </div>
   );
 }
@@ -123,6 +133,8 @@ export function FortPanel({
                 field={field}
                 value={values[field.id] ?? field.default}
                 onChange={(v) => onChange(field.id, v)}
+                otherValue={values[`${field.id}__other`] as string | undefined}
+                onOtherChange={(v) => onChange(`${field.id}__other`, v)}
               />
             ))}
           </FortSection>
