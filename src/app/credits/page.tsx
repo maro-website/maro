@@ -94,15 +94,11 @@ export default function CreditsPage() {
   const [custom, setCustom] = React.useState<string>("");
 
   const subscribeFort = () => {
-    if (!user) {
-      toast("Hyr për t'u abonuar.");
-      return;
-    }
     if (hasFort) {
       toast("Ti tashmë ke maroFort aktiv.");
       return;
     }
-    toast(`Abonimi maroFort vjen së shpejti · ${fmtEur(fortPrice)}/muaj`);
+    toast("Abonimi maroFort vjen së shpejti. Për momentin aktivizohet manualisht.");
   };
 
   const [usage, setUsage] = React.useState<{ items: UsageItem[]; count: number; spent: number } | null>(
@@ -187,30 +183,29 @@ export default function CreditsPage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE }}
-            className="relative overflow-hidden rounded-[28px] border border-line bg-surface p-8 shadow-subtle sm:p-10"
+            className="relative overflow-hidden rounded-3xl border border-line bg-surface p-8 sm:p-10"
           >
-            <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-brand-soft blur-2xl" />
             <div className="relative flex flex-wrap items-end justify-between gap-6">
               <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-wider text-ink-3">
                   <Coins className="h-4 w-4 text-brand" /> Balanca jote
                 </span>
-                <div className="mt-4 flex items-baseline gap-3 leading-none">
-                  <span className="text-[clamp(44px,9vw,76px)] font-extrabold tracking-[-0.04em] text-ink">
+                <div className="mt-3 flex items-baseline gap-3 leading-none">
+                  <span className="text-[clamp(40px,8vw,68px)] font-semibold tracking-[-0.04em] text-ink">
                     <AnimatedNumber value={credits} />
                   </span>
-                  <span className="text-[18px] font-semibold tracking-normal text-ink-3">kredite</span>
+                  <span className="text-[16px] font-medium tracking-normal text-ink-3">kredite</span>
                 </div>
-                <p className="mt-2 text-[14px] text-ink-2">≈ {euros(credits)} · 1 kredit = 1 cent</p>
+                <p className="mt-2 text-[13.5px] text-ink-3">≈ {euros(credits)} · 1 kredit = 1 cent</p>
               </div>
-              {[0, 1, 2].map((n) => (
-                <motion.span
-                  key={n}
-                  className="hidden h-10 w-10 rounded-2xl bg-brand-soft sm:block"
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: n * 0.4, ease: "easeInOut" }}
-                />
-              ))}
+              {user && (!user.plan || user.plan === "free") && (
+                <a
+                  href="#fort"
+                  className="rounded-xl border border-line-strong px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                >
+                  Shiko maroFort
+                </a>
+              )}
             </div>
           </motion.div>
 
@@ -221,7 +216,7 @@ export default function CreditsPage() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: EASE, delay: 0.06 }}
-              className="mt-8 scroll-mt-24 overflow-hidden rounded-[28px] border border-brand bg-gradient-to-br from-brand-soft to-surface p-6 shadow-brand sm:p-8"
+              className="mt-8 scroll-mt-24 overflow-hidden rounded-3xl border border-brand/40 bg-surface p-6 sm:p-8"
             >
               <div className="flex flex-wrap items-start justify-between gap-6">
                 <div className="min-w-0 flex-1">
@@ -255,11 +250,13 @@ export default function CreditsPage() {
                   <button
                     onClick={subscribeFort}
                     disabled={hasFort}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-line-strong bg-surface-2 px-6 py-3.5 text-[15px] font-semibold text-ink-2 transition-colors hover:bg-line disabled:cursor-not-allowed sm:w-auto"
                   >
-                    {hasFort ? "Aktiv" : fort.ctaText}
-                    {!hasFort && <ArrowRight className="h-4.5 w-4.5" />}
+                    {hasFort ? "Aktiv" : "Së shpejti"}
                   </button>
+                  {!hasFort && (
+                    <p className="mt-2 text-[12px] text-ink-3 sm:text-right">Aktivizohet manualisht për momentin.</p>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -291,11 +288,11 @@ export default function CreditsPage() {
                     }`}
                   >
                     {t.worth && (
-                      <span className="absolute right-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-brand-fg">
-                        BONUS
+                      <span className="absolute right-2 top-2 rounded-md border border-line-strong px-1.5 py-0.5 text-[10px] font-semibold text-ink-2">
+                        −{Math.round((1 - t.eur / t.worth) * 100)}%
                       </span>
                     )}
-                    <div className="text-[22px] font-extrabold tracking-tight text-ink">
+                    <div className="text-[22px] font-bold tracking-tight text-ink">
                       {t.credits.toLocaleString("de-DE")}
                     </div>
                     <div className="text-[12.5px] text-ink-3">kredite</div>
@@ -413,14 +410,14 @@ export default function CreditsPage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE, delay: 0.12 }}
-            className="mt-8 overflow-hidden rounded-[28px] border border-brand/40 bg-brand-soft p-6 sm:p-8"
+            className="mt-8 overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-8"
           >
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand text-brand-fg">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-surface-2 text-brand">
                 <Heart className="h-5 w-5" />
               </span>
               <div>
-                <h3 className="text-[17px] font-extrabold tracking-[-0.02em] text-ink">
+                <h3 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
                   Ti po e ndihmon maro të bëhet realitet
                 </h3>
                 <p className="mt-2 text-[14px] leading-relaxed text-ink-2">

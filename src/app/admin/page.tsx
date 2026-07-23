@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/dashboard/AppHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Switch } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Misc";
 import { useToast } from "@/components/ui/Toast";
@@ -1361,21 +1362,7 @@ function ToggleRow({
 }
 
 function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-        checked ? "bg-brand" : "bg-line-strong"
-      }`}
-    >
-      <span
-        className={`absolute h-4 w-4 rounded-full bg-white shadow transition-all ${
-          checked ? "left-6" : "left-1"
-        }`}
-      />
-    </button>
-  );
+  return <Switch checked={checked} onChange={onChange} />;
 }
 
 // ---- Raporto (reports) ----

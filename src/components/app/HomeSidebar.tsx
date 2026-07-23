@@ -10,7 +10,7 @@ import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { useMaro } from "@/context/store";
 import { useTheme, type Theme } from "@/context/theme";
 import { useToast } from "@/components/ui/Toast";
-import { TOOLS, getTool } from "@/lib/tools/registry";
+import { MAIN_TOOLS, getTool } from "@/lib/tools/registry";
 import { initials, timeAgo } from "@/lib/utils/format";
 import { randomMaroLabel } from "@/lib/utils/maroButton";
 import { cn } from "@/lib/utils/cn";
@@ -30,8 +30,10 @@ import {
   Camera,
   Sun,
   Moon,
-  Contrast,
+  Palette,
+  RefreshCw,
   Wallet,
+  Lightbulb,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -65,6 +67,14 @@ export function HomeSidebar({
           <Logo showWord />
         </Link>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => window.location.reload()}
+            className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+            aria-label="Rifresko faqen"
+            title="Rifresko (nëse kreditet nuk ngarkohen)"
+          >
+            <RefreshCw className="h-[18px] w-[18px]" />
+          </button>
           {onCollapse && (
             <button
               onClick={onCollapse}
@@ -99,7 +109,7 @@ export function HomeSidebar({
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
         {/* Maro tools */}
         <div className="mb-3 flex flex-col gap-0.5">
-          {TOOLS.map((t) => (
+          {MAIN_TOOLS.map((t) => (
             <NavItem
               key={t.id}
               active={pathname === t.route}
@@ -110,7 +120,19 @@ export function HomeSidebar({
           ))}
         </div>
 
-        {/* Thin line separating tools from recent work */}
+        {/* Thin line separating tools from the rest */}
+        <div className="mx-2 mb-3 border-t border-line" />
+
+        {/* maro Prompts — separate from the generation tools (coming soon) */}
+        <div className="mb-3 flex flex-col gap-0.5">
+          <NavItem
+            active={pathname === "/tools/prompte"}
+            icon={<Lightbulb className="h-5 w-5" />}
+            label="maro Prompts"
+            onClick={() => go("/tools/prompte")}
+          />
+        </div>
+
         <div className="mx-2 mb-3 border-t border-line" />
 
         {/* Recently done: websites + images merged, newest first */}
@@ -135,7 +157,10 @@ export function HomeSidebar({
                     <SidebarCreationRow
                       key={row.c.id}
                       creation={row.c}
-                      onOpen={() => go(getTool(row.c.toolId)?.route ?? "/")}
+                      onOpen={() => {
+                        const route = getTool(row.c.toolId)?.route ?? "/";
+                        go(`${route}?open=${row.c.id}`);
+                      }}
                     />
                   )
                 )}
@@ -247,9 +272,9 @@ function Avatar({
 }
 
 const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
-  { id: "light", label: "Light", icon: Sun },
-  { id: "dark", label: "Dark", icon: Moon },
-  { id: "mono", label: "Full dark", icon: Contrast },
+  { id: "light", label: "Lehtë", icon: Sun },
+  { id: "dark", label: "Ngjyra", icon: Palette },
+  { id: "mono", label: "Terr", icon: Moon },
 ];
 
 function SettingsPanel({

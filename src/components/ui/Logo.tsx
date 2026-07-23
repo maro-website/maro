@@ -2,12 +2,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 export function MaroSymbol({ className }: { className?: string }) {
-  // Brand mark, sized via className (default 34px square).
+  // Brand mark (multi-color geometric symbol), sized via className.
   return (
     <img
       src="/brand/symbol.svg"
       alt="maro"
-      className={cn("h-[34px] w-[34px] select-none", className)}
+      className={cn("h-[30px] w-[30px] select-none", className)}
       draggable={false}
     />
   );
@@ -24,19 +24,32 @@ export function Logo({
   symbolClassName?: string;
   showWord?: boolean;
 }) {
+  if (!showWord) {
+    return (
+      <span className={cn("inline-flex items-center", className)}>
+        <MaroSymbol className={symbolClassName} />
+      </span>
+    );
+  }
+
+  // Full lockup (symbol + "maro" wordmark). The wordmark is dark on light
+  // backgrounds and switches to white only on the full-dark ("mono") theme.
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <MaroSymbol className={symbolClassName} />
-      {showWord && (
-        <span
-          className={cn(
-            "text-[22px] font-extrabold tracking-[-0.04em] text-ink",
-            wordClassName
-          )}
-        >
-          maro
-        </span>
-      )}
+    <span className={cn("inline-flex items-center", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/logo-black.svg"
+        alt="maro"
+        className={cn("logo-lockup-light h-7 w-auto select-none", wordClassName)}
+        draggable={false}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/logo-white.svg"
+        alt="maro"
+        className={cn("logo-lockup-dark h-7 w-auto select-none", wordClassName)}
+        draggable={false}
+      />
     </span>
   );
 }

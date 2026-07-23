@@ -226,7 +226,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "prompte",
-    name: "maro Prompte",
+    name: "maro Prompts",
     tagline: "Prompte gati për t'u përdorur",
     description:
       "Prompte profesionale çdo ditë: 1 falas + 2 premium. Ngarko produktin tënd dhe gjenero. Së shpejti.",
@@ -338,6 +338,11 @@ export const TOOLS: ToolDef[] = [
 export function getTool(id: string): ToolDef | undefined {
   return TOOLS.find((t) => t.id === id);
 }
+
+// Generation tools shown in the Hub selector + main sidebar list. maro Prompts
+// is intentionally excluded — it's not a generator, it lives below the sidebar
+// separator as a "coming soon" entry.
+export const MAIN_TOOLS = TOOLS.filter((t) => t.id !== "prompte");
 
 export const IMAGE_TOOLS = TOOLS.filter((t) => t.kind === "image");
 

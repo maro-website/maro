@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
-import { TOOLS, type ToolDef } from "@/lib/tools/registry";
+import { MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
 import { saveLastTool } from "@/lib/tools/selections";
 import { cn } from "@/lib/utils/cn";
 import { ArrowUp, Lock, Coins } from "lucide-react";
@@ -37,7 +37,7 @@ export default function HomePage() {
     router.push(tool.route);
   };
 
-  const active = TOOLS.find((t) => t.id === picked) ?? TOOLS[0];
+  const active = MAIN_TOOLS.find((t) => t.id === picked) ?? MAIN_TOOLS[0];
 
   return (
     <AppShell>
@@ -112,7 +112,7 @@ export default function HomePage() {
 
           {/* Tool selector */}
           <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            {TOOLS.map((tool, i) => (
+            {MAIN_TOOLS.map((tool, i) => (
               <motion.button
                 key={tool.id}
                 initial={{ opacity: 0, y: 14 }}

@@ -65,11 +65,22 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   fast: "2x",
 };
 
+// A single message in the image tool's ChatGPT-style conversation.
+type ChatMessage =
+  | { id: string; role: "user"; text: string; attachments?: string[] }
+  | {
+      id: string;
+      role: "maro";
+      status: "thinking" | "done" | "error";
+      creation?: ImageCreation;
+      error?: string;
+    };
+
 export function ToolComposer({ toolId }: { toolId: string }) {
   const tool = getTool(toolId)!;
   const router = useRouter();
   const { toast } = useToast();
-  const { user, credits, hasFort, addProject, addCreation, spendCredits } = useMaro();
+  const { user, credits, hasFort, creations, addProject, addCreation, spendCredits } = useMaro();
   const { pricing, fortConfig } = useSettings(Boolean(user));
 
   const fortModule = toolToFortModule(tool.id);
@@ -87,8 +98,12 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [fortEnabled, setFortEnabled] = React.useState(false);
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
+  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const creationsRef = React.useRef(creations);
+  creationsRef.current = creations;
 
   const isImage = tool.kind === "image";
   const functional = tool.functional;
@@ -108,7 +123,30 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     setAttachments([]);
     setFortEnabled(false);
     saveLastTool(tool.id);
+
+    // Open a specific past creation as a conversation (clicked from sidebar).
+    let seeded: ChatMessage[] = [];
+    try {
+      const openId = new URLSearchParams(window.location.search).get("open");
+      if (openId) {
+        const c = creationsRef.current.find((x) => x.id === openId && x.toolId === tool.id);
+        if (c) {
+          seeded = [
+            { id: uid("u"), role: "user", text: c.prompt || "" },
+            { id: uid("m"), role: "maro", status: "done", creation: c },
+          ];
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    setMessages(seeded);
   }, [tool]);
+
+  // Keep the conversation scrolled to the newest message.
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
 
   // Initialize maroFort values (defaults + persisted) once config is available.
   React.useEffect(() => {
@@ -188,7 +226,17 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       return;
     }
 
-    // Image tools
+    // Image tools — ChatGPT-style: append the prompt as a user message and a
+    // "thinking" maro message, then swap in the result (or an error) in place.
+    const sentAttachments = attachments.length ? [...attachments] : undefined;
+    const maroId = uid("m");
+    setMessages((m) => [
+      ...m,
+      { id: uid("u"), role: "user", text, attachments: sentAttachments },
+      { id: maroId, role: "maro", status: "thinking" },
+    ]);
+    setPrompt("");
+    setAttachments([]);
     setLoading(true);
     try {
       const res = await generateImages({
@@ -196,7 +244,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         prompt: text,
         selections,
         quality: "high",
-        attachments: attachments.length ? attachments : undefined,
+        attachments: sentAttachments,
         fort: fortPayload,
       });
       spendCredits(res.creditsSpent || cost);
@@ -208,15 +256,27 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         createdAt: new Date().toISOString(),
       };
       addCreation(creation);
-      setPrompt("");
-      setAttachments([]);
-      // Minimal page: auto-open the result instead of a persistent gallery.
-      setLightbox(creation);
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === maroId ? { ...msg, role: "maro", status: "done", creation } : msg
+        )
+      );
     } catch (err) {
-      if (err instanceof InsufficientCreditsError) setShowBuy(true);
-      else if (err instanceof ImageGenerationError)
-        toast(IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`);
-      else toast("Gabim i papritur. Provo përsëri.");
+      let errMsg = "Gabim i papritur. Provo përsëri.";
+      if (err instanceof InsufficientCreditsError) {
+        setShowBuy(true);
+        errMsg = "Nuk ke kredite të mjaftueshme.";
+      } else if (err instanceof ImageGenerationError) {
+        errMsg = IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`;
+        toast(errMsg);
+      } else {
+        toast(errMsg);
+      }
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === maroId ? { ...msg, role: "maro", status: "error", error: errMsg } : msg
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -266,14 +326,30 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Scroll area — minimal: only the loader (while generating) or the
-          maroFort expert panel (when enabled). Past creations live in the
-          sidebar "Së fundmi" and /favourites. */}
-      <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+      {/* Scroll area — ChatGPT-style conversation for image tools, plus the
+          maroFort expert panel (when enabled). */}
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto scroll-thin">
         <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
           {!functional && <ComingSoonHero tool={tool} />}
-          {functional && loading && isImage && <GeneratingCard toolName={tool.name} />}
-          {functional && !loading && fortAvailable && fortEnabled && (
+
+          {functional && isImage && messages.length > 0 && (
+            <div className="mb-4 flex flex-col gap-4">
+              {messages.map((m) =>
+                m.role === "user" ? (
+                  <UserBubble key={m.id} text={m.text} attachments={m.attachments} />
+                ) : (
+                  <MaroBubble
+                    key={m.id}
+                    message={m}
+                    toolName={tool.name}
+                    onOpen={(c) => setLightbox(c)}
+                  />
+                )
+              )}
+            </div>
+          )}
+
+          {functional && fortAvailable && fortEnabled && (
             <div className="mb-2">
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-[13px] font-bold uppercase tracking-wider text-brand">
@@ -632,7 +708,77 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
   );
 }
 
-// ---- Image generating loop ----
-function GeneratingCard({ toolName }: { toolName: string }) {
-  return <GenerationLoader variant="image" title={toolName} className="mt-8" />;
+// ---- Chat bubbles (image tools) ----
+function UserBubble({ text, attachments }: { text: string; attachments?: string[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="flex justify-end"
+    >
+      <div className="max-w-[80%] rounded-3xl rounded-br-lg bg-brand px-4 py-2.5 text-[15px] leading-relaxed text-brand-fg">
+        {attachments && attachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {attachments.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt="" className="h-14 w-14 rounded-lg object-cover" />
+            ))}
+          </div>
+        )}
+        {text && <p className="whitespace-pre-wrap">{text}</p>}
+      </div>
+    </motion.div>
+  );
+}
+
+function MaroBubble({
+  message,
+  toolName,
+  onOpen,
+}: {
+  message: Extract<ChatMessage, { role: "maro" }>;
+  toolName: string;
+  onOpen: (c: ImageCreation) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="flex items-start gap-2.5"
+    >
+      <span className="mt-0.5 shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/symbol.svg" alt="maro" className="h-8 w-8 rounded-lg" draggable={false} />
+      </span>
+      <div className="min-w-0 max-w-[80%]">
+        {message.status === "thinking" && (
+          <div className="rounded-3xl rounded-tl-lg border border-line bg-surface px-4 py-4">
+            <GenerationLoader variant="image" title={toolName} />
+          </div>
+        )}
+        {message.status === "error" && (
+          <div className="rounded-3xl rounded-tl-lg border border-danger/40 bg-danger/5 px-4 py-3 text-[14px] text-danger">
+            {message.error || "Gabim gjenerimi."}
+          </div>
+        )}
+        {message.status === "done" && message.creation && (
+          <button
+            onClick={() => onOpen(message.creation!)}
+            className="group block overflow-hidden rounded-3xl rounded-tl-lg border border-line bg-surface transition-shadow hover:shadow-pop"
+          >
+            <span className="grid grid-cols-1 gap-0.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={message.creation.urls[0]}
+                alt=""
+                className="w-full max-w-sm object-cover transition-transform group-hover:scale-[1.01]"
+              />
+            </span>
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
 }

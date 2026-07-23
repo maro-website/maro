@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { Switch } from "@/components/ui/Switch";
 import { initials } from "@/lib/utils/format";
 import { Coins, Pencil, Check, X, Plus, Camera, Lock, ShieldCheck, Phone, Bell, Globe, Trash2 } from "lucide-react";
 
@@ -280,13 +281,12 @@ function PreferencesSection() {
 
   const [emailNews, setEmailNews] = React.useState<boolean>(meta.email_news !== false);
   const [productTips, setProductTips] = React.useState<boolean>(Boolean(meta.product_tips));
-  const [lang, setLang] = React.useState<string>((meta.ui_lang as string) || "sq");
   const [saving, setSaving] = React.useState(false);
 
   const save = async () => {
     setSaving(true);
     const { error } = await getSupabaseBrowser().auth.updateUser({
-      data: { email_news: emailNews, product_tips: productTips, ui_lang: lang },
+      data: { email_news: emailNews, product_tips: productTips, ui_lang: "sq" },
     });
     setSaving(false);
     toast(error ? `Gabim: ${error.message}` : "Preferencat u ruajtën.");
@@ -315,14 +315,9 @@ function PreferencesSection() {
         <div className="flex items-center gap-2 text-[13.5px] font-medium text-ink-2">
           <Globe className="h-4 w-4 text-ink-3" /> Gjuha e platformës
         </div>
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value)}
-          className="h-10 rounded-xl border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none"
-        >
-          <option value="sq">Shqip</option>
-          <option value="en">English</option>
-        </select>
+        <span className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-[14px] font-medium text-ink">
+          Shqip
+        </span>
       </div>
       <button
         onClick={save}
@@ -352,16 +347,7 @@ function ToggleRow({
         <div className="text-[14px] font-medium text-ink">{label}</div>
         <div className="text-[12.5px] text-ink-3">{hint}</div>
       </div>
-      <button
-        onClick={onToggle}
-        role="switch"
-        aria-checked={on}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-line-strong"}`}
-      >
-        <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`}
-        />
-      </button>
+      <Switch checked={on} onChange={onToggle} aria-label={label} />
     </div>
   );
 }

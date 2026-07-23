@@ -65,8 +65,8 @@ export function FortToggle({
         >
           <motion.span
             layout
-            className="absolute h-3 w-3 rounded-full bg-white shadow"
-            style={{ left: active ? "14px" : "2px" }}
+            className="absolute h-3 w-3 rounded-full shadow"
+            style={{ left: active ? "14px" : "2px", background: active ? "var(--brand-fg)" : "#ffffff" }}
           />
         </span>
       )}
