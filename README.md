@@ -49,6 +49,9 @@ cp .env.example .env.local
 | `ANTHROPIC_API_KEY` | _(empty)_ | Your key. Empty = mock AI fallback. |
 | `ANTHROPIC_MODEL` | `claude-opus-4-8` | Model id. |
 | `ANTHROPIC_EFFORT` | `high` | Default adaptive-thinking effort. Speed overrides it per request. |
+| `OPENAI_API_KEY` | _(empty)_ | Image tools (maro Logo, maro Imazh). |
+| `ELEVENLABS_API_KEY` | _(empty)_ | Audio tool (maro Zo): TTS, music, SFX, voice change, isolation, transcription. |
+| `ELEVEN_VOICE_FEMALE` / `ELEVEN_VOICE_MALE` | _(defaults)_ | Optional override of the voice ids used for Femëror / Mashkullor. |
 | `NEXT_PUBLIC_SUPABASE_URL` | _(empty)_ | Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(empty)_ | Supabase anon (public) key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | _(empty)_ | Server-only service role key (credit deduction). Keep secret. |

@@ -24,7 +24,31 @@ import {
   ThumbsUp,
   ThumbsDown,
   Flag,
+  AudioLines,
+  FileText,
 } from "lucide-react";
+
+// A small helper: a creation's media kind (defaults to image for legacy items).
+function mediaOf(c: ImageCreation): "image" | "audio" | "text" {
+  return c.mediaType ?? "image";
+}
+
+// Thumbnail block used by cards. Renders the image, or an icon placeholder for
+// audio / transcription creations.
+function CreationThumb({ creation, className }: { creation: ImageCreation; className?: string }) {
+  const media = mediaOf(creation);
+  if (media === "image") {
+    return creation.urls[0] ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={creation.urls[0]} alt="" className={cn("h-full w-full object-cover", className)} />
+    ) : null;
+  }
+  return (
+    <span className="grid h-full w-full place-items-center text-ink-3">
+      {media === "audio" ? <AudioLines className="h-7 w-7" /> : <FileText className="h-7 w-7" />}
+    </span>
+  );
+}
 
 // ---- 3-dot menu (Rename / Favourite / Delete) -----------------------------
 // The dropdown is rendered in a portal with fixed positioning so it never gets
@@ -297,14 +321,7 @@ export function CreationCard({
         className="block w-full"
       >
         <div className="aspect-square w-full overflow-hidden rounded-t-2xl bg-surface-2">
-          {creation.urls[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={creation.urls[0]}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          )}
+          <CreationThumb creation={creation} />
         </div>
       </button>
       <CreationLightbox
@@ -364,10 +381,7 @@ export function CreationListRow({ creation }: { creation: ImageCreation }) {
         onClick={() => setLightbox(true)}
         className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-2"
       >
-        {creation.urls[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={creation.urls[0]} alt="" className="h-full w-full object-cover" />
-        )}
+        <CreationThumb creation={creation} />
         {creation.favourite && (
           <span className="absolute left-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
             <Star className="h-2.5 w-2.5 fill-brand" />
@@ -420,6 +434,7 @@ export function CreationLightbox({
   const { toast } = useToast();
   const { toggleFavouriteCreation } = useMaro();
   const tool = getTool(creation.toolId);
+  const media = mediaOf(creation);
   const [active, setActive] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -463,7 +478,7 @@ export function CreationLightbox({
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
-      a.download = `maro-${creation.id}.png`;
+      a.download = `maro-${creation.id}.${media === "audio" ? "mp3" : "png"}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -475,32 +490,57 @@ export function CreationLightbox({
     }
   };
 
+  const copyText = async () => {
+    try {
+      await navigator.clipboard.writeText(creation.text || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      toast("Nuk u kopjua dot.");
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} size="lg" className="max-w-3xl">
       <div className="grid gap-0 md:grid-cols-[1.2fr_1fr]">
         <div className="grid place-items-center bg-surface-2 p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt=""
-            className="max-h-[70vh] w-full rounded-xl object-contain"
-          />
-          {creation.urls.length > 1 && (
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {creation.urls.map((u, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  className={cn(
-                    "h-12 w-12 overflow-hidden rounded-lg border-2",
-                    i === active ? "border-brand" : "border-line"
-                  )}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
+          {media === "audio" ? (
+            <div className="flex w-full flex-col items-center gap-4 py-8">
+              <span className="grid h-20 w-20 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <AudioLines className="h-9 w-9" />
+              </span>
+              {url && <audio controls src={url} className="w-full max-w-sm" />}
             </div>
+          ) : media === "text" ? (
+            <div className="scroll-thin max-h-[70vh] w-full overflow-y-auto whitespace-pre-wrap rounded-xl bg-surface p-4 text-[15px] leading-relaxed text-ink">
+              {creation.text || "Pa tekst"}
+            </div>
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt=""
+                className="max-h-[70vh] w-full rounded-xl object-contain"
+              />
+              {creation.urls.length > 1 && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {creation.urls.map((u, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActive(i)}
+                      className={cn(
+                        "h-12 w-12 overflow-hidden rounded-lg border-2",
+                        i === active ? "border-brand" : "border-line"
+                      )}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={u} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -531,20 +571,32 @@ export function CreationLightbox({
           </div>
 
           <div className="mt-4 grid gap-2">
-            <button
-              onClick={copyPrompt}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
-            >
-              {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
-              {copied ? "U kopjua" : "Kopjo prompt"}
-            </button>
-            <button
-              onClick={download}
-              disabled={busy}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" /> Shkarko
-            </button>
+            {media === "text" ? (
+              <button
+                onClick={copyText}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+              >
+                {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
+                {copied ? "U kopjua" : "Kopjo tekstin"}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={copyPrompt}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                >
+                  {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "U kopjua" : "Kopjo prompt"}
+                </button>
+                <button
+                  onClick={download}
+                  disabled={busy}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" /> Shkarko
+                </button>
+              </>
+            )}
 
             <ReportControls creation={creation} />
           </div>

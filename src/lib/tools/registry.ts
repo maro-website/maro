@@ -52,6 +52,14 @@ export interface ToolOption {
   confirm?: string;
   /** For image format options: the gpt-image size to request. */
   size?: ImageSize;
+  /** For audio length options: duration in seconds (drives music/SFX length). */
+  seconds?: number;
+  /** For audio mode options: this mode takes an uploaded audio file as input. */
+  inputAudio?: boolean;
+  /** For audio mode options: this mode needs no text prompt (isolation/STT). */
+  noPrompt?: boolean;
+  /** For audio mode options: the output is text (STT) rather than audio. */
+  textOutput?: boolean;
 }
 
 export interface ToolSetting {
@@ -61,6 +69,11 @@ export interface ToolSetting {
   options: ToolOption[];
   /** Default option id. */
   default: string;
+  /**
+   * Conditional visibility: only show this setting when another setting's
+   * current value is in `in`. Used by mode-based tools (maro Zo).
+   */
+  showWhen?: { setting: string; in: string[] };
 }
 
 export interface ToolDef {
@@ -290,23 +303,39 @@ export const TOOLS: ToolDef[] = [
   {
     id: "zo",
     name: "maro Zo",
-    tagline: "Zëra me AI",
-    description: "Kthe tekstin në zë natyral me AI. Së shpejti.",
+    tagline: "Zë, muzikë & efekte me AI",
+    description:
+      "Kthe tekstin në zë natyral, gjenero muzikë e efekte zanore, ose transkripto dhe pastro audio, me AI (ElevenLabs).",
     icon: AudioLines,
     kind: "audio",
     route: "/tools/zo",
-    functional: false,
-    comingSoon: true,
+    functional: true,
     baseCost: 0,
+    defaultPrompt: "",
     settings: [
+      {
+        id: "mode",
+        label: "Mënyra",
+        icon: AudioLines,
+        default: "tts",
+        options: [
+          { id: "tts", label: "Text në Zë", hint: "Kthe tekstin në zë natyral", cost: 3, available: true },
+          { id: "music", label: "Muzikë", hint: "Gjenero muzikë nga një përshkrim", cost: 20, available: true },
+          { id: "sfx", label: "Efekte Zanore", hint: "Efekte zanore nga një përshkrim", cost: 8, available: true },
+          { id: "sts", label: "Zë në Zë", hint: "Ndrysho zërin e një audioje", cost: 10, available: true, inputAudio: true },
+          { id: "isolate", label: "Isolim Zëri", hint: "Pastro zhurmën nga audio", cost: 5, available: true, inputAudio: true, noPrompt: true },
+          { id: "stt", label: "Transkriptim", hint: "Audio në tekst", cost: 3, available: true, inputAudio: true, noPrompt: true, textOutput: true },
+        ],
+      },
       {
         id: "model",
         label: "Modeli",
         icon: Cpu,
         default: "eleven-v3",
+        showWhen: { setting: "mode", in: ["tts"] },
         options: [
-          { id: "eleven-v3", label: "Eleven v3", available: false },
-          { id: "eleven-multi-v2", label: "Eleven Multilingual v2", available: false },
+          { id: "eleven-v3", label: "Eleven v3", available: true },
+          { id: "eleven-multi-v2", label: "Eleven Multilingual v2", available: true },
           { id: "gpt4o-mini-tts", label: "OpenAI GPT-4o mini TTS", available: false },
         ],
       },
@@ -315,10 +344,11 @@ export const TOOLS: ToolDef[] = [
         label: "Gjuha",
         icon: Languages,
         default: "sq",
+        showWhen: { setting: "mode", in: ["tts"] },
         options: [
-          { id: "sq", label: "Shqip", available: false },
-          { id: "en", label: "Anglisht", available: false },
-          { id: "de", label: "Gjermanisht", available: false },
+          { id: "sq", label: "Shqip", available: true },
+          { id: "en", label: "Anglisht", available: true },
+          { id: "de", label: "Gjermanisht", available: true },
         ],
       },
       {
@@ -326,9 +356,23 @@ export const TOOLS: ToolDef[] = [
         label: "Personi",
         icon: Users,
         default: "female",
+        showWhen: { setting: "mode", in: ["tts", "sts"] },
         options: [
-          { id: "female", label: "Femëror", available: false },
-          { id: "male", label: "Mashkullor", available: false },
+          { id: "female", label: "Femëror", available: true },
+          { id: "male", label: "Mashkullor", available: true },
+        ],
+      },
+      {
+        id: "length",
+        label: "Kohëzgjatja",
+        icon: Clock,
+        default: "15s",
+        showWhen: { setting: "mode", in: ["music", "sfx"] },
+        options: [
+          { id: "5s", label: "5s", seconds: 5, cost: 0, available: true },
+          { id: "10s", label: "10s", seconds: 10, cost: 3, available: true },
+          { id: "15s", label: "15s", seconds: 15, cost: 6, available: true },
+          { id: "30s", label: "30s", seconds: 30, cost: 14, available: true },
         ],
       },
     ],
@@ -361,6 +405,21 @@ export function findOption(setting: ToolSetting, optionId: string): ToolOption |
   return setting.options.find((o) => o.id === optionId);
 }
 
+// Settings visible for the current selections. A setting with `showWhen` is
+// only shown when the referenced setting's value is in its allowed list. This
+// powers the mode-based maro Zo tool (different filters per mode).
+export function visibleSettings(tool: ToolDef, selections: ToolSelections): ToolSetting[] {
+  return tool.settings.filter((s) => {
+    if (!s.showWhen) return true;
+    const current = selections[s.showWhen.setting] ?? getDefault(tool, s.showWhen.setting);
+    return s.showWhen.in.includes(current);
+  });
+}
+
+function getDefault(tool: ToolDef, settingId: string): string {
+  return tool.settings.find((s) => s.id === settingId)?.default ?? "";
+}
+
 // Cost key used in pricing.options overrides + master prompts.
 export function optionKey(toolId: string, settingId: string, optionId: string): string {
   return `${toolId}.${settingId}.${optionId}`;
@@ -374,7 +433,7 @@ export function toolSelectionCost(
   overrides?: Record<string, number>
 ): number {
   let sum = tool.baseCost ?? 0;
-  for (const s of tool.settings) {
+  for (const s of visibleSettings(tool, selections)) {
     const optId = selections[s.id] ?? s.default;
     const opt = findOption(s, optId);
     if (!opt) continue;
@@ -396,7 +455,7 @@ export function composeToolPrompt(
   const parts: string[] = [];
   const base = toolPrompts[`${tool.id}.base`] ?? tool.defaultPrompt ?? "";
   if (base.trim()) parts.push(base.trim());
-  for (const s of tool.settings) {
+  for (const s of visibleSettings(tool, selections)) {
     const optId = selections[s.id] ?? s.default;
     const frag = toolPrompts[optionKey(tool.id, s.id, optId)];
     if (frag && frag.trim()) parts.push(frag.trim());

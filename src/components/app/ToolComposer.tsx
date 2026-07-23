@@ -25,10 +25,12 @@ import {
   InsufficientCreditsError,
   ImageGenerationError,
 } from "@/lib/services/imageService";
+import { generateAudio, AudioGenerationError } from "@/lib/services/audioService";
 import {
   findOption,
   getTool,
   toolSelectionCost,
+  visibleSettings,
   type ToolDef,
   type ToolSelections,
   type ToolSetting,
@@ -47,6 +49,8 @@ import {
   X,
   Maximize2,
   Lock,
+  AudioLines,
+  Mic,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -57,7 +61,19 @@ const IMG_ERRORS: Record<string, string> = {
   "bad-tool": "Tool i pavlefshëm.",
 };
 
+const AUDIO_ERRORS: Record<string, string> = {
+  "no-key": "Çelësi i ElevenLabs nuk është konfiguruar në server ende.",
+  unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
+  "ai-failed": "Modeli nuk u përgjigj. Provo përsëri.",
+  empty: "Nuk u kthye asnjë audio. Provo përsëri.",
+  "missing-audio": "Ngarko një audio për këtë mënyrë.",
+  "missing-prompt": "Shkruaj një përshkrim.",
+  "bad-mode": "Mënyrë e pavlefshme.",
+  "bad-tool": "Tool i pavlefshëm.",
+};
+
 const MAX_ATTACHMENTS = 4;
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 
 const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   kadale: "slow",
@@ -99,14 +115,26 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const audioFileRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const creationsRef = React.useRef(creations);
   creationsRef.current = creations;
 
   const isImage = tool.kind === "image";
+  const isAudio = tool.kind === "audio";
   const functional = tool.functional;
+
+  // Audio (maro Zo) is mode-based: the first setting is the mode selector and
+  // each mode option carries flags for what inputs it needs.
+  const modeOpt = isAudio
+    ? findOption(tool.settings[0], selections[tool.settings[0].id] ?? tool.settings[0].default)
+    : undefined;
+  const needsAudioInput = Boolean(modeOpt?.inputAudio);
+  const needsPrompt = isAudio ? !modeOpt?.noPrompt : true;
+  const shownSettings = visibleSettings(tool, selections);
 
   React.useEffect(() => {
     // Reload when the tool changes (e.g. client-side nav between tools).
@@ -121,6 +149,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     }
     setPrompt(draft);
     setAttachments([]);
+    setAudioInput(null);
     setFortEnabled(false);
     saveLastTool(tool.id);
 
@@ -202,7 +231,92 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       });
   };
 
+  const pickAudio = (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("audio/")) {
+      toast("Zgjidh një skedar audio.");
+      return;
+    }
+    if (f.size > MAX_AUDIO_BYTES) {
+      toast("Audio është shumë e madhe (max 12MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setAudioInput({ url: reader.result as string, name: f.name });
+    reader.readAsDataURL(f);
+  };
+
+  const doGenerateAudio = React.useCallback(async () => {
+    const text = prompt.trim();
+    if (needsPrompt && !text) return;
+    if (needsAudioInput && !audioInput) return;
+
+    const mode = selections[tool.settings[0].id] ?? tool.settings[0].default;
+    const label = modeOpt?.label ?? tool.name;
+    const userText = needsPrompt ? text : `[${label}]`;
+    const sentAudio = audioInput?.url;
+    const maroId = uid("m");
+    setMessages((m) => [
+      ...m,
+      { id: uid("u"), role: "user", text: userText },
+      { id: maroId, role: "maro", status: "thinking" },
+    ]);
+    setPrompt("");
+    setAudioInput(null);
+    setLoading(true);
+    try {
+      const res = await generateAudio({
+        toolId: tool.id as "zo",
+        mode,
+        prompt: needsPrompt ? text : undefined,
+        audio: sentAudio,
+        selections,
+      });
+      spendCredits(res.creditsSpent || cost);
+      const isText = typeof res.text === "string";
+      const creation: ImageCreation = {
+        id: uid("aud"),
+        toolId: tool.id,
+        prompt: userText,
+        urls: res.audioUrl ? [res.audioUrl] : [],
+        mediaType: isText ? "text" : "audio",
+        text: isText ? res.text : undefined,
+        title: isText ? (res.text || "").slice(0, 60) : text.slice(0, 60) || label,
+        createdAt: new Date().toISOString(),
+      };
+      addCreation(creation);
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === maroId ? { ...msg, role: "maro", status: "done", creation } : msg
+        )
+      );
+    } catch (err) {
+      let errMsg = "Gabim i papritur. Provo përsëri.";
+      if (err instanceof InsufficientCreditsError) {
+        setShowBuy(true);
+        errMsg = "Nuk ke kredite të mjaftueshme.";
+      } else if (err instanceof AudioGenerationError) {
+        errMsg = AUDIO_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`;
+        toast(errMsg);
+      } else {
+        toast(errMsg);
+      }
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === maroId ? { ...msg, role: "maro", status: "error", error: errMsg } : msg
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast]);
+
   const doGenerate = React.useCallback(async () => {
+    if (tool.kind === "audio") {
+      await doGenerateAudio();
+      return;
+    }
     const text = prompt.trim();
     if (!text) return;
 
@@ -280,14 +394,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortEnabled, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortEnabled, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
+
+  // Whether the current inputs are enough to generate.
+  const canGenerate = isAudio
+    ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
+    : Boolean(prompt.trim());
 
   const onGenerate = () => {
     if (!functional) {
       toast(`${tool.name} vjen së shpejti.`);
       return;
     }
-    if (!prompt.trim() || loading) return;
+    if (!canGenerate || loading) return;
     if (!user) {
       pendingRef.current = true;
       setShowAuth(true);
@@ -311,6 +430,16 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     }
   };
 
+  const audioPlaceholder = (() => {
+    const mode = selections[isAudio ? tool.settings[0].id : ""] ?? "tts";
+    if (mode === "music") return "Përshkruaj muzikën: zhanri, humori, instrumentet…";
+    if (mode === "sfx") return "Përshkruaj efektin zanor: p.sh. shi me bubullimë…";
+    if (mode === "sts") return "Ngarko audio dhe zgjidh zërin e ri…";
+    if (mode === "isolate") return "Ngarko audio për të pastruar zhurmën…";
+    if (mode === "stt") return "Ngarko audio për ta kthyer në tekst…";
+    return "Shkruaj tekstin që do të kthehet në zë…";
+  })();
+
   const placeholder =
     tool.id === "website"
       ? "Përshkruaj website-in që do të ndërtosh…"
@@ -322,6 +451,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       ? "Përshkruaj videon që do të krijosh…"
       : tool.id === "prompte"
       ? "Prompte gati për t'u përdorur. Së shpejti…"
+      : isAudio
+      ? audioPlaceholder
       : "Shkruaj tekstin që do të kthehet në zë…";
 
   return (
@@ -332,7 +463,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
           {!functional && <ComingSoonHero tool={tool} />}
 
-          {functional && isImage && messages.length > 0 && (
+          {functional && (isImage || isAudio) && messages.length > 0 && (
             <div className="mb-4 flex flex-col gap-4">
               {messages.map((m) =>
                 m.role === "user" ? (
@@ -393,6 +524,20 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
+          {isAudio && needsAudioInput && audioInput && (
+            <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
+              <AudioLines className="h-4 w-4 shrink-0 text-brand" />
+              <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{audioInput.name}</span>
+              <button
+                onClick={() => setAudioInput(null)}
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-line hover:text-ink"
+                aria-label="Hiq audion"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {fortAvailable && (
             <div className="mb-2 flex items-center justify-between px-1">
               <FortToggle
@@ -410,16 +555,22 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           )}
 
           <div className="group relative rounded-[24px] border border-line-strong bg-surface p-2 shadow-pop">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
-              }}
-              rows={2}
-              placeholder={placeholder}
-              className="relative block max-h-52 min-h-[64px] w-full resize-none rounded-2xl bg-transparent px-3 pt-2.5 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
-            />
+            {needsPrompt ? (
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
+                }}
+                rows={2}
+                placeholder={placeholder}
+                className="relative block max-h-52 min-h-[64px] w-full resize-none rounded-2xl bg-transparent px-3 pt-2.5 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+              />
+            ) : (
+              <div className="flex min-h-[64px] items-center px-3 pt-1 text-[15px] text-ink-3">
+                {audioInput ? "Audio gati. Kliko gjenero." : audioPlaceholder}
+              </div>
+            )}
 
             <div className="relative flex flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
               {isImage && (
@@ -444,11 +595,30 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   </IconBtn>
                 </>
               )}
-              <IconBtn onClick={() => setExpanded(true)} label="Zgjero promptin">
-                <Maximize2 className="h-4 w-4" />
-              </IconBtn>
+              {isAudio && needsAudioInput && (
+                <>
+                  <input
+                    ref={audioFileRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      pickAudio(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                  <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
+                    <Mic className="h-4 w-4" />
+                  </IconBtn>
+                </>
+              )}
+              {needsPrompt && (
+                <IconBtn onClick={() => setExpanded(true)} label="Zgjero promptin">
+                  <Maximize2 className="h-4 w-4" />
+                </IconBtn>
+              )}
 
-              {tool.settings.map((s) => (
+              {shownSettings.map((s) => (
                 <SettingSelect
                   key={s.id}
                   setting={s}
@@ -472,10 +642,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={onGenerate}
-                  disabled={functional && (!prompt.trim() || loading)}
+                  disabled={functional && (!canGenerate || loading)}
                   className={cn(
                     "grid h-11 w-11 place-items-center rounded-xl text-brand-fg transition-all",
-                    functional && prompt.trim() && !loading
+                    functional && canGenerate && !loading
                       ? "bg-brand hover:bg-brand-hover"
                       : "cursor-not-allowed bg-line-strong text-ink-3"
                   )}
@@ -764,19 +934,37 @@ function MaroBubble({
           </div>
         )}
         {message.status === "done" && message.creation && (
-          <button
-            onClick={() => onOpen(message.creation!)}
-            className="group block overflow-hidden rounded-3xl rounded-tl-lg border border-line bg-surface transition-shadow hover:shadow-pop"
-          >
-            <span className="grid grid-cols-1 gap-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={message.creation.urls[0]}
-                alt=""
-                className="w-full max-w-sm object-cover transition-transform group-hover:scale-[1.01]"
-              />
-            </span>
-          </button>
+          message.creation.mediaType === "audio" ? (
+            <div className="rounded-3xl rounded-tl-lg border border-line bg-surface px-4 py-3">
+              <audio controls src={message.creation.urls[0]} className="w-full max-w-sm" />
+            </div>
+          ) : message.creation.mediaType === "text" ? (
+            <div className="rounded-3xl rounded-tl-lg border border-line bg-surface px-4 py-3">
+              <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
+                {message.creation.text}
+              </p>
+              <button
+                onClick={() => onOpen(message.creation!)}
+                className="mt-2 text-[12.5px] font-semibold text-brand hover:underline"
+              >
+                Hap & kopjo
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onOpen(message.creation!)}
+              className="group block overflow-hidden rounded-3xl rounded-tl-lg border border-line bg-surface transition-shadow hover:shadow-pop"
+            >
+              <span className="grid grid-cols-1 gap-0.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={message.creation.urls[0]}
+                  alt=""
+                  className="w-full max-w-sm object-cover transition-transform group-hover:scale-[1.01]"
+                />
+              </span>
+            </button>
+          )
         )}
       </div>
     </motion.div>

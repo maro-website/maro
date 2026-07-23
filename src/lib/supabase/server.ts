@@ -107,6 +107,27 @@ export async function uploadGeneratedImage(
   }
 }
 
+// Upload a base64 mp3 to the public "generations" bucket and return its public
+// URL. Used by maro Zo (ElevenLabs audio output).
+export async function uploadGeneratedAudio(
+  userId: string,
+  b64: string
+): Promise<string | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const bytes = Buffer.from(b64, "base64");
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp3`;
+    const { error } = await admin.storage
+      .from("generations")
+      .upload(path, bytes, { contentType: "audio/mpeg", upsert: false });
+    if (error) return null;
+    const { data } = admin.storage.from("generations").getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Atomically spend credits via the SQL function. Returns the new balance, or -1
 // if the user did not have enough credits.
 export async function spendCredits(userId: string, amount: number): Promise<number> {

@@ -43,7 +43,9 @@ export interface User {
   createdAt: string;
 }
 
-// An image generation result (Maro Logo / Maro Reklama), persisted locally.
+// A generation result (Maro Logo / Maro Imazh images, or maro Zo audio/text),
+// persisted locally. For audio, urls[0] is the audio URL. For text output
+// (transcription) the result lives in `text`.
 export interface ImageCreation {
   id: string;
   toolId: string;
@@ -52,6 +54,10 @@ export interface ImageCreation {
   urls: string[];
   size?: string;
   quality?: string;
+  /** Media kind. Defaults to "image" when absent (legacy creations). */
+  mediaType?: "image" | "audio" | "text";
+  /** Text result for transcription (STT). */
+  text?: string;
   favourite?: boolean;
   /** User's reaction to their own creation. */
   reaction?: "like" | "dislike";
