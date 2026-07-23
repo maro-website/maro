@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { AppSettings, PricingConfig } from "./types";
 import { DEFAULT_PRICING } from "./types";
+import type { FortConfig } from "@/lib/fort/types";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,6 +50,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     return {
       master_prompt: (data?.master_prompt as string) ?? "",
       tool_prompts: (data?.tool_prompts as Record<string, string>) ?? {},
+      fort_config: (data?.fort_config as FortConfig) ?? {},
       pricing: {
         types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
         speed: { ...DEFAULT_PRICING.speed, ...(pricing.speed ?? {}) },
@@ -63,7 +65,7 @@ export async function getAppSettings(): Promise<AppSettings> {
   try {
     const { data, error } = await admin
       .from("app_settings")
-      .select("master_prompt, pricing, tool_prompts")
+      .select("master_prompt, pricing, tool_prompts, fort_config")
       .eq("id", 1)
       .single();
     if (!error) return build(data);
@@ -71,7 +73,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     /* fall through to the legacy select below */
   }
 
-  // Legacy fallback (tool_prompts column missing).
+  // Legacy fallback (tool_prompts / fort_config columns missing).
   try {
     const { data } = await admin
       .from("app_settings")
@@ -80,7 +82,7 @@ export async function getAppSettings(): Promise<AppSettings> {
       .single();
     return build(data);
   } catch {
-    return { master_prompt: "", tool_prompts: {}, pricing: DEFAULT_PRICING };
+    return { master_prompt: "", tool_prompts: {}, fort_config: {}, pricing: DEFAULT_PRICING };
   }
 }
 
@@ -124,18 +126,49 @@ export async function refundCredits(userId: string, amount: number): Promise<voi
   await admin.from("profiles").update({ credits: current + amount }).eq("id", userId);
 }
 
-export async function getProfileCredits(userId: string): Promise<{ credits: number; is_admin: boolean; email: string } | null> {
-  const { data } = await getSupabaseAdmin()
+export async function getProfileCredits(
+  userId: string
+): Promise<{ credits: number; is_admin: boolean; email: string; plan: string } | null> {
+  const admin = getSupabaseAdmin();
+  // Try with plan; fall back to the legacy select if the column is missing.
+  let data: Record<string, unknown> | null = null;
+  const withPlan = await admin
     .from("profiles")
-    .select("credits, is_admin, email")
+    .select("credits, is_admin, email, plan")
     .eq("id", userId)
     .single();
+  if (!withPlan.error) {
+    data = withPlan.data as Record<string, unknown>;
+  } else {
+    const legacy = await admin
+      .from("profiles")
+      .select("credits, is_admin, email")
+      .eq("id", userId)
+      .single();
+    data = legacy.data as Record<string, unknown> | null;
+  }
   if (!data) return null;
   return {
     credits: (data.credits as number) ?? 0,
     is_admin: Boolean(data.is_admin),
     email: (data.email as string) ?? "",
+    plan: (data.plan as string) ?? "free",
   };
+}
+
+// True when the user's subscription plan unlocks maroFort mode. Best-effort:
+// returns false if the `plan` column does not exist yet (pre-0009).
+export async function hasFort(userId: string): Promise<boolean> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .single();
+    return (data?.plan as string) === "fort";
+  } catch {
+    return false;
+  }
 }
 
 export async function logGeneration(entry: {
@@ -150,10 +183,21 @@ export async function logGeneration(entry: {
   tool_id?: string;
   kind?: string;
   output_urls?: string[];
+  selections?: Record<string, unknown>;
+  fort?: Record<string, unknown>;
 }): Promise<void> {
   try {
     await getSupabaseAdmin().from("generations").insert(entry);
   } catch {
-    // logging is best-effort
+    // Retry without the newer columns (selections/fort) in case the 0009
+    // migration has not been applied yet — logging is best-effort.
+    try {
+      const { selections: _s, fort: _f, ...rest } = entry;
+      void _s;
+      void _f;
+      await getSupabaseAdmin().from("generations").insert(rest);
+    } catch {
+      /* give up */
+    }
   }
 }

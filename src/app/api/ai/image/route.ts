@@ -17,6 +17,9 @@ import {
   toolSelectionCost,
   getTool,
 } from "@/lib/tools/registry";
+import { toolToFortModule } from "@/lib/fort/types";
+import { buildFortBrief } from "@/lib/fort/briefBuilder";
+import { compileBrief } from "@/lib/fort/compile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +74,8 @@ export async function POST(req: Request) {
   let userId: string | null = null;
   let userEmail = "";
   let cost = 0;
+  // maroFort is entitlement-gated. In dev (no Supabase) we allow it for testing.
+  let entitled = !supabaseServerConfigured();
 
   if (supabaseServerConfigured()) {
     const user = await getUserFromToken(bearer(req));
@@ -80,6 +85,7 @@ export async function POST(req: Request) {
     cost = toolSelectionCost(tool, selections, settings.pricing.options);
 
     const profile = await getProfileCredits(userId);
+    entitled = profile?.plan === "fort";
     if (!profile || profile.credits < cost) {
       return NextResponse.json(
         { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
@@ -90,6 +96,35 @@ export async function POST(req: Request) {
     if (balance < 0) {
       return NextResponse.json({ error: "insufficient-credits", needed: cost }, { status: 402 });
     }
+  }
+
+  // maroFort: augment the prompt with the structured expert brief + relevant
+  // prompt layers. Only when the user is entitled and the toggle was on.
+  const fortModule = toolToFortModule(tool.id);
+  let fortLog: Record<string, unknown> | undefined;
+  if (entitled && body.fort?.enabled && fortModule) {
+    const brief = buildFortBrief({
+      module: fortModule,
+      config: settings.fort_config,
+      values: body.fort.values ?? {},
+      // base finalPrompt already carries the user text; don't duplicate it here.
+    });
+    const compiled = compileBrief(brief.briefText);
+    const layerText = brief.appliedLayers
+      .map((l) => l.content.trim())
+      .filter(Boolean)
+      .join("\n\n");
+    const parts: string[] = [];
+    if (layerText) parts.push(layerText);
+    parts.push(finalPrompt);
+    if (compiled.text.trim()) parts.push(`## BRIEF EKSPERT (maroFort)\n${compiled.text}`);
+    finalPrompt = parts.join("\n\n");
+    fortLog = {
+      enabled: true,
+      values: body.fort.values ?? {},
+      appliedLayerIds: brief.appliedLayerIds,
+      score: brief.score,
+    };
   }
 
   const refs = (body.attachments ?? []).filter(
@@ -139,6 +174,8 @@ export async function POST(req: Request) {
         tool_id: tool.id,
         kind: "image",
         output_urls: urls.filter((u) => !u.startsWith("data:")),
+        selections: Object.keys(selections).length ? selections : undefined,
+        fort: fortLog,
       });
     }
 

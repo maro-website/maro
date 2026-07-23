@@ -1,4 +1,5 @@
 import type { Project, WizardDraft, Asset, WebsiteKind, SpeedKey } from "@/lib/types";
+import type { FortPayload } from "@/lib/fort/types";
 import { makeProject } from "@/lib/mock/demo";
 import { uid } from "@/lib/utils/format";
 
@@ -28,6 +29,7 @@ export function createProjectFromComposer(input: {
   speed: SpeedKey;
   primaryColor?: string;
   selections?: Record<string, string>;
+  fort?: FortPayload;
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -44,6 +46,7 @@ export function createProjectFromComposer(input: {
   p.websiteType = input.websiteType;
   p.speed = input.speed;
   p.toolSelections = input.selections;
+  if (input.fort?.enabled) p.fort = input.fort;
   return p;
 }
 

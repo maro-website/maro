@@ -5,6 +5,8 @@ import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion"
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { resolveFortConfig } from "@/lib/fort/config";
 import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
 import { validatePromo, trackPromo, type PromoInfo } from "@/lib/services/promoService";
 import { timeAgo } from "@/lib/utils/format";
@@ -25,10 +27,33 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 // 1 credit = 1 cent (€0.01). Minimum purchase is 100 credits (€1.00).
 const MIN_CREDITS = 100;
-const PRESETS = [100, 500, 1000, 5000];
+
+// Coin bundles. Large bundles are discounted (worth > price).
+interface CoinTier {
+  credits: number;
+  eur: number;
+  worth?: number;
+}
+const COIN_TIERS: CoinTier[] = [
+  { credits: 100, eur: 1 },
+  { credits: 500, eur: 5 },
+  { credits: 1000, eur: 10 },
+  { credits: 5000, eur: 39.99, worth: 50 },
+  { credits: 10000, eur: 74.99, worth: 100 },
+];
+
+function fmtEur(eur: number): string {
+  return `€${eur.toFixed(2)}`;
+}
+
+// Price for a given credit amount: bundle price if it matches a tier, else 1 cent each.
+function priceEurFor(credits: number): number {
+  const tier = COIN_TIERS.find((t) => t.credits === credits);
+  return tier ? tier.eur : credits / 100;
+}
 
 function euros(credits: number): string {
-  return `€${(credits / 100).toFixed(2)}`;
+  return fmtEur(credits / 100);
 }
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -53,10 +78,32 @@ function actionLabel(item: UsageItem): { noun: string; icon: React.ElementType }
 }
 
 export default function CreditsPage() {
-  const { user, credits } = useMaro();
+  const { user, credits, hasFort } = useMaro();
   const { toast } = useToast();
+  const { fortConfig } = useSettings(Boolean(user));
+  const fort = resolveFortConfig(fortConfig);
+  const fortPlan = fortConfig.plan ?? {};
+  const fortPrice = fortPlan.priceEur ?? 19.99;
+  const fortCredits = fortPlan.credits ?? 2000;
+  const fortPerks = fortPlan.perks ?? [
+    "Akses në maroFort mode",
+    "Beta maroArt 1.0 falas / pa limit",
+    `${(fortCredits).toLocaleString("de-DE")} kredite çdo muaj`,
+  ];
   const [amount, setAmount] = React.useState<number>(500);
   const [custom, setCustom] = React.useState<string>("");
+
+  const subscribeFort = () => {
+    if (!user) {
+      toast("Hyr për t'u abonuar.");
+      return;
+    }
+    if (hasFort) {
+      toast("Ti tashmë ke maroFort aktiv.");
+      return;
+    }
+    toast(`Abonimi maroFort vjen së shpejti · ${fmtEur(fortPrice)}/muaj`);
+  };
 
   const [usage, setUsage] = React.useState<{ items: UsageItem[]; count: number; spent: number } | null>(
     null
@@ -106,7 +153,8 @@ export default function CreditsPage() {
   const chosenRaw = custom.trim() ? parseInt(custom, 10) || 0 : amount;
   const chosen = Math.max(MIN_CREDITS, chosenRaw);
   const discount = promo?.discount ?? 0;
-  const totalCents = Math.round(chosen * (1 - discount / 100));
+  const baseEur = priceEurFor(chosen);
+  const totalEur = baseEur * (1 - discount / 100);
   const firstName = user?.name?.split(" ")[0] ?? "Ti";
 
   const clearPromo = () => {
@@ -125,7 +173,7 @@ export default function CreditsPage() {
       return;
     }
     const promoNote = promo ? ` · zbritje ${discount}%` : "";
-    toast(`Paysera vjen së shpejti · ${chosen} kredite (${euros(totalCents)})${promoNote}`);
+    toast(`Paysera vjen së shpejti · ${chosen} kredite (${fmtEur(totalEur)})${promoNote}`);
   };
 
   return (
@@ -166,6 +214,57 @@ export default function CreditsPage() {
             </div>
           </motion.div>
 
+          {/* maroFort subscription */}
+          {fort.enabled && (
+            <motion.div
+              id="fort"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: EASE, delay: 0.06 }}
+              className="mt-8 scroll-mt-24 overflow-hidden rounded-[28px] border border-brand bg-gradient-to-br from-brand-soft to-surface p-6 shadow-brand sm:p-8"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div className="min-w-0 flex-1">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-brand-fg">
+                    <Sparkles className="h-3.5 w-3.5" /> {fort.label}
+                  </span>
+                  <h2 className="mt-4 text-[24px] font-extrabold tracking-[-0.02em] text-ink">
+                    Modaliteti ekspert për krijime premium
+                  </h2>
+                  <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-ink-2">
+                    {fort.description}
+                  </p>
+                  <ul className="mt-4 space-y-2">
+                    {fortPerks.map((perk, i) => (
+                      <li key={i} className="flex items-center gap-2 text-[14px] text-ink">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-brand-fg">
+                          <Check className="h-3 w-3" />
+                        </span>
+                        {perk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="w-full shrink-0 sm:w-auto sm:text-right">
+                  <div className="flex items-baseline gap-1.5 sm:justify-end">
+                    <span className="text-[38px] font-extrabold tracking-[-0.03em] text-ink">
+                      {fmtEur(fortPrice)}
+                    </span>
+                    <span className="text-[14px] font-semibold text-ink-3">/muaj</span>
+                  </div>
+                  <button
+                    onClick={subscribeFort}
+                    disabled={hasFort}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                  >
+                    {hasFort ? "Aktiv" : fort.ctaText}
+                    {!hasFort && <ArrowRight className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Buy credits */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -176,26 +275,36 @@ export default function CreditsPage() {
             <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">Shto kredite</h2>
             <p className="mt-1 text-[14px] text-ink-2">Zgjidh një paketë ose shkruaj sasinë që dëshiron.</p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {PRESETS.map((p) => {
-                const active = !custom.trim() && amount === p;
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {COIN_TIERS.map((t) => {
+                const active = !custom.trim() && amount === t.credits;
                 return (
                   <motion.button
-                    key={p}
+                    key={t.credits}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
-                      setAmount(p);
+                      setAmount(t.credits);
                       setCustom("");
                     }}
-                    className={`rounded-2xl border p-4 text-left transition-colors ${
+                    className={`relative rounded-2xl border p-4 text-left transition-colors ${
                       active ? "border-brand bg-brand-soft" : "border-line-strong bg-surface hover:bg-surface-2"
                     }`}
                   >
+                    {t.worth && (
+                      <span className="absolute right-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-brand-fg">
+                        BONUS
+                      </span>
+                    )}
                     <div className="text-[22px] font-extrabold tracking-tight text-ink">
-                      {p.toLocaleString("de-DE")}
+                      {t.credits.toLocaleString("de-DE")}
                     </div>
                     <div className="text-[12.5px] text-ink-3">kredite</div>
-                    <div className="mt-2 text-[13px] font-semibold text-ink-2">{euros(p)}</div>
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <span className="text-[13px] font-semibold text-ink-2">{fmtEur(t.eur)}</span>
+                      {t.worth && (
+                        <span className="text-[11.5px] text-ink-3 line-through">{fmtEur(t.worth)}</span>
+                      )}
+                    </div>
                   </motion.button>
                 );
               })}
@@ -222,13 +331,13 @@ export default function CreditsPage() {
                 <div className="text-[12.5px] text-ink-3">Totali</div>
                 {discount > 0 ? (
                   <div className="flex items-baseline justify-end gap-2">
-                    <span className="text-[15px] font-semibold text-ink-3 line-through">{euros(chosen)}</span>
+                    <span className="text-[15px] font-semibold text-ink-3 line-through">{fmtEur(baseEur)}</span>
                     <span className="text-[26px] font-extrabold tracking-tight text-ink">
-                      {euros(totalCents)}
+                      {fmtEur(totalEur)}
                     </span>
                   </div>
                 ) : (
-                  <div className="text-[26px] font-extrabold tracking-tight text-ink">{euros(totalCents)}</div>
+                  <div className="text-[26px] font-extrabold tracking-tight text-ink">{fmtEur(totalEur)}</div>
                 )}
               </div>
             </div>
@@ -291,7 +400,7 @@ export default function CreditsPage() {
               onClick={pay}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-[16px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
             >
-              Paguaj me Paysera · {euros(totalCents)}
+              Paguaj me Paysera · {fmtEur(totalEur)}
               <ArrowRight className="h-5 w-5" />
             </button>
             <p className="mt-2.5 text-center text-[12.5px] text-ink-3">

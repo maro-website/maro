@@ -37,7 +37,8 @@ export interface User {
   email: string;
   avatarColor: string;
   avatarUrl?: string;
-  plan: "free" | "starter" | "growth" | "business";
+  /** Subscription plan. "fort" unlocks maroFort mode. */
+  plan: "free" | "fort";
   credits: number;
   createdAt: string;
 }
@@ -200,6 +201,8 @@ export interface Project {
   speed?: SpeedKey;
   /** Prompt-box selections (model/type/speed) used for cost + prompt. */
   toolSelections?: Record<string, string>;
+  /** maroFort expert payload captured at generation time. */
+  fort?: import("@/lib/fort/types").FortPayload;
   language: LanguageCode;
   category: WebsiteCategory;
   style: StyleKey;

@@ -1,10 +1,13 @@
 // Shared types for the Supabase-backed domain (auth, credits, config).
 // Client-safe: no server-only imports here.
 
+import type { FortConfig } from "@/lib/fort/types";
+
 export type WebsiteKind = "landing" | "business" | "platform";
 export type SpeedKey = "slow" | "fast" | "2x";
 export type EffortLevel = "low" | "medium" | "high" | "xhigh";
 export type ModelKey = "claude-opus-4-8";
+export type PlanKey = "free" | "fort";
 
 export interface Profile {
   id: string;
@@ -13,6 +16,9 @@ export interface Profile {
   credits: number;
   is_admin: boolean;
   is_creator?: boolean;
+  /** Subscription plan. "fort" unlocks maroFort mode. */
+  plan?: PlanKey;
+  fort_until?: string | null;
   created_at: string;
 }
 
@@ -72,6 +78,8 @@ export interface AppSettings {
   pricing: PricingConfig;
   /** Per-tool master prompts for image tools (e.g. { logo, reklama }). */
   tool_prompts: Record<string, string>;
+  /** Admin-managed maroFort configuration (schema overrides + prompt layers). */
+  fort_config: FortConfig;
 }
 
 export interface GenerationLog {

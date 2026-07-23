@@ -3,11 +3,13 @@
 import * as React from "react";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
+import type { FortConfig } from "@/lib/fort/types";
 
 interface SettingsState {
   pricing: PricingConfig;
   masterPrompt: string;
   toolPrompts: Record<string, string>;
+  fortConfig: FortConfig;
   loading: boolean;
 }
 
@@ -18,6 +20,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
     pricing: DEFAULT_PRICING,
     masterPrompt: "",
     toolPrompts: {},
+    fortConfig: {},
     loading: true,
   });
 
@@ -32,6 +35,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
         loading: false,
         masterPrompt: (data?.master_prompt as string) ?? "",
         toolPrompts: (data?.tool_prompts as Record<string, string>) ?? {},
+        fortConfig: (data?.fort_config as FortConfig) ?? {},
         pricing: {
           types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
           speed: { ...DEFAULT_PRICING.speed, ...(pricing.speed ?? {}) },
@@ -48,7 +52,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
       const sb = getSupabaseBrowser();
       const { data, error } = await sb
         .from("app_settings")
-        .select("master_prompt, pricing, tool_prompts")
+        .select("master_prompt, pricing, tool_prompts, fort_config")
         .eq("id", 1)
         .single();
       if (!error) return apply(data);

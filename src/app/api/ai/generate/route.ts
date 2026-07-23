@@ -18,6 +18,8 @@ import {
 import { creditCost } from "@/lib/supabase/types";
 import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 import { getTool, toolSelectionCost } from "@/lib/tools/registry";
+import { buildFortBrief } from "@/lib/fort/briefBuilder";
+import { compileBrief } from "@/lib/fort/compile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +79,8 @@ export async function POST(req: Request) {
   let userEmail = "";
   let cost = 0;
   let effort: string | undefined;
+  // maroFort is entitlement-gated. In dev (no Supabase) allow it for testing.
+  let entitled = !supabaseServerConfigured();
 
   if (supabaseServerConfigured()) {
     const user = await getUserFromToken(bearer(req));
@@ -95,6 +99,7 @@ export async function POST(req: Request) {
       : settings.pricing.speed?.[speed]?.effort;
 
     const profile = await getProfileCredits(userId);
+    entitled = profile?.plan === "fort";
     if (!profile || profile.credits < cost) {
       return NextResponse.json(
         { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
@@ -108,9 +113,42 @@ export async function POST(req: Request) {
     }
   }
 
-  const masterPlusOptions = [settings.master_prompt, extraPrompt].filter(Boolean).join("\n\n");
+  // maroFort: build the structured expert brief for the web module, bridge
+  // mapsTo fields into the request, and inject brief + layers into the prompts.
+  let fortBriefBlock = "";
+  let fortLayerText = "";
+  let fortLog: Record<string, unknown> | undefined;
+  if (entitled && body.fort?.enabled) {
+    const brief = buildFortBrief({
+      module: "web",
+      config: settings.fort_config,
+      values: body.fort.values ?? {},
+    });
+    // Bridge mapped fields (primaryColor, language, ...) into the request.
+    if (typeof brief.mapped.primaryColor === "string") body.primaryColor = brief.mapped.primaryColor;
+    if (typeof brief.mapped.language === "string") body.language = brief.mapped.language;
+    const compiled = compileBrief(brief.briefText);
+    fortBriefBlock = compiled.text.trim();
+    fortLayerText = brief.appliedLayers
+      .map((l) => l.content.trim())
+      .filter(Boolean)
+      .join("\n\n");
+    fortLog = {
+      enabled: true,
+      values: body.fort.values ?? {},
+      appliedLayerIds: brief.appliedLayerIds,
+      score: brief.score,
+    };
+  }
+
+  const masterPlusOptions = [settings.master_prompt, extraPrompt, fortLayerText]
+    .filter(Boolean)
+    .join("\n\n");
   const system = buildHtmlGenerateSystem(body, masterPlusOptions);
-  const user = buildHtmlGenerateUser(body);
+  let user = buildHtmlGenerateUser(body);
+  if (fortBriefBlock) {
+    user = `${user}\n\n## BRIEF EKSPERT (maroFort)\n${fortBriefBlock}`;
+  }
 
   try {
     const { text } = await callClaudeText({ system, user, effort });
@@ -132,6 +170,8 @@ export async function POST(req: Request) {
         speed,
         model: AI_MODEL,
         credits_spent: cost,
+        selections: selections && Object.keys(selections).length ? selections : undefined,
+        fort: fortLog,
       });
     }
     return NextResponse.json({ pages, creditsSpent: cost });

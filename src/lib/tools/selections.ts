@@ -47,3 +47,17 @@ export function saveLastTool(toolId: string): void {
   (all as Record<string, unknown>).__last = toolId;
   writeJSON(StorageKeys.toolSelections, all);
 }
+
+// ---- maroFort per-tool expert values -------------------------------------
+type AllFortValues = Record<string, Record<string, unknown>>;
+
+export function loadFortValues(toolId: string): Record<string, unknown> {
+  const all = readJSON<AllFortValues>(StorageKeys.fortValues, {});
+  return all[toolId] ?? {};
+}
+
+export function saveFortValues(toolId: string, values: Record<string, unknown>): void {
+  const all = readJSON<AllFortValues>(StorageKeys.fortValues, {});
+  all[toolId] = values;
+  writeJSON(StorageKeys.fortValues, all);
+}

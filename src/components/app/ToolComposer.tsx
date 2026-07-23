@@ -8,11 +8,17 @@ import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { GenerationLoader } from "@/components/app/GenerationLoader";
-import { CreationCard, CreationListRow } from "@/components/app/cards";
+import { CreationLightbox } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
+import { FortToggle } from "@/components/fort/FortToggle";
+import { FortPanel } from "@/components/fort/FortPanel";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { toolToFortModule, type FortValue } from "@/lib/fort/types";
+import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
+import { defaultFortValues } from "@/lib/fort/schema";
+import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
 import { createProjectFromComposer, TYPE_TO_KIND } from "@/lib/services/projectService";
 import {
   generateImages,
@@ -28,7 +34,7 @@ import {
   type ToolSetting,
 } from "@/lib/tools/registry";
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
-import type { SpeedKey, WebsiteKind } from "@/lib/types";
+import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -37,7 +43,6 @@ import {
   Sparkles,
   Check,
   ChevronDown,
-  ImageOff,
   Paperclip,
   X,
   Maximize2,
@@ -64,8 +69,12 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const tool = getTool(toolId)!;
   const router = useRouter();
   const { toast } = useToast();
-  const { user, credits, creations, addProject, addCreation, spendCredits } = useMaro();
-  const { pricing } = useSettings(Boolean(user));
+  const { user, credits, hasFort, addProject, addCreation, spendCredits } = useMaro();
+  const { pricing, fortConfig } = useSettings(Boolean(user));
+
+  const fortModule = toolToFortModule(tool.id);
+  const fortAvailable = Boolean(fortModule && isFortModuleEnabled(fortConfig, fortModule));
+  const fortResolved = resolveFortConfig(fortConfig);
 
   const [prompt, setPrompt] = React.useState("");
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
@@ -75,6 +84,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [showBuy, setShowBuy] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
+  const [fortEnabled, setFortEnabled] = React.useState(false);
+  const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
+  const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -94,8 +106,34 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     }
     setPrompt(draft);
     setAttachments([]);
+    setFortEnabled(false);
     saveLastTool(tool.id);
   }, [tool]);
+
+  // Initialize maroFort values (defaults + persisted) once config is available.
+  React.useEffect(() => {
+    if (!fortModule) return;
+    const base = defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>;
+    const saved = loadFortValues(tool.id) as Record<string, FortValue>;
+    setFortValues({ ...base, ...saved });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool.id, fortModule, fortConfig]);
+
+  const setFortValue = (id: string, value: FortValue) => {
+    setFortValues((prev) => {
+      const next = { ...prev, [id]: value };
+      saveFortValues(tool.id, next);
+      return next;
+    });
+  };
+
+  const onToggleFort = (next: boolean) => {
+    if (!hasFort) {
+      router.push("/credits#fort");
+      return;
+    }
+    setFortEnabled(next);
+  };
 
   const cost = toolSelectionCost(tool, selections, pricing.options);
   const creditsRef = React.useRef(credits);
@@ -108,8 +146,6 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       return next;
     });
   };
-
-  const toolCreations = creations.filter((c) => c.toolId === tool.id);
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -132,6 +168,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     const text = prompt.trim();
     if (!text) return;
 
+    const fortPayload =
+      fortAvailable && fortEnabled && hasFort
+        ? { enabled: true, values: fortValues }
+        : undefined;
+
     if (tool.kind === "website") {
       const kind = (TYPE_TO_KIND[selections.type] ?? "business") as WebsiteKind;
       const speed = SPEED_TO_LEGACY[selections.speed] ?? "fast";
@@ -140,6 +181,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         websiteType: kind,
         speed,
         selections,
+        fort: fortPayload,
       });
       addProject(project);
       router.push(`/projects/${project.id}/generating`);
@@ -155,17 +197,21 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         selections,
         quality: "high",
         attachments: attachments.length ? attachments : undefined,
+        fort: fortPayload,
       });
       spendCredits(res.creditsSpent || cost);
-      addCreation({
+      const creation: ImageCreation = {
         id: uid("img"),
         toolId: tool.id,
         prompt: text,
         urls: res.images,
         createdAt: new Date().toISOString(),
-      });
+      };
+      addCreation(creation);
       setPrompt("");
       setAttachments([]);
+      // Minimal page: auto-open the result instead of a persistent gallery.
+      setLightbox(creation);
     } catch (err) {
       if (err instanceof InsufficientCreditsError) setShowBuy(true);
       else if (err instanceof ImageGenerationError)
@@ -174,7 +220,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, addProject, router, spendCredits, addCreation, toast]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortEnabled, hasFort, fortValues, addProject, router, spendCredits, addCreation, toast]);
 
   const onGenerate = () => {
     if (!functional) {
@@ -220,12 +266,31 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Scroll area */}
+      {/* Scroll area — minimal: only the loader (while generating) or the
+          maroFort expert panel (when enabled). Past creations live in the
+          sidebar "Së fundmi" and /favourites. */}
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
         <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
           {!functional && <ComingSoonHero tool={tool} />}
           {functional && loading && isImage && <GeneratingCard toolName={tool.name} />}
-          {functional && isImage && <ResultGallery creations={toolCreations} />}
+          {functional && !loading && fortAvailable && fortEnabled && (
+            <div className="mb-2">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-[13px] font-bold uppercase tracking-wider text-brand">
+                  {fortResolved.label}
+                </span>
+                <span className="text-[12.5px] text-ink-3">Brief ekspert</span>
+              </div>
+              {fortModule && (
+                <FortPanel
+                  module={fortModule}
+                  config={fortConfig}
+                  values={fortValues}
+                  onChange={setFortValue}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -249,6 +314,22 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {fortAvailable && (
+            <div className="mb-2 flex items-center justify-between px-1">
+              <FortToggle
+                enabled={fortEnabled}
+                locked={!hasFort}
+                label={fortResolved.label}
+                badgeText={fortResolved.badgeText}
+                onToggle={onToggleFort}
+                onUpgrade={() => router.push("/credits#fort")}
+              />
+              {fortEnabled && hasFort && (
+                <span className="text-[12px] text-ink-3">Modaliteti ekspert aktiv</span>
+              )}
             </div>
           )}
 
@@ -386,6 +467,14 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         }}
         placeholder={placeholder}
       />
+
+      {lightbox && (
+        <CreationLightbox
+          creation={lightbox}
+          open={lightbox !== null}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 }
@@ -546,32 +635,4 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
 // ---- Image generating loop ----
 function GeneratingCard({ toolName }: { toolName: string }) {
   return <GenerationLoader variant="image" title={toolName} className="mt-8" />;
-}
-
-function ResultGallery({ creations }: { creations: Parameters<typeof CreationCard>[0]["creation"][] }) {
-  if (creations.length === 0) {
-    return (
-      <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-14 text-center">
-        <ImageOff className="h-8 w-8 text-ink-3" />
-        <p className="mt-3 text-[14.5px] text-ink-3">
-          Këtu shfaqen imazhet e gjeneruara. Shkruaj një përshkrim poshtë për të filluar.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="mt-8">
-      <h2 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">Gjenerimet e kaluara</h2>
-      <div className="flex flex-col gap-2 sm:hidden">
-        {creations.map((c) => (
-          <CreationListRow key={c.id} creation={c} />
-        ))}
-      </div>
-      <div className="hidden grid-cols-2 gap-4 sm:grid sm:grid-cols-3">
-        {creations.map((c) => (
-          <CreationCard key={c.id} creation={c} />
-        ))}
-      </div>
-    </div>
-  );
 }

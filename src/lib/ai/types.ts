@@ -9,6 +9,7 @@ import type {
   Theme,
   WebsiteCategory,
 } from "@/lib/types";
+import type { FortPayload } from "@/lib/fort/types";
 
 // A section as exchanged with the model (no stable id required on the way back).
 export interface AiSection {
@@ -65,6 +66,8 @@ export interface AiGenerateRequest {
   speed?: SpeedKey;
   /** New prompt-box selections (model/type/speed) — drives cost + prompt. */
   selections?: Record<string, string>;
+  /** maroFort expert payload (ignored server-side unless the user is entitled). */
+  fort?: FortPayload;
 }
 
 export interface AiGenerateResponse {

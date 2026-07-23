@@ -1,4 +1,5 @@
 import type { ImageQuality, ImageSize, ToolId } from "@/lib/tools/registry";
+import type { FortPayload } from "@/lib/fort/types";
 
 export interface AiImageRequest {
   toolId: ToolId;
@@ -12,6 +13,8 @@ export interface AiImageRequest {
   variant?: string;
   /** Selected options per setting id (drives cost + prompt composition). */
   selections?: Record<string, string>;
+  /** maroFort expert payload (ignored server-side unless the user is entitled). */
+  fort?: FortPayload;
 }
 
 export interface AiImageResponse {

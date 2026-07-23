@@ -36,6 +36,8 @@ interface MaroContextValue {
   user: User | null;
   isAdmin: boolean;
   isCreator: boolean;
+  /** True when the user's plan unlocks maroFort mode. */
+  hasFort: boolean;
   credits: number;
   supabaseReady: boolean;
   projects: Project[];
@@ -77,7 +79,7 @@ function profileToUser(profile: Profile | null): User | null {
     name: profile.full_name || profile.email.split("@")[0] || "Ti",
     email: profile.email,
     avatarColor: "#5a28e5",
-    plan: "free",
+    plan: profile.plan === "fort" ? "fort" : "free",
     credits: profile.credits,
     createdAt: profile.created_at,
   };
@@ -443,6 +445,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       user,
       isAdmin: Boolean(profile?.is_admin),
       isCreator: Boolean(profile?.is_creator),
+      hasFort: profile?.plan === "fort",
       credits: profile?.credits ?? 0,
       supabaseReady: supabaseConfigured,
       projects: state.projects,

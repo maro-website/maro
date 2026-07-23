@@ -9,6 +9,7 @@ export const StorageKeys = {
   creations: `${NS}:creations`,
   seeded: `${NS}:seeded`,
   toolSelections: `${NS}:tool-selections`,
+  fortValues: `${NS}:fort-values`,
 } as const;
 
 export function readJSON<T>(key: string, fallback: T): T {

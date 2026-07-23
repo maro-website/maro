@@ -49,8 +49,14 @@ export function BuyCreditsModal({
           . Administratori mund të të caktojë kredite menjëherë nga paneli.
         </p>
         <a
+          href="/credits"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[13.5px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+        >
+          <Coins className="h-4 w-4" /> Shto kredite
+        </a>
+        <a
           href="mailto:erzen@nice.al?subject=Maro%20Kredite"
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
+          className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
         >
           <Mail className="h-4 w-4 text-brand" /> Kontakto administratorin
         </a>

@@ -22,7 +22,7 @@ import {
   type Announcement,
 } from "@/lib/supabase/types";
 import { TOOLS } from "@/lib/tools/registry";
-import { timeAgo } from "@/lib/utils/format";
+import { timeAgo, uid } from "@/lib/utils/format";
 import {
   Users,
   FileText,
@@ -50,7 +50,11 @@ import {
   Archive,
   ThumbsUp,
   ThumbsDown,
+  Sparkles,
 } from "lucide-react";
+import type { FortConfig, FortModuleId, FortPromptLayer } from "@/lib/fort/types";
+import { getFortModuleSchema } from "@/lib/fort/schema";
+import { resolveFortConfig } from "@/lib/fort/config";
 
 type Tab =
   | "overview"
@@ -58,6 +62,7 @@ type Tab =
   | "creators"
   | "promos"
   | "prompt"
+  | "fort"
   | "reports"
   | "reklamat"
   | "pricing"
@@ -71,6 +76,7 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "creators", label: "Kreatorët", icon: Star },
   { key: "promos", label: "Promo Kode", icon: Ticket },
   { key: "prompt", label: "Master Prompts", icon: FileText },
+  { key: "fort", label: "maroFort", icon: Sparkles },
   { key: "reports", label: "Raporto", icon: Flag },
   { key: "reklamat", label: "Njoftimet", icon: Megaphone },
   { key: "pricing", label: "Çmimet", icon: Coins },
@@ -144,6 +150,7 @@ function AdminInner() {
             {tab === "creators" && <CreatorsTab />}
             {tab === "promos" && <PromosTab />}
             {tab === "prompt" && <MasterPromptsTab />}
+            {tab === "fort" && <FortTab />}
             {tab === "reports" && <ReportsTab />}
             {tab === "reklamat" && <ReklamatTab />}
             {tab === "pricing" && <PricingTab />}
@@ -250,6 +257,20 @@ function UsersTab() {
     void load();
   };
 
+  const togglePlan = async (p: Profile) => {
+    const next = p.plan === "fort" ? "free" : "fort";
+    const { error } = await getSupabaseBrowser()
+      .from("profiles")
+      .update({ plan: next })
+      .eq("id", p.id);
+    if (error) {
+      toast("Gabim: " + error.message);
+      return;
+    }
+    toast(next === "fort" ? "maroFort u aktivizua" : "maroFort u çaktivizua");
+    void load();
+  };
+
   React.useEffect(() => {
     void load();
   }, [load]);
@@ -303,6 +324,7 @@ function UsersTab() {
             <tr>
               <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
               <th className="px-4 py-2.5 font-semibold">Kreator</th>
+              <th className="px-4 py-2.5 font-semibold">maroFort</th>
               <th className="px-4 py-2.5 font-semibold">Kredite</th>
               <th className="px-4 py-2.5 font-semibold">Cakto</th>
             </tr>
@@ -329,6 +351,20 @@ function UsersTab() {
                   >
                     <Star className={`h-3.5 w-3.5 ${p.is_creator ? "fill-brand" : ""}`} />
                     {p.is_creator ? "Kreator" : "Bëje"}
+                  </button>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => togglePlan(p)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                      p.plan === "fort"
+                        ? "border-brand bg-brand-soft text-brand"
+                        : "border-line-strong text-ink-3 hover:bg-surface-2"
+                    }`}
+                    title={p.plan === "fort" ? "Hiq maroFort" : "Aktivizo maroFort"}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {p.plan === "fort" ? "Fort" : "Free"}
                   </button>
                 </td>
                 <td className="px-4 py-3 font-bold text-ink">{p.credits}</td>
@@ -369,7 +405,7 @@ function UsersTab() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-ink-3">
+                <td colSpan={5} className="px-4 py-8 text-center text-ink-3">
                   Asnjë përdorues.
                 </td>
               </tr>
@@ -929,6 +965,416 @@ function MasterPromptsTab() {
         Ruaj Master Prompts
       </Button>
     </div>
+  );
+}
+
+// ---- maroFort configuration ----
+type FortSub = "general" | "web" | "imazh" | "logo" | "layers" | "access";
+
+const FORT_SUBS: { key: FortSub; label: string }[] = [
+  { key: "general", label: "General" },
+  { key: "web", label: "maro Web" },
+  { key: "imazh", label: "maro Imazh" },
+  { key: "logo", label: "maro Logo" },
+  { key: "layers", label: "Prompt Layers" },
+  { key: "access", label: "Subscription" },
+];
+
+function FortTab() {
+  const { toast } = useToast();
+  const [config, setConfig] = React.useState<FortConfig>({});
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [sub, setSub] = React.useState<FortSub>("general");
+
+  React.useEffect(() => {
+    (async () => {
+      if (!supabaseConfigured) return setLoading(false);
+      const { data } = await getSupabaseBrowser()
+        .from("app_settings")
+        .select("fort_config")
+        .eq("id", 1)
+        .single();
+      setConfig((data?.fort_config as FortConfig) ?? {});
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await getSupabaseBrowser()
+      .from("app_settings")
+      .update({ fort_config: config, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    setSaving(false);
+    toast(error ? "Gabim: " + error.message : "maroFort u ruajt");
+  };
+
+  const patch = (p: Partial<FortConfig>) => setConfig((c) => ({ ...c, ...p }));
+
+  if (loading) return <Spinner className="h-6 w-6" />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-line bg-surface p-1.5">
+        {FORT_SUBS.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setSub(s.key)}
+            className={`rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+              sub === s.key ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {sub === "general" && <FortGeneral config={config} patch={patch} />}
+      {(sub === "web" || sub === "imazh" || sub === "logo") && (
+        <FortModuleEditor module={sub as FortModuleId} config={config} setConfig={setConfig} />
+      )}
+      {sub === "layers" && <FortLayers config={config} setConfig={setConfig} />}
+      {sub === "access" && <FortAccess config={config} patch={patch} />}
+
+      <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
+        Ruaj maroFort
+      </Button>
+    </div>
+  );
+}
+
+function FortGeneral({
+  config,
+  patch,
+}: {
+  config: FortConfig;
+  patch: (p: Partial<FortConfig>) => void;
+}) {
+  const resolved = resolveFortConfig(config);
+  const modules: FortModuleId[] = ["web", "imazh", "logo"];
+  const moduleLabels: Record<FortModuleId, string> = {
+    web: "maro Web",
+    imazh: "maro Imazh",
+    logo: "maro Logo",
+  };
+  const setModuleEnabled = (m: FortModuleId, on: boolean) =>
+    patch({ modules: { ...config.modules, [m]: { ...config.modules?.[m], enabled: on } } });
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="maroFort aktiv (globalisht)"
+        hint="Kur çaktivizohet, asnjë përdorues nuk e sheh toggle-in."
+        checked={resolved.enabled}
+        onChange={(v) => patch({ enabled: v })}
+      />
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">
+          Aktiv për tool
+        </div>
+        <div className="space-y-2">
+          {modules.map((m) => (
+            <ToggleRow
+              key={m}
+              label={moduleLabels[m]}
+              checked={config.modules?.[m]?.enabled !== false}
+              onChange={(v) => setModuleEnabled(m, v)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <Field label="Etiketa (label)">
+        <Input
+          value={config.label ?? ""}
+          placeholder={resolved.label}
+          onChange={(e) => patch({ label: e.target.value })}
+        />
+      </Field>
+      <Field label="Përshkrimi">
+        <Textarea
+          value={config.description ?? ""}
+          placeholder={resolved.description}
+          onChange={(e) => patch({ description: e.target.value })}
+        />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Teksti CTA (upgrade)">
+          <Input
+            value={config.ctaText ?? ""}
+            placeholder={resolved.ctaText}
+            onChange={(e) => patch({ ctaText: e.target.value })}
+          />
+        </Field>
+        <Field label="Badge text">
+          <Input
+            value={config.badgeText ?? ""}
+            placeholder={resolved.badgeText}
+            onChange={(e) => patch({ badgeText: e.target.value })}
+          />
+        </Field>
+      </div>
+      <ToggleRow
+        label="Shfaq Brief Strength"
+        hint="Matësi i forcës së brief-it në panel."
+        checked={resolved.briefScore}
+        onChange={(v) => patch({ briefScore: v })}
+      />
+      <ToggleRow
+        label="Fushat e reja aktive by default"
+        checked={config.newSettingsDefault ?? true}
+        onChange={(v) => patch({ newSettingsDefault: v })}
+      />
+    </div>
+  );
+}
+
+function FortModuleEditor({
+  module,
+  config,
+  setConfig,
+}: {
+  module: FortModuleId;
+  config: FortConfig;
+  setConfig: React.Dispatch<React.SetStateAction<FortConfig>>;
+}) {
+  // Show the base schema (no overrides applied) so admins can toggle/relabel.
+  const schema = React.useMemo(() => getFortModuleSchema(module, {}), [module]);
+  const overrides = config.modules?.[module]?.fields ?? {};
+
+  const setFieldOverride = (fieldId: string, patch: Record<string, unknown>) => {
+    setConfig((c) => {
+      const mod = c.modules?.[module] ?? {};
+      const fields = { ...(mod.fields ?? {}) };
+      fields[fieldId] = { ...fields[fieldId], ...patch };
+      return { ...c, modules: { ...c.modules, [module]: { ...mod, fields } } };
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        Aktivizo/çaktivizo fusha, ndrysho etiketat dhe kërkesat. Fushat kombinohen automatikisht në
+        brief-in final.
+      </div>
+      {schema.sections.map((section) => (
+        <Collapse key={section.id} title={section.label} subtitle={section.description}>
+          <div className="space-y-3">
+            {section.fields.map((f) => {
+              const ov = overrides[f.id] ?? {};
+              const enabled = ov.enabled !== false;
+              return (
+                <div key={f.id} className="rounded-xl border border-line bg-surface p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[13.5px] font-bold text-ink">
+                          {ov.label ?? f.label}
+                        </span>
+                        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-3">
+                          {f.type}
+                        </span>
+                      </div>
+                      <span className="text-[12px] text-ink-3">{f.id}</span>
+                    </div>
+                    <MiniToggle
+                      checked={enabled}
+                      onChange={(v) => setFieldOverride(f.id, { enabled: v })}
+                    />
+                  </div>
+                  {enabled && (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <Input
+                        value={ov.label ?? ""}
+                        placeholder={`Label: ${f.label}`}
+                        onChange={(e) => setFieldOverride(f.id, { label: e.target.value })}
+                      />
+                      <Input
+                        value={ov.placeholder ?? ""}
+                        placeholder={f.placeholder ?? "Placeholder…"}
+                        onChange={(e) => setFieldOverride(f.id, { placeholder: e.target.value })}
+                      />
+                      <label className="flex items-center gap-2 text-[13px] text-ink-2">
+                        <input
+                          type="checkbox"
+                          checked={ov.required ?? Boolean(f.required)}
+                          onChange={(e) => setFieldOverride(f.id, { required: e.target.checked })}
+                        />
+                        E detyrueshme
+                      </label>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Collapse>
+      ))}
+    </div>
+  );
+}
+
+function FortLayers({
+  config,
+  setConfig,
+}: {
+  config: FortConfig;
+  setConfig: React.Dispatch<React.SetStateAction<FortConfig>>;
+}) {
+  const layers = config.promptLayers ?? [];
+  const setLayers = (next: FortPromptLayer[]) => setConfig((c) => ({ ...c, promptLayers: next }));
+  const update = (id: string, patch: Partial<FortPromptLayer>) =>
+    setLayers(layers.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  const add = () =>
+    setLayers([
+      ...layers,
+      { id: uid("layer"), name: "Layer i ri", content: "", module: "universal", priority: 10, enabled: true },
+    ]);
+  const remove = (id: string) => setLayers(layers.filter((l) => l.id !== id));
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        Fragmente prompti të riperdorshme që shtohen kur maroFort është aktiv për tool-in përkatës.
+      </div>
+      {layers.map((l) => (
+        <div key={l.id} className="rounded-2xl border border-line bg-surface p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={l.name}
+              onChange={(e) => update(l.id, { name: e.target.value })}
+              className="max-w-[220px]"
+            />
+            <select
+              value={l.module}
+              onChange={(e) => update(l.id, { module: e.target.value as FortPromptLayer["module"] })}
+              className="rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink"
+            >
+              <option value="universal">Universal</option>
+              <option value="web">maro Web</option>
+              <option value="imazh">maro Imazh</option>
+              <option value="logo">maro Logo</option>
+            </select>
+            <Input
+              type="number"
+              value={l.priority ?? 10}
+              onChange={(e) => update(l.id, { priority: parseInt(e.target.value, 10) || 0 })}
+              className="w-20"
+            />
+            <label className="flex items-center gap-1.5 text-[12.5px] text-ink-2">
+              <input
+                type="checkbox"
+                checked={l.enabled !== false}
+                onChange={(e) => update(l.id, { enabled: e.target.checked })}
+              />
+              Aktiv
+            </label>
+            <button
+              onClick={() => remove(l.id)}
+              className="ml-auto grid h-8 w-8 place-items-center rounded-lg border border-line-strong text-ink-3 hover:text-c-red"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <Textarea
+            value={l.content}
+            onChange={(e) => update(l.id, { content: e.target.value })}
+            className="mt-3 min-h-[90px] font-mono text-[12px]"
+            placeholder="Përmbajtja e layer-it…"
+          />
+        </div>
+      ))}
+      <Button variant="secondary" icon={<Plus className="h-4 w-4" />} onClick={add}>
+        Shto Layer
+      </Button>
+    </div>
+  );
+}
+
+function FortAccess({
+  config,
+  patch,
+}: {
+  config: FortConfig;
+  patch: (p: Partial<FortConfig>) => void;
+}) {
+  const plan = config.plan ?? {};
+  const setPlan = (p: Partial<NonNullable<FortConfig["plan"]>>) =>
+    patch({ plan: { ...plan, ...p } });
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        Cakto planin <span className="font-semibold text-ink">maroFort</span> për përdorues të veçantë
+        te tab-i <span className="font-semibold text-ink">Përdoruesit</span>. Këtu konfiguron kartën e
+        abonimit që shfaqet te faqja e krediteve.
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Çmimi (EUR / muaj)">
+          <Input
+            type="number"
+            value={plan.priceEur ?? 19.99}
+            onChange={(e) => setPlan({ priceEur: parseFloat(e.target.value) || 0 })}
+          />
+        </Field>
+        <Field label="Kredite të përfshira">
+          <Input
+            type="number"
+            value={plan.credits ?? 2000}
+            onChange={(e) => setPlan({ credits: parseInt(e.target.value, 10) || 0 })}
+          />
+        </Field>
+      </div>
+      <Field label="Përfitimet (një për rresht)">
+        <Textarea
+          value={(plan.perks ?? []).join("\n")}
+          onChange={(e) => setPlan({ perks: e.target.value.split("\n").filter(Boolean) })}
+          className="min-h-[100px]"
+          placeholder={"Akses në maroFort mode\nBeta maroArt 1.0 falas\n2000 kredite/muaj"}
+        />
+      </Field>
+    </div>
+  );
+}
+
+// Small reusable toggle rows for the maroFort admin.
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+      <div className="min-w-0">
+        <div className="text-[13.5px] font-semibold text-ink">{label}</div>
+        {hint && <div className="text-[12px] text-ink-3">{hint}</div>}
+      </div>
+      <MiniToggle checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
+function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        checked ? "bg-brand" : "bg-line-strong"
+      }`}
+    >
+      <span
+        className={`absolute h-4 w-4 rounded-full bg-white shadow transition-all ${
+          checked ? "left-6" : "left-1"
+        }`}
+      />
+    </button>
   );
 }
 
