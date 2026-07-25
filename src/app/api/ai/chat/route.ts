@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CHAT_MODEL, completeChat, hasOpenAiKey, streamChat } from "@/lib/ai/openai";
+import { CHAT_MODEL, completeChat, hasChatKey, streamChat } from "@/lib/ai/openai";
 import { CHAT_HISTORY_LIMIT, type AiChatRequest, type ChatMsg } from "@/lib/ai/chatTypes";
 import {
   getAppSettings,
@@ -55,7 +55,7 @@ function buildSystem(toolPrompts: Record<string, string>, toolId?: string): stri
 }
 
 export async function POST(req: Request) {
-  if (!hasOpenAiKey()) {
+  if (!hasChatKey()) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }
 

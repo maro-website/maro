@@ -13,12 +13,26 @@ export function hasOpenAiKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
+// maro Fjalë may use a dedicated key (OPENAI_CHAT_API_KEY) for separate billing;
+// falls back to the shared OPENAI_API_KEY.
+export function hasChatKey(): boolean {
+  return Boolean(process.env.OPENAI_CHAT_API_KEY || process.env.OPENAI_API_KEY);
+}
+
 let cached: OpenAI | null = null;
 function client(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("NO_OPENAI_KEY");
   if (!cached) cached = new OpenAI({ apiKey });
   return cached;
+}
+
+let cachedChat: OpenAI | null = null;
+function chatClient(): OpenAI {
+  const apiKey = process.env.OPENAI_CHAT_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("NO_OPENAI_KEY");
+  if (!cachedChat) cachedChat = new OpenAI({ apiKey });
+  return cachedChat;
 }
 
 // Generate one or more images. Returns base64-encoded PNG strings (gpt-image
@@ -56,7 +70,7 @@ export async function* streamChat(opts: {
   messages: ChatMsg[];
   model?: string;
 }): AsyncGenerator<string, void, unknown> {
-  const stream = await client().chat.completions.create({
+  const stream = await chatClient().chat.completions.create({
     model: opts.model || CHAT_MODEL,
     stream: true,
     temperature: 0.7,
@@ -78,7 +92,7 @@ export async function completeChat(opts: {
   messages: ChatMsg[];
   model?: string;
 }): Promise<string> {
-  const res = await client().chat.completions.create({
+  const res = await chatClient().chat.completions.create({
     model: opts.model || CHAT_MODEL,
     temperature: 0.7,
     messages: [
