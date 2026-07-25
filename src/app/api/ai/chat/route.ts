@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CHAT_MODEL, completeChat, hasChatKey, streamChat } from "@/lib/ai/openai";
+import { CHAT_MODEL, completeChat, hasChatKey, streamChat } from "@/lib/ai/anthropic";
 import { CHAT_HISTORY_LIMIT, type AiChatRequest, type ChatMsg } from "@/lib/ai/chatTypes";
 import {
   getAppSettings,
