@@ -52,6 +52,8 @@ export interface PricingConfig {
   announcements?: Announcement[];
   /** Credit cost to reveal-and-copy a maro Prompt (one-time per user). */
   promptRevealCost?: number;
+  /** Credit cost per maro Fjale assistant reply (free for maroFort). */
+  chatCost?: number;
 }
 
 // An announcement/banner shown above a tool's prompt box. Either an uploaded

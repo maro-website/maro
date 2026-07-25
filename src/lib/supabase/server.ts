@@ -59,6 +59,7 @@ export async function getAppSettings(): Promise<AppSettings> {
         editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
         announcements: pricing.announcements ?? [],
         promptRevealCost: pricing.promptRevealCost,
+        chatCost: pricing.chatCost,
       },
     };
   };

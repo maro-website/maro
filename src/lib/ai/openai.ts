@@ -1,9 +1,13 @@
 import "server-only";
 import OpenAI, { toFile } from "openai";
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
+import type { ChatMsg } from "@/lib/ai/chatTypes";
 
 // "chatgpt image 2.0" == gpt-image-2 (OpenAI's flagship image model).
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+
+// Small, fast, cheap chat model powering maro Fjale (the writing assistant).
+export const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
 
 export function hasOpenAiKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
@@ -43,6 +47,29 @@ export async function generateImages(opts: {
   return list
     .map((d) => d.b64_json)
     .filter((b): b is string => typeof b === "string" && b.length > 0);
+}
+
+// Stream a chat completion as text deltas (maro Fjale assistant). Yields token
+// chunks as they arrive so the UI can render a live "typing" reply.
+export async function* streamChat(opts: {
+  system: string;
+  messages: ChatMsg[];
+  model?: string;
+}): AsyncGenerator<string, void, unknown> {
+  const stream = await client().chat.completions.create({
+    model: opts.model || CHAT_MODEL,
+    stream: true,
+    temperature: 0.7,
+    messages: [
+      { role: "system", content: opts.system },
+      ...opts.messages.map((m) => ({ role: m.role, content: m.content })),
+    ],
+  });
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content;
+    if (delta) yield delta;
+  }
 }
 
 // Convert a data URL ("data:image/png;base64,....") into an OpenAI upload File.

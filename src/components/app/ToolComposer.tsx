@@ -10,6 +10,7 @@ import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { CreationLightbox } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
+import { AssistantPanel } from "@/components/app/AssistantPanel";
 import { Switch } from "@/components/ui/Switch";
 import { FortToggle } from "@/components/fort/FortToggle";
 import { FortPanel } from "@/components/fort/FortPanel";
@@ -54,6 +55,7 @@ import {
   AudioLines,
   Mic,
   Lightbulb,
+  MessageSquare,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -134,6 +136,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
   const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
+  // maro Fjalë: the writing assistant drawer.
+  const [assistantOpen, setAssistantOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
   const pendingRef = React.useRef(false);
@@ -734,6 +738,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   <Maximize2 className="h-4 w-4" />
                 </IconBtn>
               )}
+              {functional && (
+                <IconBtn onClick={() => setAssistantOpen(true)} label="maro Fjalë — asistent">
+                  <MessageSquare className="h-4 w-4" />
+                </IconBtn>
+              )}
 
               {shownSettings.map((s) =>
                 s.toggle ? (
@@ -912,6 +921,21 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           onClose={() => setLightbox(null)}
         />
       )}
+
+      <AnimatePresence>
+        {assistantOpen && (
+          <AssistantPanel
+            variant="drawer"
+            toolId={tool.id}
+            onClose={() => setAssistantOpen(false)}
+            onInsert={(text) => {
+              setPrompt((p) => (p.trim() ? `${p.trim()}\n\n${text}` : text));
+              setAssistantOpen(false);
+              toast("U shtua në promptbox.");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

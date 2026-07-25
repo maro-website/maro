@@ -37,6 +37,7 @@ import {
   Lightbulb,
   History,
   ChevronDown,
+  MessageSquare,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -130,6 +131,12 @@ export function HomeSidebar({
 
         {/* maro Prompts + Çka ke maru — separate from the generation tools */}
         <div className="mb-3 flex flex-col gap-0.5">
+          <NavItem
+            active={pathname === "/fjale"}
+            icon={<MessageSquare className="h-5 w-5" />}
+            label="maro Fjalë"
+            onClick={() => go("/fjale")}
+          />
           <NavItem
             active={pathname === "/prompts"}
             icon={<Lightbulb className="h-5 w-5" />}

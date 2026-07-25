@@ -856,6 +856,7 @@ function MasterPromptsTab() {
   const [prompts, setPrompts] = React.useState<Record<string, string>>({});
   const [costs, setCosts] = React.useState<Record<string, number>>({});
   const [masterPrompt, setMasterPrompt] = React.useState("");
+  const [chatCost, setChatCost] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -871,6 +872,7 @@ function MasterPromptsTab() {
       setMasterPrompt((data?.master_prompt as string) ?? "");
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setCosts((pricing.options as Record<string, number>) ?? {});
+      if (typeof pricing.chatCost === "number") setChatCost(pricing.chatCost);
       setLoading(false);
     })();
   }, []);
@@ -890,7 +892,7 @@ function MasterPromptsTab() {
       .update({
         tool_prompts: prompts,
         master_prompt: webBase,
-        pricing: { ...pricing, options: { ...(pricing.options ?? {}), ...costs } },
+        pricing: { ...pricing, options: { ...(pricing.options ?? {}), ...costs }, chatCost },
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
@@ -972,6 +974,52 @@ function MasterPromptsTab() {
           </div>
         </Collapse>
       ))}
+
+      <Collapse
+        title={
+          <span className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-ink-2" /> Asistenti (maro Fjalë)
+          </span>
+        }
+        subtitle="Sjellja e asistentit të shkrimit dhe kosto për mesazh"
+      >
+        <Field label="Baza globale (personaliteti i asistentit)">
+          <Textarea
+            value={prompts["assistant.base"] ?? ""}
+            onChange={(e) => setPrompts((p) => ({ ...p, ["assistant.base"]: e.target.value }))}
+            className="min-h-[110px] font-mono text-[12.5px]"
+            placeholder="Instruksionet bazë për maro Fjalë (nëse bosh, përdoret një default)…"
+          />
+        </Field>
+
+        <div className="mt-4 space-y-2">
+          <div className="mb-1 text-[12px] font-bold uppercase tracking-wider text-ink-3">
+            Udhëzime sipas tool-it
+          </div>
+          {TOOLS.filter((t) => t.functional && t.kind !== "prompts").map((tool) => (
+            <Collapse key={tool.id} title={tool.name} subtitle={tool.tagline}>
+              <Field label={`Udhëzim shtesë kur useri është te ${tool.name}`}>
+                <Textarea
+                  value={prompts[`assistant.${tool.id}`] ?? ""}
+                  onChange={(e) =>
+                    setPrompts((p) => ({ ...p, [`assistant.${tool.id}`]: e.target.value }))
+                  }
+                  className="min-h-[90px] font-mono text-[12px]"
+                  placeholder={`Si duhet të ndihmojë asistenti te ${tool.name}…`}
+                />
+              </Field>
+            </Collapse>
+          ))}
+        </div>
+
+        <Field label="Kosto për mesazh (kredite) — falas për maroFort" className="mt-4 max-w-[240px]">
+          <Input
+            type="number"
+            value={chatCost}
+            onChange={(e) => setChatCost(parseInt(e.target.value, 10) || 0)}
+          />
+        </Field>
+      </Collapse>
 
       <Button icon={<Save className="h-4 w-4" />} loading={saving} onClick={save}>
         Ruaj Master Prompts
