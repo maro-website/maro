@@ -87,6 +87,7 @@ export function AssistantPanel({
         msg = "Nuk ke kredite të mjaftueshme.";
       } else if (err instanceof ChatError) {
         msg = CHAT_ERRORS[err.code] || `Gabim (${err.code}).`;
+        if (err.detail) msg += ` (${err.detail})`;
       }
       toast(msg);
       setItems((prev) =>

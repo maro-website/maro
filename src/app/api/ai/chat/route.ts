@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CHAT_MODEL, hasOpenAiKey, streamChat } from "@/lib/ai/openai";
+import { CHAT_MODEL, completeChat, hasOpenAiKey, streamChat } from "@/lib/ai/openai";
 import { CHAT_HISTORY_LIMIT, type AiChatRequest, type ChatMsg } from "@/lib/ai/chatTypes";
 import {
   getAppSettings,
@@ -113,11 +113,26 @@ export async function POST(req: Request) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: delta })}\n\n`));
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-      } catch (err) {
-        console.error("[ai/chat] failed:", err);
-        // Refund if we charged and produced nothing usable.
+      } catch (streamErr) {
+        console.error("[ai/chat] streaming failed, trying fallback:", streamErr);
+        // Fallback: some hosts buffer/break SSE; try a single non-streamed reply.
+        if (!sentAny) {
+          try {
+            const text = await completeChat({ system, messages });
+            if (text) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: text })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+              return;
+            }
+          } catch (fallbackErr) {
+            console.error("[ai/chat] fallback failed:", fallbackErr);
+          }
+        }
+        const detail = streamErr instanceof Error ? streamErr.message : String(streamErr);
         if (userId && cost && !sentAny) await refundCredits(userId, cost);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "ai-failed" })}\n\n`));
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ error: "ai-failed", detail })}\n\n`)
+        );
       } finally {
         controller.close();
       }

@@ -8,10 +8,12 @@ export { InsufficientCreditsError };
 
 export class ChatError extends Error {
   code: string;
-  constructor(code: string) {
-    super(code);
+  detail?: string;
+  constructor(code: string, detail?: string) {
+    super(detail ? `${code}: ${detail}` : code);
     this.name = "ChatError";
     this.code = code;
+    this.detail = detail;
   }
 }
 
@@ -47,6 +49,7 @@ export async function streamChat(
   const decoder = new TextDecoder();
   let buffer = "";
   let streamError: string | null = null;
+  let streamErrorDetail: string | undefined;
 
   // Parse the SSE stream: events separated by a blank line, each line "data: {...}".
   for (;;) {
@@ -64,9 +67,16 @@ export async function streamChat(
         const payload = trimmed.slice(5).trim();
         if (!payload) continue;
         try {
-          const obj = JSON.parse(payload) as { t?: string; done?: boolean; error?: string };
-          if (obj.error) streamError = obj.error;
-          else if (typeof obj.t === "string") onToken(obj.t);
+          const obj = JSON.parse(payload) as {
+            t?: string;
+            done?: boolean;
+            error?: string;
+            detail?: string;
+          };
+          if (obj.error) {
+            streamError = obj.error;
+            streamErrorDetail = obj.detail;
+          } else if (typeof obj.t === "string") onToken(obj.t);
         } catch {
           /* ignore malformed chunk */
         }
@@ -74,6 +84,6 @@ export async function streamChat(
     }
   }
 
-  if (streamError) throw new ChatError(streamError);
+  if (streamError) throw new ChatError(streamError, streamErrorDetail);
   return { creditsSpent };
 }

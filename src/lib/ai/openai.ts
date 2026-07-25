@@ -72,6 +72,23 @@ export async function* streamChat(opts: {
   }
 }
 
+// Non-streaming chat completion (fallback when streaming fails on the host).
+export async function completeChat(opts: {
+  system: string;
+  messages: ChatMsg[];
+  model?: string;
+}): Promise<string> {
+  const res = await client().chat.completions.create({
+    model: opts.model || CHAT_MODEL,
+    temperature: 0.7,
+    messages: [
+      { role: "system", content: opts.system },
+      ...opts.messages.map((m) => ({ role: m.role, content: m.content })),
+    ],
+  });
+  return res.choices?.[0]?.message?.content ?? "";
+}
+
 // Convert a data URL ("data:image/png;base64,....") into an OpenAI upload File.
 async function dataUrlToFile(dataUrl: string, index: number) {
   const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(dataUrl);
