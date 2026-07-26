@@ -15,7 +15,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -70,9 +70,13 @@ export async function POST(req: Request) {
     });
     const parsed = parseHtmlEdit(text);
     if (!parsed) {
-      if (userId && cost) await refundCredits(userId, cost);
+      let refunded = false;
+      if (userId && cost) {
+        await refundCredits(userId, cost);
+        refunded = true;
+      }
       return NextResponse.json(
-        { error: "parse-failed", detail: `no HTML parsed (chars=${text.length})` },
+        { error: "parse-failed", detail: `no HTML parsed (chars=${text.length})`, refunded },
         { status: 502 }
       );
     }
@@ -96,10 +100,14 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[ai/edit-html] failed:", err);
-    if (userId && cost) await refundCredits(userId, cost);
-    const e = err as { code?: string; detail?: string; message?: string };
+    let refunded = false;
+    if (userId && cost) {
+      await refundCredits(userId, cost);
+      refunded = true;
+    }
+    const e = err as { code?: string; detail?: string; message?: string; status?: number };
     return NextResponse.json(
-      { error: e?.code || "ai-failed", detail: e?.detail || e?.message },
+      { error: e?.code || "ai-failed", detail: e?.detail || e?.message, status: e?.status, refunded },
       { status: 502 }
     );
   }

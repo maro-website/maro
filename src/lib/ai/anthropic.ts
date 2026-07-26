@@ -5,6 +5,11 @@ import type { ChatMsg } from "@/lib/ai/chatTypes";
 export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 const AI_EFFORT = process.env.ANTHROPIC_EFFORT || "high";
 const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64000;
+// Wall-clock budget for a single website generation/edit. Kept just under the
+// Vercel Pro 800s function cap so our own abort fires first: this stops Anthropic
+// from generating (and billing) more tokens and lets the route refund cleanly
+// instead of the platform killing us with an unhandled 504.
+const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 780000;
 
 // maro Fjalë (writing assistant) runs on Opus 5 with thinking disabled for fast,
 // cheap replies. It may use a dedicated key (ANTHROPIC_CHAT_API_KEY) for separate
@@ -102,35 +107,28 @@ function extractJson<T>(text: string): T {
   return JSON.parse(t.slice(start, end + 1)) as T;
 }
 
-// Call Claude Opus 4.8 (adaptive thinking) and parse the JSON answer.
-//
-// We stream the response. With large max_tokens (a full site can need many
-// output tokens) the SDK refuses NON-streaming requests up front with
-// "Streaming is required for operations that may take longer than 10 minutes".
-// Streaming also keeps the HTTP connection alive during the ~90-110s Opus takes,
-// which is important on serverless platforms.
-export async function callClaudeJSON<T>(opts: {
-  system: string;
-  user: string;
-  maxTokens?: number;
-  effort?: string;
-}): Promise<T> {
-  const stream = client().messages.stream({
-    model: AI_MODEL,
-    max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
-    // Opus 4.8 uses adaptive thinking; depth is controlled via effort.
-    thinking: { type: "adaptive" },
-    output_config: { effort: opts.effort || AI_EFFORT },
-    system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
-    // Cast: output_config/adaptive are supported at runtime; keep params loose
-    // so the build doesn't depend on exact SDK minor-version typings.
-  } as unknown as Anthropic.MessageStreamParams);
+// Run a Claude streaming request with a hard wall-clock budget. On timeout we
+// abort the underlying HTTP request (which stops Anthropic from generating and
+// billing further tokens) and surface a precise "timeout" error so the caller
+// can refund. Streaming is required for the large max_tokens a full site needs.
+async function runClaudeStream(
+  params: Anthropic.MessageStreamParams,
+  timeoutMs = CLAUDE_TIMEOUT_MS
+): Promise<Anthropic.Message> {
+  const ac = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ac.abort();
+  }, timeoutMs);
 
-  let res: Anthropic.Message;
   try {
-    res = await stream.finalMessage();
+    const stream = client().messages.stream(params, { signal: ac.signal });
+    return await stream.finalMessage();
   } catch (e) {
+    if (timedOut) {
+      throw new ClaudeError("timeout", `exceeded ${Math.round(timeoutMs / 1000)}s time budget`);
+    }
     // API-level failure: bad key, no model access, rate limit, overloaded, timeout.
     const anyE = e as {
       status?: number;
@@ -139,7 +137,29 @@ export async function callClaudeJSON<T>(opts: {
     };
     const detail = anyE?.error?.error?.message || anyE?.message || "unknown error";
     throw new ClaudeError("api-error", detail, anyE?.status);
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+// Call Claude Opus 5 (adaptive thinking) and parse the JSON answer.
+export async function callClaudeJSON<T>(opts: {
+  system: string;
+  user: string;
+  maxTokens?: number;
+  effort?: string;
+}): Promise<T> {
+  const res = await runClaudeStream({
+    model: AI_MODEL,
+    max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
+    // Opus 5 uses adaptive thinking (on by default); depth is controlled via effort.
+    thinking: { type: "adaptive" },
+    output_config: { effort: opts.effort || AI_EFFORT },
+    system: opts.system,
+    messages: [{ role: "user", content: opts.user }],
+    // Cast: output_config/adaptive are supported at runtime; keep params loose
+    // so the build doesn't depend on exact SDK minor-version typings.
+  } as unknown as Anthropic.MessageStreamParams);
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -168,7 +188,7 @@ export async function callClaudeText(opts: {
   maxTokens?: number;
   effort?: string;
 }): Promise<{ text: string; truncated: boolean }> {
-  const stream = client().messages.stream({
+  const res = await runClaudeStream({
     model: AI_MODEL,
     max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
     thinking: { type: "adaptive" },
@@ -176,19 +196,6 @@ export async function callClaudeText(opts: {
     system: opts.system,
     messages: [{ role: "user", content: opts.user }],
   } as unknown as Anthropic.MessageStreamParams);
-
-  let res: Anthropic.Message;
-  try {
-    res = await stream.finalMessage();
-  } catch (e) {
-    const anyE = e as {
-      status?: number;
-      message?: string;
-      error?: { error?: { message?: string } };
-    };
-    const detail = anyE?.error?.error?.message || anyE?.message || "unknown error";
-    throw new ClaudeError("api-error", detail, anyE?.status);
-  }
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")

@@ -37,6 +37,7 @@ function GeneratingInner() {
   const [creditError, setCreditError] = React.useState<number | null>(null);
   const [genError, setGenError] = React.useState<string | null>(null);
   const [genDetail, setGenDetail] = React.useState<string | null>(null);
+  const [genRefunded, setGenRefunded] = React.useState(false);
   const startedRef = React.useRef(false);
   const animDoneRef = React.useRef(false);
   const aiSettledRef = React.useRef(false);
@@ -97,6 +98,7 @@ function GeneratingInner() {
           handle.cancel();
           setGenError(err.code);
           setGenDetail(err.detail ?? null);
+          setGenRefunded(err.refunded);
         }
       })
       .finally(() => {
@@ -150,6 +152,7 @@ function GeneratingInner() {
                   <ErrorCard
                     code={genError}
                     detail={genDetail}
+                    refunded={genRefunded}
                     onRetry={() => window.location.reload()}
                   />
                 ) : creditError !== null ? (
@@ -309,16 +312,19 @@ const ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
   "ai-failed": "Modeli nuk u përgjigj. Provo përsëri.",
   empty: "Modeli ktheu një përgjigje bosh. Provo përsëri.",
+  timeout: "Gjenerimi kaloi kohën e lejuar. Provo përsëri ose zvogëlo pak kërkesën.",
   "http-504": "Gjenerimi zgjati shumë dhe u ndërpre (timeout). Provo përsëri.",
 };
 
 function ErrorCard({
   code,
   detail,
+  refunded,
   onRetry,
 }: {
   code: string;
   detail: string | null;
+  refunded: boolean;
   onRetry: () => void;
 }) {
   return (
@@ -334,7 +340,9 @@ function ErrorCard({
           {detail}
         </p>
       )}
-      <p className="mt-2 text-[12.5px] text-ink-3">Kreditet u kthyen automatikisht.</p>
+      {refunded && (
+        <p className="mt-2 text-[12.5px] text-ink-3">Kreditet u kthyen automatikisht.</p>
+      )}
       <Button size="sm" className="mt-3" onClick={onRetry}>
         Provo përsëri
       </Button>

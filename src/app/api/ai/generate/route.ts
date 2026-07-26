@@ -25,9 +25,10 @@ import { compileBrief } from "@/lib/fort/compile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Opus 4.8 needs ~80-90s for a full site. Vercel Hobby allows up to 300s with
-// Fluid Compute (default on new projects), so this fits comfortably.
-export const maxDuration = 300;
+// Opus 5 (thinking on by default) can need several minutes for a large site.
+// Vercel Pro allows up to 800s with Fluid Compute; the in-code Anthropic abort
+// (ANTHROPIC_TIMEOUT_MS, ~780s) fires first so we always refund cleanly.
+export const maxDuration = 800;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -166,9 +167,18 @@ export async function POST(req: Request) {
     const { text } = await callClaudeText({ system, user, effort });
     const pages = parseHtmlPages(text);
     if (!pages.length) {
-      if (userId && cost) await refundCredits(userId, cost);
+      let refunded = false;
+      if (userId && cost) {
+        await refundCredits(userId, cost);
+        refunded = true;
+      }
       return NextResponse.json(
-        { error: "empty", detail: `no HTML pages parsed (chars=${text.length})`, fallback: true },
+        {
+          error: "empty",
+          detail: `no HTML pages parsed (chars=${text.length})`,
+          fallback: true,
+          refunded,
+        },
         { status: 502 }
       );
     }
@@ -190,7 +200,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ pages, creditsSpent: cost });
   } catch (err) {
     console.error("[ai/generate] failed:", err);
-    if (userId && cost) await refundCredits(userId, cost);
+    let refunded = false;
+    if (userId && cost) {
+      await refundCredits(userId, cost);
+      refunded = true;
+    }
     const e = err as { code?: string; detail?: string; message?: string; status?: number };
     return NextResponse.json(
       {
@@ -198,6 +212,7 @@ export async function POST(req: Request) {
         detail: e?.detail || e?.message || undefined,
         status: e?.status,
         fallback: true,
+        refunded,
       },
       { status: 502 }
     );

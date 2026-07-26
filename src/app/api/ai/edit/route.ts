@@ -14,7 +14,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -84,7 +84,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...result, cost: cost || result.cost });
   } catch (err) {
     console.error("[ai/edit] failed:", err);
-    if (userId && cost) await refundCredits(userId, cost);
-    return NextResponse.json({ error: "ai-failed", fallback: true }, { status: 502 });
+    let refunded = false;
+    if (userId && cost) {
+      await refundCredits(userId, cost);
+      refunded = true;
+    }
+    const e = err as { code?: string; detail?: string; message?: string; status?: number };
+    return NextResponse.json(
+      { error: e?.code || "ai-failed", detail: e?.detail || e?.message, fallback: true, refunded },
+      { status: 502 }
+    );
   }
 }

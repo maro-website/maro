@@ -26,13 +26,21 @@ export class GenerationError extends Error {
   fallbackOk: boolean;
   status: number;
   detail?: string;
-  constructor(code: string, status: number, fallbackOk: boolean, detail?: string) {
+  refunded: boolean;
+  constructor(
+    code: string,
+    status: number,
+    fallbackOk: boolean,
+    detail?: string,
+    refunded = false
+  ) {
     super(code);
     this.name = "GenerationError";
     this.code = code;
     this.status = status;
     this.fallbackOk = fallbackOk;
     this.detail = detail;
+    this.refunded = refunded;
   }
 }
 
@@ -137,10 +145,11 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
       error?: string;
       detail?: string;
       fallback?: boolean;
+      refunded?: boolean;
     };
     const code = j.error || `http-${res.status}`;
     // Only a missing API key (dev) justifies falling back to factory content.
-    throw new GenerationError(code, res.status, code === "no-key", j.detail);
+    throw new GenerationError(code, res.status, code === "no-key", j.detail, j.refunded ?? false);
   }
 
   const data = (await res.json()) as AiGenerateHtmlResponse;
