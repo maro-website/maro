@@ -15,7 +15,8 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 800;
+// Hobby caps at 300s; raise to 800 (and ANTHROPIC_TIMEOUT_MS) once on Pro.
+export const maxDuration = 300;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");

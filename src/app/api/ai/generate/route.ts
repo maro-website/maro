@@ -25,10 +25,10 @@ import { compileBrief } from "@/lib/fort/compile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Opus 5 (thinking on by default) can need several minutes for a large site.
-// Vercel Pro allows up to 800s with Fluid Compute; the in-code Anthropic abort
-// (ANTHROPIC_TIMEOUT_MS, ~780s) fires first so we always refund cleanly.
-export const maxDuration = 800;
+// Vercel Hobby caps functions at 300s. When on Pro, raise this to 800 and set
+// ANTHROPIC_TIMEOUT_MS=780000 to give Opus 5 more room. The in-code Anthropic
+// abort (ANTHROPIC_TIMEOUT_MS, default ~280s) fires first so we refund cleanly.
+export const maxDuration = 300;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");

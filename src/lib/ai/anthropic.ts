@@ -6,10 +6,11 @@ export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 const AI_EFFORT = process.env.ANTHROPIC_EFFORT || "high";
 const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64000;
 // Wall-clock budget for a single website generation/edit. Kept just under the
-// Vercel Pro 800s function cap so our own abort fires first: this stops Anthropic
-// from generating (and billing) more tokens and lets the route refund cleanly
-// instead of the platform killing us with an unhandled 504.
-const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 780000;
+// Vercel function cap so our own abort fires first: this stops Anthropic from
+// generating (and billing) more tokens and lets the route refund cleanly instead
+// of the platform killing us with an unhandled 504. Default suits Hobby (300s);
+// on Pro (maxDuration 800) set ANTHROPIC_TIMEOUT_MS=780000.
+const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 280000;
 
 // maro Fjalë (writing assistant) runs on Opus 5 with thinking disabled for fast,
 // cheap replies. It may use a dedicated key (ANTHROPIC_CHAT_API_KEY) for separate
