@@ -94,6 +94,9 @@ export interface ToolDef {
   /** false => the whole tool is a "coming soon" teaser (Filma, Zo). */
   functional: boolean;
   comingSoon?: boolean;
+  /** true => tool is temporarily down for technical reasons (distinct from
+   * "coming soon"); generation is disabled and a maintenance screen shows. */
+  maintenance?: boolean;
   /** Base credit cost added on top of the selected options' costs. */
   baseCost: number;
   settings: ToolSetting[];
@@ -118,7 +121,7 @@ const MARO_SPEED: ToolSetting = {
 
 // Model lists (only the first is functional per Maro's current integrations).
 const WEB_MODELS: ToolOption[] = [
-  { id: "opus-4-8", label: "Claude Opus 4.8", available: true },
+  { id: "opus-4-8", label: "Claude Opus 5", available: true },
   { id: "fable-5", label: "Claude Fable 5", available: false },
   { id: "gpt-5-6-sol", label: "GPT-5.6 Sol", available: false },
   { id: "gemini-3-1-pro", label: "Gemini 3.1 Pro", available: false },
@@ -144,11 +147,12 @@ export const TOOLS: ToolDef[] = [
     name: "maro Web",
     tagline: "Website i plotë nga një fjali",
     description:
-      "Përshkruaj biznesin dhe maro ndërton një website profesional me Claude Opus 4.8.",
+      "Përshkruaj biznesin dhe maro ndërton një website profesional me Claude Opus 5.",
     icon: Globe,
     kind: "website",
     route: "/web",
     functional: true,
+    maintenance: true,
     baseCost: 0,
     defaultPrompt: "",
     settings: [

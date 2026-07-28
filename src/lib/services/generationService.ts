@@ -1,6 +1,6 @@
 // Staged UX for the generation screen. The visual pipeline below is decoupled
 // from the actual content generation (`generateSite`), which calls Claude Opus
-// 4.8 when an API key is configured and otherwise leaves the local factory
+// 5 when an API key is configured and otherwise leaves the local factory
 // content in place.
 
 import type { Project, HtmlPage } from "@/lib/types";
@@ -106,7 +106,7 @@ export interface GeneratedSite {
   activeHtmlPageId: string;
 }
 
-// Real site generation via Claude Opus 4.8 (/api/ai/generate). Returns full,
+// Real site generation via Claude Opus 5 (/api/ai/generate). Returns full,
 // Claude-authored HTML pages. Throws on any real failure.
 export async function generateSite(project: Project): Promise<GeneratedSite> {
   const req: AiGenerateRequest = {

@@ -6,35 +6,73 @@ import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { ItemMenu, CreationLightbox } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
-import { MAIN_TOOLS, getTool } from "@/lib/tools/registry";
-import { timeAgo } from "@/lib/utils/format";
+import { getTool } from "@/lib/tools/registry";
+import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { ImageCreation, Project } from "@/lib/types";
 import {
-  History,
   Search,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
+  LayoutGrid,
+  Heart,
   Globe,
   AudioLines,
   FileText,
   Image as ImageIcon,
+  Play,
 } from "lucide-react";
 
-const PAGE_SIZE = 50;
-
 type Row =
-  | { kind: "project"; id: string; title: string; toolId: string; toolName: string; time: string; fort: boolean; project: Project }
-  | { kind: "creation"; id: string; title: string; toolId: string; toolName: string; time: string; fort: boolean; media: "image" | "audio" | "text"; creation: ImageCreation };
+  | {
+      kind: "project";
+      id: string;
+      title: string;
+      toolId: string;
+      toolName: string;
+      time: string;
+      fort: boolean;
+      favourite: boolean;
+      project: Project;
+    }
+  | {
+      kind: "creation";
+      id: string;
+      title: string;
+      toolId: string;
+      toolName: string;
+      time: string;
+      fort: boolean;
+      favourite: boolean;
+      media: "image" | "audio" | "text";
+      creation: ImageCreation;
+    };
 
-function ToolIcon({ toolId, media }: { toolId: string; media?: "image" | "audio" | "text" }) {
-  if (toolId === "website") return <Globe className="h-4 w-4" />;
-  if (media === "audio") return <AudioLines className="h-4 w-4" />;
-  if (media === "text") return <FileText className="h-4 w-4" />;
+// Thumbnail-size presets driven by the top-right slider (like Higgsfield).
+const SIZE_PRESETS = [148, 190, 240, 300];
+
+function ToolIcon({ toolId, media, className }: { toolId: string; media?: "image" | "audio" | "text"; className?: string }) {
+  const cls = className ?? "h-4 w-4";
+  if (toolId === "website") return <Globe className={cls} />;
+  if (media === "audio") return <AudioLines className={cls} />;
+  if (media === "text") return <FileText className={cls} />;
   const tool = getTool(toolId);
   const Icon = tool?.icon ?? ImageIcon;
-  return <Icon className="h-4 w-4" />;
+  return <Icon className={cls} />;
+}
+
+// Group label: "Sot", "Dje" or a localized date.
+function dayKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (diff === 0) return "Sot";
+  if (diff === 1) return "Dje";
+  return d.toLocaleDateString("sq-AL", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function KrijimetInner() {
@@ -42,10 +80,9 @@ function KrijimetInner() {
   const searchParams = useSearchParams();
   const { projects, creations } = useMaro();
 
-  const [toolFilter, setToolFilter] = React.useState<string>(searchParams.get("tool") ?? "all");
+  const [filter, setFilter] = React.useState<string>(searchParams.get("tool") ?? "all");
   const [query, setQuery] = React.useState("");
-  const [fortFilter, setFortFilter] = React.useState<"all" | "with" | "without">("all");
-  const [page, setPage] = React.useState(0);
+  const [sizeIdx, setSizeIdx] = React.useState(1);
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
 
   const rows: Row[] = React.useMemo(() => {
@@ -57,6 +94,7 @@ function KrijimetInner() {
       toolName: "maro Web",
       time: p.updatedAt,
       fort: Boolean(p.fort?.enabled),
+      favourite: Boolean(p.favourite),
       project: p,
     }));
     const creaRows: Row[] = creations.map((c) => {
@@ -69,6 +107,7 @@ function KrijimetInner() {
         toolName: tool?.name ?? "Krijim",
         time: c.createdAt,
         fort: false,
+        favourite: Boolean(c.favourite),
         media: c.mediaType ?? "image",
         creation: c,
       };
@@ -76,167 +115,292 @@ function KrijimetInner() {
     return [...projRows, ...creaRows].sort((a, b) => +new Date(b.time) - +new Date(a.time));
   }, [projects, creations]);
 
+  // Tool buckets that actually have items (for the left rail "Tools" group).
+  const toolBuckets = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string; count: number; media?: "image" | "audio" | "text" }>();
+    for (const r of rows) {
+      const key = r.toolId;
+      const existing = map.get(key);
+      if (existing) existing.count += 1;
+      else
+        map.set(key, {
+          id: key,
+          name: r.toolName,
+          count: 1,
+          media: r.kind === "creation" ? r.media : undefined,
+        });
+    }
+    return Array.from(map.values());
+  }, [rows]);
+
+  const favCount = React.useMemo(() => rows.filter((r) => r.favourite).length, [rows]);
+
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (toolFilter !== "all" && r.toolId !== toolFilter) return false;
-      if (fortFilter === "with" && !r.fort) return false;
-      if (fortFilter === "without" && r.fort) return false;
+      if (filter === "fav" && !r.favourite) return false;
+      if (filter !== "all" && filter !== "fav" && r.toolId !== filter) return false;
       if (q && !r.title.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [rows, toolFilter, fortFilter, query]);
+  }, [rows, filter, query]);
 
-  React.useEffect(() => setPage(0), [toolFilter, fortFilter, query]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount - 1);
-  const pageRows = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+  // Group filtered rows by day, preserving desc order.
+  const groups = React.useMemo(() => {
+    const out: { key: string; label: string; items: Row[] }[] = [];
+    let last: { key: string; label: string; items: Row[] } | null = null;
+    for (const r of filtered) {
+      const k = dayKey(r.time);
+      if (!last || last.key !== k) {
+        last = { key: k, label: dayLabel(r.time), items: [] };
+        out.push(last);
+      }
+      last.items.push(r);
+    }
+    return out;
+  }, [filtered]);
 
   const openRow = (r: Row) => {
     if (r.kind === "project") {
       const href = r.project.status === "generating" ? `/projects/${r.id}/generating` : `/projects/${r.id}/editor`;
       router.push(href);
-    } else if (r.media === "image" || r.media === "audio" || r.media === "text") {
+    } else {
       setLightbox(r.creation);
     }
   };
 
-  const toolOptions = [{ id: "all", name: "Të gjitha" }, ...MAIN_TOOLS.map((t) => ({ id: t.id, name: t.name }))];
+  const minW = SIZE_PRESETS[sizeIdx];
 
   return (
-    <div className="relative h-full overflow-y-auto scroll-thin">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[280px] bg-aurora" />
-      <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">
-        <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-surface-2 text-brand">
-            <History className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-[26px] font-semibold tracking-[-0.03em] text-ink">Çka ke maru</h1>
-            <p className="text-[13.5px] text-ink-3">Të gjitha krijimet e tua në një vend.</p>
-          </div>
+    <div className="flex h-full">
+      {/* Left rail — asset library sections */}
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface/40 px-3 py-5 md:flex">
+        <div className="px-2 pb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
+          Biblioteka
         </div>
+        <RailItem
+          active={filter === "all"}
+          icon={<LayoutGrid className="h-4 w-4" />}
+          label="Të gjitha"
+          count={rows.length}
+          onClick={() => setFilter("all")}
+        />
+        <RailItem
+          active={filter === "fav"}
+          icon={<Heart className={cn("h-4 w-4", filter === "fav" && "fill-current")} />}
+          label="Të preferuarat"
+          count={favCount}
+          onClick={() => setFilter("fav")}
+        />
 
-        {/* Filters */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-line-strong bg-surface px-4 py-2.5">
-            <Search className="h-4 w-4 text-ink-3" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Kërko sipas titullit…"
-              className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
+        {toolBuckets.length > 0 && (
+          <>
+            <div className="mt-5 px-2 pb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">
+              Tools
+            </div>
+            {toolBuckets.map((t) => (
+              <RailItem
+                key={t.id}
+                active={filter === t.id}
+                icon={<ToolIcon toolId={t.id} media={t.media} />}
+                label={t.name}
+                count={t.count}
+                onClick={() => setFilter(t.id)}
+              />
+            ))}
+          </>
+        )}
+      </aside>
+
+      {/* Main area */}
+      <div className="relative min-w-0 flex-1 overflow-y-auto scroll-thin">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[220px] bg-aurora" />
+
+        {/* Sticky toolbar */}
+        <div className="sticky top-0 z-10 border-b border-line bg-canvas/85 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2">
+              <Search className="h-4 w-4 shrink-0 text-ink-3" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Kërko…"
+                className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
+              />
+            </div>
+            {/* Mobile filter dropdown */}
             <select
-              value={toolFilter}
-              onChange={(e) => setToolFilter(e.target.value)}
-              className="rounded-2xl border border-line-strong bg-surface px-3 py-2.5 text-[14px] font-medium text-ink outline-none"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-[13.5px] font-medium text-ink outline-none md:hidden"
             >
-              {toolOptions.map((t) => (
+              <option value="all">Të gjitha</option>
+              <option value="fav">Të preferuarat</option>
+              {toolBuckets.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
               ))}
             </select>
-            <select
-              value={fortFilter}
-              onChange={(e) => setFortFilter(e.target.value as "all" | "with" | "without")}
-              className="rounded-2xl border border-line-strong bg-surface px-3 py-2.5 text-[14px] font-medium text-ink outline-none"
-            >
-              <option value="all">maroFort: të gjitha</option>
-              <option value="with">Me maroFort</option>
-              <option value="without">Pa maroFort</option>
-            </select>
+            {/* Size slider */}
+            <div className="hidden items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2 sm:flex">
+              <LayoutGrid className="h-3.5 w-3.5 text-ink-3" />
+              <input
+                type="range"
+                min={0}
+                max={SIZE_PRESETS.length - 1}
+                value={sizeIdx}
+                onChange={(e) => setSizeIdx(Number(e.target.value))}
+                className="h-1 w-24 cursor-pointer accent-brand"
+                aria-label="Madhësia e pamjes"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface">
-          <div className="hidden grid-cols-[1fr_160px_140px_120px_44px] items-center gap-3 border-b border-line px-4 py-2.5 text-[11.5px] font-bold uppercase tracking-wider text-ink-3 sm:grid">
-            <span>Titulli</span>
-            <span>Tool</span>
-            <span>Krijuar</span>
-            <span>maroFort</span>
-            <span />
-          </div>
-
-          {pageRows.length === 0 ? (
-            <div className="px-5 py-16 text-center text-[13.5px] text-ink-3">
-              Asnjë krijim nuk përputhet me filtrat.
+        <div className="px-4 py-6 sm:px-6">
+          {groups.length === 0 ? (
+            <div className="grid place-items-center rounded-2xl border border-line bg-surface py-24 text-center">
+              <LayoutGrid className="h-8 w-8 text-ink-3" />
+              <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë krijim këtu</p>
+              <p className="mt-1 text-[13.5px] text-ink-3">
+                {query ? "Provo një kërkim tjetër." : "Gjenero diçka dhe do të shfaqet këtu."}
+              </p>
             </div>
           ) : (
-            pageRows.map((r, i) => (
-              <motion.div
-                key={r.kind + r.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                className={cn(
-                  "group grid grid-cols-[1fr_44px] items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2 sm:grid-cols-[1fr_160px_140px_120px_44px]",
-                  i !== pageRows.length - 1 && "border-b border-line"
-                )}
-              >
-                <button onClick={() => openRow(r)} className="flex min-w-0 items-center gap-3 text-left">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2">
-                    <ToolIcon toolId={r.toolId} media={r.kind === "creation" ? r.media : undefined} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[14px] font-semibold text-ink">{r.title}</span>
-                    <span className="block truncate text-[12px] text-ink-3 sm:hidden">
-                      {r.toolName} · {timeAgo(r.time)}
-                    </span>
-                  </span>
-                </button>
-                <span className="hidden text-[13px] text-ink-2 sm:block">{r.toolName}</span>
-                <span className="hidden text-[13px] text-ink-3 sm:block">{timeAgo(r.time)}</span>
-                <span className="hidden sm:block">
-                  {r.fort ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-c-red/10 px-2 py-0.5 text-[11.5px] font-bold text-c-red">
-                      <Sparkles className="h-3 w-3" /> Fort
-                    </span>
-                  ) : (
-                    <span className="text-[13px] text-ink-3">—</span>
-                  )}
-                </span>
-                <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                  <RowMenu row={r} />
-                </div>
-              </motion.div>
-            ))
+            <div className="flex flex-col gap-8">
+              {groups.map((g) => (
+                <section key={g.key}>
+                  <h2 className="mb-3 text-[14px] font-bold tracking-[-0.01em] text-ink">{g.label}</h2>
+                  <div
+                    className="grid gap-3"
+                    style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minW}px, 1fr))` }}
+                  >
+                    {g.items.map((r, i) => (
+                      <AssetCard key={r.kind + r.id} row={r} index={i} onOpen={() => openRow(r)} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           )}
         </div>
-
-        {/* Pagination */}
-        {pageCount > 1 && (
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-[13px] text-ink-3">
-              {filtered.length} krijime · faqja {current + 1}/{pageCount}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={current === 0}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-line-strong bg-surface text-ink-2 transition-colors hover:bg-surface-2 disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-                disabled={current >= pageCount - 1}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-line-strong bg-surface text-ink-2 transition-colors hover:bg-surface-2 disabled:opacity-40"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {lightbox && (
         <CreationLightbox creation={lightbox} open={lightbox !== null} onClose={() => setLightbox(null)} />
+      )}
+    </div>
+  );
+}
+
+function RailItem({
+  active,
+  icon,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] font-semibold transition-colors",
+        active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+      )}
+    >
+      <span className={cn(active ? "text-brand" : "text-ink-3")}>{icon}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="text-[12px] font-semibold text-ink-3">{count}</span>
+    </button>
+  );
+}
+
+function AssetCard({ row, index, onOpen }: { row: Row; index: number; onOpen: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.02, 0.25) }}
+      className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-subtle transition-shadow hover:shadow-pop"
+    >
+      <button onClick={onOpen} className="block aspect-[4/3] w-full">
+        <AssetThumb row={row} />
+      </button>
+
+      {/* Bottom gradient with title */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-2.5 pt-8">
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/80">
+            <ToolIcon toolId={row.toolId} media={row.kind === "creation" ? row.media : undefined} className="h-3.5 w-3.5" />
+          </span>
+          <span className="truncate text-[12.5px] font-semibold text-white">{row.title}</span>
+        </div>
+      </div>
+
+      {/* Fort badge */}
+      {row.fort && (
+        <span
+          className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white"
+          style={{ background: "#ff0000" }}
+        >
+          <Sparkles className="h-3 w-3" /> Fort
+        </span>
+      )}
+
+      {/* Favourite marker */}
+      {row.favourite && (
+        <span className="absolute right-10 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white backdrop-blur">
+          <Heart className="h-3.5 w-3.5 fill-current" />
+        </span>
+      )}
+
+      {/* Hover menu */}
+      <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="rounded-lg bg-black/45 backdrop-blur">
+          <RowMenu row={row} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AssetThumb({ row }: { row: Row }) {
+  if (row.kind === "project") {
+    return (
+      <div
+        className="grid h-full w-full place-items-center text-[28px] font-black text-white"
+        style={{ background: row.project.theme?.primaryColor ?? "#6b46e5" }}
+      >
+        {initials(row.title)}
+      </div>
+    );
+  }
+  if (row.media === "image" && row.creation.urls[0]) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={row.creation.urls[0]}
+        alt=""
+        loading="lazy"
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+      />
+    );
+  }
+  return (
+    <div className="grid h-full w-full place-items-center text-ink-3">
+      {row.media === "audio" ? (
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-surface text-brand shadow-subtle">
+          <Play className="h-5 w-5" />
+        </span>
+      ) : (
+        <FileText className="h-8 w-8" />
       )}
     </div>
   );

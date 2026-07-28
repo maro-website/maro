@@ -54,6 +54,9 @@ import {
   AudioLines,
   Mic,
   Lightbulb,
+  Eraser,
+  Wrench,
+  ImagePlus,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -136,6 +139,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
+  const [dragOver, setDragOver] = React.useState(false);
+  const dragDepth = React.useRef(0);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const audioFileRef = React.useRef<HTMLInputElement>(null);
@@ -145,7 +150,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   const isImage = tool.kind === "image";
   const isAudio = tool.kind === "audio";
-  const functional = tool.functional;
+  // Temporarily down for technical reasons (distinct from "coming soon").
+  const maintenance = Boolean(tool.maintenance);
+  const functional = tool.functional && !maintenance;
 
   // Audio (maro Zo) is mode-based: the first setting is the mode selector and
   // each mode option carries flags for what inputs it needs.
@@ -279,21 +286,48 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     });
   };
 
+  const addImageFiles = React.useCallback(
+    (files: File[]) => {
+      setAttachments((current) => {
+        const room = MAX_ATTACHMENTS - current.length;
+        if (room <= 0) {
+          toast(`Maksimumi ${MAX_ATTACHMENTS} imazhe.`);
+          return current;
+        }
+        files
+          .filter((f) => f.type.startsWith("image/"))
+          .slice(0, room)
+          .forEach((f) => {
+            if (f.size > 8 * 1024 * 1024) {
+              toast("Imazhi është shumë i madh (max 8MB).");
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => setAttachments((a) => [...a, reader.result as string]);
+            reader.readAsDataURL(f);
+          });
+        return current;
+      });
+    },
+    [toast]
+  );
+
   const addFiles = (files: FileList | null) => {
     if (!files) return;
-    const room = MAX_ATTACHMENTS - attachments.length;
-    Array.from(files)
-      .slice(0, room)
-      .forEach((f) => {
-        if (!f.type.startsWith("image/")) return;
-        if (f.size > 8 * 1024 * 1024) {
-          toast("Imazhi është shumë i madh (max 8MB).");
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => setAttachments((a) => [...a, reader.result as string]);
-        reader.readAsDataURL(f);
-      });
+    addImageFiles(Array.from(files));
+  };
+
+  // Paste an image straight from the clipboard (Ctrl/Cmd+V) into attachments.
+  const onPasteImages = (e: React.ClipboardEvent) => {
+    if (!isImage || !functional) return;
+    const files = Array.from(e.clipboardData?.items ?? [])
+      .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => Boolean(f));
+    if (files.length) {
+      e.preventDefault();
+      addImageFiles(files);
+    }
   };
 
   const pickAudio = (files: FileList | null) => {
@@ -480,7 +514,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   const onGenerate = () => {
     if (!functional) {
-      toast(`${tool.name} vjen së shpejti.`);
+      toast(maintenance ? `${tool.name} është në mirëmbajtje.` : `${tool.name} vjen së shpejti.`);
       return;
     }
     if (!canGenerate || loading) return;
@@ -532,13 +566,69 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       ? audioPlaceholder
       : "Shkruaj tekstin që do të kthehet në zë…";
 
+  // Whole-page drag & drop for image tools: dropping anywhere attaches images.
+  const dndEnabled = isImage && functional;
+  const onDragEnter = (e: React.DragEvent) => {
+    if (!dndEnabled) return;
+    if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+    dragDepth.current += 1;
+    setDragOver(true);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    if (!dndEnabled) return;
+    if (Array.from(e.dataTransfer?.types ?? []).includes("Files")) e.preventDefault();
+  };
+  const onDragLeave = () => {
+    if (!dndEnabled) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragOver(false);
+  };
+  const onDropFiles = (e: React.DragEvent) => {
+    if (!dndEnabled) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length) addImageFiles(files);
+  };
+
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDropFiles}
+    >
+      {/* Full-page drop overlay */}
+      <AnimatePresence>
+        {dragOver && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-canvas/80 backdrop-blur-sm"
+          >
+            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-brand bg-surface/80 px-10 py-8 text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <ImagePlus className="h-7 w-7" />
+              </span>
+              <div className="text-[16px] font-bold text-ink">Lësho për ta bashkëngjitur</div>
+              <div className="text-[13px] text-ink-3">Deri në {MAX_ATTACHMENTS} imazhe</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Scroll area — ChatGPT-style conversation for image tools, plus the
           maroFort expert panel (when enabled). */}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto scroll-thin">
         <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
-          {!functional && <ComingSoonHero tool={tool} />}
+          {maintenance ? (
+            <MaintenanceHero tool={tool} />
+          ) : (
+            !functional && <ComingSoonHero tool={tool} />
+          )}
 
           {functional && (isImage || isAudio) && messages.length > 0 && (
             <div className="mb-4 flex flex-col gap-4">
@@ -679,6 +769,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
                 }}
+                onPaste={onPasteImages}
                 rows={2}
                 placeholder={placeholder}
                 className="relative block max-h-52 min-h-[64px] w-full resize-none rounded-2xl bg-transparent px-3 pt-2.5 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
@@ -785,10 +876,17 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             </div>
           </div>
-          {!functional && (
+          {maintenance ? (
+            <p className="mt-2 text-center text-[12.5px] text-ink-3">
+              {tool.name} është përkohësisht në mirëmbajtje. Po e rregullojmë për një eksperiencë më
+              të mirë.
+            </p>
+          ) : !functional ? (
             <p className="mt-2 text-center text-[12.5px] text-ink-3">
               {tool.name} vjen së shpejti. Provoje interfejsin, gjenerimi aktivizohet së afërmi.
             </p>
+          ) : (
+            <p className="mt-2 text-center text-[12.5px] text-ink-3">maro mund të bëjë gabime. Kontrollo rezultatet.</p>
           )}
         </div>
       </div>
@@ -846,9 +944,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           <button
             type="button"
             onClick={resetFort}
-            className="rounded-xl border border-line-strong bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line-strong bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
           >
-            Rikthe fillimin
+            <Eraser className="h-3.5 w-3.5" />
+            Pastroje
           </button>
         </div>
 
@@ -1061,6 +1160,37 @@ function SettingSelect({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ---- Maintenance hero (technical issues, e.g. maro Web) ----
+function MaintenanceHero({ tool }: { tool: ToolDef }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-6 flex flex-col items-center rounded-3xl border border-line bg-surface px-6 py-16 text-center"
+    >
+      <div className="relative grid h-20 w-20 place-items-center">
+        <span className="absolute inset-0 rounded-2xl bg-warning/10" />
+        <motion.span
+          className="relative text-warning"
+          animate={{ rotate: [0, -18, 0, 18, 0] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Wrench className="h-9 w-9" />
+        </motion.span>
+      </div>
+      <h1 className="mt-6 text-[26px] font-extrabold tracking-[-0.03em] text-ink">{tool.name}</h1>
+      <p className="mt-2 max-w-md text-[14.5px] text-ink-2">
+        Kemi disa probleme teknike dhe po e rregullojmë defektin për një eksperiencë më të mirë.
+        Faleminderit për durimin.
+      </p>
+      <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1 text-[12.5px] font-semibold text-warning">
+        <Wrench className="h-3.5 w-3.5" /> Në mirëmbajtje
+      </span>
+    </motion.div>
   );
 }
 

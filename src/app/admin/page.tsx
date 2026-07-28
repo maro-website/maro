@@ -23,6 +23,7 @@ import {
   type Announcement,
 } from "@/lib/supabase/types";
 import { TOOLS } from "@/lib/tools/registry";
+import { pushNotification, type NotificationType } from "@/lib/notifications/store";
 import { timeAgo, uid } from "@/lib/utils/format";
 import {
   Users,
@@ -53,6 +54,8 @@ import {
   ThumbsDown,
   Sparkles,
   Lightbulb,
+  Bell,
+  Gift,
 } from "lucide-react";
 import type { FortConfig, FortModuleId, FortPromptLayer } from "@/lib/fort/types";
 import { getFortModuleSchema } from "@/lib/fort/schema";
@@ -220,17 +223,87 @@ function OverviewTab() {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map((c) => (
-        <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
-          <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
-            <c.icon className="h-4 w-4" /> {c.label}
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
+            <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
+              <c.icon className="h-4 w-4" /> {c.label}
+            </div>
+            <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
+              {c.value.toLocaleString()}
+            </div>
           </div>
-          <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
-            {c.value.toLocaleString()}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <NotificationsTestCard />
+    </div>
+  );
+}
+
+// Dev/QA helper: drop one of each in-app notification type into your own bell so
+// you can preview how each looks. (No email delivery exists yet.)
+function NotificationsTestCard() {
+  const { user } = useMaro();
+  const { toast } = useToast();
+
+  const samples: { type: NotificationType; icon: React.ElementType; title: string; body: string }[] = [
+    {
+      type: "credits",
+      icon: Coins,
+      title: "Kreditet u shtuan",
+      body: "500 kredite u shtuan në llogarinë tënde.",
+    },
+    {
+      type: "giveaway",
+      icon: Gift,
+      title: "Fitove një giveaway!",
+      body: "Ke fituar 200 kredite falas. Gëzuar!",
+    },
+    {
+      type: "referral",
+      icon: Users,
+      title: "Referim i ri",
+      body: "Dikush përdori kodin tënd — fitove komision.",
+    },
+  ];
+
+  const send = (s: (typeof samples)[number]) => {
+    pushNotification(user?.id ?? null, { type: s.type, title: s.title, body: s.body });
+    toast("Njoftimi u dërgua te zilja jote.");
+  };
+
+  const sendAll = () => {
+    samples.forEach((s) => pushNotification(user?.id ?? null, { type: s.type, title: s.title, body: s.body }));
+    toast("Të gjitha njoftimet u dërguan te zilja jote.");
+  };
+
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
+        <Bell className="h-4 w-4 text-brand" /> Njoftime provë
+      </div>
+      <p className="mt-1 text-[13px] leading-relaxed text-ink-3">
+        Njoftimet për momentin janë vetëm brenda aplikacionit (zilja lart). Nuk ka dërgim me email
+        ende. Kliko për të parë secilin lloj te zilja jote.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {samples.map((s) => (
+          <button
+            key={s.type}
+            onClick={() => send(s)}
+            className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
+          >
+            <s.icon className="h-4 w-4 text-brand" /> {s.title}
+          </button>
+        ))}
+        <button
+          onClick={sendAll}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand px-3.5 py-2 text-[13px] font-bold text-brand-fg transition-colors hover:bg-brand-hover"
+        >
+          <Bell className="h-4 w-4" /> Dërgo të gjitha
+        </button>
+      </div>
     </div>
   );
 }

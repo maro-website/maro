@@ -135,7 +135,7 @@ export const SPEED_OPTIONS: { key: SpeedKey; label: string; hint: string }[] = [
 ];
 
 export const MODEL_OPTIONS: { key: ModelKey; label: string }[] = [
-  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { key: "claude-opus-4-8", label: "Claude Opus 5" },
 ];
 
 // Compute credit cost for a given website type + speed using a pricing config.

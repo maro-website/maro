@@ -22,7 +22,7 @@ export interface AiEditResult {
   mutate: (p: Project) => Project;
 }
 
-// Real AI edit powered by Claude Opus 4.8 (via /api/ai/edit). Throws on any
+// Real AI edit powered by Claude Opus 5 (via /api/ai/edit). Throws on any
 // failure (no key, network, bad output) so the caller can fall back to the
 // local mock interpreter and the editor keeps working offline.
 export async function requestAiEdit(prompt: string, project: Project): Promise<AiEditResult> {

@@ -187,7 +187,7 @@ function GeneratingInner() {
 
 const HEADINGS = [
   "Po e mendoj strukturën e faqes…",
-  "Po e maroj faqen tënde me Claude Opus 4.8…",
+  "Po e maroj faqen tënde me Claude Opus 5…",
   "Po shkruaj HTML & CSS premium…",
   "Po i rregulloj detajet e dizajnit…",
   "Pothuajse gati…",

@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 
 const TEAL = "#00fdba";
+const REVEAL_NO_CONFIRM_KEY = "maro:promptRevealNoConfirm";
 
 export default function PromptsPage() {
   const router = useRouter();
@@ -101,20 +102,19 @@ export default function PromptsPage() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[360px] bg-aurora" />
 
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-          {/* Header */}
-          <div className="flex flex-col items-center text-center">
+          {/* Mini-hero */}
+          <div className="flex flex-col items-center py-8 text-center sm:py-12">
             <span
               className="grid h-14 w-14 place-items-center rounded-2xl"
               style={{ background: "rgba(0,253,186,0.12)", color: TEAL }}
             >
               <Lightbulb className="h-7 w-7" />
             </span>
-            <h1 className="mt-4 text-[clamp(26px,4vw,38px)] font-light tracking-[-0.03em] text-ink">
+            <h1 className="mt-5 text-[clamp(28px,5vw,44px)] font-light tracking-[-0.03em] text-ink">
               maro Prompts
             </h1>
-            <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-ink-2">
-              Prompte profesionale gati për t&apos;u përdorur. Zgjidh një, shtoje te tooli me një
-              klik dhe ngarko produktin tënd.
+            <p className="mt-3 text-[clamp(16px,2.2vw,20px)] font-medium text-ink-2">
+              Lype, kliko &amp; maro
             </p>
           </div>
 
@@ -172,16 +172,17 @@ export default function PromptsPage() {
                 <p className="mt-1 text-[13.5px] text-ink-3">Provo një kategori ose fjalëkyç tjetër.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 [column-fill:_balance]">
                 {filtered.map((p) => (
-                  <PromptCard
-                    key={p.id}
-                    item={p}
-                    liked={liked.has(p.id)}
-                    owned={owned.has(p.id)}
-                    onOpen={() => setActive(p)}
-                    onLike={() => onToggleLike(p)}
-                  />
+                  <div key={p.id} className="mb-3 break-inside-avoid">
+                    <PromptCard
+                      item={p}
+                      liked={liked.has(p.id)}
+                      owned={owned.has(p.id)}
+                      onOpen={() => setActive(p)}
+                      onLike={() => onToggleLike(p)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -316,41 +317,44 @@ function PromptCard({
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-shadow hover:shadow-pop">
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="relative aspect-square w-full overflow-hidden bg-surface-2">
+        <div className="relative w-full overflow-hidden bg-surface-2">
           {item.featured_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.featured_url}
               alt=""
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]"
             />
           ) : (
-            <div className="grid h-full w-full place-items-center text-ink-3">
+            <div className="grid aspect-[3/4] w-full place-items-center text-ink-3">
               <Lightbulb className="h-8 w-8" />
             </div>
           )}
-          <span className="absolute left-2 top-2 rounded-full bg-ink/70 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+          <span className="absolute left-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-[12px] font-semibold text-white backdrop-blur">
             {item.category}
           </span>
           {owned && (
             <span
-              className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[#04231b]"
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-[#04231b]"
               style={{ background: TEAL }}
               title="E blere"
             >
-              <Check className="h-3.5 w-3.5" />
+              <Check className="h-4 w-4" />
             </span>
           )}
-        </div>
-        <div className="flex items-center justify-between px-3 py-2.5">
-          <span className="font-mono text-[11.5px] font-semibold text-ink-3">{item.code}</span>
-          <span className="text-[11.5px] text-ink-3">{toolName}</span>
+          {/* Bottom overlay: code + tool + like */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-3 pb-2.5 pt-10">
+            <span className="min-w-0">
+              <span className="block truncate font-mono text-[12px] font-bold text-white">{item.code}</span>
+              <span className="block truncate text-[11.5px] text-white/70">{toolName}</span>
+            </span>
+          </div>
         </div>
       </button>
       <button
         onClick={onLike}
-        className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-surface/90 text-ink-3 shadow-sm backdrop-blur transition-colors hover:text-ink"
+        className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white shadow-sm backdrop-blur transition-colors hover:bg-black/55"
         style={liked ? { color: "#ff5a7a" } : undefined}
         aria-label="Pëlqe"
       >
@@ -382,6 +386,8 @@ function PromptLightbox({
   const [revealed, setRevealed] = React.useState<string | null>(null);
   const [revealing, setRevealing] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [dontAsk, setDontAsk] = React.useState(false);
   const toolName = getTool(item.target_tool)?.name ?? item.target_tool;
 
   const doReveal = async () => {
@@ -389,6 +395,35 @@ function PromptLightbox({
     const text = await onReveal();
     setRevealing(false);
     if (text !== null) setRevealed(text);
+  };
+
+  // Owned prompts are free to re-copy; the paid path shows a confirmation the
+  // first time (until the user opts out via "don't ask again").
+  const requestReveal = () => {
+    if (owned) {
+      void doReveal();
+      return;
+    }
+    let skip = false;
+    try {
+      skip = localStorage.getItem(REVEAL_NO_CONFIRM_KEY) === "1";
+    } catch {
+      /* ignore */
+    }
+    if (skip) void doReveal();
+    else setConfirmOpen(true);
+  };
+
+  const confirmReveal = () => {
+    if (dontAsk) {
+      try {
+        localStorage.setItem(REVEAL_NO_CONFIRM_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+    }
+    setConfirmOpen(false);
+    void doReveal();
   };
 
   const doCopy = async () => {
@@ -491,7 +526,7 @@ function PromptLightbox({
             <div className="flex gap-2">
               {revealed === null ? (
                 <button
-                  onClick={doReveal}
+                  onClick={requestReveal}
                   disabled={revealing}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
@@ -503,8 +538,8 @@ function PromptLightbox({
                     <Lock className="h-4 w-4" />
                   )}
                   {owned
-                    ? "Zbulo & kopjo"
-                    : `Zbulo & kopjo · ${DEFAULT_PROMPT_REVEAL_COST}`}
+                    ? "Analizoje + kopjoje"
+                    : `Analizoje + kopjoje · ${DEFAULT_PROMPT_REVEAL_COST}`}
                 </button>
               ) : null}
               <button
@@ -518,13 +553,71 @@ function PromptLightbox({
             </div>
             {!owned && revealed === null && (
               <p className="text-center text-[12px] text-ink-3">
-                Zbulimi kushton {DEFAULT_PROMPT_REVEAL_COST} kredite vetëm për ta përdorur jashtë
-                maro. Brenda maro, &quot;+ maro&quot; është falas.
+                &quot;Analizoje + kopjoje&quot; kushton {DEFAULT_PROMPT_REVEAL_COST} kredite dhe të
+                jep tekstin e plotë për ta studiuar ose përdorur jashtë maro. Brenda maro,
+                &quot;maro&quot; është gjithmonë falas.
               </p>
             )}
           </div>
         </div>
       </div>
+
+      {/* Confirmation before spending credits to reveal */}
+      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} size="sm">
+        <div className="p-6">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="grid h-10 w-10 place-items-center rounded-xl"
+              style={{ background: "rgba(0,253,186,0.14)", color: "#0b8f6e" }}
+            >
+              <Lock className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-[16px] font-bold text-ink">Analizoje promptin</div>
+              <div className="text-[12.5px] text-ink-3">{DEFAULT_PROMPT_REVEAL_COST} kredite</div>
+            </div>
+          </div>
+
+          <p className="mt-4 text-[13.5px] leading-relaxed text-ink-2">
+            Kjo të hap tekstin e plotë të promptit që ta studiosh ose ta përdorësh jashtë maro. Nëse
+            do vetëm ta gjenerosh brenda maro, kliko <span className="font-semibold text-ink">&quot;maro&quot;</span>{" "}
+            &mdash; është falas.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setDontAsk((v) => !v)}
+            className="mt-4 flex w-full items-center gap-2.5 text-left text-[13px] font-medium text-ink-2"
+          >
+            <span
+              className={cn(
+                "grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-colors",
+                dontAsk ? "border-transparent text-[#04231b]" : "border-line-strong text-transparent"
+              )}
+              style={dontAsk ? { background: TEAL } : undefined}
+            >
+              <Check className="h-3.5 w-3.5" />
+            </span>
+            Mos ma lyp këtë konfirmim më
+          </button>
+
+          <div className="mt-5 flex gap-2">
+            <button
+              onClick={() => setConfirmOpen(false)}
+              className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
+            >
+              Anulo
+            </button>
+            <button
+              onClick={confirmReveal}
+              className="flex-1 rounded-xl px-4 py-3 text-[14px] font-bold text-[#04231b] transition-transform active:scale-[0.98]"
+              style={{ background: TEAL }}
+            >
+              Po, analizoje · {DEFAULT_PROMPT_REVEAL_COST}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   );
 }

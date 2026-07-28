@@ -37,6 +37,7 @@ import {
   Lightbulb,
   History,
   ChevronDown,
+  Scale,
 } from "lucide-react";
 
 function projectHref(status: string, id: string) {
@@ -380,6 +381,24 @@ function SettingsPanel({
             onGo("/");
           }}
         />
+      </div>
+
+      {/* Legal */}
+      <div className="border-t border-line pt-3">
+        <div className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+          <Scale className="h-3.5 w-3.5" /> Ligjore
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
+          <button onClick={() => onGo("/legal/terms")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
+            Kushtet
+          </button>
+          <button onClick={() => onGo("/legal/privacy")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
+            Privatësia
+          </button>
+          <button onClick={() => onGo("/legal/cookies")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
+            Cookies
+          </button>
+        </div>
       </div>
 
       <AvatarCropper
