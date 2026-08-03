@@ -35,7 +35,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-app)", "system-ui", "sans-serif"],
         // Website-preview fonts (selectable inside the editor)
-        jakarta: ["var(--font-app)", "sans-serif"],
+        jakarta: ['"Plus Jakarta Sans Variable"', "Plus Jakarta Sans", "sans-serif"],
         inter: ["Inter", "system-ui", "sans-serif"],
         manrope: ["Manrope", "system-ui", "sans-serif"],
         dmsans: ['"DM Sans Variable"', "system-ui", "sans-serif"],

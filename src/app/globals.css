@@ -1,16 +1,16 @@
-/* App UI font — Plus Jakarta Sans (100%) */
-@import "@fontsource-variable/plus-jakarta-sans";
-
-/* Website-preview selectable fonts (self-hosted, no external font API) */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
+/* App UI font — Manrope (100%), tracking -40 (Figma) = -0.04em */
 @import "@fontsource/manrope/400.css";
 @import "@fontsource/manrope/500.css";
 @import "@fontsource/manrope/600.css";
 @import "@fontsource/manrope/700.css";
 @import "@fontsource/manrope/800.css";
+
+/* Website-preview selectable fonts (self-hosted, no external font API) */
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
 @import "@fontsource-variable/dm-sans";
 @import "@fontsource-variable/space-grotesk";
 @import "@fontsource/playfair-display/400.css";
@@ -56,8 +56,7 @@
   --danger: #e5484d;
   --info: #3b17ff;
 
-  --font-app: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui,
-    -apple-system, sans-serif;
+  --font-app: "Manrope", system-ui, -apple-system, sans-serif;
 }
 
 /* ---- Ngjyra: airy, colorful theme built on the maro brand palette
@@ -132,7 +131,8 @@ body {
   color: var(--ink);
   font-family: var(--font-app);
   font-feature-settings: "cv11", "ss01";
-  letter-spacing: -0.011em;
+  /* Figma tracking -40 → -0.04em */
+  letter-spacing: -0.04em;
 }
 
 ::selection {
