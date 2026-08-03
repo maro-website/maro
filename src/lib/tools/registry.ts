@@ -152,7 +152,6 @@ export const TOOLS: ToolDef[] = [
     kind: "website",
     route: "/web",
     functional: true,
-    maintenance: true,
     baseCost: 0,
     defaultPrompt: "",
     settings: [
