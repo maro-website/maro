@@ -14,7 +14,6 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Hobby caps at 300s; raise to 800 (and ANTHROPIC_TIMEOUT_MS) once on Pro.
 export const maxDuration = 300;
 
 function bearer(req: Request): string | null {

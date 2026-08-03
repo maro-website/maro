@@ -5,11 +5,10 @@ import type { ChatMsg } from "@/lib/ai/chatTypes";
 export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 const AI_EFFORT = process.env.ANTHROPIC_EFFORT || "high";
 const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64000;
-// Wall-clock budget for a single website generation/edit. Kept just under the
-// Vercel function cap so our own abort fires first: this stops Anthropic from
-// generating (and billing) more tokens and lets the route refund cleanly instead
-// of the platform killing us with an unhandled 504. Default suits Hobby (300s);
-// on Pro (maxDuration 800) set ANTHROPIC_TIMEOUT_MS=780000.
+// Wall-clock budget for a single website generation/edit. Our own abort fires
+// before any platform timeout: this stops Anthropic from generating (and
+// billing) more tokens and lets the route refund cleanly instead of an
+// unhandled 504. Override with ANTHROPIC_TIMEOUT_MS for longer budgets.
 const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 280000;
 
 // maro Fjalë (writing assistant) runs on Opus 5 with thinking disabled for fast,

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   async redirects() {
     // Old /tools/* URLs → new top-level tool routes (renamed for brevity).
