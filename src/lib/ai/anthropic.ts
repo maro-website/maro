@@ -8,8 +8,8 @@ const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64
 // Wall-clock budget for a single website generation/edit. Our own abort fires
 // before any platform timeout: this stops Anthropic from generating (and
 // billing) more tokens and lets the route refund cleanly instead of an
-// unhandled 504. Override with ANTHROPIC_TIMEOUT_MS for longer budgets.
-const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 280000;
+// unhandled 504. Railway max HTTP duration is 15 min; default 14.5 min.
+const CLAUDE_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || "", 10) || 870000;
 
 // maro Fjalë (writing assistant) runs on Opus 5 with thinking disabled for fast,
 // cheap replies. It may use a dedicated key (ANTHROPIC_CHAT_API_KEY) for separate

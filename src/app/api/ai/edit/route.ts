@@ -14,7 +14,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 900;
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");
