@@ -2,6 +2,7 @@
   "name": "maro",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.0.8",
   "scripts": {
     "dev": "next dev -p 3006",
     "build": "next build",
