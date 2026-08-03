@@ -314,6 +314,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   empty: "Modeli ktheu një përgjigje bosh. Provo përsëri.",
   timeout: "Gjenerimi kaloi kohën e lejuar. Provo përsëri ose zvogëlo pak kërkesën.",
   "http-504": "Gjenerimi zgjati shumë dhe u ndërpre (timeout). Provo përsëri.",
+  "http-524": "Gjenerimi zgjati shumë (Cloudflare timeout). Provo përsëri.",
 };
 
 function ErrorCard({

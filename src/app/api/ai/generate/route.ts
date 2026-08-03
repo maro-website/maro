@@ -160,58 +160,80 @@ export async function POST(req: Request) {
     user = `${user}\n\n## BRIEF EKSPERT (maroFort)\n${fortBriefBlock}`;
   }
 
-  try {
-    const { text } = await callClaudeText({ system, user, effort });
-    const pages = parseHtmlPages(text);
-    if (!pages.length) {
-      let refunded = false;
-      if (userId && cost) {
-        await refundCredits(userId, cost);
-        refunded = true;
-      }
-      return NextResponse.json(
-        {
-          error: "empty",
-          detail: `no HTML pages parsed (chars=${text.length})`,
+  // Stream heartbeats while Claude generates so Cloudflare (100s proxy timeout)
+  // and Railway edge keep the connection open until the final HTML is ready.
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (payload: Record<string, unknown>) => {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+      const heartbeat = setInterval(() => {
+        controller.enqueue(enc.encode(": ping\n\n"));
+      }, 15000);
+
+      try {
+        const { text } = await callClaudeText({ system, user, effort });
+        const pages = parseHtmlPages(text);
+        if (!pages.length) {
+          let refunded = false;
+          if (userId && cost) {
+            await refundCredits(userId, cost);
+            refunded = true;
+          }
+          send({
+            ok: false,
+            error: "empty",
+            detail: `no HTML pages parsed (chars=${text.length})`,
+            fallback: true,
+            refunded,
+          });
+          return;
+        }
+        if (userId) {
+          await logGeneration({
+            user_id: userId,
+            user_email: userEmail,
+            prompt: body.userPrompt || body.goal || "",
+            final_prompt: `${system}\n\n---\n\n${user}`,
+            website_type: kind,
+            speed,
+            model: AI_MODEL,
+            credits_spent: cost,
+            selections: selections && Object.keys(selections).length ? selections : undefined,
+            fort: fortLog,
+          });
+        }
+        if (maroPromptId) await incrementPromptUse(maroPromptId);
+        send({ ok: true, pages, creditsSpent: cost });
+      } catch (err) {
+        console.error("[ai/generate] failed:", err);
+        let refunded = false;
+        if (userId && cost) {
+          await refundCredits(userId, cost);
+          refunded = true;
+        }
+        const e = err as { code?: string; detail?: string; message?: string; status?: number };
+        send({
+          ok: false,
+          error: e?.code || "ai-failed",
+          detail: e?.detail || e?.message || undefined,
+          status: e?.status,
           fallback: true,
           refunded,
-        },
-        { status: 502 }
-      );
-    }
-    if (userId) {
-      await logGeneration({
-        user_id: userId,
-        user_email: userEmail,
-        prompt: body.userPrompt || body.goal || "",
-        final_prompt: `${system}\n\n---\n\n${user}`,
-        website_type: kind,
-        speed,
-        model: AI_MODEL,
-        credits_spent: cost,
-        selections: selections && Object.keys(selections).length ? selections : undefined,
-        fort: fortLog,
-      });
-    }
-    if (maroPromptId) await incrementPromptUse(maroPromptId);
-    return NextResponse.json({ pages, creditsSpent: cost });
-  } catch (err) {
-    console.error("[ai/generate] failed:", err);
-    let refunded = false;
-    if (userId && cost) {
-      await refundCredits(userId, cost);
-      refunded = true;
-    }
-    const e = err as { code?: string; detail?: string; message?: string; status?: number };
-    return NextResponse.json(
-      {
-        error: e?.code || "ai-failed",
-        detail: e?.detail || e?.message || undefined,
-        status: e?.status,
-        fallback: true,
-        refunded,
-      },
-      { status: 502 }
-    );
-  }
+        });
+      } finally {
+        clearInterval(heartbeat);
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+    },
+  });
 }

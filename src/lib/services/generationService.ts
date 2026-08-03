@@ -106,6 +106,66 @@ export interface GeneratedSite {
   activeHtmlPageId: string;
 }
 
+type GenerateStreamPayload =
+  | { ok: true; pages: AiGenerateHtmlResponse["pages"]; creditsSpent?: number }
+  | {
+      ok: false;
+      error?: string;
+      detail?: string;
+      fallback?: boolean;
+      refunded?: boolean;
+    };
+
+function pagesToSite(pages: AiGenerateHtmlResponse["pages"]): GeneratedSite {
+  const htmlPages: HtmlPage[] = (pages ?? [])
+    .filter((p) => p?.html?.trim())
+    .map((p) => ({
+      id: uid("hpage"),
+      name: p.name?.trim() || "Home",
+      slug: slugify(p.slug || p.name || "home") || "home",
+      html: p.html,
+    }));
+  if (!htmlPages.length) throw new GenerationError("empty", 502, false, "no HTML pages");
+  return { htmlPages, activeHtmlPageId: htmlPages[0].id };
+}
+
+async function readGenerateStream(res: Response): Promise<GeneratedSite> {
+  if (!res.body) throw new GenerationError("ai-failed", 502, false, "empty stream");
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let lastError: GenerationError | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+
+    let sep = buf.indexOf("\n\n");
+    while (sep !== -1) {
+      const chunk = buf.slice(0, sep);
+      buf = buf.slice(sep + 2);
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = JSON.parse(line.slice(6)) as GenerateStreamPayload;
+        if (payload.ok) return pagesToSite(payload.pages);
+        lastError = new GenerationError(
+          payload.error || "ai-failed",
+          502,
+          payload.error === "no-key",
+          payload.detail,
+          payload.refunded ?? false
+        );
+      }
+      sep = buf.indexOf("\n\n");
+    }
+  }
+
+  if (lastError) throw lastError;
+  throw new GenerationError("ai-failed", 502, false, "stream ended without result");
+}
+
 // Real site generation via Claude Opus 5 (/api/ai/generate). Returns full,
 // Claude-authored HTML pages. Throws on any real failure.
 export async function generateSite(project: Project): Promise<GeneratedSite> {
@@ -140,6 +200,15 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     const j = await res.json().catch(() => ({}));
     throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
   }
+
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("text/event-stream")) {
+    if (!res.ok) {
+      throw new GenerationError(`http-${res.status}`, res.status, false);
+    }
+    return readGenerateStream(res);
+  }
+
   if (!res.ok) {
     const j = (await res.json().catch(() => ({}))) as {
       error?: string;
@@ -153,15 +222,5 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
   }
 
   const data = (await res.json()) as AiGenerateHtmlResponse;
-  const htmlPages: HtmlPage[] = (data.pages ?? [])
-    .filter((p) => p?.html?.trim())
-    .map((p) => ({
-      id: uid("hpage"),
-      name: p.name?.trim() || "Home",
-      slug: slugify(p.slug || p.name || "home") || "home",
-      html: p.html,
-    }));
-  if (!htmlPages.length) throw new GenerationError("empty", 502, false, "no HTML pages");
-
-  return { htmlPages, activeHtmlPageId: htmlPages[0].id };
+  return pagesToSite(data.pages);
 }
