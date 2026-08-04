@@ -30,7 +30,7 @@ import { generateAudio, AudioGenerationError } from "@/lib/services/audioService
 import {
   findOption,
   getTool,
-  toolSelectionCostBreakdown,
+  toolSelectionCost,
   visibleSettings,
   type ToolDef,
   type ToolSelections,
@@ -274,12 +274,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     setFortDirty(true);
   };
 
-  const costBreakdown = toolSelectionCostBreakdown(tool, selections, pricing.options);
-  const cost = costBreakdown.total;
-  const costTooltip =
-    costBreakdown.lines.length > 0
-      ? costBreakdown.lines.map((l) => `${l.label}: ${l.cost}`).join(" + ")
-      : undefined;
+  const cost = toolSelectionCost(tool, selections, pricing.options);
   const creditsRef = React.useRef(credits);
   creditsRef.current = credits;
 
@@ -788,8 +783,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             )}
 
-            <div className="px-1.5 pb-0.5 pt-1">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 px-1.5 pb-0.5 pt-1">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               {isImage && (
                 <>
                   <input
@@ -859,22 +854,12 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
               </div>
 
-              <div className="mt-1.5 flex items-center justify-end gap-2.5">
+              <div className="flex shrink-0 items-center gap-2.5">
                 {functional && (
-                  <div
-                    className="flex max-w-full flex-col items-end gap-0.5"
-                    title={costTooltip}
-                  >
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2 whitespace-nowrap">
-                      <Coins className="h-4 w-4 shrink-0 text-brand" />
-                      {cost} kredite
-                    </span>
-                    {costTooltip && (
-                      <span className="max-w-[min(100%,280px)] truncate text-right text-[11px] text-ink-3">
-                        {costTooltip}
-                      </span>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
+                    <Coins className="h-4 w-4 shrink-0 text-brand" />
+                    {cost} kredite
+                  </span>
                 )}
                 <motion.button
                   whileTap={{ scale: 0.94 }}

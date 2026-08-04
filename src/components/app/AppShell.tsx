@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
     >
       {!collapsed && (
-        <aside className="hidden h-[100dvh] bg-canvas lg:block">
+        <aside className="hidden h-[100dvh] bg-surface lg:block">
           <HomeSidebar onCollapse={toggleCollapse} />
         </aside>
       )}
