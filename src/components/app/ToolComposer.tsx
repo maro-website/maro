@@ -543,28 +543,18 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   const audioPlaceholder = (() => {
     const mode = selections[isAudio ? tool.settings[0].id : ""] ?? "tts";
-    if (mode === "music") return "Përshkruaj muzikën: zhanri, humori, instrumentet…";
-    if (mode === "sfx") return "Përshkruaj efektin zanor: p.sh. shi me bubullimë…";
     if (mode === "sts") return "Ngarko audio dhe zgjidh zërin e ri…";
     if (mode === "isolate") return "Ngarko audio për të pastruar zhurmën…";
     if (mode === "stt") return "Ngarko audio për ta kthyer në tekst…";
-    return "Shkruaj tekstin që do të kthehet në zë…";
+    return `Përshkruaj çka po don me ${tool.name}…`;
   })();
 
   const placeholder =
-    tool.id === "website"
-      ? "Përshkruaj website-in që do të ndërtosh…"
-      : tool.id === "logo"
-      ? "Përshkruaj logon: brand, stil, simbol, ngjyra…"
-      : tool.id === "reklama"
-      ? "Përshkruaj imazhin: produkt, mesazh, stil, ngjyra…"
-      : tool.id === "filma"
-      ? "Përshkruaj videon që do të krijosh…"
-      : tool.id === "prompte"
+    tool.id === "prompte"
       ? "Prompte gati për t'u përdorur. Së shpejti…"
       : isAudio
       ? audioPlaceholder
-      : "Shkruaj tekstin që do të kthehet në zë…";
+      : `Përshkruaj çka po don me ${tool.name}…`;
 
   // Whole-page drag & drop for image tools: dropping anywhere attaches images.
   const dndEnabled = isImage && functional;
@@ -659,9 +649,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box */}
-      <div className="shrink-0 overflow-x-clip bg-canvas/90 backdrop-blur max-lg:pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:max-w-[798px] sm:px-5 sm:py-4">
+      {/* Docked prompt box — width grows with toolbar so controls stay on one row */}
+      <div className="shrink-0 bg-canvas/90 backdrop-blur max-lg:pb-[env(safe-area-inset-bottom)]">
+        <div className="flex w-full justify-center px-3 py-3 sm:px-5 sm:py-4">
+          <div className="w-fit max-w-[calc(100vw-1.5rem)]">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -764,7 +755,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="group relative rounded-[24px] bg-surface p-2">
+          <div className="grid w-max max-w-[calc(100vw-1.5rem)] grid-cols-1 rounded-[24px] bg-surface p-2">
             {needsPrompt ? (
               <textarea
                 value={prompt}
@@ -783,8 +774,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             )}
 
-            <div className="flex items-center gap-2 px-1.5 pb-0.5 pt-1">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto scroll-thin px-1.5 pb-0.5 pt-1 [scrollbar-width:none] lg:overflow-x-visible [&::-webkit-scrollbar]:hidden">
+              <div className="flex flex-nowrap items-center gap-2">
               {isImage && (
                 <>
                   <input
@@ -894,6 +885,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           ) : (
             <p className="mt-2 text-center text-[12.5px] text-ink-3">kush punon gabon, edhe maro gabon</p>
           )}
+          </div>
         </div>
       </div>
 
@@ -1105,7 +1097,7 @@ function SettingSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex max-w-[36vw] shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2 sm:max-w-none"
+        className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2"
         title={setting.label}
       >
         <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />

@@ -18,6 +18,7 @@ import type {
 } from "@/lib/fort/types";
 import { FortField } from "./fields";
 import { BriefStrength } from "./BriefStrength";
+import { FortInfoHint, fieldInfoHint } from "./FortInfoHint";
 
 function FieldRow({
   field,
@@ -37,8 +38,8 @@ function FieldRow({
       <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-ink">
         {field.label}
         {field.required && <span className="text-danger">*</span>}
+        {fieldInfoHint(field) && <FortInfoHint text={fieldInfoHint(field)!} />}
       </label>
-      {field.description && <p className="mb-2 text-[12px] text-ink-3">{field.description}</p>}
       <FortField
         field={field}
         value={value}
@@ -116,11 +117,17 @@ export function FortPanel({
               aria-selected={selected}
               onClick={() => setActiveTab(section.id)}
               className={cn(
-                "shrink-0 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors",
                 selected ? "bg-brand text-brand-fg" : "bg-surface text-ink-2 hover:text-ink"
               )}
             >
               {section.label}
+              {section.description && (
+                <FortInfoHint
+                  text={section.description}
+                  className={selected ? "text-brand-fg/80 hover:text-brand-fg" : undefined}
+                />
+              )}
             </button>
           );
         })}
@@ -131,9 +138,6 @@ export function FortPanel({
           role="tabpanel"
           className="space-y-4 rounded-2xl bg-surface p-4"
         >
-          {current.section.description && (
-            <p className="text-[12px] leading-relaxed text-ink-3">{current.section.description}</p>
-          )}
           {current.fields.map((field) => (
             <FieldRow
               key={field.id}

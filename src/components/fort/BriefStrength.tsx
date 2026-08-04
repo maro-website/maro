@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
+import { FortInfoHint } from "./FortInfoHint";
 
 export function BriefStrength({
   score,
@@ -12,10 +13,16 @@ export function BriefStrength({
   suggestion?: string;
 }) {
   const tone = score >= 80 ? "bg-brand" : score >= 40 ? "bg-ink-3" : "bg-line-strong";
+  const hint =
+    suggestion ||
+    "Mat sa detaje ke plotësuar në brief — më shumë kontekst zakonisht jep rezultat më të mirë.";
   return (
     <div>
       <div className="flex items-center justify-between text-[12px]">
-        <span className="font-semibold text-ink-2">Forca e brief-it</span>
+        <span className="flex items-center gap-1.5 font-semibold text-ink-2">
+          Forca e brief-it
+          <FortInfoHint text={hint} />
+        </span>
         <span className="font-bold text-ink">{score}%</span>
       </div>
       <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
@@ -26,7 +33,6 @@ export function BriefStrength({
           transition={{ duration: 0.4, ease: "easeOut" }}
         />
       </div>
-      {suggestion && <p className="mt-1.5 text-[12px] text-ink-3">{suggestion}</p>}
     </div>
   );
 }

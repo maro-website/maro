@@ -180,7 +180,7 @@ export default function HomePage() {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
               }}
               rows={2}
-              placeholder="Përshkruaj çka do të marosh…"
+              placeholder="Përshkruaj çka po don me maro…"
               className="block max-h-52 min-h-[68px] w-full resize-none rounded-2xl bg-transparent px-3.5 pt-3 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
             />
 
