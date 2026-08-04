@@ -21,9 +21,9 @@ export function HomeSidebar({
   return (
     <div className="flex h-full flex-col bg-surface">
       {showHeader && (
-        <div className="flex items-center justify-between px-4 pt-4">
-          <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-            <Logo showWord />
+        <div className="flex items-center justify-between px-5 pb-2 pt-5">
+          <Link href="/" className="flex items-center" onClick={onNavigate}>
+            <Logo showWord wordClassName="h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-1">
             <NotificationBell />
@@ -31,38 +31,24 @@ export function HomeSidebar({
               <button
                 type="button"
                 onClick={onCollapse}
-                className="hidden h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink lg:grid"
+                className="maro-icon-btn text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
                 aria-label="Mbyll sidebar"
                 title="Mbyll sidebar"
               >
-                <MaroIcon name="sidebarFlip" className="h-5 w-5" />
+                <MaroIcon name="sidebarFlip" className="h-6 w-6" />
               </button>
             )}
             {onNavigate && (
               <button
                 type="button"
                 onClick={onNavigate}
-                className="grid h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 hover:bg-surface-2 lg:hidden"
+                className="maro-icon-btn text-ink-3 hover:bg-surface-2 lg:hidden"
                 aria-label="Mbyll"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             )}
           </div>
-        </div>
-      )}
-
-      {!showHeader && onCollapse && (
-        <div className="flex justify-end px-3 pt-3">
-          <button
-            type="button"
-            onClick={onCollapse}
-            className="grid h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
-            aria-label="Mbyll sidebar"
-            title="Mbyll sidebar"
-          >
-            <MaroIcon name="sidebarFlip" className="h-5 w-5" />
-          </button>
         </div>
       )}
 
@@ -88,7 +74,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-full max-w-[320px] bg-surface shadow-xl"
+            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] bg-surface shadow-xl"
           >
             <HomeSidebar onNavigate={onClose} showHeader />
           </motion.div>

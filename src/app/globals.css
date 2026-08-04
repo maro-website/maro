@@ -34,15 +34,23 @@
 
   --font-app: "Manrope", system-ui, -apple-system, sans-serif;
 
-  /* Figma redesign tokens */
+  /* Figma brand + UI scale */
   --accent-teal: #00fdba;
-  --accent-teal-soft: rgba(0, 253, 186, 0.12);
-  --accent-teal-border: rgba(0, 253, 186, 0.45);
-  --sidebar-width: 260px;
-  --sidebar-card: var(--surface-2);
-  --prompt-dock: var(--surface);
-  --generate-bg: var(--accent-teal);
-  --generate-fg: #04231b;
+  --accent-teal-soft: rgba(0, 253, 186, 0.1);
+  --accent-teal-border: rgba(0, 253, 186, 0.55);
+  --accent-teal-active: #0a221c;
+  --sidebar-width: 300px;
+  --sidebar-card: #161616;
+  --prompt-dock: #0a0a0a;
+  --generate-bg: #00fdba;
+  --generate-fg: #000000;
+  --ui-btn-h: 48px;
+  --ui-btn-h-lg: 52px;
+  --ui-icon-sm: 20px;
+  --ui-icon-md: 22px;
+  --ui-icon-lg: 32px;
+  --ui-radius-card: 16px;
+  --ui-radius-dock: 28px;
 }
 
 /* ---- Qelt: canvas #d0e6fd, promptbox / cards #ffffff ---- */
@@ -83,39 +91,40 @@
   --generate-fg: var(--brand-fg);
 }
 [data-theme="mshelt"] {
-  --brand: #f5f5f5;
+  --brand: #ffffff;
   --brand-hover: #ffffff;
-  --brand-soft: #262626;
+  --brand-soft: #141414;
   --brand-fg: #000000;
 
-  --canvas: #191919;
+  --canvas: #000000;
   --surface: #0a0a0a;
   --surface-2: #141414;
-  --line: #333333;
-  --line-strong: #444444;
+  --line: #2a2a2a;
+  --line-strong: #3a3a3a;
 
-  --ink: #f5f5f5;
-  --ink-2: #b8b8b8;
-  --ink-3: #8a8a8a;
+  --ink: #ffffff;
+  --ink-2: #cccccc;
+  --ink-3: #888888;
   --ink-inv: #000000;
 
-  --success: #22c55e;
+  --success: #00fdba;
   --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #b8b8b8;
+  --danger: #ff0000;
+  --info: #cccccc;
 
   --switch-off: #ffffff;
-  --switch-track: #444444;
-  --skeleton-shine: rgba(255, 255, 255, 0.1);
+  --switch-track: #3a3a3a;
+  --skeleton-shine: rgba(255, 255, 255, 0.08);
 
-  --overlay: rgba(0, 0, 0, 0.58);
-  --scrim: rgba(0, 0, 0, 0.78);
-  --dim: rgba(0, 0, 0, 0.55);
+  --overlay: rgba(0, 0, 0, 0.72);
+  --scrim: rgba(0, 0, 0, 0.85);
+  --dim: rgba(0, 0, 0, 0.6);
   --on-scrim: #ffffff;
 
-  --sidebar-card: #141414;
-  --generate-bg: var(--accent-teal);
-  --generate-fg: #04231b;
+  --sidebar-card: #161616;
+  --accent-teal-active: #0a221c;
+  --generate-bg: #00fdba;
+  --generate-fg: #000000;
 }
 
 /* Smoothly cross-fade colors when switching themes. */
@@ -214,6 +223,32 @@ body {
 
 .text-generate-fg {
   color: var(--generate-fg);
+}
+
+.bg-teal-active {
+  background-color: var(--accent-teal-active);
+}
+
+.maro-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--ui-btn-h);
+  padding-inline: 1rem;
+  border-radius: var(--ui-radius-card);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.maro-icon-btn {
+  display: grid;
+  place-items: center;
+  width: var(--ui-btn-h);
+  height: var(--ui-btn-h);
+  min-width: var(--ui-btn-h);
+  border-radius: var(--ui-radius-card);
+  flex-shrink: 0;
 }
 
 @keyframes float-slow {

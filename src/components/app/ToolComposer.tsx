@@ -554,7 +554,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       ? "Prompte gati për t'u përdorur. Së shpejti…"
       : isAudio
       ? audioPlaceholder
-      : `Përshkruaj çka po don me ${tool.name}…`;
+      : `Menoje edhe shkruje cka po don, ${tool.name} ta bon.`;
 
   // Whole-page drag & drop for image tools: dropping anywhere attaches images.
   const dndEnabled = isImage && functional;
@@ -650,9 +650,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       </div>
 
       {/* Docked prompt box — width grows with toolbar so controls stay on one row */}
-      <div className="shrink-0 bg-canvas/90 backdrop-blur max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="flex w-full justify-center px-3 py-3 sm:px-5 sm:py-4">
-          <div className="w-fit max-w-[calc(100vw-1.5rem)]">
+      <div className="shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-full justify-center px-4 py-4 sm:px-6 sm:py-5">
+          <div className="w-full max-w-[920px]">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -755,7 +755,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="grid w-max max-w-[calc(100vw-1.5rem)] grid-cols-1 rounded-[24px] bg-prompt-dock p-2 ring-1 ring-line/80">
+          <div className="grid w-full grid-cols-1 rounded-[28px] bg-prompt-dock p-3 ring-1 ring-line/70">
             {needsPrompt ? (
               <textarea
                 value={prompt}
@@ -766,18 +766,18 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 onPaste={onPasteImages}
                 rows={2}
                 placeholder={placeholder}
-                className="relative block max-h-52 min-h-[64px] w-full resize-none rounded-2xl bg-transparent px-3 pt-2.5 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+                className="relative block max-h-56 min-h-[88px] w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
               />
             ) : (
-              <div className="flex min-h-[64px] items-center px-3 pt-1 text-[15px] text-ink-3">
+              <div className="flex min-h-[88px] items-center px-4 pt-1 text-[17px] text-ink-3">
                 {audioInput ? "Audio gati. Kliko gjenero." : audioPlaceholder}
               </div>
             )}
 
-            <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto scroll-thin px-1.5 pb-0.5 pt-1 [scrollbar-width:none] lg:overflow-x-visible [&::-webkit-scrollbar]:hidden">
-              <div className="flex flex-nowrap items-center gap-2">
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-teal-soft px-3 py-2 text-[13px] font-bold text-accent-teal ring-1 ring-accent-teal/35">
-                <ToolIcon toolId={tool.id} fallback={tool.icon} className="h-4 w-4" />
+            <div className="flex max-w-full flex-nowrap items-center gap-2.5 overflow-x-auto scroll-thin px-2 pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex flex-nowrap items-center gap-2.5">
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-2xl border-2 border-accent-teal bg-accent-teal-soft px-4 py-2.5 text-[15px] font-bold text-accent-teal">
+                <ToolIcon toolId={tool.id} fallback={tool.icon} className="h-5 w-5" />
                 {tool.name}
               </span>
               {isImage && (
@@ -798,7 +798,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     disabled={attachments.length >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="h-4 w-4" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -821,7 +821,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
               {needsPrompt && (
                 <IconBtn onClick={() => setExpanded(true)} label="Zgjero promptin">
-                  <MaroIcon name="fullscreen" fallback={Maximize2} className="h-4 w-4" />
+                  <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
                 </IconBtn>
               )}
               {shownSettings.map((s) =>
@@ -851,19 +851,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2.5">
+              <div className="flex shrink-0 items-center gap-3">
                 {functional && (
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-semibold text-ink-2">
-                    <MaroIcon name="coins" className="h-4 w-4 shrink-0" />
+                  <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-surface-2 px-4 py-2.5 text-[15px] font-semibold text-ink-2">
+                    <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
                     {cost} kredite
                   </span>
                 )}
                 <motion.button
-                  whileTap={{ scale: 0.94 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[14px] font-bold transition-all",
+                    "inline-flex h-12 min-w-[48px] shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-[16px] font-bold transition-all",
                     functional && canGenerate && !loading
                       ? "bg-generate text-generate-fg hover:opacity-90"
                       : "cursor-not-allowed bg-line-strong text-ink-3"
@@ -871,10 +871,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   aria-label="Gjenero"
                 >
                   {loading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
                   ) : (
                     <>
-                      <MaroIcon name="generate" className="h-4 w-4" />
+                      <MaroIcon name="generate" className="h-5 w-5" />
                       maro
                     </>
                   )}
@@ -892,7 +892,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               {tool.name} vjen së shpejti. Provoje interfejsin, gjenerimi aktivizohet së afërmi.
             </p>
           ) : (
-            <p className="mt-2 text-center text-[12.5px] text-ink-3">kush punon gabon, edhe maro gabon</p>
+            <p className="mt-3 text-center text-[13px] text-ink-3">kush punon gabon, edhe maro gabon</p>
           )}
           </div>
         </div>
@@ -1042,7 +1042,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-2 transition-colors hover:text-ink disabled:opacity-50"
+      className="maro-icon-btn bg-surface-2 text-ink-2 transition-colors hover:bg-line hover:text-ink disabled:opacity-50"
     >
       {children}
     </button>
@@ -1064,9 +1064,9 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="flex shrink-0 items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
-      <span className="hidden truncate text-[13px] font-semibold text-ink sm:inline">{setting.label}</span>
+    <div className="flex shrink-0 items-center gap-2.5 rounded-2xl bg-surface-2 px-3 py-2">
+      <Icon className="h-5 w-5 shrink-0 text-ink-3" />
+      <span className="hidden truncate text-[15px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}
@@ -1111,7 +1111,7 @@ function SettingSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2"
+        className="maro-pill shrink-0 bg-surface-2 text-ink hover:bg-line"
         title={setting.label}
       >
         <OptionIcon
@@ -1120,9 +1120,10 @@ function SettingSelect({
           optionId={currentId}
           icons={optionIcons}
           fallback={Icon}
+          className="h-5 w-5"
         />
-        <span className="truncate text-[13px] font-semibold text-ink">{current?.label}</span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+        <span className="truncate">{current?.label}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
       </button>
       <AnimatePresence>
         {open && (

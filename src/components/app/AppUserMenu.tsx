@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Camera, Moon, Star, Sun, User as UserIcon } from "lucide-react";
+import { Camera, Moon, Shield, Star, Sun, User as UserIcon } from "lucide-react";
 
 const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
   { id: "qelt", label: "Qelt", icon: Sun },
@@ -46,7 +46,7 @@ function Avatar({
 
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
-  const { user, isAdmin, isCreator, credits, signOut, updateAvatar } = useMaro();
+  const { user, isAdmin, isCreator, signOut, updateAvatar } = useMaro();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
@@ -92,7 +92,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <Link
         href="/sign-in"
         onClick={onNavigate}
-        className="inline-flex h-11 min-w-[44px] items-center justify-center rounded-xl bg-surface px-4 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+        className="inline-flex h-12 min-w-[48px] items-center justify-center rounded-2xl bg-surface-2 px-5 text-[16px] font-semibold text-ink"
       >
         Hyr
       </Link>
@@ -104,10 +104,10 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="grid h-11 w-11 min-w-[44px] place-items-center rounded-full transition-opacity hover:opacity-90"
+        className="grid h-12 w-12 place-items-center rounded-full transition-opacity hover:opacity-90"
         aria-label="Llogaria"
       >
-        <Avatar user={user} className="h-9 w-9 text-[13px]" />
+        <Avatar user={user} className="h-11 w-11 text-[15px]" />
       </button>
 
       <AnimatePresence>
@@ -117,71 +117,55 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-[calc(100%+8px)] z-[90] w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface p-2 shadow-lg"
+            className="absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface-2 p-3 shadow-xl"
           >
-            <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5">
-              <button type="button" onClick={() => go("/credits")} className="flex min-w-0 flex-1 items-center gap-2">
-                <MaroIcon name="coins" className="h-4 w-4" />
-                <span className="text-[14px] font-bold text-ink">{credits}</span>
-                <span className="text-[12px] text-ink-3">kredite</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => go("/credits")}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-teal text-generate-fg"
-                aria-label="Shto kredite"
-              >
-                <MaroIcon name="wallet" className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-2 flex items-center gap-2.5 px-2 py-1.5">
+            <div className="flex items-center gap-3 px-1 py-2">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
-                <Avatar user={user} className="h-10 w-10 text-[13px]" />
+                <Avatar user={user} className="h-12 w-12 text-[16px]" />
                 <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
                   {uploading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
                   ) : (
-                    <Camera className="h-4 w-4 text-white" />
+                    <Camera className="h-5 w-5 text-white" />
                   )}
                 </span>
               </button>
               <div className="min-w-0">
-                <div className="truncate text-[14px] font-semibold text-ink">{user.name}</div>
-                <div className="truncate text-[12px] text-ink-3">{user.email}</div>
+                <div className="truncate text-[16px] font-bold text-ink">{user.name}</div>
+                <div className="truncate text-[13px] text-ink-3">{user.email}</div>
               </div>
             </div>
 
-            <div className="mt-2 px-1">
-              <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-ink-3">Pamja</div>
-              <div className="grid grid-cols-2 gap-1.5">
+            <div className="mt-2 flex flex-col gap-1">
+              <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
+              {isAdmin && (
+                <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
+              )}
+              <MenuRow icon="settings" fallback={UserIcon} label="Cilësimet" onClick={() => go("/account")} />
+              <MenuRow icon="save" fallback={Star} label="T'trujtuna" onClick={() => go("/favourites")} />
+              {isCreator && (
+                <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
+              )}
+            </div>
+
+            <div className="mt-3 px-1">
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Pamja</div>
+              <div className="grid grid-cols-2 gap-2">
                 {THEMES.map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setTheme(t.id)}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[12px] font-semibold",
-                      theme === t.id ? "bg-brand text-brand-fg" : "bg-surface-2 text-ink-2 hover:bg-line"
+                      "flex h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold",
+                      theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-surface text-ink-2 hover:bg-line"
                     )}
                   >
-                    <t.icon className="h-3.5 w-3.5" />
+                    <t.icon className="h-4 w-4" />
                     {t.label}
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="mt-2 flex flex-col gap-0.5 px-1">
-              <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
-              <MenuRow icon="save" fallback={Star} label="Të preferuarat" onClick={() => go("/favourites")} />
-              {isCreator && (
-                <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
-              )}
-              {isAdmin && (
-                <MenuRow icon="admin" fallback={UserIcon} label="Admin" onClick={() => go("/admin")} />
-              )}
-              <MenuRow icon="settings" fallback={UserIcon} label="Cilësimet" onClick={() => go("/account")} />
             </div>
 
             <button
@@ -190,9 +174,9 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                 await signOut();
                 go("/");
               }}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-danger/10 px-3 py-2.5 text-[14px] font-semibold text-danger transition-colors hover:bg-danger/15"
+              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#ff0000] text-[16px] font-bold text-white transition-opacity hover:opacity-90"
             >
-              <MaroIcon name="logout" className="h-4 w-4" />
+              <MaroIcon name="logout" className="h-5 w-5" />
               Dil
             </button>
           </motion.div>
@@ -236,9 +220,9 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-[13.5px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+      className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[16px] font-medium text-ink transition-colors hover:bg-surface"
     >
-      <MaroIcon name={icon} fallback={Fallback} className="h-4 w-4" />
+      <MaroIcon name={icon} fallback={Fallback} className="h-5 w-5 shrink-0" />
       {label}
     </button>
   );
