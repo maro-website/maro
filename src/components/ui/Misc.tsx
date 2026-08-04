@@ -83,9 +83,10 @@ export function Switch({
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-subtle transition-transform",
+            "absolute top-0.5 h-5 w-5 rounded-full shadow-subtle transition-transform",
             checked ? "translate-x-[18px]" : "translate-x-0.5"
           )}
+          style={{ background: "var(--switch-off)" }}
         />
       </span>
       {label && <span className="text-[13px] font-medium text-ink">{label}</span>}

@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
 
 // Set the theme before first paint to avoid a flash of the wrong theme.
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme')||'mono';if(t!=='light')document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','mono');}})();`;
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme')||'qelt';if(t==='mono')t='mshelt';if(t==='light'||t==='dark')t='qelt';if(t!=='qelt'&&t!=='mshelt')t='qelt';document.documentElement.setAttribute('data-theme',t);var c=t==='mshelt'?'#191919':'#d0e6fd';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){document.documentElement.setAttribute('data-theme','qelt');}})();`;
 
 export const metadata: Metadata = {
   title: "maro · AI Hub",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#d0e6fd",
   width: "device-width",
   initialScale: 1,
   // Prevent iOS auto-zoom when focusing form fields.

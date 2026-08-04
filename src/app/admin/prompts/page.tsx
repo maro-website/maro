@@ -395,7 +395,7 @@ function AdminPromptsInner() {
                       <img src={draft.featured_url} alt="" className="h-full w-full object-cover" />
                       <button
                         onClick={() => setDraft((d) => ({ ...d, featured_url: null }))}
-                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-ink/70 text-white"
+                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-scrim text-on-scrim"
                         aria-label="Hiq"
                       >
                         <X className="h-4 w-4" />

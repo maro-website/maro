@@ -669,7 +669,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   <img src={src} alt="" className="h-full w-full object-cover" />
                   <button
                     onClick={() => setAttachments((a) => a.filter((_, j) => j !== i))}
-                    className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-ink/70 text-white"
+                    className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-scrim text-on-scrim"
                     aria-label="Hiq"
                   >
                     <X className="h-3 w-3" />

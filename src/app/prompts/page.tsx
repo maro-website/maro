@@ -331,7 +331,7 @@ function PromptCard({
               <Lightbulb className="h-8 w-8" />
             </div>
           )}
-          <span className="absolute left-2 top-2 rounded-full bg-ink/70 px-2.5 py-1 text-[12px] font-semibold text-white backdrop-blur">
+          <span className="absolute left-2 top-2 rounded-full bg-scrim px-2.5 py-1 text-[12px] font-semibold text-on-scrim backdrop-blur">
             {item.category}
           </span>
           {owned && (

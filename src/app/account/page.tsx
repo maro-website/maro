@@ -81,7 +81,7 @@ function AccountInner() {
                   {initials(user?.name ?? "U")}
                 </span>
               )}
-              <span className="absolute inset-0 grid place-items-center rounded-full bg-ink/45 opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
                 {uploading ? (
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
                 ) : (

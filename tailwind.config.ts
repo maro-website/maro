@@ -25,6 +25,10 @@ const config: Config = {
         warning: "var(--warning)",
         danger: "var(--danger)",
         info: "var(--info)",
+        overlay: "var(--overlay)",
+        scrim: "var(--scrim)",
+        dim: "var(--dim)",
+        "on-scrim": "var(--on-scrim)",
         // Brand accent palette (logo shapes)
         "c-blue": "var(--c-blue)",
         "c-teal": "var(--c-teal)",

@@ -1624,7 +1624,7 @@ function ReportsTab() {
       {big && (
         <div
           onClick={() => setBig(null)}
-          className="fixed inset-0 z-[100] grid cursor-zoom-out place-items-center bg-ink/80 p-6"
+          className="fixed inset-0 z-[100] grid cursor-zoom-out place-items-center bg-scrim p-6"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={big} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain" />
@@ -2369,7 +2369,7 @@ function LogTab() {
       {big && (
         <div
           onClick={() => setBig(null)}
-          className="fixed inset-0 z-[110] grid cursor-zoom-out place-items-center bg-ink/80 p-6"
+          className="fixed inset-0 z-[110] grid cursor-zoom-out place-items-center bg-scrim p-6"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={big} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain" />

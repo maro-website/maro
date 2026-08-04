@@ -203,7 +203,7 @@ function DrawerShell({ children, onClose }: { children: React.ReactNode; onClose
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
         onClick={onClose}
       />
       <motion.div

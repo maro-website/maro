@@ -31,7 +31,6 @@ import {
   Camera,
   Sun,
   Moon,
-  Palette,
   RefreshCw,
   Wallet,
   Lightbulb,
@@ -243,9 +242,8 @@ function Avatar({
 }
 
 const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
-  { id: "light", label: "Lehtë", icon: Sun },
-  { id: "dark", label: "Ngjyra", icon: Palette },
-  { id: "mono", label: "Terr", icon: Moon },
+  { id: "qelt", label: "Qelt", icon: Sun },
+  { id: "mshelt", label: "Mshelt", icon: Moon },
 ];
 
 function SettingsPanel({
@@ -314,7 +312,7 @@ function SettingsPanel({
           title="Ndrysho foton"
         >
           <Avatar user={user} className="h-12 w-12 text-[15px]" />
-          <span className="absolute inset-0 grid place-items-center rounded-full bg-ink/45 opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
             {uploading ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
             ) : (
@@ -343,7 +341,7 @@ function SettingsPanel({
         <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-ink-3">
           Pamja
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {THEMES.map((t) => (
             <button
               key={t.id}
@@ -705,7 +703,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
             onClick={onClose}
           />
           <motion.div

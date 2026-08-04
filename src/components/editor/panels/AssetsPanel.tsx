@@ -72,7 +72,7 @@ export function AssetsPanel() {
                   <Dropdown
                     align="right"
                     trigger={
-                      <button className="grid h-7 w-7 place-items-center rounded-md bg-ink/70 text-white backdrop-blur hover:bg-ink">
+                      <button className="grid h-7 w-7 place-items-center rounded-md bg-scrim text-on-scrim backdrop-blur hover:brightness-110">
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     }

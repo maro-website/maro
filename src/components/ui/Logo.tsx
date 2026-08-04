@@ -32,8 +32,7 @@ export function Logo({
     );
   }
 
-  // Full lockup (symbol + "maro" wordmark). The wordmark is dark on light
-  // backgrounds and switches to white only on the full-dark ("mono") theme.
+  // Full lockup (symbol + "maro" wordmark). Dark on Qelt, white on Mshelt.
   return (
     <span className={cn("inline-flex items-center", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}

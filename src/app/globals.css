@@ -25,14 +25,6 @@
 @tailwind utilities;
 
 :root {
-  /* ---- maro brand tokens (single source of truth) ----
-     Brand refresh (v3): electric indigo primary with a playful multi-color
-     accent set drawn straight from the logo shapes. */
-  --brand: #3b17ff;
-  --brand-hover: #2d0fd6;
-  --brand-soft: #ece9ff;
-  --brand-fg: #ffffff;
-
   /* Logo palette (brand constants, used for shapes / accents everywhere). */
   --c-blue: #3b17ff;
   --c-teal: #00fdba;
@@ -40,73 +32,72 @@
   --c-pale: #d0e6fd;
   --c-yellow: #ffff00;
 
-  --canvas: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f6f6f7;
-  --line: #ededf0;
-  --line-strong: #e0e0e4;
-
-  --ink: #131316;
-  --ink-2: #56565c;
-  --ink-3: #90909a;
-  --ink-inv: #ffffff;
-
-  --success: #12a150;
-  --warning: #d97706;
-  --danger: #e5484d;
-  --info: #3b17ff;
-
   --font-app: "Manrope", system-ui, -apple-system, sans-serif;
 }
 
-/* ---- Ngjyra: airy, colorful theme built on the maro brand palette
-   (#d0e6fd pale-blue, #00fdba teal, #ff0000 red, #3b17ff indigo) mixed
-   through backgrounds, accents and buttons. ---- */
-[data-theme="dark"] {
+/* ---- Qelt: canvas #d0e6fd, promptbox / cards #ffffff ---- */
+:root,
+[data-theme="qelt"] {
   --brand: #3b17ff;
   --brand-hover: #2d0fd6;
-  --brand-soft: #e0e9ff;
+  --brand-soft: #e4edff;
   --brand-fg: #ffffff;
 
-  --canvas: #f3f7ff;
+  --canvas: #d0e6fd;
   --surface: #ffffff;
-  --surface-2: #e9f1ff;
-  --line: #d8e6fb;
-  --line-strong: #c3d8f6;
+  --surface-2: #e8f2fe;
+  --line: #b3cff0;
+  --line-strong: #94b8e8;
 
-  --ink: #10131f;
-  --ink-2: #45506b;
-  --ink-3: #7d89a6;
+  --ink: #0f1419;
+  --ink-2: #3a4656;
+  --ink-3: #5a677a;
   --ink-inv: #ffffff;
 
-  --success: #00c48a;
-  --warning: #d97706;
-  --danger: #ff0000;
+  --success: #0d8a4a;
+  --warning: #b45309;
+  --danger: #dc2626;
   --info: #3b17ff;
+
+  --switch-off: #ffffff;
+  --skeleton-shine: rgba(255, 255, 255, 0.65);
+
+  --overlay: rgba(15, 20, 25, 0.45);
+  --scrim: rgba(15, 20, 25, 0.72);
+  --dim: rgba(15, 20, 25, 0.45);
+  --on-scrim: #ffffff;
 }
 
-/* ---- Mono: full black + strictly black/white UI (no color) ---- */
-[data-theme="mono"] {
-  --brand: #ffffff;
-  --brand-hover: #e5e5e5;
-  --brand-soft: #1a1a1a;
-  --brand-fg: #000000;
+/* ---- Mshelt: canvas #191919, promptbox #000000 ---- */
+[data-theme="mshelt"] {
+  --brand: #5a28e5;
+  --brand-hover: #4a1fd4;
+  --brand-soft: #2a1f4d;
+  --brand-fg: #ffffff;
 
-  --canvas: #000000;
-  --surface: #0c0c0c;
-  --surface-2: #171717;
-  --line: #262626;
-  --line-strong: #383838;
+  --canvas: #191919;
+  --surface: #000000;
+  --surface-2: #262626;
+  --line: #333333;
+  --line-strong: #444444;
 
-  --ink: #ffffff;
-  --ink-2: #b0b0b0;
-  --ink-3: #7a7a7a;
+  --ink: #f5f5f5;
+  --ink-2: #b8b8b8;
+  --ink-3: #8a8a8a;
   --ink-inv: #000000;
 
-  --success: #ffffff;
-  --warning: #ffffff;
-  --danger: #ffffff;
-  --info: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #5a28e5;
+
+  --switch-off: #ffffff;
+  --skeleton-shine: rgba(255, 255, 255, 0.1);
+
+  --overlay: rgba(0, 0, 0, 0.58);
+  --scrim: rgba(0, 0, 0, 0.78);
+  --dim: rgba(0, 0, 0, 0.55);
+  --on-scrim: #ffffff;
 }
 
 /* Smoothly cross-fade colors when switching themes. */
@@ -212,13 +203,10 @@ body {
   from { transform: rotate(0deg) translateX(var(--orbit, 34px)) rotate(0deg); }
   to { transform: rotate(360deg) translateX(var(--orbit, 34px)) rotate(-360deg); }
 }
-/* In full-dark (mono) keep the brand loader monochrome to respect the theme. */
-[data-theme="mono"] .maro-shapes { filter: grayscale(1) brightness(1.6) contrast(1.1); }
-
-/* Brand lockup: dark wordmark by default, white only on the full-dark theme. */
+/* Brand lockup: dark wordmark on Qelt, white on Mshelt. */
 .logo-lockup-dark { display: none; }
-[data-theme="mono"] .logo-lockup-light { display: none; }
-[data-theme="mono"] .logo-lockup-dark { display: inline-block; }
+[data-theme="mshelt"] .logo-lockup-light { display: none; }
+[data-theme="mshelt"] .logo-lockup-dark { display: inline-block; }
 
 /* Shimmer skeleton */
 .skeleton {
@@ -234,7 +222,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.65),
+    var(--skeleton-shine),
     transparent
   );
   animation: shimmer 1.4s infinite;

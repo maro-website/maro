@@ -3,9 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
-// A single, theme-safe toggle switch used everywhere. The knob uses
-// `--brand-fg` when ON so it always contrasts with the brand track (fixes the
-// white-knob-on-white-track problem in the full-dark theme).
+// Theme-safe toggle: brand track when ON, `--switch-off` knob when OFF.
 export function Switch({
   checked,
   onChange,
@@ -44,7 +42,7 @@ export function Switch({
           d.knob,
           checked ? d.on : d.off
         )}
-        style={{ background: checked ? "var(--brand-fg)" : "#ffffff" }}
+        style={{ background: checked ? "var(--brand-fg)" : "var(--switch-off)" }}
       />
     </button>
   );
