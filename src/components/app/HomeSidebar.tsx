@@ -383,8 +383,11 @@ function SettingsPanel({
           <button onClick={() => onGo("/legal/privacy")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
             Privatësia
           </button>
-          <button onClick={() => onGo("/legal/cookies")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
-            Cookies
+          <button onClick={() => onGo("/legal/refund")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
+            Rimbursimi
+          </button>
+          <button onClick={() => onGo("/credits")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
+            Çmimet
           </button>
         </div>
       </div>
