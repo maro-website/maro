@@ -8,6 +8,7 @@ import {
   LegalConsentCheckbox,
   LEGAL_CONSENT_REQUIRED,
 } from "@/components/legal/LegalConsentCheckbox";
+import { TurnstileWidget, turnstileConfigured } from "@/components/auth/TurnstileWidget";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AuthPanel({
@@ -24,6 +25,7 @@ export function AuthPanel({
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [legalAccepted, setLegalAccepted] = React.useState(false);
+  const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
 
@@ -43,11 +45,15 @@ export function AuthPanel({
       setError(LEGAL_CONSENT_REQUIRED);
       return;
     }
+    if (mode === "sign-up" && turnstileConfigured() && !turnstileToken) {
+      setError("Plotëso verifikimin CAPTCHA.");
+      return;
+    }
     setLoading(true);
     const res =
       mode === "sign-in"
         ? await signIn(email.trim(), password)
-        : await signUp(name.trim(), email.trim(), password);
+        : await signUp(name.trim(), email.trim(), password, turnstileToken ?? undefined);
     setLoading(false);
     if (res.error) {
       setError(res.error);
@@ -55,8 +61,9 @@ export function AuthPanel({
     }
     if (mode === "sign-up") {
       setNotice(
-        "Llogaria u krijua. Nëse kërkohet konfirmim email-i, kontrollo inbox-in, pastaj hyr."
+        "Llogaria u krijua. Kontrollo email-in për të konfirmuar llogarinë, pastaj hyr."
       );
+      setTurnstileToken(null);
     }
     onDone?.();
   };
@@ -134,11 +141,22 @@ export function AuthPanel({
           />
         )}
 
+        {mode === "sign-up" && turnstileConfigured() && (
+          <TurnstileWidget
+            onToken={(t) => setTurnstileToken(t)}
+            onExpire={() => setTurnstileToken(null)}
+          />
+        )}
+
         <Button
           type="submit"
           className="mt-1 w-full"
           loading={loading}
-          disabled={!supabaseReady || (mode === "sign-up" && !legalAccepted)}
+          disabled={
+            !supabaseReady ||
+            (mode === "sign-up" && !legalAccepted) ||
+            (mode === "sign-up" && turnstileConfigured() && !turnstileToken)
+          }
         >
           {mode === "sign-in" ? "Hyr" : "Krijo llogari"}
         </Button>

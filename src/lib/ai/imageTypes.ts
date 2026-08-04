@@ -18,6 +18,7 @@ export interface AiImageRequest {
   /** maro Prompts: id of an attached curated prompt. The hidden template text
    * is fetched server-side and never sent from the client. */
   maroPrompt?: { id: string };
+  idempotencyKey?: string;
 }
 
 export interface AiImageResponse {

@@ -10,6 +10,7 @@ export interface AiAudioRequest {
   audio?: string;
   /** Selected options per setting id (drives cost + model/voice/length). */
   selections?: Record<string, string>;
+  idempotencyKey?: string;
 }
 
 export interface AiAudioResponse {

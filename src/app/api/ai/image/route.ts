@@ -3,16 +3,20 @@ import { IMAGE_MODEL, generateImages, editImages, hasOpenAiKey } from "@/lib/ai/
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
-  getProfileCredits,
   getPromptTemplate,
-  getUserFromToken,
   incrementPromptUse,
   logGeneration,
-  refundCredits,
-  spendCredits,
   supabaseServerConfigured,
   uploadGeneratedImage,
 } from "@/lib/supabase/server";
+import { getIdempotencyKey } from "@/lib/generation/idempotency";
+import {
+  prepareGeneration,
+  completeGeneration,
+  failGeneration,
+  guardErrorResponse,
+} from "@/lib/generation/orchestrator";
+import { MODULE_LIMITS } from "@/lib/generation/limits";
 import {
   composeToolPrompt,
   findOption,
@@ -100,30 +104,31 @@ export async function POST(req: Request) {
     if (opt?.size) size = opt.size;
   }
 
+  const n = Math.min(body.n ?? 1, MODULE_LIMITS.image.maxImagesPerRequest);
+
   let userId: string | null = null;
   let userEmail = "";
   let cost = 0;
-  // maroFort is entitlement-gated. In dev (no Supabase) we allow it for testing.
   let entitled = !supabaseServerConfigured();
+  let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
-    const user = await getUserFromToken(bearer(req));
-    if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    userId = user.id;
-    userEmail = user.email ?? "";
     cost = toolSelectionCost(tool, selections, settings.pricing.options);
-
-    const profile = await getProfileCredits(userId);
-    entitled = profile?.plan === "fort";
-    if (!profile || profile.credits < cost) {
-      return NextResponse.json(
-        { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
-        { status: 402 }
-      );
-    }
-    const balance = await spendCredits(userId, cost);
-    if (balance < 0) {
-      return NextResponse.json({ error: "insufficient-credits", needed: cost }, { status: 402 });
+    try {
+      prep = await prepareGeneration({
+        req,
+        module: tool.id,
+        cost,
+        model: IMAGE_MODEL,
+        idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
+        promptText: body.prompt,
+        attachmentCount: (body.attachments ?? []).length,
+      });
+      userId = prep.userId;
+      userEmail = prep.userEmail;
+      entitled = prep.isFort;
+    } catch (e) {
+      return guardErrorResponse(e);
     }
   }
 
@@ -173,10 +178,16 @@ export async function POST(req: Request) {
           prompt: finalPrompt,
           size,
           quality: body.quality,
-          n: body.n,
+          n,
         });
     if (!b64s.length) {
-      if (userId && cost) await refundCredits(userId, cost);
+      if (prep && cost) {
+        await failGeneration({
+          jobId: prep.job.id,
+          idempotencyKey: prep.idempotencyKey,
+          error: "empty",
+        });
+      }
       return NextResponse.json({ error: "empty" }, { status: 502 });
     }
 
@@ -206,15 +217,31 @@ export async function POST(req: Request) {
         selections: Object.keys(selections).length ? selections : undefined,
         fort: fortLog,
       });
+      if (prep) {
+        await completeGeneration({
+          jobId: prep.job.id,
+          userId,
+          module: tool.id,
+          cost,
+          model: IMAGE_MODEL,
+          imageCount: b64s.length,
+        });
+      }
     }
 
     // Count the curated-prompt usage (best-effort analytics).
     if (maroPromptId) await incrementPromptUse(maroPromptId);
 
-    return NextResponse.json({ images: urls, creditsSpent: cost });
+    return NextResponse.json({ images: urls, creditsSpent: cost, jobId: prep?.job.id });
   } catch (err) {
     console.error("[ai/image] failed:", err);
-    if (userId && cost) await refundCredits(userId, cost);
+    if (prep && cost) {
+      await failGeneration({
+        jobId: prep.job.id,
+        idempotencyKey: prep.idempotencyKey,
+        error: (err as Error)?.message ?? "ai-failed",
+      });
+    }
     return NextResponse.json({ error: "ai-failed" }, { status: 502 });
   }
 }

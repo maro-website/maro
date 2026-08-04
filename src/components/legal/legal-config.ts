@@ -11,6 +11,7 @@ export const LEGAL_ENTITY = {
 export const LEGAL_ADDRESS = `${LEGAL_ENTITY.address}, ${LEGAL_ENTITY.country}`;
 
 export const LEGAL_PAGES = [
+  { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
   { href: "/legal/terms", label: "Kushtet e Përdorimit" },
   { href: "/legal/privacy", label: "Politika e Privatësisë" },
   { href: "/legal/refund", label: "Politika e Rimbursimit" },

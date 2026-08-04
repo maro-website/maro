@@ -1,6 +1,7 @@
 "use client";
 
 import { getAccessToken } from "@/lib/supabase/client";
+import { aiFetchHeaders, newIdempotencyKey } from "@/lib/client/idempotency";
 import { InsufficientCreditsError } from "@/lib/services/generationService";
 import type { AiAudioRequest, AiAudioResponse } from "@/lib/ai/audioTypes";
 
@@ -21,13 +22,11 @@ export class AudioGenerationError extends Error {
 // InsufficientCreditsError (402) or AudioGenerationError on failure.
 export async function generateAudio(req: AiAudioRequest): Promise<AiAudioResponse> {
   const token = await getAccessToken();
+  const idempotencyKey = req.idempotencyKey ?? newIdempotencyKey("aud");
   const res = await fetch("/api/ai/audio", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(req),
+    headers: aiFetchHeaders(token, idempotencyKey),
+    body: JSON.stringify({ ...req, idempotencyKey }),
   });
 
   if (res.status === 402) {

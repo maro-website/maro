@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getSupabaseAdmin,
   getUserFromToken,
-  refundCredits,
+  refundCreditsAtomic,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
 
@@ -40,7 +40,11 @@ export async function POST(req: Request) {
 
   if (action === "refund") {
     if (report.user_id && (report.credits_spent ?? 0) > 0) {
-      await refundCredits(report.user_id as string, report.credits_spent as number);
+      await refundCreditsAtomic(
+        report.user_id as string,
+        report.credits_spent as number,
+        `report-refund-${id}`
+      );
     }
     await admin.from("reports").update({ status: "refunded" }).eq("id", id);
     return NextResponse.json({ ok: true, status: "refunded" });

@@ -14,6 +14,7 @@ export interface AiChatRequest {
   toolId?: string;
   /** Conversation so far (server caps the history to keep tokens low). */
   messages: ChatMsg[];
+  idempotencyKey?: string;
 }
 
 // Max turns of history sent to the model (keeps token cost predictable).

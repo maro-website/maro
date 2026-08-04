@@ -1,6 +1,7 @@
 "use client";
 
 import { getAccessToken } from "@/lib/supabase/client";
+import { aiFetchHeaders, newIdempotencyKey } from "@/lib/client/idempotency";
 import { InsufficientCreditsError } from "@/lib/services/generationService";
 import type { AiImageRequest, AiImageResponse } from "@/lib/ai/imageTypes";
 
@@ -21,13 +22,11 @@ export class ImageGenerationError extends Error {
 // ImageGenerationError on failure so the UI can show a precise message.
 export async function generateImages(req: AiImageRequest): Promise<AiImageResponse> {
   const token = await getAccessToken();
+  const idempotencyKey = req.idempotencyKey ?? newIdempotencyKey("img");
   const res = await fetch("/api/ai/image", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(req),
+    headers: aiFetchHeaders(token, idempotencyKey),
+    body: JSON.stringify({ ...req, idempotencyKey }),
   });
 
   if (res.status === 402) {

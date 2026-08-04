@@ -1,8 +1,13 @@
 import "server-only";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import type { FortConfig } from "@/lib/fort/types";
 import type { AppSettings, PricingConfig } from "./types";
 import { DEFAULT_PRICING } from "./types";
-import type { FortConfig } from "@/lib/fort/types";
+import {
+  refundCredits as refundCreditsLedger,
+  refundCreditsAtomic,
+  releaseCreditReserve,
+} from "@/lib/credits/ledger";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -141,23 +146,32 @@ export async function spendCredits(userId: string, amount: number): Promise<numb
   return typeof data === "number" ? data : -1;
 }
 
-// Refund credits (used when generation fails after deduction).
-export async function refundCredits(userId: string, amount: number): Promise<void> {
-  const admin = getSupabaseAdmin();
-  const { data } = await admin.from("profiles").select("credits").eq("id", userId).single();
-  const current = (data?.credits as number) ?? 0;
-  await admin.from("profiles").update({ credits: current + amount }).eq("id", userId);
+// Refund credits via atomic ledger RPCs.
+export async function refundCredits(
+  userId: string,
+  amount: number,
+  jobId?: string
+): Promise<void> {
+  await refundCreditsLedger(userId, amount, jobId);
 }
+
+export { refundCreditsAtomic, releaseCreditReserve };
 
 export async function getProfileCredits(
   userId: string
-): Promise<{ credits: number; is_admin: boolean; email: string; plan: string } | null> {
+): Promise<{
+  credits: number;
+  is_admin: boolean;
+  email: string;
+  plan: string;
+  generation_paused?: boolean;
+  created_at?: string;
+} | null> {
   const admin = getSupabaseAdmin();
-  // Try with plan; fall back to the legacy select if the column is missing.
   let data: Record<string, unknown> | null = null;
   const withPlan = await admin
     .from("profiles")
-    .select("credits, is_admin, email, plan")
+    .select("credits, is_admin, email, plan, generation_paused, created_at")
     .eq("id", userId)
     .single();
   if (!withPlan.error) {
@@ -165,7 +179,7 @@ export async function getProfileCredits(
   } else {
     const legacy = await admin
       .from("profiles")
-      .select("credits, is_admin, email")
+      .select("credits, is_admin, email, plan, created_at")
       .eq("id", userId)
       .single();
     data = legacy.data as Record<string, unknown> | null;
@@ -176,6 +190,8 @@ export async function getProfileCredits(
     is_admin: Boolean(data.is_admin),
     email: (data.email as string) ?? "",
     plan: (data.plan as string) ?? "free",
+    generation_paused: Boolean(data.generation_paused),
+    created_at: data.created_at as string | undefined,
   };
 }
 
@@ -185,10 +201,13 @@ export async function hasFort(userId: string): Promise<boolean> {
   try {
     const { data } = await getSupabaseAdmin()
       .from("profiles")
-      .select("plan")
+      .select("plan, fort_until")
       .eq("id", userId)
       .single();
-    return (data?.plan as string) === "fort";
+    if ((data?.plan as string) !== "fort") return false;
+    const until = data?.fort_until as string | null;
+    if (until && new Date(until) < new Date()) return false;
+    return true;
   } catch {
     return false;
   }

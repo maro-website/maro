@@ -3,6 +3,7 @@
 import type { Project } from "@/lib/types";
 import type { AiEditHtmlRequest, AiEditHtmlResponse } from "@/lib/ai/types";
 import { getAccessToken } from "@/lib/supabase/client";
+import { aiFetchHeaders, newIdempotencyKey } from "@/lib/client/idempotency";
 import { InsufficientCreditsError } from "@/lib/services/generationService";
 
 export { InsufficientCreditsError };
@@ -34,13 +35,11 @@ export async function requestHtmlEdit(
   };
 
   const token = await getAccessToken();
+  const idempotencyKey = req.idempotencyKey ?? newIdempotencyKey("html");
   const res = await fetch("/api/ai/edit-html", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(req),
+    headers: aiFetchHeaders(token, idempotencyKey),
+    body: JSON.stringify({ ...req, idempotencyKey }),
   });
 
   if (res.status === 402) {

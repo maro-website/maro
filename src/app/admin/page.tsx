@@ -224,6 +224,19 @@ function OverviewTab() {
 
   return (
     <div className="flex flex-col gap-6">
+      <a
+        href="/admin/security"
+        className="flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
+      >
+        <div className="flex items-center gap-3">
+          <Shield className="h-5 w-5 text-brand" />
+          <div>
+            <div className="text-[15px] font-semibold text-ink">Siguria & Kostot</div>
+            <div className="text-[13px] text-ink-3">Shpenzime, radhë, kill switch, abuzim</div>
+          </div>
+        </div>
+        <span className="text-[13px] font-semibold text-brand">Hap →</span>
+      </a>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="rounded-2xl bg-surface p-5">

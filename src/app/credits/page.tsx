@@ -6,6 +6,11 @@ import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
+import {
+  fetchCreditTransactions,
+  txTypeLabel,
+  type CreditTransactionItem,
+} from "@/lib/services/ledgerService";
 import { validatePromo, trackPromo, type PromoInfo } from "@/lib/services/promoService";
 import { pushNotification } from "@/lib/notifications/store";
 import { timeAgo } from "@/lib/utils/format";
@@ -89,14 +94,19 @@ export default function CreditsPage() {
   const [usage, setUsage] = React.useState<{ items: UsageItem[]; count: number; spent: number } | null>(
     null
   );
+  const [ledgerTab, setLedgerTab] = React.useState<"activity" | "transactions">("activity");
+  const [transactions, setTransactions] = React.useState<CreditTransactionItem[] | null>(null);
+
   React.useEffect(() => {
     if (!user) {
       setUsage({ items: [], count: 0, spent: 0 });
+      setTransactions([]);
       return;
     }
     void fetchUsage().then((u) =>
       setUsage({ items: u.items, count: u.totalCount, spent: u.totalCredits })
     );
+    void fetchCreditTransactions().then(setTransactions);
   }, [user]);
 
   // Promo code
@@ -355,11 +365,27 @@ export default function CreditsPage() {
             </p>
           </motion.div>
 
-          {/* Usage feed */}
+          {/* Usage / ledger */}
           <div className="mt-12 mb-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[18px] font-bold tracking-tight text-ink">Aktiviteti yt</h2>
-              {usage && (
+              <div className="flex items-center gap-2">
+                <h2 className="text-[18px] font-bold tracking-tight text-ink">Historiku</h2>
+                <div className="flex rounded-xl bg-surface-2 p-0.5">
+                  {(["activity", "transactions"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setLedgerTab(tab)}
+                      className={`rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                        ledgerTab === tab ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
+                      }`}
+                    >
+                      {tab === "activity" ? "Gjenerime" : "Transaksione"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {ledgerTab === "activity" && usage && (
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
                     <Wand2 className="h-3.5 w-3.5 text-brand" /> {usage.count} gjenerime
@@ -372,7 +398,38 @@ export default function CreditsPage() {
             </div>
 
             <div className="overflow-hidden rounded-2xl bg-surface">
-              {!usage ? (
+              {ledgerTab === "transactions" ? (
+                !transactions ? (
+                  <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">Duke ngarkuar…</div>
+                ) : transactions.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">
+                    Ende s&apos;ka transaksione krediti.
+                  </div>
+                ) : (
+                  transactions.slice(0, 30).map((tx, i) => (
+                    <div
+                      key={tx.id}
+                      className={`flex items-center gap-3 px-5 py-3.5 ${
+                        i !== Math.min(transactions.length, 30) - 1 ? "border-b border-line" : ""
+                      }`}
+                    >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2">
+                        <Coins className="h-4 w-4 text-brand" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13.5px] font-semibold text-ink">
+                          {txTypeLabel(tx.type)}
+                        </div>
+                        <div className="text-[11.5px] text-ink-3">{timeAgo(tx.created_at)}</div>
+                      </div>
+                      <span className="shrink-0 text-[13px] font-bold text-ink">
+                        {tx.type === "charge" || tx.type === "reserve" ? "−" : "+"}
+                        {tx.amount} kr
+                      </span>
+                    </div>
+                  ))
+                )
+              ) : !usage ? (
                 <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">Duke ngarkuar…</div>
               ) : usage.items.length === 0 ? (
                 <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">

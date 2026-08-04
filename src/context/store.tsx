@@ -43,7 +43,12 @@ interface MaroContextValue {
   projects: Project[];
   // auth
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    turnstileToken?: string
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfileName: (name: string) => Promise<{ error: string | null }>;
@@ -182,20 +187,36 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signUp = useCallback(
-    async (name: string, email: string, password: string): Promise<{ error: string | null }> => {
+    async (
+      name: string,
+      email: string,
+      password: string,
+      turnstileToken?: string
+    ): Promise<{ error: string | null }> => {
       if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
-      const sb = getSupabaseBrowser();
-      const { error } = await sb.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } },
-      });
-      if (error) return { error: error.message };
-      // If email confirmation is disabled the user is signed in immediately.
-      await refreshProfile();
-      return { error: null };
+
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, turnstileToken }),
+        });
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        if (!res.ok) {
+          const map: Record<string, string> = {
+            "disposable-email": "Email-et e përkohshme nuk lejohen.",
+            "email-taken": "Ky email është i regjistruar tashmë.",
+            turnstile_required: "Verifikimi CAPTCHA mungon.",
+            turnstile_failed: "Verifikimi CAPTCHA dështoi. Provo përsëri.",
+          };
+          return { error: map[j.error ?? ""] ?? j.error ?? "Regjistrimi dështoi." };
+        }
+        return { error: null };
+      } catch {
+        return { error: "Regjistrimi dështoi. Provo përsëri." };
+      }
     },
-    [refreshProfile]
+    []
   );
 
   const signOut = useCallback(async () => {
@@ -445,7 +466,9 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       user,
       isAdmin: Boolean(profile?.is_admin),
       isCreator: Boolean(profile?.is_creator),
-      hasFort: profile?.plan === "fort",
+      hasFort:
+        profile?.plan === "fort" &&
+        (!profile.fort_until || new Date(profile.fort_until) > new Date()),
       credits: profile?.credits ?? 0,
       supabaseReady: supabaseConfigured,
       projects: state.projects,

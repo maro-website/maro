@@ -10,13 +10,17 @@ import {
   getAppSettings,
   getProfileCredits,
   getPromptTemplate,
-  getUserFromToken,
   incrementPromptUse,
   logGeneration,
-  refundCredits,
-  spendCredits,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
+import { getIdempotencyKey } from "@/lib/generation/idempotency";
+import {
+  prepareGeneration,
+  completeGeneration,
+  failGeneration,
+  guardErrorResponse,
+} from "@/lib/generation/orchestrator";
 import { creditCost } from "@/lib/supabase/types";
 import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 import { getTool, toolSelectionCost } from "@/lib/tools/registry";
@@ -84,22 +88,15 @@ export async function POST(req: Request) {
     "2x": "medium",
   };
 
-  // ---- Auth + credits (required when Supabase is configured) ----
+  // ---- Auth + credits (reserve before AI via job ledger) ----
   let userId: string | null = null;
   let userEmail = "";
   let cost = 0;
   let effort: string | undefined;
-  // maroFort is entitlement-gated. In dev (no Supabase) allow it for testing.
   let entitled = !supabaseServerConfigured();
+  let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
-    const user = await getUserFromToken(bearer(req));
-    if (!user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    userId = user.id;
-    userEmail = user.email ?? "";
-
     cost =
       webTool && selections
         ? toolSelectionCost(webTool, selections, settings.pricing.options)
@@ -108,18 +105,22 @@ export async function POST(req: Request) {
       ? effortBySpeed[selections.speed]
       : settings.pricing.speed?.[speed]?.effort;
 
-    const profile = await getProfileCredits(userId);
-    entitled = profile?.plan === "fort";
-    if (!profile || profile.credits < cost) {
-      return NextResponse.json(
-        { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
-        { status: 402 }
-      );
-    }
-    // Deduct atomically BEFORE calling Claude.
-    const balance = await spendCredits(userId, cost);
-    if (balance < 0) {
-      return NextResponse.json({ error: "insufficient-credits", needed: cost }, { status: 402 });
+    try {
+      prep = await prepareGeneration({
+        req,
+        module: "web",
+        cost,
+        model: AI_MODEL,
+        idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
+        promptText: body.userPrompt || body.goal || "",
+        attachmentCount: 0,
+        metadata: { selections, kind, speed },
+      });
+      userId = prep.userId;
+      userEmail = prep.userEmail;
+      entitled = prep.isFort;
+    } catch (e) {
+      return guardErrorResponse(e);
     }
   }
 
@@ -177,9 +178,12 @@ export async function POST(req: Request) {
         const pages = parseHtmlPages(text);
         if (!pages.length) {
           let refunded = false;
-          if (userId && cost) {
-            await refundCredits(userId, cost);
-            refunded = true;
+          if (prep && cost) {
+            refunded = await failGeneration({
+              jobId: prep.job.id,
+              idempotencyKey: prep.idempotencyKey,
+              error: "empty",
+            });
           }
           send({
             ok: false,
@@ -187,6 +191,7 @@ export async function POST(req: Request) {
             detail: `no HTML pages parsed (chars=${text.length})`,
             fallback: true,
             refunded,
+            jobId: prep?.job.id,
           });
           return;
         }
@@ -203,15 +208,27 @@ export async function POST(req: Request) {
             selections: selections && Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
           });
+          if (prep) {
+            await completeGeneration({
+              jobId: prep.job.id,
+              userId,
+              module: "web",
+              cost,
+              model: AI_MODEL,
+            });
+          }
         }
         if (maroPromptId) await incrementPromptUse(maroPromptId);
-        send({ ok: true, pages, creditsSpent: cost });
+        send({ ok: true, pages, creditsSpent: cost, jobId: prep?.job.id });
       } catch (err) {
         console.error("[ai/generate] failed:", err);
         let refunded = false;
-        if (userId && cost) {
-          await refundCredits(userId, cost);
-          refunded = true;
+        if (prep && cost) {
+          refunded = await failGeneration({
+            jobId: prep.job.id,
+            idempotencyKey: prep.idempotencyKey,
+            error: (err as Error)?.message ?? "ai-failed",
+          });
         }
         const e = err as { code?: string; detail?: string; message?: string; status?: number };
         send({

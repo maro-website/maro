@@ -6,6 +6,7 @@
 import type { Project, HtmlPage } from "@/lib/types";
 import type { AiGenerateRequest, AiGenerateHtmlResponse } from "@/lib/ai/types";
 import { getAccessToken } from "@/lib/supabase/client";
+import { aiFetchHeaders, newIdempotencyKey } from "@/lib/client/idempotency";
 import { uid, slugify } from "@/lib/utils/format";
 
 export class InsufficientCreditsError extends Error {
@@ -188,13 +189,11 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
   };
 
   const token = await getAccessToken();
+  const idempotencyKey = req.idempotencyKey ?? newIdempotencyKey("web");
   const res = await fetch("/api/ai/generate", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(req),
+    headers: aiFetchHeaders(token, idempotencyKey),
+    body: JSON.stringify({ ...req, idempotencyKey }),
   });
   if (res.status === 402) {
     const j = await res.json().catch(() => ({}));

@@ -11,14 +11,17 @@ import {
 import type { AiAudioRequest } from "@/lib/ai/audioTypes";
 import {
   getAppSettings,
-  getProfileCredits,
-  getUserFromToken,
   logGeneration,
-  refundCredits,
-  spendCredits,
   supabaseServerConfigured,
   uploadGeneratedAudio,
 } from "@/lib/supabase/server";
+import { getIdempotencyKey } from "@/lib/generation/idempotency";
+import {
+  prepareGeneration,
+  completeGeneration,
+  failGeneration,
+  guardErrorResponse,
+} from "@/lib/generation/orchestrator";
 import {
   composeToolPrompt,
   findOption,
@@ -92,26 +95,49 @@ export async function POST(req: Request) {
   let userId: string | null = null;
   let userEmail = "";
   let cost = 0;
+  let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
-    const user = await getUserFromToken(bearer(req));
-    if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    userId = user.id;
-    userEmail = user.email ?? "";
     cost = toolSelectionCost(tool, selections, settings.pricing.options);
-
-    const profile = await getProfileCredits(userId);
-    if (!profile || profile.credits < cost) {
-      return NextResponse.json(
-        { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
-        { status: 402 }
-      );
-    }
-    const balance = await spendCredits(userId, cost);
-    if (balance < 0) {
-      return NextResponse.json({ error: "insufficient-credits", needed: cost }, { status: 402 });
+    try {
+      prep = await prepareGeneration({
+        req,
+        module: "zo",
+        cost,
+        model,
+        idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
+        promptText: body.prompt ?? "",
+        attachmentCount: hasAudio ? 1 : 0,
+      });
+      userId = prep.userId;
+      userEmail = prep.userEmail;
+    } catch (e) {
+      return guardErrorResponse(e);
     }
   }
+
+  const finishOk = async () => {
+    if (userId && prep) {
+      await completeGeneration({
+        jobId: prep.job.id,
+        userId,
+        module: "zo",
+        cost,
+        model,
+      });
+    }
+  };
+
+  const finishFail = async (error: string) => {
+    if (prep && cost) {
+      return failGeneration({
+        jobId: prep.job.id,
+        idempotencyKey: prep.idempotencyKey,
+        error,
+      });
+    }
+    return false;
+  };
 
   try {
     // Speech-to-text returns text; every other mode returns base64 mp3.
@@ -129,8 +155,9 @@ export async function POST(req: Request) {
           kind: "audio",
           selections: Object.keys(selections).length ? selections : undefined,
         });
+        await finishOk();
       }
-      return NextResponse.json({ text, creditsSpent: cost });
+      return NextResponse.json({ text, creditsSpent: cost, jobId: prep?.job.id });
     }
 
     let b64: string;
@@ -151,12 +178,12 @@ export async function POST(req: Request) {
         b64 = await isolateAudio({ audio: body.audio! });
         break;
       default:
-        if (userId && cost) await refundCredits(userId, cost);
+        await finishFail("bad-mode");
         return NextResponse.json({ error: "bad-mode" }, { status: 400 });
     }
 
     if (!b64) {
-      if (userId && cost) await refundCredits(userId, cost);
+      await finishFail("empty");
       return NextResponse.json({ error: "empty" }, { status: 502 });
     }
 
@@ -181,12 +208,13 @@ export async function POST(req: Request) {
         output_urls: audioUrl.startsWith("data:") ? [] : [audioUrl],
         selections: Object.keys(selections).length ? selections : undefined,
       });
+      await finishOk();
     }
 
-    return NextResponse.json({ audioUrl, creditsSpent: cost });
+    return NextResponse.json({ audioUrl, creditsSpent: cost, jobId: prep?.job.id });
   } catch (err) {
     console.error("[ai/audio] failed:", err);
-    if (userId && cost) await refundCredits(userId, cost);
+    await finishFail((err as Error)?.message ?? "ai-failed");
     return NextResponse.json({ error: "ai-failed" }, { status: 502 });
   }
 }

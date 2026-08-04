@@ -35,6 +35,7 @@ export interface AiEditRequest {
   theme: Theme;
   page: { id: string; name: string; sections: AiSection[] };
   assetUrls: string[];
+  idempotencyKey?: string;
 }
 
 export interface AiEditResponse {
@@ -70,6 +71,8 @@ export interface AiGenerateRequest {
   fort?: FortPayload;
   /** maro Prompts: id of an attached curated prompt (hidden template). */
   maroPrompt?: { id: string };
+  /** Client idempotency key to prevent duplicate charges on retry. */
+  idempotencyKey?: string;
 }
 
 export interface AiGenerateResponse {
@@ -95,6 +98,7 @@ export interface AiEditHtmlRequest {
   businessName: string;
   language: string;
   page: { name: string; slug: string; html: string };
+  idempotencyKey?: string;
 }
 
 export interface AiEditHtmlResponse {

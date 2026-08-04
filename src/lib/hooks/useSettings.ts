@@ -13,8 +13,14 @@ interface SettingsState {
   loading: boolean;
 }
 
-// Reads the single app_settings row (pricing + master prompt + tool prompts).
-// Requires an authenticated session per RLS; otherwise falls back to defaults.
+async function fetchPublicSettings(token: string | null): Promise<Record<string, unknown> | null> {
+  const headers: HeadersInit = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch("/api/settings/public", { headers });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export function useSettings(enabled = true): SettingsState & { reload: () => void } {
   const [state, setState] = React.useState<SettingsState>({
     pricing: DEFAULT_PRICING,
@@ -33,8 +39,8 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setState({
         loading: false,
-        masterPrompt: (data?.master_prompt as string) ?? "",
-        toolPrompts: (data?.tool_prompts as Record<string, string>) ?? {},
+        masterPrompt: "",
+        toolPrompts: {},
         fortConfig: (data?.fort_config as FortConfig) ?? {},
         pricing: {
           types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
@@ -50,19 +56,11 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
     };
     try {
       const sb = getSupabaseBrowser();
-      const { data, error } = await sb
-        .from("app_settings")
-        .select("master_prompt, pricing, tool_prompts, fort_config")
-        .eq("id", 1)
-        .single();
-      if (!error) return apply(data);
-      // Legacy fallback (tool_prompts column missing before migration 0003).
-      const { data: legacy } = await sb
-        .from("app_settings")
-        .select("master_prompt, pricing")
-        .eq("id", 1)
-        .single();
-      apply(legacy);
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData.session?.access_token ?? null;
+      const pub = await fetchPublicSettings(token);
+      if (pub) return apply(pub);
+      apply(null);
     } catch {
       setState((s) => ({ ...s, loading: false }));
     }

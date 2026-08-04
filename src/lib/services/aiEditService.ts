@@ -3,6 +3,7 @@ import { uid, slugify } from "@/lib/utils/format";
 import type { AiEditRequest, AiEditResponse } from "@/lib/ai/types";
 import { normalizeSections, normalizeTheme } from "@/lib/ai/normalize";
 import { getAccessToken } from "@/lib/supabase/client";
+import { aiFetchHeaders, newIdempotencyKey } from "@/lib/client/idempotency";
 
 export class InsufficientCreditsError extends Error {
   needed: number;
@@ -44,13 +45,11 @@ export async function requestAiEdit(prompt: string, project: Project): Promise<A
   };
 
   const token = await getAccessToken();
+  const idempotencyKey = req.idempotencyKey ?? newIdempotencyKey("edit");
   const res = await fetch("/api/ai/edit", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(req),
+    headers: aiFetchHeaders(token, idempotencyKey),
+    body: JSON.stringify({ ...req, idempotencyKey }),
   });
   if (res.status === 402) {
     const j = await res.json().catch(() => ({}));

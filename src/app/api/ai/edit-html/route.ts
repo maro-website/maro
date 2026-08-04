@@ -5,23 +5,20 @@ import { parseHtmlEdit } from "@/lib/ai/htmlParse";
 import type { AiEditHtmlRequest } from "@/lib/ai/types";
 import {
   getAppSettings,
-  getProfileCredits,
-  getUserFromToken,
   logGeneration,
-  refundCredits,
-  spendCredits,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
+import { getIdempotencyKey } from "@/lib/generation/idempotency";
+import {
+  prepareGeneration,
+  completeGeneration,
+  failGeneration,
+  guardErrorResponse,
+} from "@/lib/generation/orchestrator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 900;
-
-function bearer(req: Request): string | null {
-  const h = req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!h) return null;
-  return h.startsWith("Bearer ") ? h.slice(7) : h;
-}
 
 export async function POST(req: Request) {
   if (!hasAiKey()) {
@@ -42,24 +39,23 @@ export async function POST(req: Request) {
   let userEmail = "";
   let cost = 0;
   const settings = await getAppSettings();
+  let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
-    const user = await getUserFromToken(bearer(req));
-    if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    userId = user.id;
-    userEmail = user.email ?? "";
     cost = settings.pricing.editCost ?? 2;
-
-    const profile = await getProfileCredits(userId);
-    if (!profile || profile.credits < cost) {
-      return NextResponse.json(
-        { error: "insufficient-credits", needed: cost, have: profile?.credits ?? 0 },
-        { status: 402 }
-      );
-    }
-    const balance = await spendCredits(userId, cost);
-    if (balance < 0) {
-      return NextResponse.json({ error: "insufficient-credits", needed: cost }, { status: 402 });
+    try {
+      prep = await prepareGeneration({
+        req,
+        module: "edit-html",
+        cost,
+        model: AI_MODEL,
+        idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
+        promptText: body.instruction,
+      });
+      userId = prep.userId;
+      userEmail = prep.userEmail;
+    } catch (e) {
+      return guardErrorResponse(e);
     }
   }
 
@@ -71,9 +67,12 @@ export async function POST(req: Request) {
     const parsed = parseHtmlEdit(text);
     if (!parsed) {
       let refunded = false;
-      if (userId && cost) {
-        await refundCredits(userId, cost);
-        refunded = true;
+      if (prep && cost) {
+        refunded = await failGeneration({
+          jobId: prep.job.id,
+          idempotencyKey: prep.idempotencyKey,
+          error: "parse-failed",
+        });
       }
       return NextResponse.json(
         { error: "parse-failed", detail: `no HTML parsed (chars=${text.length})`, refunded },
@@ -91,19 +90,32 @@ export async function POST(req: Request) {
         model: AI_MODEL,
         credits_spent: cost,
       });
+      if (prep) {
+        await completeGeneration({
+          jobId: prep.job.id,
+          userId,
+          module: "edit-html",
+          cost,
+          model: AI_MODEL,
+        });
+      }
     }
     return NextResponse.json({
       reply: parsed.reply,
       versionLabel: parsed.versionLabel,
       cost: cost || parsed.cost,
       html: parsed.html,
+      jobId: prep?.job.id,
     });
   } catch (err) {
     console.error("[ai/edit-html] failed:", err);
     let refunded = false;
-    if (userId && cost) {
-      await refundCredits(userId, cost);
-      refunded = true;
+    if (prep && cost) {
+      refunded = await failGeneration({
+        jobId: prep.job.id,
+        idempotencyKey: prep.idempotencyKey,
+        error: (err as Error)?.message ?? "ai-failed",
+      });
     }
     const e = err as { code?: string; detail?: string; message?: string; status?: number };
     return NextResponse.json(
