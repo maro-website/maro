@@ -2,6 +2,7 @@
 // Client-safe: no server-only imports here.
 
 import type { FortConfig } from "@/lib/fort/types";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 
 export type WebsiteKind = "landing" | "business" | "platform";
 export type SpeedKey = "slow" | "fast" | "2x";
@@ -82,6 +83,8 @@ export interface AppSettings {
   pricing: PricingConfig;
   /** Per-tool master prompts for image tools (e.g. { logo, reklama }). */
   tool_prompts: Record<string, string>;
+  /** SVG icon URLs per tool option (light/dark), keyed by optionKey. */
+  tool_option_icons: ToolOptionIcons;
   /** Admin-managed maroFort configuration (schema overrides + prompt layers). */
   fort_config: FortConfig;
 }

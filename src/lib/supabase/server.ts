@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient, type User } from "@supabase/supabase
 import type { FortConfig } from "@/lib/fort/types";
 import type { AppSettings, PricingConfig } from "./types";
 import { DEFAULT_PRICING } from "./types";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import {
   refundCredits as refundCreditsLedger,
   refundCreditsAtomic,
@@ -55,6 +56,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     return {
       master_prompt: (data?.master_prompt as string) ?? "",
       tool_prompts: (data?.tool_prompts as Record<string, string>) ?? {},
+      tool_option_icons: (data?.tool_option_icons as ToolOptionIcons) ?? {},
       fort_config: (data?.fort_config as FortConfig) ?? {},
       pricing: {
         types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
@@ -72,7 +74,7 @@ export async function getAppSettings(): Promise<AppSettings> {
   try {
     const { data, error } = await admin
       .from("app_settings")
-      .select("master_prompt, pricing, tool_prompts, fort_config")
+      .select("master_prompt, pricing, tool_prompts, fort_config, tool_option_icons")
       .eq("id", 1)
       .single();
     if (!error) return build(data);
@@ -89,7 +91,25 @@ export async function getAppSettings(): Promise<AppSettings> {
       .single();
     return build(data);
   } catch {
-    return { master_prompt: "", tool_prompts: {}, fort_config: {}, pricing: DEFAULT_PRICING };
+    return { master_prompt: "", tool_prompts: {}, tool_option_icons: {}, fort_config: {}, pricing: DEFAULT_PRICING };
+  }
+}
+
+// Upload an admin SVG asset to the public "generations" bucket.
+export async function uploadAdminSvg(userId: string, svg: string, slug: string): Promise<string | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const safe = slug.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+    const path = `admin-icons/${userId}/${safe}-${Date.now()}.svg`;
+    const bytes = Buffer.from(svg, "utf-8");
+    const { error } = await admin.storage
+      .from("generations")
+      .upload(path, bytes, { contentType: "image/svg+xml", upsert: false });
+    if (error) return null;
+    const { data } = admin.storage.from("generations").getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    return null;
   }
 }
 

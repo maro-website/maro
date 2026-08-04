@@ -4,12 +4,14 @@ import * as React from "react";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
 import type { FortConfig } from "@/lib/fort/types";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import {
   fetchPublicSettings,
   mergePricingConfig,
   prefetchPublicSettings,
   readCachedPublicSettings,
   writeCachedPublicSettings,
+  type PublicSettingsPayload,
 } from "@/lib/settings/publicSettings";
 
 interface SettingsState {
@@ -17,6 +19,7 @@ interface SettingsState {
   masterPrompt: string;
   toolPrompts: Record<string, string>;
   fortConfig: FortConfig;
+  toolOptionIcons: ToolOptionIcons;
   loading: boolean;
 }
 
@@ -28,6 +31,7 @@ function initialSettingsState(): SettingsState {
       masterPrompt: "",
       toolPrompts: {},
       fortConfig: cached.fort_config,
+      toolOptionIcons: cached.tool_option_icons,
       loading: true,
     };
   }
@@ -36,6 +40,7 @@ function initialSettingsState(): SettingsState {
     masterPrompt: "",
     toolPrompts: {},
     fortConfig: {},
+    toolOptionIcons: {},
     loading: true,
   };
 }
@@ -51,6 +56,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
       ...s,
       pricing: cached.pricing,
       fortConfig: cached.fort_config,
+      toolOptionIcons: cached.tool_option_icons,
     }));
   }, []);
 
@@ -59,7 +65,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
       setState((s) => ({ ...s, loading: false }));
       return;
     }
-    const apply = (data: { pricing: PricingConfig; fort_config: FortConfig } | null) => {
+    const apply = (data: PublicSettingsPayload | null) => {
       if (!data) {
         setState((s) => ({ ...s, loading: false }));
         return;
@@ -70,6 +76,7 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
         masterPrompt: "",
         toolPrompts: {},
         fortConfig: data.fort_config,
+        toolOptionIcons: data.tool_option_icons,
         pricing: data.pricing,
       });
     };

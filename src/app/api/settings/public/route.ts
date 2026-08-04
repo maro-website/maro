@@ -28,6 +28,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       pricing: DEFAULT_PRICING,
       fort_config: {},
+      tool_option_icons: {},
     });
   }
 
@@ -39,14 +40,15 @@ export async function GET(req: Request) {
   try {
     const { data, error } = await getSupabaseAdmin()
       .from("app_settings")
-      .select("pricing, fort_config")
+      .select("pricing, fort_config, tool_option_icons")
       .eq("id", 1)
       .single();
     if (error) throw error;
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     const fort_config = sanitizeFortConfig((data?.fort_config as FortConfig) ?? {});
-    return NextResponse.json({ pricing, fort_config });
+    const tool_option_icons = (data?.tool_option_icons as Record<string, unknown>) ?? {};
+    return NextResponse.json({ pricing, fort_config, tool_option_icons });
   } catch {
-    return NextResponse.json({ pricing: DEFAULT_PRICING, fort_config: {} });
+    return NextResponse.json({ pricing: DEFAULT_PRICING, fort_config: {}, tool_option_icons: {} });
   }
 }

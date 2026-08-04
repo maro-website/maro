@@ -7,6 +7,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
+import { OptionIcon } from "@/components/app/OptionIcon";
 import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { CreationLightbox } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
@@ -37,6 +38,7 @@ import {
   type ToolSetting,
 } from "@/lib/tools/registry";
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
@@ -114,7 +116,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const openId = searchParams.get("open");
   const { toast } = useToast();
   const { user, credits, hasFort, creations, addProject, addCreation, spendCredits } = useMaro();
-  const { pricing, fortConfig } = useSettings(Boolean(user));
+  const { pricing, fortConfig, toolOptionIcons } = useSettings(Boolean(user));
 
   const fortModule = toolToFortModule(tool.id);
   const fortAvailable = Boolean(fortModule && isFortModuleEnabled(fortConfig, fortModule));
@@ -831,8 +833,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 ) : (
                   <SettingSelect
                     key={s.id}
+                    toolId={tool.id}
                     setting={s}
                     value={selections[s.id] ?? s.default}
+                    optionIcons={toolOptionIcons}
                     onChange={(optId, opt) => {
                       if (opt.confirm) {
                         setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
@@ -1070,18 +1074,23 @@ function ToggleSetting({
 
 // ---- Setting selector (icon + current value; options with coming-soon) ----
 function SettingSelect({
+  toolId,
   setting,
   value,
+  optionIcons,
   onChange,
 }: {
+  toolId: string;
   setting: ToolSetting;
   value: string;
+  optionIcons?: ToolOptionIcons;
   onChange: (optionId: string, opt: NonNullable<ReturnType<typeof findOption>>) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   const current = findOption(setting, value) ?? setting.options[0];
   const Icon = setting.icon;
+  const currentId = current?.id ?? value;
 
   React.useEffect(() => {
     if (!open) return;
@@ -1100,7 +1109,13 @@ function SettingSelect({
         className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2"
         title={setting.label}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+        <OptionIcon
+          toolId={toolId}
+          settingId={setting.id}
+          optionId={currentId}
+          icons={optionIcons}
+          fallback={Icon}
+        />
         <span className="truncate text-[13px] font-semibold text-ink">{current?.label}</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-3" />
       </button>
@@ -1130,11 +1145,18 @@ function SettingSelect({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors",
+                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
                     disabled ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
                   )}
                 >
-                  <span className="min-w-0">
+                  <OptionIcon
+                    toolId={toolId}
+                    settingId={setting.id}
+                    optionId={o.id}
+                    icons={optionIcons}
+                    fallback={Icon}
+                  />
+                  <span className="min-w-0 flex-1">
                     <span
                       className={cn(
                         "block text-[13.5px] font-semibold",

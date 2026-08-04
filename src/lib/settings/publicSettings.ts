@@ -1,12 +1,14 @@
 import { readJSON, writeJSON } from "@/lib/storage/local";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
 import type { FortConfig } from "@/lib/fort/types";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 
 export const PUBLIC_SETTINGS_CACHE_KEY = "maro:v1:public-settings";
 
 export interface PublicSettingsPayload {
   pricing: PricingConfig;
   fort_config: FortConfig;
+  tool_option_icons: ToolOptionIcons;
 }
 
 export function mergePricingConfig(pricing: PricingConfig): PricingConfig {
@@ -30,6 +32,7 @@ export function readCachedPublicSettings(): PublicSettingsPayload | null {
   return {
     pricing: mergePricingConfig(cached.pricing),
     fort_config: (cached.fort_config as FortConfig) ?? {},
+    tool_option_icons: (cached.tool_option_icons as ToolOptionIcons) ?? {},
   };
 }
 
@@ -47,7 +50,8 @@ export async function fetchPublicSettings(
   const data = (await res.json()) as Record<string, unknown>;
   const pricing = mergePricingConfig((data?.pricing as PricingConfig) ?? DEFAULT_PRICING);
   const fort_config = (data?.fort_config as FortConfig) ?? {};
-  return { pricing, fort_config };
+  const tool_option_icons = (data?.tool_option_icons as ToolOptionIcons) ?? {};
+  return { pricing, fort_config, tool_option_icons };
 }
 
 let inflight: Promise<PublicSettingsPayload | null> | null = null;

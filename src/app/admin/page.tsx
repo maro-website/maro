@@ -23,6 +23,8 @@ import {
   type Announcement,
 } from "@/lib/supabase/types";
 import { TOOLS } from "@/lib/tools/registry";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
+import { OptionIconFields, optionIconPreview } from "@/components/admin/OptionIconFields";
 import { pushNotification, type NotificationType } from "@/lib/notifications/store";
 import { timeAgo, uid } from "@/lib/utils/format";
 import {
@@ -939,8 +941,10 @@ function Collapse({
 
 function MasterPromptsTab() {
   const { toast } = useToast();
+  const { getAccessToken } = useMaro();
   const [prompts, setPrompts] = React.useState<Record<string, string>>({});
   const [costs, setCosts] = React.useState<Record<string, number>>({});
+  const [icons, setIcons] = React.useState<ToolOptionIcons>({});
   const [masterPrompt, setMasterPrompt] = React.useState("");
   const [chatCost, setChatCost] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
@@ -951,10 +955,11 @@ function MasterPromptsTab() {
       if (!supabaseConfigured) return setLoading(false);
       const { data } = await getSupabaseBrowser()
         .from("app_settings")
-        .select("master_prompt, tool_prompts, pricing")
+        .select("master_prompt, tool_prompts, pricing, tool_option_icons")
         .eq("id", 1)
         .single();
       setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
+      setIcons((data?.tool_option_icons as ToolOptionIcons) ?? {});
       setMasterPrompt((data?.master_prompt as string) ?? "");
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       setCosts((pricing.options as Record<string, number>) ?? {});
@@ -967,16 +972,18 @@ function MasterPromptsTab() {
     setSaving(true);
     const { data } = await getSupabaseBrowser()
       .from("app_settings")
-      .select("pricing")
+      .select("pricing, tool_option_icons")
       .eq("id", 1)
       .single();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    const existingIcons = (data?.tool_option_icons as ToolOptionIcons) ?? {};
     // Website base prompt is mirrored into master_prompt for the generate route.
     const webBase = prompts["website.base"] ?? masterPrompt;
     const { error } = await getSupabaseBrowser()
       .from("app_settings")
       .update({
         tool_prompts: prompts,
+        tool_option_icons: { ...existingIcons, ...icons },
         master_prompt: webBase,
         pricing: { ...pricing, options: { ...(pricing.options ?? {}), ...costs }, chatCost },
         updated_at: new Date().toISOString(),
@@ -992,7 +999,8 @@ function MasterPromptsTab() {
     <div className="space-y-4">
       <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Prompti final = <span className="font-semibold text-ink">Baza</span> e tool-it + prompti i çdo
-        opsioni të zgjedhur nga përdoruesi + teksti i tij. Çdo opsion ka koston e vet.
+        opsioni të zgjedhur nga përdoruesi + teksti i tij. Çdo opsion ka koston e vet dhe mund të ketë
+        ikonë SVG (Qelt + Mshelt) për selectorët në prompt box.
       </div>
 
       {TOOLS.map((tool) => (
@@ -1023,10 +1031,19 @@ function MasterPromptsTab() {
                 <div className="space-y-2">
                   {s.options.map((o) => {
                     const key = `${tool.id}.${s.id}.${o.id}`;
+                    const preview = optionIconPreview(icons, key, "dark");
                     return (
                       <Collapse
                         key={o.id}
-                        title={o.label}
+                        title={
+                          <span className="flex items-center gap-2">
+                            {preview ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={preview} alt="" className="h-4 w-4 object-contain" />
+                            ) : null}
+                            {o.label}
+                          </span>
+                        }
                         subtitle={o.hint}
                         right={
                           <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-ink-2">
@@ -1051,6 +1068,13 @@ function MasterPromptsTab() {
                             }
                           />
                         </Field>
+                        <OptionIconFields
+                          optionKey={key}
+                          icons={icons}
+                          onChange={setIcons}
+                          getAccessToken={getAccessToken}
+                          toast={toast}
+                        />
                       </Collapse>
                     );
                   })}
