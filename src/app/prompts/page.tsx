@@ -98,7 +98,7 @@ export default function PromptsPage() {
 
   return (
     <AppShell>
-      <div className="relative flex h-full flex-col overflow-y-auto scroll-thin">
+      <div className="relative flex h-full min-w-0 flex-col overflow-x-clip max-lg:h-auto max-lg:overflow-y-visible overflow-y-auto scroll-thin">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[360px] bg-aurora" />
 
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">

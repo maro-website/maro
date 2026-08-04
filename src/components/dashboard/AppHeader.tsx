@@ -22,7 +22,7 @@ export function AppHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center">
-            <Logo />
+            <Logo mobileWordOnly />
           </Link>
           <Badge tone="brand" className="hidden text-[10px] sm:inline-flex">
             Beta

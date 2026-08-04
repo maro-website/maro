@@ -41,7 +41,7 @@ export default function HomePage() {
 
   return (
     <AppShell>
-      <div className="relative flex h-full flex-col items-center justify-center overflow-y-auto scroll-thin px-5 py-10">
+      <div className="relative flex h-full min-w-0 flex-col items-center justify-center overflow-x-clip max-lg:h-auto max-lg:overflow-y-visible overflow-y-auto scroll-thin px-4 py-10 sm:px-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-aurora" />
 
         <div className="w-full max-w-2xl">

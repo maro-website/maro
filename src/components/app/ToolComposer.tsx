@@ -594,7 +594,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
   return (
     <div
-      className="relative flex h-full flex-col"
+      className="relative flex h-full max-lg:h-auto flex-col overflow-x-clip"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -622,8 +622,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
       {/* Scroll area — ChatGPT-style conversation for image tools, plus the
           maroFort expert panel (when enabled). */}
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-        <div className="mx-auto w-full max-w-3xl px-5 pb-6 pt-8 sm:pt-12">
+      <div
+        ref={scrollRef}
+        className="scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto"
+      >
+        <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:px-5 sm:pt-12">
           {maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
@@ -657,8 +660,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       </div>
 
       {/* Docked prompt box */}
-      <div className="shrink-0 bg-canvas/90 backdrop-blur">
-        <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-5 sm:py-4">
+      <div className="shrink-0 overflow-x-clip bg-canvas/90 backdrop-blur max-lg:pb-[env(safe-area-inset-bottom)]">
+        <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-5 sm:py-4">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -780,7 +783,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             )}
 
-            <div className="relative flex flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
+            <div className="relative flex w-full max-w-full flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
               {isImage && (
                 <>
                   <input
@@ -849,7 +852,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 )
               )}
 
-              <div className="ml-auto flex items-center gap-2.5">
+              <div className="flex w-full shrink-0 items-center justify-end gap-2.5 sm:ml-auto sm:w-auto">
                 {functional && (
                   <span className="hidden items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2 sm:inline-flex">
                     <Coins className="h-4 w-4 text-brand" /> {cost}
@@ -1057,9 +1060,9 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
-      <Icon className="h-3.5 w-3.5 text-ink-3" />
-      <span className="text-[13px] font-semibold text-ink">{setting.label}</span>
+    <div className="flex max-w-full items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+      <span className="hidden truncate text-[13px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}
@@ -1099,12 +1102,12 @@ function SettingSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2"
+        className="flex max-w-[42vw] items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2 sm:max-w-none"
         title={setting.label}
       >
-        <Icon className="h-3.5 w-3.5 text-ink-3" />
-        <span className="text-[13px] font-semibold text-ink">{current?.label}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-ink-3" />
+        <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+        <span className="truncate text-[13px] font-semibold text-ink">{current?.label}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-3" />
       </button>
       <AnimatePresence>
         {open && (

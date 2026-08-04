@@ -42,7 +42,18 @@ import {
   Wand2,
   Coins,
   Check,
+  LayoutGrid,
+  List,
 } from "lucide-react";
+
+type Tab = "stats" | "add" | "list" | "categories";
+
+const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "stats", label: "Statistika", icon: BarChart3 },
+  { key: "add", label: "Shto prompt", icon: Plus },
+  { key: "list", label: "Promptet", icon: List },
+  { key: "categories", label: "Kategoritë", icon: LayoutGrid },
+];
 
 export default function AdminPromptsPage() {
   const router = useRouter();
@@ -77,6 +88,7 @@ const emptyDraft = (): PromptDraft => ({
 function AdminPromptsInner() {
   const router = useRouter();
   const { toast } = useToast();
+  const [tab, setTab] = React.useState<Tab>("stats");
 
   const [items, setItems] = React.useState<AdminPromptItem[]>([]);
   const [analytics, setAnalytics] = React.useState<PromptAnalytics | null>(null);
@@ -107,7 +119,6 @@ function AdminPromptsInner() {
     void load();
   }, [load]);
 
-  // Load the editable reveal cost from app_settings.
   React.useEffect(() => {
     if (!supabaseConfigured) return;
     void getSupabaseBrowser()
@@ -153,10 +164,10 @@ function AdminPromptsInner() {
       active: p.active,
     });
     setKwInput("");
+    setTab("add");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Keyword chips: auto-split on comma / Enter.
   const commitKeywords = (raw: string) => {
     const parts = raw
       .split(",")
@@ -217,7 +228,6 @@ function AdminPromptsInner() {
   };
 
   const save = async () => {
-    // Fold any pending keyword text before saving.
     const pending = kwInput.trim();
     const draftToSave: PromptDraft = pending
       ? { ...draft, keywords: Array.from(new Set([...draft.keywords, pending])) }
@@ -237,6 +247,7 @@ function AdminPromptsInner() {
       }
       resetForm();
       await load();
+      setTab("list");
     } catch {
       toast("Ruajtja dështoi.");
     } finally {
@@ -259,10 +270,17 @@ function AdminPromptsInner() {
   const toggleActive = async (p: AdminPromptItem) => {
     try {
       await adminUpdatePrompt(p.id, { active: !p.active });
-      setItems((list) => list.map((x) => (x.id === p.id ? { ...x, active: !p.active } : x)));
+      setItems((list) => list.map((x) => (x.id === p.id ? { ...x, active: !x.active } : x)));
     } catch {
       toast("Përditësimi dështoi.");
     }
+  };
+
+  const openCategory = (category: string) => {
+    setFCat(category);
+    setFTool("");
+    setQuery("");
+    setTab("list");
   };
 
   const filtered = React.useMemo(() => {
@@ -278,11 +296,19 @@ function AdminPromptsInner() {
     });
   }, [items, fCat, fTool, query]);
 
+  const categoryCounts = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of PROMPT_CATEGORIES) map.set(c, 0);
+    for (const p of items) {
+      map.set(p.category, (map.get(p.category) ?? 0) + 1);
+    }
+    return PROMPT_CATEGORIES.map((c) => ({ category: c, count: map.get(c) ?? 0 }));
+  }, [items]);
+
   return (
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-6xl px-5 py-10">
-        {/* Header */}
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push("/admin")}
@@ -291,10 +317,7 @@ function AdminPromptsInner() {
             <ArrowLeft className="h-4 w-4" /> Kthehu në admin
           </button>
           <div className="flex items-center gap-3.5">
-            <span
-              className="grid h-12 w-12 place-items-center rounded-2xl"
-              style={{ background: "rgba(0,253,186,0.14)", color: "#0b8f6e" }}
-            >
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-ink-inv">
               <Lightbulb className="h-6 w-6" />
             </span>
             <div>
@@ -312,324 +335,524 @@ function AdminPromptsInner() {
           </div>
         )}
 
-        {/* Analytics */}
-        <div className="mt-8">
-          <div className="mb-3 flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-ink-3">
-            <BarChart3 className="h-4 w-4" /> Statistika
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Prompte gjithsej" value={analytics?.total ?? 0} icon={Lightbulb} />
-            <StatCard label="Aktive" value={analytics?.activeCount ?? 0} icon={Check} />
-            <StatCard label="Përdorime (+maro)" value={analytics?.totalUses ?? 0} icon={Wand2} />
-            <StatCard label="Zbulime" value={analytics?.totalReveals ?? 0} icon={Eye} />
-          </div>
-          <div className="mt-3 grid gap-3 lg:grid-cols-3">
-            <RankCard
-              title="Më të përdorurat"
-              rows={(analytics?.mostUsed ?? []).map((r) => ({
-                code: r.code,
-                category: r.category,
-                value: r.use_count,
-              }))}
-            />
-            <RankCard
-              title="Më të zbuluarat"
-              rows={(analytics?.mostRevealed ?? []).map((r) => ({
-                code: r.code,
-                category: r.category,
-                value: r.reveal_count,
-              }))}
-            />
-            <div className="rounded-2xl bg-surface p-4">
-              <div className="text-[13px] font-bold text-ink">Të ardhura nga zbulimet</div>
-              <div className="mt-2 flex items-center gap-1.5 text-[26px] font-extrabold text-ink">
-                <Coins className="h-5 w-5 text-brand" />
-                {(analytics?.creditsFromReveals ?? 0).toLocaleString()}
-              </div>
-              <div className="mt-3 pt-3">
-                <Field label="Kosto e zbulimit (kredite)">
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      value={String(revealCost)}
-                      onChange={(e) => setRevealCost(Math.max(0, Number(e.target.value) || 0))}
-                    />
-                    <Button variant="outline" onClick={saveRevealCost}>
-                      Ruaj
-                    </Button>
-                  </div>
-                </Field>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[220px_1fr]">
+          <nav className="flex flex-wrap gap-1 rounded-2xl bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-[14px] font-semibold transition-colors lg:w-full",
+                  tab === t.key ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
+                )}
+              >
+                <t.icon className="h-4 w-4" /> {t.label}
+              </button>
+            ))}
+          </nav>
 
-        {/* Add / edit form */}
-        <div className="mt-8 rounded-2xl bg-surface p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[16px] font-bold text-ink">
-              {editingId ? "Ndrysho promptin" : "Shto prompt të ri"}
-            </h2>
-            {editingId && (
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                Anulo
-              </Button>
+          <div className="min-w-0">
+            {tab === "stats" && (
+              <StatsTab
+                analytics={analytics}
+                revealCost={revealCost}
+                setRevealCost={setRevealCost}
+                onSaveRevealCost={saveRevealCost}
+              />
+            )}
+            {tab === "add" && (
+              <AddPromptTab
+                editingId={editingId}
+                draft={draft}
+                setDraft={setDraft}
+                kwInput={kwInput}
+                onKwChange={onKwChange}
+                onKwKeyDown={onKwKeyDown}
+                commitKeywords={commitKeywords}
+                setKwInput={setKwInput}
+                removeKeyword={removeKeyword}
+                uploading={uploading}
+                saving={saving}
+                fileRef={fileRef}
+                onFile={handleFile}
+                onSave={save}
+                onReset={resetForm}
+              />
+            )}
+            {tab === "list" && (
+              <ListTab
+                loading={loading}
+                filtered={filtered}
+                query={query}
+                setQuery={setQuery}
+                fCat={fCat}
+                setFCat={setFCat}
+                fTool={fTool}
+                setFTool={setFTool}
+                onEdit={startEdit}
+                onRemove={remove}
+                onToggleActive={toggleActive}
+                onAdd={() => {
+                  resetForm();
+                  setTab("add");
+                }}
+              />
+            )}
+            {tab === "categories" && (
+              <CategoriesTab
+                categories={categoryCounts}
+                items={items}
+                onOpenCategory={openCategory}
+              />
             )}
           </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-[240px_1fr]">
-            {/* Featured image */}
-            <div>
-              <Field label="Imazhi Featured">
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    handleFile(e.dataTransfer.files?.[0]);
-                  }}
-                  className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-surface-2 bg-surface-2"
-                >
-                  {draft.featured_url ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={draft.featured_url} alt="" className="h-full w-full object-cover" />
-                      <button
-                        onClick={() => setDraft((d) => ({ ...d, featured_url: null }))}
-                        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-scrim text-on-scrim"
-                        aria-label="Hiq"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="flex flex-col items-center gap-2 px-4 py-8 text-center text-ink-3"
-                    >
-                      {uploading ? (
-                        <Spinner className="h-6 w-6" />
-                      ) : (
-                        <UploadCloud className="h-7 w-7" />
-                      )}
-                      <span className="text-[13px] font-semibold">
-                        {uploading ? "Duke ngarkuar…" : "Kliko ose tërhiq imazhin"}
-                      </span>
-                    </button>
-                  )}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      handleFile(e.target.files?.[0]);
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
-              </Field>
-            </div>
-
-            {/* Fields */}
-            <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Kategoria">
-                  <select
-                    value={draft.category}
-                    onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                    className="w-full rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:ring-2 focus:ring-ink/10"
-                  >
-                    {PROMPT_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Tooli">
-                  <select
-                    value={draft.target_tool}
-                    onChange={(e) => setDraft((d) => ({ ...d, target_tool: e.target.value }))}
-                    className="w-full rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:ring-2 focus:ring-ink/10"
-                  >
-                    {PROMPT_TARGET_TOOLS.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <Field label="Prompti i plotë (i fshehur nga useri)">
-                <Textarea
-                  rows={5}
-                  value={draft.full_prompt}
-                  onChange={(e) => setDraft((d) => ({ ...d, full_prompt: e.target.value }))}
-                  placeholder="Shkruaj promptin e plotë profesional…"
-                />
-              </Field>
-
-              <Field label="Fjalëkyçe (ndaj me presje)">
-                <div className="rounded-xl bg-surface px-2.5 py-2">
-                  {draft.keywords.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-1.5">
-                      {draft.keywords.map((k) => (
-                        <span
-                          key={k}
-                          className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[12px] text-ink"
-                        >
-                          {k}
-                          <button onClick={() => removeKeyword(k)} aria-label="Hiq">
-                            <X className="h-3 w-3 text-ink-3 hover:text-ink" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <input
-                    value={kwInput}
-                    onChange={(e) => onKwChange(e.target.value)}
-                    onKeyDown={onKwKeyDown}
-                    onBlur={() => {
-                      if (kwInput.trim()) {
-                        commitKeywords(kwInput);
-                        setKwInput("");
-                      }
-                    }}
-                    placeholder="burger, pizza, studio, outside…"
-                    className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
-                  />
-                </div>
-              </Field>
-
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2.5 text-[14px] font-semibold text-ink">
-                  <Switch checked={draft.active} onChange={(v) => setDraft((d) => ({ ...d, active: v }))} />
-                  Aktiv
-                </label>
-                <Button icon={<Save className="h-4 w-4" />} onClick={save} disabled={saving}>
-                  {saving ? "Duke ruajtur…" : editingId ? "Ruaj ndryshimet" : "Shto prompt"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* List + filters */}
-        <div className="mt-8">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2">
-              <Search className="h-4 w-4 text-ink-3" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Kërko me kod, kategori, fjalëkyç…"
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
-              />
-            </div>
-            <select
-              value={fCat}
-              onChange={(e) => setFCat(e.target.value)}
-              className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
-            >
-              <option value="">Të gjitha kategoritë</option>
-              {PROMPT_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <select
-              value={fTool}
-              onChange={(e) => setFTool(e.target.value)}
-              className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
-            >
-              <option value="">Të gjitha toolet</option>
-              {PROMPT_TARGET_TOOLS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {loading ? (
-            <div className="grid place-items-center py-16">
-              <Spinner className="h-6 w-6" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-2xl bg-surface py-16 text-center text-[14px] text-ink-3">
-              Asnjë prompt.
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl bg-surface">
-              {filtered.map((p, i) => {
-                const toolName =
-                  PROMPT_TARGET_TOOLS.find((t) => t.id === p.target_tool)?.label ?? p.target_tool;
-                return (
-                  <div
-                    key={p.id}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-3",
-                      i > 0 && "border-t border-line"
-                    )}
-                  >
-                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-2">
-                      {p.featured_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.featured_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="grid h-full w-full place-items-center text-ink-3">
-                          <Lightbulb className="h-5 w-5" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[12.5px] font-bold text-ink">{p.code}</span>
-                        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2">
-                          {p.category}
-                        </span>
-                        <span className="text-[11.5px] text-ink-3">{toolName}</span>
-                      </div>
-                      <div className="mt-0.5 truncate text-[12px] text-ink-3">
-                        {(p.keywords ?? []).slice(0, 8).join(", ") || "pa fjalëkyçe"}
-                      </div>
-                    </div>
-                    <div className="hidden shrink-0 items-center gap-4 text-[12px] text-ink-3 sm:flex">
-                      <span title="Përdorime" className="inline-flex items-center gap-1">
-                        <Wand2 className="h-3.5 w-3.5" /> {p.use_count}
-                      </span>
-                      <span title="Zbulime" className="inline-flex items-center gap-1">
-                        <Eye className="h-3.5 w-3.5" /> {p.reveal_count}
-                      </span>
-                      <span className="w-16 text-right">{timeAgo(p.created_at)}</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Switch checked={p.active} onChange={() => toggleActive(p)} size="sm" />
-                      <button
-                        onClick={() => startEdit(p)}
-                        className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
-                        aria-label="Ndrysho"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => remove(p)}
-                        className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-danger/10 hover:text-danger"
-                        aria-label="Fshi"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function StatsTab({
+  analytics,
+  revealCost,
+  setRevealCost,
+  onSaveRevealCost,
+}: {
+  analytics: PromptAnalytics | null;
+  revealCost: number;
+  setRevealCost: (n: number) => void;
+  onSaveRevealCost: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-[18px] font-bold text-ink">Statistika</h2>
+        <p className="mt-1 text-[13.5px] text-ink-2">Përmbledhje e prompteve, përdorimeve dhe zbulimeve.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Prompte gjithsej" value={analytics?.total ?? 0} icon={Lightbulb} />
+        <StatCard label="Aktive" value={analytics?.activeCount ?? 0} icon={Check} />
+        <StatCard label="Përdorime (+maro)" value={analytics?.totalUses ?? 0} icon={Wand2} />
+        <StatCard label="Zbulime" value={analytics?.totalReveals ?? 0} icon={Eye} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        <RankCard
+          title="Më të përdorurat"
+          rows={(analytics?.mostUsed ?? []).map((r) => ({
+            code: r.code,
+            category: r.category,
+            value: r.use_count,
+          }))}
+        />
+        <RankCard
+          title="Më të zbuluarat"
+          rows={(analytics?.mostRevealed ?? []).map((r) => ({
+            code: r.code,
+            category: r.category,
+            value: r.reveal_count,
+          }))}
+        />
+        <div className="rounded-2xl bg-surface p-4">
+          <div className="text-[13px] font-bold text-ink">Të ardhura nga zbulimet</div>
+          <div className="mt-2 flex items-center gap-1.5 text-[26px] font-extrabold text-ink">
+            <Coins className="h-5 w-5 text-brand" />
+            {(analytics?.creditsFromReveals ?? 0).toLocaleString()}
+          </div>
+          <div className="mt-3 pt-3">
+            <Field label="Kosto e zbulimit (kredite)">
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  value={String(revealCost)}
+                  onChange={(e) => setRevealCost(Math.max(0, Number(e.target.value) || 0))}
+                />
+                <Button variant="outline" onClick={onSaveRevealCost}>
+                  Ruaj
+                </Button>
+              </div>
+            </Field>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddPromptTab({
+  editingId,
+  draft,
+  setDraft,
+  kwInput,
+  onKwChange,
+  onKwKeyDown,
+  commitKeywords,
+  setKwInput,
+  removeKeyword,
+  uploading,
+  saving,
+  fileRef,
+  onFile,
+  onSave,
+  onReset,
+}: {
+  editingId: string | null;
+  draft: PromptDraft;
+  setDraft: React.Dispatch<React.SetStateAction<PromptDraft>>;
+  kwInput: string;
+  onKwChange: (v: string) => void;
+  onKwKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  commitKeywords: (raw: string) => void;
+  setKwInput: (v: string) => void;
+  removeKeyword: (k: string) => void;
+  uploading: boolean;
+  saving: boolean;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+  onFile: (file: File | undefined) => void;
+  onSave: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-surface p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-[18px] font-bold text-ink">
+            {editingId ? "Ndrysho promptin" : "Shto prompt të ri"}
+          </h2>
+          <p className="mt-1 text-[13px] text-ink-3">
+            {editingId ? "Përditëso detajet e promptit ekzistues." : "Krijo një prompt të ri për katalogun."}
+          </p>
+        </div>
+        {editingId && (
+          <Button variant="ghost" size="sm" onClick={onReset}>
+            Anulo
+          </Button>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[240px_1fr]">
+        <div>
+          <Field label="Imazhi Featured">
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                onFile(e.dataTransfer.files?.[0]);
+              }}
+              className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-surface-2"
+            >
+              {draft.featured_url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={draft.featured_url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    onClick={() => setDraft((d) => ({ ...d, featured_url: null }))}
+                    className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-scrim text-on-scrim"
+                    aria-label="Hiq"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex flex-col items-center gap-2 px-4 py-8 text-center text-ink-3"
+                >
+                  {uploading ? <Spinner className="h-6 w-6" /> : <UploadCloud className="h-7 w-7" />}
+                  <span className="text-[13px] font-semibold">
+                    {uploading ? "Duke ngarkuar…" : "Kliko ose tërhiq imazhin"}
+                  </span>
+                </button>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  onFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </Field>
+        </div>
+
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Kategoria">
+              <select
+                value={draft.category}
+                onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
+                className="w-full rounded-xl bg-surface-2 px-3 py-2.5 text-[14px] text-ink outline-none focus:bg-surface focus:ring-2 focus:ring-ink/10"
+              >
+                {PROMPT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Tooli">
+              <select
+                value={draft.target_tool}
+                onChange={(e) => setDraft((d) => ({ ...d, target_tool: e.target.value }))}
+                className="w-full rounded-xl bg-surface-2 px-3 py-2.5 text-[14px] text-ink outline-none focus:bg-surface focus:ring-2 focus:ring-ink/10"
+              >
+                {PROMPT_TARGET_TOOLS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Prompti i plotë (i fshehur nga useri)">
+            <Textarea
+              rows={5}
+              value={draft.full_prompt}
+              onChange={(e) => setDraft((d) => ({ ...d, full_prompt: e.target.value }))}
+              placeholder="Shkruaj promptin e plotë profesional…"
+            />
+          </Field>
+
+          <Field label="Fjalëkyçe (ndaj me presje)">
+            <div className="rounded-xl bg-surface-2 px-2.5 py-2">
+              {draft.keywords.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {draft.keywords.map((k) => (
+                    <span
+                      key={k}
+                      className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[12px] text-ink"
+                    >
+                      {k}
+                      <button type="button" onClick={() => removeKeyword(k)} aria-label="Hiq">
+                        <X className="h-3 w-3 text-ink-3 hover:text-ink" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                value={kwInput}
+                onChange={(e) => onKwChange(e.target.value)}
+                onKeyDown={onKwKeyDown}
+                onBlur={() => {
+                  if (kwInput.trim()) {
+                    commitKeywords(kwInput);
+                    setKwInput("");
+                  }
+                }}
+                placeholder="burger, pizza, studio, outside…"
+                className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
+              />
+            </div>
+          </Field>
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2.5 text-[14px] font-semibold text-ink">
+              <Switch checked={draft.active} onChange={(v) => setDraft((d) => ({ ...d, active: v }))} />
+              Aktiv
+            </label>
+            <Button icon={<Save className="h-4 w-4" />} onClick={onSave} disabled={saving}>
+              {saving ? "Duke ruajtur…" : editingId ? "Ruaj ndryshimet" : "Shto prompt"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListTab({
+  loading,
+  filtered,
+  query,
+  setQuery,
+  fCat,
+  setFCat,
+  fTool,
+  setFTool,
+  onEdit,
+  onRemove,
+  onToggleActive,
+  onAdd,
+}: {
+  loading: boolean;
+  filtered: AdminPromptItem[];
+  query: string;
+  setQuery: (v: string) => void;
+  fCat: string;
+  setFCat: (v: string) => void;
+  fTool: string;
+  setFTool: (v: string) => void;
+  onEdit: (p: AdminPromptItem) => void;
+  onRemove: (p: AdminPromptItem) => void;
+  onToggleActive: (p: AdminPromptItem) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[18px] font-bold text-ink">Promptet</h2>
+          <p className="mt-1 text-[13px] text-ink-3">{filtered.length} prompte</p>
+        </div>
+        <Button icon={<Plus className="h-4 w-4" />} onClick={onAdd}>
+          Shto prompt
+        </Button>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2">
+          <Search className="h-4 w-4 text-ink-3" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Kërko me kod, kategori, fjalëkyç…"
+            className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
+          />
+        </div>
+        <select
+          value={fCat}
+          onChange={(e) => setFCat(e.target.value)}
+          className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
+        >
+          <option value="">Të gjitha kategoritë</option>
+          {PROMPT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={fTool}
+          onChange={(e) => setFTool(e.target.value)}
+          className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
+        >
+          <option value="">Të gjitha toolet</option>
+          {PROMPT_TARGET_TOOLS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="grid place-items-center py-16">
+          <Spinner className="h-6 w-6" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl bg-surface py-16 text-center text-[14px] text-ink-3">
+          Asnjë prompt.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl bg-surface">
+          {filtered.map((p, i) => {
+            const toolName =
+              PROMPT_TARGET_TOOLS.find((t) => t.id === p.target_tool)?.label ?? p.target_tool;
+            return (
+              <div
+                key={p.id}
+                className={cn("flex items-center gap-3 px-3 py-3", i > 0 && "border-t border-line")}
+              >
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+                  {p.featured_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.featured_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-ink-3">
+                      <Lightbulb className="h-5 w-5" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[12.5px] font-bold text-ink">{p.code}</span>
+                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2">
+                      {p.category}
+                    </span>
+                    <span className="text-[11.5px] text-ink-3">{toolName}</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[12px] text-ink-3">
+                    {(p.keywords ?? []).slice(0, 8).join(", ") || "pa fjalëkyçe"}
+                  </div>
+                </div>
+                <div className="hidden shrink-0 items-center gap-4 text-[12px] text-ink-3 sm:flex">
+                  <span title="Përdorime" className="inline-flex items-center gap-1">
+                    <Wand2 className="h-3.5 w-3.5" /> {p.use_count}
+                  </span>
+                  <span title="Zbulime" className="inline-flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" /> {p.reveal_count}
+                  </span>
+                  <span className="w-16 text-right">{timeAgo(p.created_at)}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Switch checked={p.active} onChange={() => onToggleActive(p)} size="sm" />
+                  <button
+                    type="button"
+                    onClick={() => onEdit(p)}
+                    className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                    aria-label="Ndrysho"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(p)}
+                    className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-danger/10 hover:text-danger"
+                    aria-label="Fshi"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoriesTab({
+  categories,
+  items,
+  onOpenCategory,
+}: {
+  categories: { category: string; count: number }[];
+  items: AdminPromptItem[];
+  onOpenCategory: (category: string) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-4">
+        <h2 className="text-[18px] font-bold text-ink">Kategoritë</h2>
+        <p className="mt-1 text-[13px] text-ink-3">
+          {PROMPT_CATEGORIES.length} kategori fikse — kliko për të parë promptet.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {categories.map(({ category, count }) => {
+          const active = items.filter((p) => p.category === category && p.active).length;
+          return (
+            <button
+              key={category}
+              type="button"
+              onClick={() => onOpenCategory(category)}
+              className="rounded-2xl bg-surface p-4 text-left transition-colors hover:bg-surface-2"
+            >
+              <div className="text-[15px] font-bold text-ink">{category}</div>
+              <div className="mt-2 flex items-center gap-3 text-[12.5px] text-ink-3">
+                <span>{count} gjithsej</span>
+                <span>{active} aktive</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

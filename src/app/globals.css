@@ -112,6 +112,8 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  width: 100%;
 }
 
 body {
@@ -120,6 +122,9 @@ body {
   font-family: var(--font-app);
   font-feature-settings: "cv11", "ss01";
   letter-spacing: -0.04em;
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
 }
 
 ::selection {
@@ -127,10 +132,13 @@ body {
   color: var(--ink);
 }
 
-/* Thin scrollbars */
+/* Touch-friendly vertical scroll */
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
 }
 .scroll-thin::-webkit-scrollbar {
   width: 8px;

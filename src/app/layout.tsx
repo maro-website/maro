@@ -38,7 +38,7 @@ export default function RootLayout({
         <meta name="verify-paysera" content="a55fe77b2b44938064f4cc9e74c40792" />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
-      <body className="min-h-screen bg-canvas text-ink antialiased">
+      <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
         <ThemeProvider>
           <MaroProvider>
             <ToastProvider>{children}</ToastProvider>

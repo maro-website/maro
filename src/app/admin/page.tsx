@@ -145,7 +145,7 @@ function AdminInner() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[220px_1fr]">
           {/* Vertical nav */}
-          <nav className="flex gap-1 overflow-x-auto rounded-2xl bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col lg:overflow-visible">
+          <nav className="flex flex-wrap gap-1 rounded-2xl bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col">
             {TABS.map((t) => (
               <button
                 key={t.key}

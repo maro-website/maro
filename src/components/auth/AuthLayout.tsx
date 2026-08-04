@@ -19,7 +19,7 @@ export function AuthLayout({
       {/* Form side */}
       <div className="flex flex-col px-5 py-8 sm:px-10">
         <Link href="/" className="inline-flex">
-          <Logo />
+          <Logo mobileLockup />
         </Link>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm animate-fade-up">

@@ -5,13 +5,12 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
 import { useMaro } from "@/context/store";
+import { cn } from "@/lib/utils/cn";
 import { Menu, Coins, Plus, PanelLeftOpen } from "lucide-react";
 
 const COLLAPSE_KEY = "maro.sidebar.collapsed";
 
-// The persistent app frame: left sidebar (desktop), mobile drawer + top bar,
-// and a full-height main area. The children area fills the viewport so tool
-// composers can dock their prompt box to the bottom (ChatGPT-style).
+// Desktop: fixed viewport + inner scroll (composer dock). Mobile: natural page scroll.
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, credits } = useMaro();
   const [drawer, setDrawer] = React.useState(false);
@@ -31,9 +30,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`grid h-[100dvh] grid-cols-1 overflow-hidden ${
+      className={cn(
+        "grid w-full max-w-[100vw] grid-cols-1 overflow-x-clip",
+        "max-lg:min-h-[100dvh]",
+        "lg:h-[100dvh] lg:overflow-hidden",
         collapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]"
-      }`}
+      )}
     >
       {!collapsed && (
         <aside className="hidden h-[100dvh] bg-canvas lg:block">
@@ -43,8 +45,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
 
-      <main className="relative flex h-[100dvh] min-h-0 flex-col">
-        {/* Mobile top bar */}
+      <main
+        className={cn(
+          "relative flex w-full min-w-0 flex-col overflow-x-clip",
+          "max-lg:min-h-[100dvh]",
+          "lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
+        )}
+      >
         <div className="z-30 flex shrink-0 items-center justify-between bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
           <button
             onClick={() => setDrawer(true)}
@@ -53,20 +60,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Logo />
+          <Logo mobileWordOnly />
           <Link
             href="/credits"
-            className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
+            className="flex max-w-[45vw] items-center gap-1.5 rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
             aria-label="Kredite"
           >
-            <Coins className="h-4 w-4 text-brand" /> {user ? credits : 0}
-            <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-brand-fg">
+            <Coins className="h-4 w-4 shrink-0 text-brand" />
+            <span className="truncate">{user ? credits : 0}</span>
+            <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-brand text-brand-fg">
               <Plus className="h-3 w-3" />
             </span>
           </Link>
         </div>
 
-        {/* Desktop expand button (shown only when collapsed) */}
         {collapsed && (
           <button
             onClick={toggleCollapse}
@@ -78,7 +85,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         )}
 
-        <div className="min-h-0 flex-1">{children}</div>
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1 overflow-x-clip",
+            "max-lg:overflow-y-visible",
+            "lg:overflow-hidden lg:flex lg:flex-col"
+          )}
+        >
+          {children}
+        </div>
       </main>
     </div>
   );

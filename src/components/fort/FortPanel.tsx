@@ -104,7 +104,7 @@ export function FortPanel({
       <div
         role="tablist"
         aria-label="Seksionet e maroFort"
-        className="flex gap-1.5 overflow-x-auto scroll-thin pb-0.5"
+        className="flex flex-wrap gap-1.5 pb-0.5"
       >
         {visibleSections.map(({ section }) => {
           const selected = activeTab === section.id;
