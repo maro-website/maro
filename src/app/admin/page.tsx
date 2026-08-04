@@ -2128,6 +2128,7 @@ function PricingTab() {
         types: { ...DEFAULT_PRICING.types, ...(p.types ?? {}) },
         speed: { ...DEFAULT_PRICING.speed, ...(p.speed ?? {}) },
         tools: { ...DEFAULT_PRICING.tools, ...(p.tools ?? {}) },
+        options: p.options ?? {},
         editCost: p.editCost ?? DEFAULT_PRICING.editCost ?? 2,
       });
       setLoading(false);
@@ -2136,9 +2137,23 @@ function PricingTab() {
 
   const save = async () => {
     setSaving(true);
+    const { data } = await getSupabaseBrowser()
+      .from("app_settings")
+      .select("pricing")
+      .eq("id", 1)
+      .single();
+    const existing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    const merged: PricingConfig = {
+      ...existing,
+      types: pricing.types,
+      speed: pricing.speed,
+      tools: pricing.tools,
+      editCost: pricing.editCost,
+      options: existing.options ?? pricing.options ?? {},
+    };
     const { error } = await getSupabaseBrowser()
       .from("app_settings")
-      .update({ pricing, updated_at: new Date().toISOString() })
+      .update({ pricing: merged, updated_at: new Date().toISOString() })
       .eq("id", 1);
     setSaving(false);
     toast(error ? "Gabim: " + error.message : "Çmimet u ruajtën");

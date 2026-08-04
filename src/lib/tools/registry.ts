@@ -468,6 +468,51 @@ export function optionKey(toolId: string, settingId: string, optionId: string): 
   return `${toolId}.${settingId}.${optionId}`;
 }
 
+export interface ToolSelectionCostLine {
+  label: string;
+  cost: number;
+}
+
+export interface ToolSelectionCostBreakdown {
+  total: number;
+  lines: ToolSelectionCostLine[];
+}
+
+function resolveOptionCost(
+  toolId: string,
+  setting: ToolSetting,
+  optId: string,
+  overrides?: Record<string, number>
+): ToolSelectionCostLine | null {
+  const opt = findOption(setting, optId);
+  if (!opt) return null;
+  const key = optionKey(toolId, setting.id, optId);
+  const c = overrides?.[key];
+  const cost = typeof c === "number" ? c : opt.cost ?? 0;
+  if (cost <= 0) return null;
+  return { label: opt.label, cost };
+}
+
+// Per-line credit cost for visible selections. `overrides` is pricing.options.
+export function toolSelectionCostBreakdown(
+  tool: ToolDef,
+  selections: ToolSelections,
+  overrides?: Record<string, number>
+): ToolSelectionCostBreakdown {
+  const lines: ToolSelectionCostLine[] = [];
+  const base = tool.baseCost ?? 0;
+  if (base > 0) lines.push({ label: tool.name, cost: base });
+
+  for (const s of visibleSettings(tool, selections)) {
+    const optId = selections[s.id] ?? s.default;
+    const line = resolveOptionCost(tool.id, s, optId, overrides);
+    if (line) lines.push(line);
+  }
+
+  const total = lines.reduce((sum, l) => sum + l.cost, 0);
+  return { total: Math.max(0, total), lines };
+}
+
 // Total credit cost for a set of selections. `overrides` is pricing.options
 // (admin-set per-option costs); falls back to each option's default cost.
 export function toolSelectionCost(
@@ -475,16 +520,7 @@ export function toolSelectionCost(
   selections: ToolSelections,
   overrides?: Record<string, number>
 ): number {
-  let sum = tool.baseCost ?? 0;
-  for (const s of visibleSettings(tool, selections)) {
-    const optId = selections[s.id] ?? s.default;
-    const opt = findOption(s, optId);
-    if (!opt) continue;
-    const key = optionKey(tool.id, s.id, optId);
-    const c = overrides?.[key];
-    sum += typeof c === "number" ? c : opt.cost ?? 0;
-  }
-  return Math.max(0, sum);
+  return toolSelectionCostBreakdown(tool, selections, overrides).total;
 }
 
 // Compose the final model prompt: base tool prompt + each selected option's

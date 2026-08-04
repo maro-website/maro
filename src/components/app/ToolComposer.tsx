@@ -30,7 +30,7 @@ import { generateAudio, AudioGenerationError } from "@/lib/services/audioService
 import {
   findOption,
   getTool,
-  toolSelectionCost,
+  toolSelectionCostBreakdown,
   visibleSettings,
   type ToolDef,
   type ToolSelections,
@@ -274,7 +274,12 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     setFortDirty(true);
   };
 
-  const cost = toolSelectionCost(tool, selections, pricing.options);
+  const costBreakdown = toolSelectionCostBreakdown(tool, selections, pricing.options);
+  const cost = costBreakdown.total;
+  const costTooltip =
+    costBreakdown.lines.length > 0
+      ? costBreakdown.lines.map((l) => `${l.label}: ${l.cost}`).join(" + ")
+      : undefined;
   const creditsRef = React.useRef(credits);
   creditsRef.current = credits;
 
@@ -783,8 +788,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             )}
 
-            <div className="relative flex items-center gap-2 px-1.5 pb-0.5 pt-1">
-              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scroll-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
               {isImage && (
                 <>
                   <input
@@ -852,12 +856,17 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   />
                 )
               )}
-              </div>
 
-              <div className="flex shrink-0 items-center gap-2.5">
+              <div className="ml-auto flex shrink-0 items-center gap-2.5">
                 {functional && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
+                  <span
+                    className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2"
+                    title={costTooltip}
+                  >
                     <Coins className="h-4 w-4 text-brand" /> {cost}
+                    {costTooltip && (
+                      <span className="sr-only">{costTooltip}</span>
+                    )}
                   </span>
                 )}
                 <motion.button
@@ -1104,7 +1113,7 @@ function SettingSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex max-w-[36vw] shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2 sm:max-w-none"
+        className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2"
         title={setting.label}
       >
         <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
