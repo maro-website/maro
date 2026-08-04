@@ -783,7 +783,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               </div>
             )}
 
-            <div className="relative flex w-full max-w-full flex-wrap items-center gap-2 px-1.5 pb-0.5 pt-1">
+            <div className="relative flex items-center gap-2 px-1.5 pb-0.5 pt-1">
+              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scroll-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {isImage && (
                 <>
                   <input
@@ -851,10 +852,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   />
                 )
               )}
+              </div>
 
-              <div className="flex w-full shrink-0 items-center justify-end gap-2.5 sm:ml-auto sm:w-auto">
+              <div className="flex shrink-0 items-center gap-2.5">
                 {functional && (
-                  <span className="hidden items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2 sm:inline-flex">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
                     <Coins className="h-4 w-4 text-brand" /> {cost}
                   </span>
                 )}
@@ -1038,7 +1040,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-xl bg-surface-2 text-ink-2 transition-colors hover:text-ink disabled:opacity-50"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-2 transition-colors hover:text-ink disabled:opacity-50"
     >
       {children}
     </button>
@@ -1060,7 +1062,7 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="flex max-w-full items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
+    <div className="flex shrink-0 items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
       <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
       <span className="hidden truncate text-[13px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
@@ -1098,11 +1100,11 @@ function SettingSelect({
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex max-w-[42vw] items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2 sm:max-w-none"
+        className="flex max-w-[36vw] shrink-0 items-center gap-1.5 rounded-xl bg-surface-2 px-2.5 py-2 sm:max-w-none"
         title={setting.label}
       >
         <Icon className="h-3.5 w-3.5 shrink-0 text-ink-3" />
