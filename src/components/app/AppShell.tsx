@@ -52,18 +52,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           "lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
         )}
       >
-        <div className="z-30 flex shrink-0 items-center justify-between bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="z-30 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
           <button
             onClick={() => setDrawer(true)}
-            className="grid h-10 w-10 place-items-center rounded-2xl bg-surface text-ink"
+            className="grid h-10 w-10 place-items-center justify-self-start rounded-2xl bg-surface text-ink"
             aria-label="Menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Logo mobileWordOnly />
+          <Link href="/" className="justify-self-center" aria-label="maro">
+            <Logo mobileWordOnly />
+          </Link>
           <Link
             href="/credits"
-            className="flex max-w-[45vw] items-center gap-1.5 rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
+            className="flex max-w-[45vw] items-center gap-1.5 justify-self-end rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
             aria-label="Kredite"
           >
             <Coins className="h-4 w-4 shrink-0 text-brand" />

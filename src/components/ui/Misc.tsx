@@ -3,6 +3,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
+export { Switch } from "./Switch";
+
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton rounded-lg", className)} />;
 }
@@ -55,42 +57,6 @@ export function EmptyState({
       )}
       {action && <div className="mt-5">{action}</div>}
     </div>
-  );
-}
-
-export function Switch({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="inline-flex items-center gap-2.5"
-    >
-      <span
-        className={cn(
-          "relative h-6 w-10 rounded-full transition-colors",
-          checked ? "bg-brand" : "bg-line-strong"
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full transition-transform",
-            checked ? "translate-x-[18px]" : "translate-x-0.5"
-          )}
-          style={{ background: "var(--switch-off)" }}
-        />
-      </span>
-      {label && <span className="text-[13px] font-medium text-ink">{label}</span>}
-    </button>
   );
 }
 

@@ -10,7 +10,7 @@ import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { useMaro } from "@/context/store";
 import { useTheme, type Theme } from "@/context/theme";
 import { useToast } from "@/components/ui/Toast";
-import { MAIN_TOOLS } from "@/lib/tools/registry";
+import { ACTIVE_MAIN_TOOLS, COMING_SOON_MAIN_TOOLS } from "@/lib/tools/registry";
 import { initials } from "@/lib/utils/format";
 import { randomMaroLabel } from "@/lib/utils/maroButton";
 import { cn } from "@/lib/utils/cn";
@@ -103,8 +103,11 @@ export function HomeSidebar({
       </div>
 
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
-        <div className="mb-3 flex flex-col gap-0.5">
-          {MAIN_TOOLS.map((t) => (
+        <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-3">
+          Aktiv
+        </p>
+        <div className="mb-4 flex flex-col gap-0.5">
+          {ACTIVE_MAIN_TOOLS.map((t) => (
             <NavItem
               key={t.id}
               active={pathname === t.route}
@@ -115,7 +118,26 @@ export function HomeSidebar({
           ))}
         </div>
 
-        {/* Thin line separating tools from the rest */}
+        {COMING_SOON_MAIN_TOOLS.length > 0 && (
+          <>
+            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-3">
+              Së shpejti
+            </p>
+            <div className="mb-3 flex flex-col gap-0.5">
+              {COMING_SOON_MAIN_TOOLS.map((t) => (
+                <NavItem
+                  key={t.id}
+                  active={pathname === t.route}
+                  icon={<t.icon className="h-5 w-5" />}
+                  label={t.name}
+                  muted
+                  onClick={() => go(t.route)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="mx-2 mb-3" />
 
         {/* maro Prompts + Çka ke maru — separate from the generation tools */}
@@ -433,18 +455,21 @@ function NavItem({
   icon,
   label,
   onClick,
+  muted = false,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  muted?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-colors",
-        active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+        active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+        muted && !active && "opacity-70"
       )}
     >
       <span className={cn("shrink-0", active ? "text-brand" : "text-ink-3")}>{icon}</span>

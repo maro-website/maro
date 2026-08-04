@@ -3,6 +3,7 @@ import "./globals.css";
 import { MaroProvider } from "@/context/store";
 import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
+import { CookieBanner } from "@/components/legal/CookieBanner";
 
 // Set the theme before first paint to avoid a flash of the wrong theme.
 const THEME_INIT = `(function(){try{var t=localStorage.getItem('maro.theme')||'qelt';if(t==='mono')t='mshelt';if(t==='light'||t==='dark')t='qelt';if(t!=='qelt'&&t!=='mshelt')t='qelt';document.documentElement.setAttribute('data-theme',t);var c=t==='mshelt'?'#191919':'#d0e6fd';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c);}catch(e){document.documentElement.setAttribute('data-theme','qelt');}})();`;
@@ -41,7 +42,10 @@ export default function RootLayout({
       <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
         <ThemeProvider>
           <MaroProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              {children}
+              <CookieBanner />
+            </ToastProvider>
           </MaroProvider>
         </ThemeProvider>
       </body>

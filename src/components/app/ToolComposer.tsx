@@ -626,7 +626,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         ref={scrollRef}
         className="scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto"
       >
-        <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:px-5 sm:pt-12">
+        <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:max-w-[798px] sm:px-5 sm:pt-12">
           {maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
@@ -661,7 +661,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
       {/* Docked prompt box */}
       <div className="shrink-0 overflow-x-clip bg-canvas/90 backdrop-blur max-lg:pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-5 sm:py-4">
+        <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:max-w-[798px] sm:px-5 sm:py-4">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (

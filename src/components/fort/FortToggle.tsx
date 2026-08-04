@@ -55,14 +55,19 @@ export function FortToggle({
       {!locked && (
         <span
           className={cn(
-            "relative ml-0.5 inline-flex h-4 w-7 items-center rounded-full transition-colors",
-            active ? "bg-brand-fg/25" : "bg-line-strong"
+            "relative ml-0.5 inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors duration-300",
+            active
+              ? "bg-brand-fg/20 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]"
+              : "bg-[var(--switch-track)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]"
           )}
         >
           <motion.span
             layout
-            className="absolute h-3 w-3 rounded-full"
-            style={{ left: active ? "14px" : "2px", background: active ? "var(--brand-fg)" : "var(--switch-off)" }}
+            transition={{ type: "spring", stiffness: 520, damping: 32 }}
+            className={cn(
+              "block h-3 w-3 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] ring-1 ring-black/5",
+              active ? "translate-x-3 bg-[var(--brand-fg)]" : "translate-x-0 bg-white"
+            )}
           />
         </span>
       )}

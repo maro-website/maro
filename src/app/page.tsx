@@ -5,29 +5,100 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
-import { MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
+import {
+  ACTIVE_MAIN_TOOLS,
+  COMING_SOON_MAIN_TOOLS,
+  type ToolDef,
+} from "@/lib/tools/registry";
 import { saveLastTool } from "@/lib/tools/selections";
 import { cn } from "@/lib/utils/cn";
 import { ArrowUp, Lock, Coins } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+function ToolCard({
+  tool,
+  picked,
+  onPick,
+  index,
+}: {
+  tool: ToolDef;
+  picked: string | null;
+  onPick: (tool: ToolDef) => void;
+  index: number;
+}) {
+  const selected = picked === tool.id;
+  return (
+    <motion.button
+      type="button"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE, delay: 0.12 + index * 0.05 }}
+      onClick={() => onPick(tool)}
+      className={cn(
+        "group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-all",
+        selected ? "bg-brand text-brand-fg shadow-sm" : "bg-surface hover:bg-surface-2",
+        !tool.functional && "opacity-90"
+      )}
+    >
+      <span
+        className={cn(
+          "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+          selected ? "bg-brand-fg/15 text-brand-fg" : "bg-surface-2 text-ink"
+        )}
+      >
+        <tool.icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span
+          className={cn(
+            "block truncate text-[14.5px] font-bold tracking-[-0.01em]",
+            selected ? "text-brand-fg" : "text-ink"
+          )}
+        >
+          {tool.name}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 flex items-center gap-1 text-[12px]",
+            selected ? "text-brand-fg/70" : "text-ink-3"
+          )}
+        >
+          {tool.functional ? (
+            tool.tagline
+          ) : (
+            <>
+              <Lock className="h-3 w-3" /> Së shpejti
+            </>
+          )}
+        </span>
+      </span>
+    </motion.button>
+  );
+}
 
 export default function HomePage() {
   const { user, credits } = useMaro();
   const router = useRouter();
+  const { toast } = useToast();
   const firstName = user?.name?.split(" ")[0];
   const [prompt, setPrompt] = React.useState("");
-  const [picked, setPicked] = React.useState<string>("website");
-  // Day (06:00–18:00) => "sot"; night (18:00–06:00) => "sonte".
+  const [picked, setPicked] = React.useState<string | null>(null);
   const [dayPart, setDayPart] = React.useState<"sot" | "sonte">("sot");
+
   React.useEffect(() => {
     const h = new Date().getHours();
     setDayPart(h >= 6 && h < 18 ? "sot" : "sonte");
   }, []);
+
   const isFree = !user?.plan || user.plan === "free";
 
-  const go = (tool: ToolDef) => {
+  const pick = (tool: ToolDef) => {
     setPicked(tool.id);
+  };
+
+  const go = (tool: ToolDef) => {
     try {
       if (prompt.trim()) sessionStorage.setItem("maro:hubdraft", prompt.trim());
     } catch {
@@ -37,14 +108,31 @@ export default function HomePage() {
     router.push(tool.route);
   };
 
-  const active = MAIN_TOOLS.find((t) => t.id === picked) ?? MAIN_TOOLS[0];
+  const handleToolClick = (tool: ToolDef) => {
+    if (tool.functional) {
+      pick(tool);
+      return;
+    }
+    go(tool);
+  };
+
+  const submit = () => {
+    if (!picked) {
+      toast("Zgjidh një tool për të vazhduar.");
+      return;
+    }
+    const tool =
+      ACTIVE_MAIN_TOOLS.find((t) => t.id === picked) ??
+      COMING_SOON_MAIN_TOOLS.find((t) => t.id === picked);
+    if (tool) go(tool);
+  };
 
   return (
     <AppShell>
-      <div className="relative flex h-full min-w-0 flex-col items-center justify-center overflow-x-clip max-lg:h-auto max-lg:overflow-y-visible overflow-y-auto scroll-thin px-4 py-10 sm:px-5">
+      <div className="relative flex h-full min-w-0 flex-col items-center justify-center overflow-x-clip overflow-y-auto scroll-thin px-4 py-10 max-lg:h-auto max-lg:overflow-y-visible sm:px-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-aurora" />
 
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-2xl sm:max-w-[702px]">
           {user && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -79,7 +167,6 @@ export default function HomePage() {
               : `Çka po marojmë ${dayPart}?`}
           </motion.h1>
 
-          {/* Centered prompt box */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,7 +177,7 @@ export default function HomePage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) go(active);
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
               }}
               rows={2}
               placeholder="Përshkruaj çka do të marosh…"
@@ -98,52 +185,55 @@ export default function HomePage() {
             />
 
             <div className="flex items-center justify-between gap-2 px-1.5 pb-0.5 pt-1.5">
-              <span className="text-[12.5px] text-ink-3">Zgjidh një tool për të vazhduar</span>
+              <span className="text-[12.5px] text-ink-3">
+                {picked ? "Gati për të vazhduar" : "Zgjidh një tool për të vazhduar"}
+              </span>
               <motion.button
                 whileTap={{ scale: 0.94 }}
-                onClick={() => go(active)}
-                className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-brand-fg transition-colors hover:bg-brand-hover"
-                aria-label="Vazhdo"
+                onClick={submit}
+                disabled={!picked}
+                className={cn(
+                  "grid h-11 w-11 place-items-center rounded-xl transition-colors",
+                  picked
+                    ? "bg-brand text-brand-fg hover:bg-brand-hover"
+                    : "cursor-not-allowed bg-surface-2 text-ink-3"
+                )}
+                aria-label="Vazhdu"
               >
                 <ArrowUp className="h-5 w-5" />
               </motion.button>
             </div>
           </motion.div>
 
-          {/* Tool selector */}
-          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            {MAIN_TOOLS.map((tool, i) => (
-              <motion.button
-                key={tool.id}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: EASE, delay: 0.12 + i * 0.05 }}
-                onClick={() => go(tool)}
-                className={cn(
-                  "group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-all",
-                  picked === tool.id ? "bg-brand text-brand-fg" : "bg-surface hover:bg-surface-2"
-                )}
-              >
-                <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", picked === tool.id ? "bg-brand-fg/15 text-brand-fg" : "bg-surface-2 text-ink")}>
-                  <tool.icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className={cn("block truncate text-[14.5px] font-bold tracking-[-0.01em]", picked === tool.id ? "text-brand-fg" : "text-ink")}>
-                    {tool.name}
-                  </span>
-                  <span className={cn("mt-0.5 flex items-center gap-1 text-[12px]", picked === tool.id ? "text-brand-fg/70" : "text-ink-3")}>
-                    {tool.functional ? (
-                      tool.tagline
-                    ) : (
-                      <>
-                        <Lock className="h-3 w-3" /> Së shpejti
-                      </>
-                    )}
-                  </span>
-                </span>
-              </motion.button>
-            ))}
+          <div className="mt-6">
+            <p className="mb-2.5 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-3">
+              Aktiv
+            </p>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {ACTIVE_MAIN_TOOLS.map((tool, i) => (
+                <ToolCard key={tool.id} tool={tool} picked={picked} onPick={handleToolClick} index={i} />
+              ))}
+            </div>
           </div>
+
+          {COMING_SOON_MAIN_TOOLS.length > 0 && (
+            <div className="mt-5">
+              <p className="mb-2.5 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-3">
+                Së shpejti
+              </p>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {COMING_SOON_MAIN_TOOLS.map((tool, i) => (
+                  <ToolCard
+                    key={tool.id}
+                    tool={tool}
+                    picked={picked}
+                    onPick={handleToolClick}
+                    index={ACTIVE_MAIN_TOOLS.length + i}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

@@ -422,7 +422,14 @@ export function getTool(id: string): ToolDef | undefined {
 // Generation tools shown in the Hub selector + main sidebar list. maro Prompts
 // is intentionally excluded — it's not a generator, it lives below the sidebar
 // separator as a "coming soon" entry.
-export const MAIN_TOOLS = TOOLS.filter((t) => t.id !== "prompte");
+const MAIN_TOOL_ORDER = ["reklama", "logo", "website", "filma", "zo"] as const;
+
+export const MAIN_TOOLS = MAIN_TOOL_ORDER.map((id) => TOOLS.find((t) => t.id === id)).filter(
+  (t): t is ToolDef => t !== undefined
+);
+
+export const ACTIVE_MAIN_TOOLS = MAIN_TOOLS.filter((t) => t.functional);
+export const COMING_SOON_MAIN_TOOLS = MAIN_TOOLS.filter((t) => !t.functional);
 
 export const IMAGE_TOOLS = TOOLS.filter((t) => t.kind === "image");
 
