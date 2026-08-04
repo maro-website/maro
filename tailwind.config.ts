@@ -35,6 +35,13 @@ const config: Config = {
         "c-red": "var(--c-red)",
         "c-pale": "var(--c-pale)",
         "c-yellow": "var(--c-yellow)",
+        "accent-teal": "var(--accent-teal)",
+        "sidebar-card": "var(--sidebar-card)",
+        "prompt-dock": "var(--prompt-dock)",
+        generate: {
+          DEFAULT: "var(--generate-bg)",
+          fg: "var(--generate-fg)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-app)", "system-ui", "sans-serif"],

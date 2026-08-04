@@ -1,18 +1,22 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { Logo } from "@/components/ui/Logo";
+import { usePathname } from "next/navigation";
 import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
-import { useMaro } from "@/context/store";
+import { AppTopBar } from "@/components/app/AppTopBar";
+import { AppFooter } from "@/components/app/AppFooter";
+import { MaroIcon } from "@/components/app/OptionIcon";
+import { MAIN_TOOLS } from "@/lib/tools/registry";
 import { cn } from "@/lib/utils/cn";
-import { Menu, Coins, Plus, PanelLeftOpen } from "lucide-react";
 
 const COLLAPSE_KEY = "maro.sidebar.collapsed";
 
-// Desktop: fixed viewport + inner scroll (composer dock). Mobile: natural page scroll.
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, credits } = useMaro();
+export function AppShell({ children, hideFooter }: { children: React.ReactNode; hideFooter?: boolean }) {
+  const pathname = usePathname();
+  const toolRoutes = React.useMemo(() => MAIN_TOOLS.map((t) => t.route), []);
+  const isToolPage = toolRoutes.includes(pathname);
+  const showFooter = !hideFooter && !isToolPage;
+
   const [drawer, setDrawer] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
 
@@ -29,74 +33,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div
-      className={cn(
-        "grid w-full max-w-[100vw] grid-cols-1 overflow-x-clip",
-        "max-lg:min-h-[100dvh]",
-        "lg:h-[100dvh] lg:overflow-hidden",
-        collapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]"
-      )}
-    >
-      {!collapsed && (
-        <aside className="hidden h-[100dvh] bg-surface lg:block">
-          <HomeSidebar onCollapse={toggleCollapse} />
-        </aside>
-      )}
+    <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden">
+      <AppTopBar onOpenDrawer={() => setDrawer(true)} />
 
-      <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
-
-      <main
+      <div
         className={cn(
-          "relative flex w-full min-w-0 flex-col overflow-x-clip",
-          "max-lg:min-h-[100dvh]",
-          "lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
+          "grid min-h-0 flex-1 overflow-hidden",
+          collapsed ? "grid-cols-1" : "lg:grid-cols-[var(--sidebar-width)_1fr]"
         )}
+        style={{ ["--sidebar-width" as string]: "260px" }}
       >
-        <div className="z-30 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
-          <button
-            onClick={() => setDrawer(true)}
-            className="grid h-10 w-10 place-items-center justify-self-start rounded-2xl bg-surface text-ink"
-            aria-label="Menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Link href="/" className="justify-self-center" aria-label="maro">
-            <Logo mobileWordOnly />
-          </Link>
-          <Link
-            href="/credits"
-            className="flex max-w-[45vw] items-center gap-1.5 justify-self-end rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
-            aria-label="Kredite"
-          >
-            <Coins className="h-4 w-4 shrink-0 text-brand" />
-            <span className="truncate">{user ? credits : 0}</span>
-            <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-brand text-brand-fg">
-              <Plus className="h-3 w-3" />
-            </span>
-          </Link>
-        </div>
-
-        {collapsed && (
-          <button
-            onClick={toggleCollapse}
-            className="absolute left-4 top-4 z-40 hidden h-10 w-10 place-items-center rounded-2xl bg-surface text-ink-2 transition-colors hover:text-ink lg:grid"
-            aria-label="Hap sidebar"
-            title="Hap sidebar"
-          >
-            <PanelLeftOpen className="h-5 w-5" />
-          </button>
+        {!collapsed && (
+          <aside className="hidden min-h-0 bg-surface lg:block">
+            <HomeSidebar onCollapse={toggleCollapse} showHeader={false} />
+          </aside>
         )}
 
-        <div
-          className={cn(
-            "min-h-0 min-w-0 flex-1 overflow-x-clip",
-            "max-lg:overflow-y-visible",
-            "lg:overflow-hidden lg:flex lg:flex-col"
+        <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
+
+        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden">
+          {collapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="absolute left-4 top-4 z-40 hidden h-11 w-11 place-items-center rounded-2xl bg-surface text-ink-2 transition-colors hover:text-ink lg:grid"
+              aria-label="Hap sidebar"
+              title="Hap sidebar"
+            >
+              <MaroIcon name="sidebarFlip" className="h-5 w-5" />
+            </button>
           )}
-        >
-          {children}
-        </div>
-      </main>
+
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto">{children}</div>
+
+          {showFooter && (
+            <AppFooter className="hidden shrink-0 border-t border-line bg-canvas/80 px-4 py-2.5 backdrop-blur sm:block sm:px-5" />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

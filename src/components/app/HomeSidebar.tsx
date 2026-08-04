@@ -2,479 +2,72 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 import { NotificationBell } from "@/components/app/NotificationBell";
-import { AvatarCropper } from "@/components/app/AvatarCropper";
-import { useMaro } from "@/context/store";
-import { useTheme, type Theme } from "@/context/theme";
-import { useToast } from "@/components/ui/Toast";
-import { ACTIVE_MAIN_TOOLS, COMING_SOON_MAIN_TOOLS } from "@/lib/tools/registry";
-import { initials } from "@/lib/utils/format";
-import { randomMaroLabel } from "@/lib/utils/maroButton";
-import { cn } from "@/lib/utils/cn";
-import {
-  Plus,
-  Coins,
-  Shield,
-  LogOut,
-  User as UserIcon,
-  Star,
-  X,
-  PanelLeftClose,
-  Settings,
-  ChevronLeft,
-  Camera,
-  Sun,
-  Moon,
-  RefreshCw,
-  Wallet,
-  Lightbulb,
-  History,
-  Scale,
-} from "lucide-react";
+import { ToolSidebarGrid } from "@/components/app/ToolSidebarGrid";
+import { MaroIcon } from "@/components/app/OptionIcon";
+import { X } from "lucide-react";
 
 export function HomeSidebar({
   onNavigate,
   onCollapse,
+  showHeader = true,
 }: {
   onNavigate?: () => void;
   onCollapse?: () => void;
+  showHeader?: boolean;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { user, isAdmin, isCreator, credits, signOut } = useMaro();
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
-  // A different playful label each refresh.
-  const [maroLabel, setMaroLabel] = React.useState("maro");
-  React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
-
-  const go = (href: string) => {
-    router.push(href);
-    onNavigate?.();
-  };
-
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pt-5">
-        <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <Logo showWord />
-        </Link>
-        <div className="flex items-center gap-1">
-          {user && <NotificationBell />}
-          <button
-            onClick={() => window.location.reload()}
-            className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
-            aria-label="Rifresko faqen"
-            title="Rifresko (nëse kreditet nuk ngarkohen)"
-          >
-            <RefreshCw className="h-[18px] w-[18px]" />
-          </button>
-          {onCollapse && (
-            <button
-              onClick={onCollapse}
-              className="hidden h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink lg:grid"
-              aria-label="Mbyll sidebar"
-              title="Mbyll sidebar"
-            >
-              <PanelLeftClose className="h-5 w-5" />
-            </button>
-          )}
-          {onNavigate && (
-            <button
-              onClick={onNavigate}
-              className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 lg:hidden"
-              aria-label="Mbyll"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="px-3 pt-5">
-        <button
-          onClick={() => go("/")}
-          className="flex w-full items-center gap-2 rounded-xl bg-brand px-4 py-3 text-[15px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
-        >
-          <Plus className="h-5 w-5 shrink-0" /> <span className="truncate">{maroLabel}</span>
-        </button>
-      </div>
-
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto scroll-thin px-3">
-        <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-3">
-          Aktiv
-        </p>
-        <div className="mb-4 flex flex-col gap-0.5">
-          {ACTIVE_MAIN_TOOLS.map((t) => (
-            <NavItem
-              key={t.id}
-              active={pathname === t.route}
-              icon={<t.icon className="h-5 w-5" />}
-              label={t.name}
-              onClick={() => go(t.route)}
-            />
-          ))}
-        </div>
-
-        {COMING_SOON_MAIN_TOOLS.length > 0 && (
-          <>
-            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-3">
-              Së shpejti
-            </p>
-            <div className="mb-3 flex flex-col gap-0.5">
-              {COMING_SOON_MAIN_TOOLS.map((t) => (
-                <NavItem
-                  key={t.id}
-                  active={pathname === t.route}
-                  icon={<t.icon className="h-5 w-5" />}
-                  label={t.name}
-                  muted
-                  onClick={() => go(t.route)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="mx-2 mb-3" />
-
-        {/* maro Prompts + Çka ke maru — separate from the generation tools */}
-        <div className="mb-3 flex flex-col gap-0.5">
-          <NavItem
-            active={pathname === "/prompts"}
-            icon={<Lightbulb className="h-5 w-5" />}
-            label="maro Prompts"
-            onClick={() => go("/prompts")}
-          />
-          <NavItem
-            active={pathname === "/krijimet"}
-            icon={<History className="h-5 w-5" />}
-            label="Çka ke maru"
-            onClick={() => go("/krijimet")}
-          />
-        </div>
-      </div>
-
-      {/* Footer: account / settings */}
-      <div className="border-t border-line p-3">
-        {user ? (
-          <AnimatePresence mode="wait" initial={false}>
-            {settingsOpen ? (
-              <SettingsPanel
-                key="settings"
-                onClose={() => setSettingsOpen(false)}
-                onGo={go}
-                isAdmin={isAdmin}
-                isCreator={isCreator}
-                signOut={signOut}
-              />
-            ) : (
-              <motion.div
-                key="account"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col gap-2"
+    <div className="flex h-full flex-col bg-surface">
+      {showHeader && (
+        <div className="flex items-center justify-between px-4 pt-4">
+          <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
+            <Logo showWord />
+          </Link>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            {onCollapse && (
+              <button
+                type="button"
+                onClick={onCollapse}
+                className="hidden h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink lg:grid"
+                aria-label="Mbyll sidebar"
+                title="Mbyll sidebar"
               >
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => go("/credits")}
-                    className="flex min-w-0 flex-1 items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] transition-colors hover:bg-line"
-                  >
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-                      <Coins className="h-4 w-4 text-brand" /> {credits}
-                    </span>
-                    <span className="text-ink-3">kredite</span>
-                  </button>
-                  <button
-                    onClick={() => go("/credits")}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-fg transition-colors hover:bg-brand-hover"
-                    title="Shto kredite"
-                    aria-label="Shto kredite"
-                  >
-                    <Wallet className="h-4 w-4" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-surface-2"
-                >
-                  <Avatar user={user} className="h-9 w-9 text-[13px]" />
-                  <span className="min-w-0 flex-1 text-left">
-                    <span className="block truncate text-[13.5px] font-semibold text-ink">{user.name}</span>
-                    <span className="block truncate text-[12px] text-ink-3">{user.email}</span>
-                  </span>
-                  <Settings className="h-4 w-4 shrink-0 text-ink-3" />
-                </button>
-              </motion.div>
+                <MaroIcon name="sidebarFlip" className="h-5 w-5" />
+              </button>
             )}
-          </AnimatePresence>
-        ) : (
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={onNavigate}
+                className="grid h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 hover:bg-surface-2 lg:hidden"
+                aria-label="Mbyll"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!showHeader && onCollapse && (
+        <div className="flex justify-end px-3 pt-3">
           <button
-            onClick={() => go("/sign-in")}
-            className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl bg-surface px-3 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-surface-2"
-            )}
+            type="button"
+            onClick={onCollapse}
+            className="grid h-9 w-9 min-w-[44px] place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+            aria-label="Mbyll sidebar"
+            title="Mbyll sidebar"
           >
-            <UserIcon className="h-5 w-5" /> Hyr / Regjistrohu
+            <MaroIcon name="sidebarFlip" className="h-5 w-5" />
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      <ToolSidebarGrid onNavigate={onNavigate} />
     </div>
-  );
-}
-
-// Avatar: uploaded image if present, otherwise initials on a colored disc.
-function Avatar({
-  user,
-  className,
-}: {
-  user: { name: string; avatarColor: string; avatarUrl?: string };
-  className?: string;
-}) {
-  if (user.avatarUrl) {
-    return (
-      <span className={cn("block shrink-0 overflow-hidden rounded-full", className)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-      </span>
-    );
-  }
-  return (
-    <span
-      className={cn("grid shrink-0 place-items-center rounded-full font-bold text-white", className)}
-      style={{ background: user.avatarColor }}
-    >
-      {initials(user.name)}
-    </span>
-  );
-}
-
-const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
-  { id: "qelt", label: "Qelt", icon: Sun },
-  { id: "mshelt", label: "Mshelt", icon: Moon },
-];
-
-function SettingsPanel({
-  onClose,
-  onGo,
-  isAdmin,
-  isCreator,
-  signOut,
-}: {
-  onClose: () => void;
-  onGo: (href: string) => void;
-  isAdmin: boolean;
-  isCreator: boolean;
-  signOut: () => Promise<void>;
-}) {
-  const { user, updateAvatar } = useMaro();
-  const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
-  const [uploading, setUploading] = React.useState(false);
-  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
-  const fileRef = React.useRef<HTMLInputElement>(null);
-
-  const pick = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return toast("Zgjidh një imazh.");
-    if (file.size > 6 * 1024 * 1024) return toast("Imazhi është shumë i madh (max 6MB).");
-    const reader = new FileReader();
-    reader.onload = () => setCropSrc(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const saveCrop = async (dataUrl: string) => {
-    setUploading(true);
-    const { error } = await updateAvatar(dataUrl);
-    setUploading(false);
-    setCropSrc(null);
-    toast(error ? "Gabim gjatë ngarkimit." : "Fotoja u ndryshua.");
-  };
-
-  if (!user) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.98 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col gap-3 rounded-2xl bg-surface p-3"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-bold text-ink">Cilësimet</span>
-        <button
-          onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
-          aria-label="Mbyll"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Avatar + name */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="group relative"
-          title="Ndrysho foton"
-        >
-          <Avatar user={user} className="h-12 w-12 text-[15px]" />
-          <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
-            {uploading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
-            ) : (
-              <Camera className="h-4 w-4 text-white" />
-            )}
-          </span>
-        </button>
-        <div className="min-w-0">
-          <div className="truncate text-[14px] font-semibold text-ink">{user.name}</div>
-          <div className="truncate text-[12px] text-ink-3">{user.email}</div>
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            pick(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
-      </div>
-
-      {/* Theme switch */}
-      <div>
-        <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-ink-3">
-          Pamja
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[11.5px] font-semibold transition-colors",
-                theme === t.id
-                  ? "bg-brand text-brand-fg"
-                  : "bg-surface-2 text-ink-2 hover:bg-line"
-              )}
-            >
-              <t.icon className="h-4 w-4" />
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Links */}
-      <div className="flex flex-col gap-0.5">
-        <SettingsRow icon={<Star className="h-4 w-4" />} label="Të preferuarat" onClick={() => onGo("/favourites")} />
-        <SettingsRow icon={<UserIcon className="h-4 w-4" />} label="Llogaria" onClick={() => onGo("/account")} />
-        {isCreator && (
-          <SettingsRow icon={<Star className="h-4 w-4" />} label="maro Kreator" onClick={() => onGo("/kreator")} />
-        )}
-        {isAdmin && (
-          <SettingsRow icon={<Shield className="h-4 w-4" />} label="Admin" onClick={() => onGo("/admin")} />
-        )}
-        <SettingsRow
-          icon={<LogOut className="h-4 w-4" />}
-          label="Dil"
-          danger
-          onClick={async () => {
-            await signOut();
-            onGo("/");
-          }}
-        />
-      </div>
-
-      {/* Legal */}
-      <div className="border-t border-line pt-3">
-        <div className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
-          <Scale className="h-3.5 w-3.5" /> Ligjore
-        </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
-          <button onClick={() => onGo("/legal/terms")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
-            Kushtet
-          </button>
-          <button onClick={() => onGo("/legal/privacy")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
-            Privatësia
-          </button>
-          <button onClick={() => onGo("/legal/refund")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
-            Rimbursimi
-          </button>
-          <button onClick={() => onGo("/credits")} className="text-[12px] text-ink-3 transition-colors hover:text-ink">
-            Çmimet
-          </button>
-        </div>
-      </div>
-
-      <AvatarCropper
-        src={cropSrc}
-        open={cropSrc !== null}
-        saving={uploading}
-        onCancel={() => setCropSrc(null)}
-        onConfirm={saveCrop}
-      />
-    </motion.div>
-  );
-}
-
-function SettingsRow({
-  icon,
-  label,
-  onClick,
-  danger,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] font-medium transition-colors hover:bg-surface-2",
-        danger ? "text-danger" : "text-ink-2 hover:text-ink"
-      )}
-    >
-      <span className="shrink-0 text-ink-3">{icon}</span>
-      {label}
-    </button>
-  );
-}
-
-function NavItem({
-  active,
-  icon,
-  label,
-  onClick,
-  muted = false,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] font-medium transition-colors",
-        active ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
-        muted && !active && "opacity-70"
-      )}
-    >
-      <span className={cn("shrink-0", active ? "text-brand" : "text-ink-3")}>{icon}</span>
-      {label}
-    </button>
   );
 }
 
@@ -491,13 +84,13 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             onClick={onClose}
           />
           <motion.div
-            initial={{ x: -320 }}
+            initial={{ x: "-100%" }}
             animate={{ x: 0 }}
-            exit={{ x: -320 }}
+            exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-[284px] bg-surface"
+            className="absolute inset-y-0 left-0 w-full max-w-[320px] bg-surface shadow-xl"
           >
-            <HomeSidebar onNavigate={onClose} />
+            <HomeSidebar onNavigate={onClose} showHeader />
           </motion.div>
         </div>
       )}

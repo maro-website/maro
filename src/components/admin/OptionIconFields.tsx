@@ -4,6 +4,7 @@ import * as React from "react";
 import { Field } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Misc";
 import type { ToolOptionIconSet, ToolOptionIcons } from "@/lib/tools/optionIcons";
+import { staticOptionIconSrc } from "@/lib/tools/iconMap";
 
 async function readSvgDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -126,9 +127,16 @@ export function OptionIconFields({
 export function optionIconPreview(
   icons: ToolOptionIcons,
   optionKey: string,
-  variant: "light" | "dark" = "dark"
+  variant: "light" | "dark" = "dark",
+  toolId?: string,
+  settingId?: string,
+  optionId?: string
 ): string | undefined {
   const set: ToolOptionIconSet | undefined = icons[optionKey];
-  if (!set) return undefined;
-  return variant === "dark" ? set.dark ?? set.light : set.light ?? set.dark;
+  const admin = variant === "dark" ? set?.dark ?? set?.light : set?.light ?? set?.dark;
+  if (admin) return admin;
+  if (toolId && settingId && optionId) {
+    return staticOptionIconSrc(toolId, settingId, optionId);
+  }
+  return undefined;
 }

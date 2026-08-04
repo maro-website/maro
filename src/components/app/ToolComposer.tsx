@@ -7,7 +7,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
-import { OptionIcon } from "@/components/app/OptionIcon";
+import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { CreationLightbox } from "@/components/app/cards";
 import { PromptExpand } from "@/components/app/PromptExpand";
@@ -44,8 +44,6 @@ import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import {
-  ArrowUp,
-  Coins,
   Sparkles,
   Check,
   ChevronDown,
@@ -652,7 +650,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       </div>
 
       {/* Docked prompt box — width grows with toolbar so controls stay on one row */}
-      <div className="shrink-0 bg-canvas/90 backdrop-blur max-lg:pb-[env(safe-area-inset-bottom)]">
+      <div className="shrink-0 bg-canvas/90 backdrop-blur max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex w-full justify-center px-3 py-3 sm:px-5 sm:py-4">
           <div className="w-fit max-w-[calc(100vw-1.5rem)]">
           <AnnouncementBanner toolId={tool.id} />
@@ -757,7 +755,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="grid w-max max-w-[calc(100vw-1.5rem)] grid-cols-1 rounded-[24px] bg-surface p-2">
+          <div className="grid w-max max-w-[calc(100vw-1.5rem)] grid-cols-1 rounded-[24px] bg-prompt-dock p-2 ring-1 ring-line/80">
             {needsPrompt ? (
               <textarea
                 value={prompt}
@@ -778,6 +776,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
             <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto scroll-thin px-1.5 pb-0.5 pt-1 [scrollbar-width:none] lg:overflow-x-visible [&::-webkit-scrollbar]:hidden">
               <div className="flex flex-nowrap items-center gap-2">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-teal-soft px-3 py-2 text-[13px] font-bold text-accent-teal ring-1 ring-accent-teal/35">
+                <ToolIcon toolId={tool.id} fallback={tool.icon} className="h-4 w-4" />
+                {tool.name}
+              </span>
               {isImage && (
                 <>
                   <input
@@ -796,7 +798,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     disabled={attachments.length >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-4 w-4" />
                   </IconBtn>
                 </>
               )}
@@ -819,7 +821,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
               {needsPrompt && (
                 <IconBtn onClick={() => setExpanded(true)} label="Zgjero promptin">
-                  <Maximize2 className="h-4 w-4" />
+                  <MaroIcon name="fullscreen" fallback={Maximize2} className="h-4 w-4" />
                 </IconBtn>
               )}
               {shownSettings.map((s) =>
@@ -851,8 +853,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="flex shrink-0 items-center gap-2.5">
                 {functional && (
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink-2">
-                    <Coins className="h-4 w-4 shrink-0 text-brand" />
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-semibold text-ink-2">
+                    <MaroIcon name="coins" className="h-4 w-4 shrink-0" />
                     {cost} kredite
                   </span>
                 )}
@@ -861,17 +863,20 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "grid h-11 w-11 place-items-center rounded-xl text-brand-fg transition-all",
+                    "inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[14px] font-bold transition-all",
                     functional && canGenerate && !loading
-                      ? "bg-brand hover:bg-brand-hover"
+                      ? "bg-generate text-generate-fg hover:opacity-90"
                       : "cursor-not-allowed bg-line-strong text-ink-3"
                   )}
                   aria-label="Gjenero"
                 >
                   {loading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-brand-fg" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
                   ) : (
-                    <ArrowUp className="h-5 w-5" />
+                    <>
+                      <MaroIcon name="generate" className="h-4 w-4" />
+                      maro
+                    </>
                   )}
                 </motion.button>
               </div>

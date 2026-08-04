@@ -33,6 +33,16 @@
   --c-yellow: #ffff00;
 
   --font-app: "Manrope", system-ui, -apple-system, sans-serif;
+
+  /* Figma redesign tokens */
+  --accent-teal: #00fdba;
+  --accent-teal-soft: rgba(0, 253, 186, 0.12);
+  --accent-teal-border: rgba(0, 253, 186, 0.45);
+  --sidebar-width: 260px;
+  --sidebar-card: var(--surface-2);
+  --prompt-dock: var(--surface);
+  --generate-bg: var(--accent-teal);
+  --generate-fg: #04231b;
 }
 
 /* ---- Qelt: canvas #d0e6fd, promptbox / cards #ffffff ---- */
@@ -67,9 +77,11 @@
   --scrim: rgba(15, 20, 25, 0.72);
   --dim: rgba(15, 20, 25, 0.45);
   --on-scrim: #ffffff;
-}
 
-/* ---- Mshelt: canvas #191919, promptbox / shapes #0a0a0a ---- */
+  --sidebar-card: #f0f6ff;
+  --generate-bg: var(--brand);
+  --generate-fg: var(--brand-fg);
+}
 [data-theme="mshelt"] {
   --brand: #f5f5f5;
   --brand-hover: #ffffff;
@@ -78,7 +90,7 @@
 
   --canvas: #191919;
   --surface: #0a0a0a;
-  --surface-2: #262626;
+  --surface-2: #141414;
   --line: #333333;
   --line-strong: #444444;
 
@@ -100,6 +112,10 @@
   --scrim: rgba(0, 0, 0, 0.78);
   --dim: rgba(0, 0, 0, 0.55);
   --on-scrim: #ffffff;
+
+  --sidebar-card: #141414;
+  --generate-bg: var(--accent-teal);
+  --generate-fg: #04231b;
 }
 
 /* Smoothly cross-fade colors when switching themes. */
@@ -170,6 +186,34 @@ body {
 
 .text-accent {
   color: var(--ink);
+}
+
+.text-accent-teal {
+  color: var(--accent-teal);
+}
+
+.bg-accent-teal {
+  background-color: var(--accent-teal);
+}
+
+.bg-accent-teal-soft {
+  background-color: var(--accent-teal-soft);
+}
+
+.bg-sidebar-card {
+  background-color: var(--sidebar-card);
+}
+
+.bg-prompt-dock {
+  background-color: var(--prompt-dock);
+}
+
+.bg-generate {
+  background-color: var(--generate-bg);
+}
+
+.text-generate-fg {
+  color: var(--generate-fg);
 }
 
 @keyframes float-slow {
