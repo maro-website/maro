@@ -11,7 +11,7 @@ export default function CookiesPage() {
         <p>
           Cookies janë skedarë të vegjël teksti që ruhen në pajisjen tuaj kur vizitoni{" "}
           <strong className="text-ink">{LEGAL_ENTITY.product}</strong>. I përdorim për funksionimin e
-          platformës, sigurinë dhe — me pëlqimin tuaj ku kërkohet — analitikë.
+          platformës, sigurinë dhe analitikë (me pëlqimin tuaj ku kërkohet).
         </p>
       </LegalSection>
 

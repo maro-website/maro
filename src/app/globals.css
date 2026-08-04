@@ -205,6 +205,10 @@ body {
 [data-theme="mshelt"] .logo-lockup-light { display: none; }
 [data-theme="mshelt"] .logo-lockup-dark { display: inline-block; }
 
+[data-theme="mshelt"] .maro-text-logo {
+  filter: brightness(0) invert(1);
+}
+
 .skeleton {
   position: relative;
   overflow: hidden;

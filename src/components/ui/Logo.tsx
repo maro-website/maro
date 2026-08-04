@@ -33,16 +33,15 @@ function MaroLockup({ wordClassName }: { wordClassName?: string }) {
   );
 }
 
-function MaroWord({ className }: { className?: string }) {
+function MaroTextLogo({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "text-[22px] font-extrabold leading-none tracking-[-0.04em] text-ink",
-        className
-      )}
-    >
-      maro
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/maro-logo-textonly.svg"
+      alt="maro"
+      className={cn("maro-text-logo h-[22px] w-auto select-none sm:h-6", className)}
+      draggable={false}
+    />
   );
 }
 
@@ -53,7 +52,7 @@ export function Logo({
   showWord = false,
   /** Mobile: full lockup (symbol + maro). Desktop: symbol only. */
   mobileLockup = false,
-  /** Mobile: "maro" text only. Takes precedence over mobileLockup. */
+  /** Mobile: text-only SVG wordmark. Takes precedence over mobileLockup. */
   mobileWordOnly = false,
 }: {
   className?: string;
@@ -75,7 +74,7 @@ export function Logo({
     return (
       <span className={cn("inline-flex items-center", className)}>
         <span className="lg:hidden">
-          <MaroWord className={wordClassName} />
+          <MaroTextLogo className={wordClassName} />
         </span>
         <MaroSymbol className={cn("hidden lg:block", symbolClassName)} />
       </span>

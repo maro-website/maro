@@ -26,7 +26,7 @@ export default function TermsPage() {
       <LegalSection title="2. Përshkrimi i Shërbimit">
         <p>
           maro është një platformë me inteligjencë artificiale (AI) që ju lejon të gjeneroni dhe redaktoni
-          materiale dixhitale — website, logo, imazhe reklamash, audio dhe përmbajtje të ngjashme — duke
+          materiale dixhitale (website, logo, imazhe reklamash, audio dhe përmbajtje të ngjashme) duke
           përdorur kredite. Rezultatet prodhohen automatikisht nga modele AI dhe mund të kërkojnë rishikim
           manual nga ana juaj para publikimit.
         </p>
@@ -93,7 +93,7 @@ export default function TermsPage() {
         </p>
         <p>
           Output-et e gjeneruara nga AI (&quot;Output&quot;) ju ofrohen për përdorim tuajin, në masën e
-          lejuar nga ligji dhe këto Kushte. Ne nuk garantojmë ekskluzivitetin e Output-it — modele AI mund
+          lejuar nga ligji dhe këto Kushte. Ne nuk garantojmë ekskluzivitetin e Output-it; modele AI mund
           të prodhojnë rezultate të ngjashme për përdorues të tjerë.
         </p>
       </LegalSection>
@@ -138,7 +138,7 @@ export default function TermsPage() {
           Në masën e lejuar nga ligji, {LEGAL_ENTITY.name} nuk mban përgjegjësi për dëme indirekte,
           humbje fitimi, humbje të dhënash ose dëme të veçanta që rrjedhin nga përdorimi i Shërbimit. Përgjegjësia
           jonë totale ndaj jush për çdo kërkesë nuk do të tejkalojë shumën që keni paguar ne për Shërbimin
-          në 12 muajt e fundit para ngjarjes, ose €50 — çfarëdo që është më e lartë.
+          në 12 muajt e fundit para ngjarjes, ose €50, çfarëdo që është më e lartë.
         </p>
       </LegalSection>
 

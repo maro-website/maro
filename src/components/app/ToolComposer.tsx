@@ -889,7 +889,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               {tool.name} vjen së shpejti. Provoje interfejsin, gjenerimi aktivizohet së afërmi.
             </p>
           ) : (
-            <p className="mt-2 text-center text-[12.5px] text-ink-3">maro mund të bëjë gabime. Kontrollo rezultatet.</p>
+            <p className="mt-2 text-center text-[12.5px] text-ink-3">kush punon gabon, edhe maro gabon</p>
           )}
         </div>
       </div>
@@ -943,7 +943,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </span>
             <div>
               <div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div>
-              <div className="text-[12.5px] text-ink-3">Modaliteti ekspert — kontroll i plotë</div>
+              <div className="text-[12.5px] text-ink-3">Modaliteti ekspert, kontroll i plotë</div>
             </div>
           </div>
           <button

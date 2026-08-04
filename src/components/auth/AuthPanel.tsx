@@ -4,6 +4,10 @@ import * as React from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 import { useMaro } from "@/context/store";
+import {
+  LegalConsentCheckbox,
+  LEGAL_CONSENT_REQUIRED,
+} from "@/components/legal/LegalConsentCheckbox";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AuthPanel({
@@ -19,6 +23,7 @@ export function AuthPanel({
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [legalAccepted, setLegalAccepted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
 
@@ -32,6 +37,10 @@ export function AuthPanel({
     }
     if (mode === "sign-up" && password.length < 6) {
       setError("Fjalëkalimi duhet të ketë të paktën 6 karaktere.");
+      return;
+    }
+    if (mode === "sign-up" && !legalAccepted) {
+      setError(LEGAL_CONSENT_REQUIRED);
       return;
     }
     setLoading(true);
@@ -70,6 +79,7 @@ export function AuthPanel({
               setMode(m);
               setError(null);
               setNotice(null);
+              if (m === "sign-in") setLegalAccepted(false);
             }}
             className={`h-9 rounded-lg text-[13.5px] font-semibold transition-all ${
               mode === m ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
@@ -116,7 +126,20 @@ export function AuthPanel({
           </div>
         )}
 
-        <Button type="submit" className="mt-1 w-full" loading={loading} disabled={!supabaseReady}>
+        {mode === "sign-up" && (
+          <LegalConsentCheckbox
+            id="auth-legal-consent"
+            checked={legalAccepted}
+            onChange={setLegalAccepted}
+          />
+        )}
+
+        <Button
+          type="submit"
+          className="mt-1 w-full"
+          loading={loading}
+          disabled={!supabaseReady || (mode === "sign-up" && !legalAccepted)}
+        >
           {mode === "sign-in" ? "Hyr" : "Krijo llogari"}
         </Button>
       </form>

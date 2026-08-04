@@ -7,6 +7,10 @@ import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { submitCreatorApplication } from "@/lib/services/promoService";
 import {
+  LegalConsentCheckbox,
+  LEGAL_CONSENT_REQUIRED,
+} from "@/components/legal/LegalConsentCheckbox";
+import {
   Sparkles,
   Instagram,
   Youtube,
@@ -251,13 +255,18 @@ function JoinView() {
     website: "",
   });
   const [submitting, setSubmitting] = React.useState(false);
+  const [legalAccepted, setLegalAccepted] = React.useState(false);
   const [done, setDone] = React.useState(false);
 
   const hasSocial = Object.values(socials).some((v) => v.trim());
-  const valid = name.trim() && email.trim() && hasSocial;
+  const valid = name.trim() && email.trim() && hasSocial && legalAccepted;
 
   const submit = async () => {
-    if (!valid) {
+    if (!legalAccepted) {
+      toast(LEGAL_CONSENT_REQUIRED);
+      return;
+    }
+    if (!name.trim() || !email.trim() || !hasSocial) {
       toast("Plotëso emrin, email-in dhe të paktën një rrjet social.");
       return;
     }
@@ -360,6 +369,13 @@ function JoinView() {
               </div>
             ))}
           </div>
+
+          <LegalConsentCheckbox
+            id="kreator-legal-consent"
+            checked={legalAccepted}
+            onChange={setLegalAccepted}
+            className="mt-6"
+          />
 
           <button
             onClick={submit}

@@ -92,7 +92,7 @@ export function LegalLayout({
 
           <footer className="mt-12 text-[12px] leading-relaxed text-ink-3">
             <p>
-              © {new Date().getFullYear()} {LEGAL_ENTITY.product} — një produkt i{" "}
+              © {new Date().getFullYear()} {LEGAL_ENTITY.product}, një produkt i{" "}
               {LEGAL_ENTITY.name} (NUI {LEGAL_ENTITY.nui}).
             </p>
             <p className="mt-1">

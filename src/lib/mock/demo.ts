@@ -146,7 +146,7 @@ export function makeNiceAgency(): Project {
   p.conversation.messages = [
     chat("assistant", "Website-i është gati.\n\nMundesh me më tregu çka dëshiron me ndryshu, ose kliko direkt mbi elementet në website.", 25),
     chat("user", "Make the hero more premium", 22),
-    chat("assistant", "Ndryshimet u krynë. E bëra hero-n më premium — kontrast më i fortë dhe hapësirë më e madhe.", 21),
+    chat("assistant", "Ndryshimet u krynë. E bëra hero-n më premium, kontrast më i fortë dhe hapësirë më e madhe.", 21),
     chat("user", "Add a pricing section", 12),
     chat("assistant", "Ndryshimet u krynë. Shtova një pricing section me tri plane.", 11),
   ];
@@ -187,7 +187,7 @@ export function makeCastello(): Project {
   p.conversation.messages = [
     chat("assistant", "Website-i është gati.\n\nMundesh me më tregu çka dëshiron me ndryshu, ose kliko direkt mbi elementet në website.", 30),
     chat("user", "Bëje website-in më premium", 26),
-    chat("assistant", "Ndryshimet u krynë. E ngrita nivelin premium — tipografi më elegante dhe hapësira më e ajrosur.", 25),
+    chat("assistant", "Ndryshimet u krynë. E ngrita nivelin premium, tipografi më elegante dhe hapësira më e ajrosur.", 25),
   ];
   p.updatedAt = new Date(Date.now() - 25 * 60_000).toISOString();
   return p;

@@ -154,7 +154,7 @@ export function interpretPrompt(prompt: string): AiEditResult {
 
   if (has("premium", "luks", "elegant", "elegante")) {
     return {
-      response: "Ndryshimet u krynë. E ngrita nivelin premium — tipografi elegante dhe hapësirë më e ajrosur.",
+      response: "Ndryshimet u krynë. E ngrita nivelin premium, tipografi elegante dhe hapësirë më e ajrosur.",
       cost: 5,
       versionLabel: "E bëra hero-n më premium",
       mutate: (p) => ({
@@ -171,7 +171,7 @@ export function interpretPrompt(prompt: string): AiEditResult {
 
   if (has("minimal", "pastër", "paster", "clean")) {
     return {
-      response: "Ndryshimet u krynë. E bëra website-in më minimal — më pak zhurmë, më shumë frymëmarrje.",
+      response: "Ndryshimet u krynë. E bëra website-in më minimal, më pak zhurmë, më shumë frymëmarrje.",
       cost: 5,
       versionLabel: "E bëra website-in më minimal",
       mutate: (p) => ({

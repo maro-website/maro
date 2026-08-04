@@ -264,7 +264,7 @@ function NotificationsTestCard() {
       type: "referral",
       icon: Users,
       title: "Referim i ri",
-      body: "Dikush përdori kodin tënd — fitove komision.",
+      body: "Dikush përdori kodin tënd, fitove komision.",
     },
   ];
 
@@ -620,7 +620,7 @@ function PromosTab() {
               onChange={(e) => setDraft((d) => ({ ...d, creator_id: e.target.value }))}
               className="h-10 w-full rounded-xl bg-surface px-3 text-[13.5px] text-ink outline-none"
             >
-              <option value="">— asnjë —</option>
+              <option value="">(asnjë)</option>
               {creators.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.email}
@@ -1085,7 +1085,7 @@ function MasterPromptsTab() {
           ))}
         </div>
 
-        <Field label="Kosto për mesazh (kredite) — falas për maroFort" className="mt-4 max-w-[240px]">
+        <Field label="Kosto për mesazh (kredite), falas për maroFort" className="mt-4 max-w-[240px]">
           <Input
             type="number"
             value={chatCost}
@@ -2205,7 +2205,7 @@ function PricingTab() {
 
       <div className="mt-5 rounded-xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Kostot për çdo tool (Web / Logo / Reklama…) tani menaxhohen për çdo opsion te tabi{" "}
-        <span className="font-semibold text-ink">Master Prompts</span> — çmim + prompt në një vend.
+        <span className="font-semibold text-ink">Master Prompts</span>, çmim + prompt në një vend.
       </div>
 
       <div className="mt-5 flex items-end gap-4">

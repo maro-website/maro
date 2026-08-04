@@ -831,7 +831,7 @@ function CategoriesTab({
       <div className="mb-4">
         <h2 className="text-[18px] font-bold text-ink">Kategoritë</h2>
         <p className="mt-1 text-[13px] text-ink-3">
-          {PROMPT_CATEGORIES.length} kategori fikse — kliko për të parë promptet.
+          {PROMPT_CATEGORIES.length} kategori fikse. Kliko për të parë promptet.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

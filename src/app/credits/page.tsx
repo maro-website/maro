@@ -5,12 +5,15 @@ import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion"
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
-import { useSettings } from "@/lib/hooks/useSettings";
-import { resolveFortConfig } from "@/lib/fort/config";
 import { fetchUsage, type UsageItem } from "@/lib/services/usageService";
 import { validatePromo, trackPromo, type PromoInfo } from "@/lib/services/promoService";
 import { pushNotification } from "@/lib/notifications/store";
 import { timeAgo } from "@/lib/utils/format";
+import { MaroHeretCard } from "@/components/credits/MaroHeretCard";
+import {
+  LegalConsentCheckbox,
+  LEGAL_CONSENT_REQUIRED,
+} from "@/components/legal/LegalConsentCheckbox";
 import {
   Coins,
   ArrowRight,
@@ -79,26 +82,9 @@ function actionLabel(item: UsageItem): { noun: string; icon: React.ElementType }
 export default function CreditsPage() {
   const { user, credits, hasFort } = useMaro();
   const { toast } = useToast();
-  const { fortConfig } = useSettings(Boolean(user));
-  const fort = resolveFortConfig(fortConfig);
-  const fortPlan = fortConfig.plan ?? {};
-  const fortPrice = fortPlan.priceEur ?? 19.99;
-  const fortCredits = fortPlan.credits ?? 2000;
-  const fortPerks = fortPlan.perks ?? [
-    "Akses në maroFort mode",
-    "Beta maroArt 1.0 falas / pa limit",
-    `${(fortCredits).toLocaleString("de-DE")} kredite çdo muaj`,
-  ];
   const [amount, setAmount] = React.useState<number>(500);
   const [custom, setCustom] = React.useState<string>("");
-
-  const subscribeFort = () => {
-    if (hasFort) {
-      toast("Ti tashmë ke maroFort aktiv.");
-      return;
-    }
-    toast("Abonimi maroFort vjen së shpejti. Për momentin aktivizohet manualisht.");
-  };
+  const [legalAccepted, setLegalAccepted] = React.useState(false);
 
   const [usage, setUsage] = React.useState<{ items: UsageItem[]; count: number; spent: number } | null>(
     null
@@ -163,6 +149,10 @@ export default function CreditsPage() {
       toast("Hyr për të blerë kredite.");
       return;
     }
+    if (!legalAccepted) {
+      toast(LEGAL_CONSENT_REQUIRED);
+      return;
+    }
     if (chosen < MIN_CREDITS) {
       toast(`Minimumi është ${MIN_CREDITS} kredite.`);
       return;
@@ -203,69 +193,16 @@ export default function CreditsPage() {
                 </div>
                 <p className="mt-2 text-[13.5px] text-ink-3">≈ {euros(credits)} · 1 kredit = 1 cent</p>
               </div>
-              {user && (!user.plan || user.plan === "free") && (
-                <a
-                  href="#fort"
-                  className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
-                >
-                  Shiko maroFort
-                </a>
-              )}
+              <a
+                href="#maro-heret"
+                className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
+              >
+                Shiko maroHerët
+              </a>
             </div>
           </motion.div>
 
-          {/* maroFort subscription */}
-          {fort.enabled && (
-            <motion.div
-              id="fort"
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: EASE, delay: 0.06 }}
-              className="mt-8 scroll-mt-24 overflow-hidden rounded-3xl  bg-surface p-6 sm:p-8"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-6">
-                <div className="min-w-0 flex-1">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-brand-fg">
-                    <Sparkles className="h-3.5 w-3.5" /> {fort.label}
-                  </span>
-                  <h2 className="mt-4 text-[24px] font-extrabold tracking-[-0.02em] text-ink">
-                    Modaliteti ekspert për krijime premium
-                  </h2>
-                  <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-ink-2">
-                    {fort.description}
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    {fortPerks.map((perk, i) => (
-                      <li key={i} className="flex items-center gap-2 text-[14px] text-ink">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-brand-fg">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        {perk}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="w-full shrink-0 sm:w-auto sm:text-right">
-                  <div className="flex items-baseline gap-1.5 sm:justify-end">
-                    <span className="text-[38px] font-extrabold tracking-[-0.03em] text-ink">
-                      {fmtEur(fortPrice)}
-                    </span>
-                    <span className="text-[14px] font-semibold text-ink-3">/muaj</span>
-                  </div>
-                  <button
-                    onClick={subscribeFort}
-                    disabled={hasFort}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-2 px-6 py-3.5 text-[15px] font-semibold text-ink-2 transition-colors hover:bg-line disabled:cursor-not-allowed sm:w-auto"
-                  >
-                    {hasFort ? "Aktiv" : "Së shpejti"}
-                  </button>
-                  {!hasFort && (
-                    <p className="mt-2 text-[12px] text-ink-3 sm:text-right">Aktivizohet manualisht për momentin.</p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
+          <MaroHeretCard user={user} hasFort={hasFort} />
 
           {/* Buy credits */}
           <motion.div
@@ -398,9 +335,17 @@ export default function CreditsPage() {
               )}
             </div>
 
+            <LegalConsentCheckbox
+              id="credits-legal-consent"
+              checked={legalAccepted}
+              onChange={setLegalAccepted}
+              className="mt-5"
+            />
+
             <button
               onClick={pay}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-[16px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+              disabled={!legalAccepted}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-[16px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               Paguaj me Paysera · {fmtEur(totalEur)}
               <ArrowRight className="h-5 w-5" />

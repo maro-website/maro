@@ -38,7 +38,7 @@ export function computeBriefStrength(
   let suggestion = "";
   if (score < 40) suggestion = "Shto më shumë detaje për rezultat më të mirë.";
   else if (missing.length) suggestion = `Provo të plotësosh: ${missing.slice(0, 2).join(", ")}.`;
-  else if (score < 80) suggestion = "Brief i mirë — pak detaje shtesë do e forconin.";
+  else if (score < 80) suggestion = "Brief i mirë, pak detaje shtesë do e forconin.";
   else suggestion = "Brief i fortë.";
 
   return { score, suggestion };

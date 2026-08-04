@@ -714,7 +714,7 @@ function ReportModal({
         <div className="mt-4">
           <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Email</div>
           <div className="rounded-xl bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2">
-            {user?.email ?? "—"}
+            {user?.email ?? "–"}
           </div>
         </div>
 
