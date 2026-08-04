@@ -20,6 +20,7 @@ import {
   deleteMyCreation,
 } from "@/lib/services/creationsService";
 import { uid } from "@/lib/utils/format";
+import { prefetchPublicSettings } from "@/lib/settings/publicSettings";
 
 interface MaroState {
   ready: boolean;
@@ -163,10 +164,12 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       const session = data.session;
       const profile = session?.user ? await fetchProfile(session.user.id) : null;
       setState((s) => ({ ...s, ready: true, session, profile }));
+      void prefetchPublicSettings(session?.access_token ?? null);
 
       const { data: sub } = sb.auth.onAuthStateChange(async (_event, newSession) => {
         const p = newSession?.user ? await fetchProfile(newSession.user.id) : null;
         setState((s) => ({ ...s, session: newSession, profile: p }));
+        void prefetchPublicSettings(newSession?.access_token ?? null);
       });
       unsub = () => sub.subscription.unsubscribe();
     })();

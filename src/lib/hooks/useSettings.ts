@@ -4,6 +4,13 @@ import * as React from "react";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
 import type { FortConfig } from "@/lib/fort/types";
+import {
+  fetchPublicSettings,
+  mergePricingConfig,
+  prefetchPublicSettings,
+  readCachedPublicSettings,
+  writeCachedPublicSettings,
+} from "@/lib/settings/publicSettings";
 
 interface SettingsState {
   pricing: PricingConfig;
@@ -13,52 +20,64 @@ interface SettingsState {
   loading: boolean;
 }
 
-async function fetchPublicSettings(token: string | null): Promise<Record<string, unknown> | null> {
-  const headers: HeadersInit = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch("/api/settings/public", { headers });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-export function useSettings(enabled = true): SettingsState & { reload: () => void } {
-  const [state, setState] = React.useState<SettingsState>({
+function initialSettingsState(): SettingsState {
+  const cached = readCachedPublicSettings();
+  if (cached) {
+    return {
+      pricing: cached.pricing,
+      masterPrompt: "",
+      toolPrompts: {},
+      fortConfig: cached.fort_config,
+      loading: true,
+    };
+  }
+  return {
     pricing: DEFAULT_PRICING,
     masterPrompt: "",
     toolPrompts: {},
     fortConfig: {},
     loading: true,
-  });
+  };
+}
+
+export function useSettings(enabled = true): SettingsState & { reload: () => void } {
+  const [state, setState] = React.useState<SettingsState>(initialSettingsState);
+
+  // Apply cached pricing before paint so credits aren't briefly wrong after SSR/hydration.
+  React.useLayoutEffect(() => {
+    const cached = readCachedPublicSettings();
+    if (!cached) return;
+    setState((s) => ({
+      ...s,
+      pricing: cached.pricing,
+      fortConfig: cached.fort_config,
+    }));
+  }, []);
 
   const load = React.useCallback(async () => {
     if (!supabaseConfigured || !enabled) {
       setState((s) => ({ ...s, loading: false }));
       return;
     }
-    const apply = (data: Record<string, unknown> | null) => {
-      const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
+    const apply = (data: { pricing: PricingConfig; fort_config: FortConfig } | null) => {
+      if (!data) {
+        setState((s) => ({ ...s, loading: false }));
+        return;
+      }
+      writeCachedPublicSettings(data);
       setState({
         loading: false,
         masterPrompt: "",
         toolPrompts: {},
-        fortConfig: (data?.fort_config as FortConfig) ?? {},
-        pricing: {
-          types: { ...DEFAULT_PRICING.types, ...(pricing.types ?? {}) },
-          speed: { ...DEFAULT_PRICING.speed, ...(pricing.speed ?? {}) },
-          tools: { ...DEFAULT_PRICING.tools, ...(pricing.tools ?? {}) },
-          options: pricing.options ?? {},
-          editCost: pricing.editCost ?? DEFAULT_PRICING.editCost,
-          reklamaProduct: pricing.reklamaProduct ?? DEFAULT_PRICING.reklamaProduct,
-          ads: pricing.ads,
-          announcements: pricing.announcements ?? [],
-        },
+        fortConfig: data.fort_config,
+        pricing: data.pricing,
       });
     };
     try {
       const sb = getSupabaseBrowser();
       const { data: sessionData } = await sb.auth.getSession();
       const token = sessionData.session?.access_token ?? null;
-      const pub = await fetchPublicSettings(token);
+      const pub = await prefetchPublicSettings(token);
       if (pub) return apply(pub);
       apply(null);
     } catch {
@@ -72,3 +91,5 @@ export function useSettings(enabled = true): SettingsState & { reload: () => voi
 
   return { ...state, reload: load };
 }
+
+export { prefetchPublicSettings, mergePricingConfig, fetchPublicSettings };
