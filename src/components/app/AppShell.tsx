@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }`}
     >
       {!collapsed && (
-        <aside className="hidden h-[100dvh] border-r border-line bg-canvas lg:block">
+        <aside className="hidden h-[100dvh] bg-canvas lg:block">
           <HomeSidebar onCollapse={toggleCollapse} />
         </aside>
       )}
@@ -45,10 +45,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="relative flex h-[100dvh] min-h-0 flex-col">
         {/* Mobile top bar */}
-        <div className="z-30 flex shrink-0 items-center justify-between border-b border-line bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="z-30 flex shrink-0 items-center justify-between bg-canvas/80 px-4 py-3 backdrop-blur lg:hidden">
           <button
             onClick={() => setDrawer(true)}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink"
+            className="grid h-10 w-10 place-items-center rounded-2xl bg-surface text-ink"
             aria-label="Menu"
           >
             <Menu className="h-5 w-5" />
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <Link
             href="/credits"
-            className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
+            className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink active:scale-95"
             aria-label="Kredite"
           >
             <Coins className="h-4 w-4 text-brand" /> {user ? credits : 0}
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {collapsed && (
           <button
             onClick={toggleCollapse}
-            className="absolute left-4 top-4 z-40 hidden h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink-2 shadow-subtle transition-colors hover:text-ink lg:grid"
+            className="absolute left-4 top-4 z-40 hidden h-10 w-10 place-items-center rounded-2xl bg-surface text-ink-2 transition-colors hover:text-ink lg:grid"
             aria-label="Hap sidebar"
             title="Hap sidebar"
           >

@@ -55,12 +55,12 @@ export function Dropdown({
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-1.5 min-w-[184px] overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-pop animate-scale-in",
+            "absolute z-50 mt-1.5 min-w-[184px] overflow-hidden rounded-2xl bg-surface p-1.5 animate-scale-in",
             align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"
           )}
         >
           {header && (
-            <div className="mb-1 border-b border-line px-2.5 pb-2 pt-1">{header}</div>
+            <div className="mb-1 bg-surface-2/80 px-2.5 pb-2 pt-1">{header}</div>
           )}
           {items.map((item, i) =>
             item.divider ? (

@@ -30,7 +30,7 @@ export function LegalPlaceholder({
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-line-strong bg-surface px-3 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
           >
             <ArrowLeft className="h-4 w-4" /> Kthehu
           </Link>
@@ -54,7 +54,7 @@ export function LegalPlaceholder({
         </div>
 
         {/* Other legal pages */}
-        <div className="mt-14 border-t border-line pt-6">
+        <div className="mt-14 pt-6">
           <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-ink-3">
             Faqet ligjore
           </div>
@@ -66,7 +66,7 @@ export function LegalPlaceholder({
                 className={
                   "flex items-center justify-between rounded-xl border px-4 py-3 text-[14px] font-semibold transition-colors " +
                   (p.label === current
-                    ? "border-brand bg-brand-soft text-ink"
+                    ? "bg-brand text-brand-fg"
                     : "border-line-strong bg-surface text-ink-2 hover:bg-surface-2")
                 }
               >

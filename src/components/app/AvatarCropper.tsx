@@ -104,7 +104,7 @@ export function AvatarCropper({
       />
       <div className="flex flex-col items-center px-6 pb-6">
         <div
-          className="relative touch-none overflow-hidden rounded-full border border-line bg-surface-2"
+          className="relative touch-none overflow-hidden rounded-full bg-surface-2"
           style={{ width: VIEW, height: VIEW }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -141,7 +141,7 @@ export function AvatarCropper({
         <div className="mt-6 flex w-full gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
           >
             Anulo
           </button>

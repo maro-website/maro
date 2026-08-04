@@ -10,7 +10,7 @@ export function Skeleton({ className }: { className?: string }) {
 export function Spinner({ className }: { className?: string }) {
   return (
     <svg
-      className={cn("animate-spin text-brand", className)}
+      className={cn("animate-spin text-ink", className)}
       width="20"
       height="20"
       viewBox="0 0 24 24"
@@ -38,12 +38,12 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong bg-surface/60 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-6 py-14 text-center",
         className
       )}
     >
       {icon && (
-        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand [&>svg]:h-6 [&>svg]:w-6">
+        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-surface text-ink [&>svg]:h-6 [&>svg]:w-6">
           {icon}
         </div>
       )}
@@ -83,7 +83,7 @@ export function Switch({
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full shadow-subtle transition-transform",
+            "absolute top-0.5 h-5 w-5 rounded-full transition-transform",
             checked ? "translate-x-[18px]" : "translate-x-0.5"
           )}
           style={{ background: "var(--switch-off)" }}
@@ -128,8 +128,8 @@ export function ColorInput({
   label?: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-line-strong bg-surface px-2.5 py-2">
-      <label className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-line-strong">
+    <div className="flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-2">
+      <label className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-lg">
         <span className="block h-full w-full" style={{ backgroundColor: value }} />
         <input
           type="color"

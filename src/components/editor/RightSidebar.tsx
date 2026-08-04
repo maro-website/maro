@@ -27,7 +27,7 @@ export function RightSidebar() {
   return (
     <div className="flex h-full">
       <div className="scroll-thin flex-1 overflow-y-auto bg-canvas">
-        <div className="flex h-11 items-center border-b border-line px-4 text-[13px] font-bold capitalize text-ink">
+        <div className="flex h-11 items-center px-4 text-[13px] font-bold capitalize text-ink">
           {TABS.find((t) => t.key === rightTab)?.label}
         </div>
         {rightTab === "design" && <DesignPanel />}
@@ -39,14 +39,14 @@ export function RightSidebar() {
       </div>
 
       {/* Icon rail */}
-      <div className="flex w-14 shrink-0 flex-col items-center gap-1 border-l border-line bg-surface py-3">
+      <div className="flex w-14 shrink-0 flex-col items-center gap-1 bg-surface py-3">
         {TABS.map((t) => (
           <Tooltip key={t.key} content={t.label} side="bottom">
             <button
               onClick={() => setRightTab(t.key)}
               className={cn(
                 "grid h-10 w-10 place-items-center rounded-xl transition-all",
-                rightTab === t.key ? "bg-brand-soft text-brand" : "text-ink-3 hover:bg-surface-2 hover:text-ink"
+                rightTab === t.key ? "bg-surface-2 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink"
               )}
             >
               <t.icon className="h-[18px] w-[18px]" />

@@ -133,14 +133,14 @@ export function ItemMenu({
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.14 }}
                 style={{ position: "fixed", top: pos.top, left: pos.left, width: 200 }}
-                className="z-[120] overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-pop"
+                className="z-[120] overflow-hidden rounded-2xl bg-surface p-1.5"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MenuRow icon={<Pencil className="h-4 w-4" />} onClick={() => run(onRename)}>
                   Riemërto
                 </MenuRow>
                 <MenuRow
-                  icon={<Star className={cn("h-4 w-4", favourite && "fill-brand text-brand")} />}
+                  icon={<Star className={cn("h-4 w-4", favourite && "fill-ink text-ink")} />}
                   onClick={() => run(onToggleFav)}
                 >
                   {favourite ? "Hiq të preferuarën" : "Shto te të preferuarat"}
@@ -222,11 +222,11 @@ function RenameInput({
           if (e.key === "Enter") save();
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-0 flex-1 rounded-lg border border-brand bg-surface px-2 py-1 text-[14px] text-ink outline-none"
+        className="min-w-0 flex-1 rounded-lg bg-surface-2 px-2 py-1 text-[14px] text-ink outline-none"
       />
       <button
         onClick={save}
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-brand hover:bg-brand-soft"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-brand hover:bg-line"
       >
         <Check className="h-4 w-4" />
       </button>
@@ -252,21 +252,21 @@ export function ProjectCard({
   const { renameProject, deleteProject, toggleFavouriteProject } = useMaro();
   const [editing, setEditing] = React.useState(false);
   return (
-    <div className="group relative rounded-2xl border border-line bg-surface shadow-subtle transition-shadow hover:shadow-pop">
+    <div className="group relative rounded-2xl bg-surface transition-colors">
       <button
         onClick={() => onOpen(project)}
         className="block w-full text-left"
       >
         <div
           className="grid h-32 w-full place-items-center rounded-t-2xl text-[26px] font-black text-white"
-          style={{ background: project.theme?.primaryColor ?? "#6b46e5" }}
+          style={{ background: project.theme?.primaryColor ?? "#0f1419" }}
         >
           {initials(project.name)}
         </div>
       </button>
       {project.favourite && (
-        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
-          <Star className="h-4 w-4 fill-brand" />
+        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand">
+          <Star className="h-4 w-4 fill-ink" />
         </span>
       )}
       <div className="flex items-center gap-2 p-3">
@@ -315,7 +315,7 @@ export function CreationCard({
   const tool = getTool(creation.toolId);
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
   return (
-    <div className="group relative rounded-2xl border border-line bg-surface shadow-subtle transition-shadow hover:shadow-pop">
+    <div className="group relative rounded-2xl bg-surface transition-colors">
       <button
         onClick={() => (onOpen ? onOpen(creation) : setLightbox(true))}
         className="block w-full"
@@ -330,8 +330,8 @@ export function CreationCard({
         onClose={() => setLightbox(false)}
       />
       {creation.favourite && (
-        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
-          <Star className="h-4 w-4 fill-brand" />
+        <span className="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-brand">
+          <Star className="h-4 w-4 fill-ink" />
         </span>
       )}
       <div className="flex items-center gap-2 p-3">
@@ -376,15 +376,15 @@ export function CreationListRow({ creation }: { creation: ImageCreation }) {
   const tool = getTool(creation.toolId);
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-line bg-surface p-2 pr-1">
+    <div className="group flex items-center gap-3 rounded-xl bg-surface p-2 pr-1">
       <button
         onClick={() => setLightbox(true)}
         className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-2"
       >
         <CreationThumb creation={creation} />
         {creation.favourite && (
-          <span className="absolute left-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-surface/90 text-brand shadow-sm">
-            <Star className="h-2.5 w-2.5 fill-brand" />
+          <span className="absolute left-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-surface/90 text-brand">
+            <Star className="h-2.5 w-2.5 fill-ink" />
           </span>
         )}
       </button>
@@ -506,7 +506,7 @@ export function CreationLightbox({
         <div className="grid place-items-center bg-surface-2 p-4">
           {media === "audio" ? (
             <div className="flex w-full flex-col items-center gap-4 py-8">
-              <span className="grid h-20 w-20 place-items-center rounded-2xl bg-brand-soft text-brand">
+              <span className="grid h-20 w-20 place-items-center rounded-2xl bg-surface-2 text-ink">
                 <AudioLines className="h-9 w-9" />
               </span>
               {url && <audio controls src={url} className="w-full max-w-sm" />}
@@ -531,7 +531,7 @@ export function CreationLightbox({
                       onClick={() => setActive(i)}
                       className={cn(
                         "h-12 w-12 overflow-hidden rounded-lg border-2",
-                        i === active ? "border-brand" : "border-line"
+                        i === active ? "" : "border-line"
                       )}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -553,7 +553,7 @@ export function CreationLightbox({
             Prompt
           </div>
           <div className="group/prompt relative mt-1.5">
-            <div className="scroll-thin h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-3 pr-16 text-[13.5px] leading-relaxed text-ink-2">
+            <div className="scroll-thin h-28 overflow-y-auto rounded-xl bg-surface-2 p-3 pr-16 text-[13.5px] leading-relaxed text-ink-2">
               {creation.prompt || "Pa prompt"}
             </div>
             <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover/prompt:opacity-100">
@@ -562,7 +562,7 @@ export function CreationLightbox({
                 active={creation.favourite}
                 onClick={() => toggleFavouriteCreation(creation.id)}
               >
-                <Star className={cn("h-4 w-4", creation.favourite && "fill-brand text-brand")} />
+                <Star className={cn("h-4 w-4", creation.favourite && "fill-ink text-ink")} />
               </PromptHoverIcon>
               <PromptHoverIcon label="Kopjo prompt" onClick={copyPrompt}>
                 {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
@@ -574,7 +574,7 @@ export function CreationLightbox({
             {media === "text" ? (
               <button
                 onClick={copyText}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
               >
                 {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
                 {copied ? "U kopjua" : "Kopjo tekstin"}
@@ -583,7 +583,7 @@ export function CreationLightbox({
               <>
                 <button
                   onClick={copyPrompt}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
                 >
                   {copied ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
                   {copied ? "U kopjua" : "Kopjo prompt"}
@@ -591,7 +591,7 @@ export function CreationLightbox({
                 <button
                   onClick={download}
                   disabled={busy}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" /> Shkarko
                 </button>
@@ -619,12 +619,12 @@ function ReportControls({ creation }: { creation: ImageCreation }) {
 
   return (
     <>
-      <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+      <div className="mt-3 flex items-center gap-2 pt-3">
         <button
           onClick={() => react("like")}
           className={cn(
             "grid h-9 w-9 place-items-center rounded-xl border transition-colors",
-            reaction === "like" ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2 hover:text-ink"
+            reaction === "like" ? "bg-brand text-brand-fg" : "border-line text-ink-2 hover:text-ink"
           )}
           aria-label="Pëlqej"
           title="Pëlqej"
@@ -635,7 +635,7 @@ function ReportControls({ creation }: { creation: ImageCreation }) {
           onClick={() => react("dislike")}
           className={cn(
             "grid h-9 w-9 place-items-center rounded-xl border transition-colors",
-            reaction === "dislike" ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2 hover:text-ink"
+            reaction === "dislike" ? "bg-brand text-brand-fg" : "border-line text-ink-2 hover:text-ink"
           )}
           aria-label="Nuk pëlqej"
           title="Nuk pëlqej"
@@ -644,7 +644,7 @@ function ReportControls({ creation }: { creation: ImageCreation }) {
         </button>
         <button
           onClick={() => setReportOpen(true)}
-          className="ml-auto grid h-9 w-9 place-items-center rounded-xl border border-line text-ink-2 transition-colors hover:text-ink"
+          className="ml-auto grid h-9 w-9 place-items-center rounded-xl text-ink-2 transition-colors hover:text-ink"
           aria-label="Raporto"
           title="Raporto"
         >
@@ -713,7 +713,7 @@ function ReportModal({
 
         <div className="mt-4">
           <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Email</div>
-          <div className="rounded-xl border border-line-strong bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2">
+          <div className="rounded-xl bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2">
             {user?.email ?? "—"}
           </div>
         </div>
@@ -725,14 +725,14 @@ function ReportModal({
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             placeholder="Përshkruaj problemin…"
-            className="w-full resize-none rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-3"
+            className="w-full resize-none rounded-xl bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-ink-3"
           />
         </div>
 
         <div className="mt-4 flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
+            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
           >
             Anulo
           </button>
@@ -767,7 +767,7 @@ export function PromptHoverIcon({
       title={label}
       aria-label={label}
       className={cn(
-        "grid h-8 w-8 place-items-center rounded-lg border border-line bg-surface text-ink-2 shadow-subtle transition-colors hover:text-ink",
+        "grid h-8 w-8 place-items-center rounded-lg bg-surface text-ink-2 transition-colors hover:text-ink",
         active && "text-brand"
       )}
     >

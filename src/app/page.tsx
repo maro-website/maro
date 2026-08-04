@@ -52,7 +52,7 @@ export default function HomePage() {
               transition={{ duration: 0.5, ease: EASE }}
               className="mb-4 flex items-center justify-center gap-2 text-[13px]"
             >
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 font-semibold text-ink-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 font-semibold text-ink-2">
                 <Coins className="h-3.5 w-3.5 text-brand" /> {credits} kredite
               </span>
               <span className="text-ink-3">·</span>
@@ -84,7 +84,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE, delay: 0.08 }}
-            className="mt-8 rounded-[26px] border border-line-strong bg-surface p-2.5 shadow-pop"
+            className="mt-8 rounded-[26px] bg-surface p-2.5"
           >
             <textarea
               value={prompt}
@@ -120,18 +120,18 @@ export default function HomePage() {
                 transition={{ duration: 0.4, ease: EASE, delay: 0.12 + i * 0.05 }}
                 onClick={() => go(tool)}
                 className={cn(
-                  "group flex items-center gap-3 rounded-2xl border bg-surface p-3.5 text-left transition-all hover:shadow-pop",
-                  picked === tool.id ? "border-brand" : "border-line"
+                  "group flex items-center gap-3 rounded-2xl p-3.5 text-left transition-all",
+                  picked === tool.id ? "bg-brand text-brand-fg" : "bg-surface hover:bg-surface-2"
                 )}
               >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink">
+                <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", picked === tool.id ? "bg-brand-fg/15 text-brand-fg" : "bg-surface-2 text-ink")}>
                   <tool.icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[14.5px] font-bold tracking-[-0.01em] text-ink">
+                  <span className={cn("block truncate text-[14.5px] font-bold tracking-[-0.01em]", picked === tool.id ? "text-brand-fg" : "text-ink")}>
                     {tool.name}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-1 text-[12px] text-ink-3">
+                  <span className={cn("mt-0.5 flex items-center gap-1 text-[12px]", picked === tool.id ? "text-brand-fg/70" : "text-ink-3")}>
                     {tool.functional ? (
                       tool.tagline
                     ) : (

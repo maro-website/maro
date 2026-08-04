@@ -27,7 +27,7 @@ export function PagesPanel() {
   return (
     <div>
       <PanelSection title="Faqet" action={
-        <button onClick={() => setAdding(true)} className="grid h-6 w-6 place-items-center rounded-md text-brand transition-colors hover:bg-brand-soft">
+        <button onClick={() => setAdding(true)} className="grid h-6 w-6 place-items-center rounded-md text-brand transition-colors hover:bg-line">
           <Plus className="h-4 w-4" />
         </button>
       }>
@@ -39,7 +39,7 @@ export function PagesPanel() {
                 key={p.id}
                 className={cn(
                   "group flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors",
-                  active ? "bg-brand-soft" : "hover:bg-surface-2"
+                  active ? "bg-surface-2" : "hover:bg-surface-2"
                 )}
               >
                 <button onClick={() => setActivePage(p.id)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
@@ -78,9 +78,9 @@ export function PagesPanel() {
             <button
               key={preset.slug}
               onClick={() => { addPage(preset.name, preset.slug); setAdding(false); }}
-              className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-brand/40 hover:bg-surface-2"
+              className="flex items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 hover:bg-surface-2"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-soft text-brand">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface-2 text-ink">
                 <FileText className="h-4 w-4" />
               </span>
               <span className="text-[14px] font-semibold text-ink">{preset.name}</span>

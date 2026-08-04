@@ -174,7 +174,7 @@ function KrijimetInner() {
   return (
     <div className="flex h-full">
       {/* Left rail — asset library sections */}
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface/40 px-3 py-5 md:flex">
+      <aside className="hidden w-56 shrink-0 flex-col bg-surface/40 px-3 py-5 md:flex">
         <div className="px-2 pb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
           Biblioteka
         </div>
@@ -217,9 +217,9 @@ function KrijimetInner() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[220px] bg-aurora" />
 
         {/* Sticky toolbar */}
-        <div className="sticky top-0 z-10 border-b border-line bg-canvas/85 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="sticky top-0 z-10 bg-canvas/85 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex flex-1 items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2">
               <Search className="h-4 w-4 shrink-0 text-ink-3" />
               <input
                 value={query}
@@ -232,7 +232,7 @@ function KrijimetInner() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-[13.5px] font-medium text-ink outline-none md:hidden"
+              className="rounded-xl bg-surface px-3 py-2 text-[13.5px] font-medium text-ink outline-none md:hidden"
             >
               <option value="all">Të gjitha</option>
               <option value="fav">Të preferuarat</option>
@@ -243,7 +243,7 @@ function KrijimetInner() {
               ))}
             </select>
             {/* Size slider */}
-            <div className="hidden items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2 sm:flex">
+            <div className="hidden items-center gap-2 rounded-xl bg-surface px-3 py-2 sm:flex">
               <LayoutGrid className="h-3.5 w-3.5 text-ink-3" />
               <input
                 type="range"
@@ -260,7 +260,7 @@ function KrijimetInner() {
 
         <div className="px-4 py-6 sm:px-6">
           {groups.length === 0 ? (
-            <div className="grid place-items-center rounded-2xl border border-line bg-surface py-24 text-center">
+            <div className="grid place-items-center rounded-2xl bg-surface py-24 text-center">
               <LayoutGrid className="h-8 w-8 text-ink-3" />
               <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë krijim këtu</p>
               <p className="mt-1 text-[13.5px] text-ink-3">
@@ -328,7 +328,7 @@ function AssetCard({ row, index, onOpen }: { row: Row; index: number; onOpen: ()
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.02, 0.25) }}
-      className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-subtle transition-shadow hover:shadow-pop"
+      className="group relative overflow-hidden rounded-2xl bg-surface-2 transition-colors"
     >
       <button onClick={onOpen} className="block aspect-[4/3] w-full">
         <AssetThumb row={row} />
@@ -376,7 +376,7 @@ function AssetThumb({ row }: { row: Row }) {
     return (
       <div
         className="grid h-full w-full place-items-center text-[28px] font-black text-white"
-        style={{ background: row.project.theme?.primaryColor ?? "#6b46e5" }}
+        style={{ background: row.project.theme?.primaryColor ?? "#0f1419" }}
       >
         {initials(row.title)}
       </div>
@@ -396,7 +396,7 @@ function AssetThumb({ row }: { row: Row }) {
   return (
     <div className="grid h-full w-full place-items-center text-ink-3">
       {row.media === "audio" ? (
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-surface text-brand shadow-subtle">
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-surface text-brand">
           <Play className="h-5 w-5" />
         </span>
       ) : (

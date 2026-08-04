@@ -8,22 +8,19 @@ type Variant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "subtl
 type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-brand text-brand-fg hover:bg-brand-hover shadow-brand/40 hover:shadow-brand active:scale-[0.985]",
-  secondary:
-    "bg-ink text-ink-inv hover:bg-ink/90 active:scale-[0.985]",
-  outline:
-    "bg-surface text-ink border border-line-strong hover:bg-surface-2 active:scale-[0.99]",
+  primary: "bg-brand text-brand-fg hover:bg-brand-hover active:scale-[0.985]",
+  secondary: "bg-surface-2 text-ink hover:bg-line active:scale-[0.985]",
+  outline: "bg-surface-2 text-ink hover:bg-line active:scale-[0.99]",
   ghost: "text-ink-2 hover:text-ink hover:bg-surface-2",
   subtle: "bg-surface-2 text-ink hover:bg-line",
   danger: "bg-danger text-white hover:brightness-95 active:scale-[0.985]",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-lg",
-  md: "h-11 px-5 text-[14px] gap-2 rounded-xl",
-  lg: "h-[52px] px-7 text-[15px] gap-2.5 rounded-xl",
-  icon: "h-9 w-9 rounded-lg",
+  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-xl",
+  md: "h-11 px-5 text-[14px] gap-2 rounded-2xl",
+  lg: "h-[52px] px-7 text-[15px] gap-2.5 rounded-2xl",
+  icon: "h-9 w-9 rounded-xl",
 };
 
 export interface ButtonProps
@@ -45,7 +42,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:pointer-events-none",
           variants[variant],
           sizes[size],
           className

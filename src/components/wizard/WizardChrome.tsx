@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn";
 
 export function WizardTopBar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-lg">
+    <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5">
         <Link href="/dashboard" className="flex items-center">
           <Logo />

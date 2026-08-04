@@ -32,7 +32,7 @@ function FortSection({
 }) {
   const [open, setOpen] = React.useState(Boolean(defaultOpen));
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <div className="overflow-hidden rounded-2xl bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -56,7 +56,7 @@ function FortSection({
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="space-y-4 border-t border-line px-4 py-4">{children}</div>
+            <div className="space-y-4 px-4 py-4">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -153,7 +153,7 @@ export function FortPanel({
       )}
 
       {resolved.briefScore && (
-        <div className="rounded-2xl border border-line bg-surface px-4 py-3">
+        <div className="rounded-2xl bg-surface px-4 py-3">
           <BriefStrength score={score} suggestion={suggestion} />
         </div>
       )}

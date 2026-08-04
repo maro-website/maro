@@ -27,8 +27,8 @@ export default function FavouritesPage() {
             className="mb-8"
           >
             <div className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-soft text-brand">
-                <Star className="h-5 w-5 fill-brand" />
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-ink">
+                <Star className="h-5 w-5 fill-ink" />
               </span>
               <h1 className="text-[26px] font-extrabold tracking-[-0.03em] text-ink sm:text-[32px]">
                 Të preferuarat
@@ -40,7 +40,7 @@ export default function FavouritesPage() {
           </motion.div>
 
           {empty && (
-            <div className="flex flex-col items-center rounded-3xl border border-dashed border-line-strong bg-surface-2/50 px-6 py-16 text-center">
+            <div className="flex flex-col items-center rounded-3xl bg-surface-2 bg-surface-2/50 px-6 py-16 text-center">
               <Star className="h-8 w-8 text-ink-3" />
               <p className="mt-3 max-w-sm text-[15px] text-ink-2">
                 Ende s&apos;ke asgjë të preferuar. Shto nga menuja me tri pika te çdo

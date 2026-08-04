@@ -54,7 +54,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-3">
+      <div className="flex h-11 shrink-0 items-center justify-between px-3">
         <div className="flex items-center gap-2 text-[13px] font-bold text-ink">
           <Sparkles className="h-4 w-4 text-brand" /> maro AI
         </div>
@@ -68,7 +68,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
 
       <div ref={scrollRef} className="scroll-thin flex-1 space-y-4 overflow-y-auto p-3">
         {messages.length === 0 && (
-          <div className="mt-2 rounded-2xl border border-line bg-surface p-4">
+          <div className="mt-2 rounded-2xl bg-surface p-4">
             <div className="flex items-start gap-2.5">
               <MaroSymbol className="mt-0.5 h-6 w-6" />
               <p className="text-[13px] leading-relaxed text-ink-2">
@@ -91,7 +91,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
               <MaroSymbol className="mt-0.5 h-6 w-6 shrink-0" />
               <div
                 className={cn(
-                  "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-line bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed",
+                  "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed",
                   m.status === "thinking" ? "text-ink-3" : "text-ink-2"
                 )}
               >
@@ -106,7 +106,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-line p-3">
+      <div className="shrink-0 p-3">
         {messages.length === 0 && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (
@@ -114,14 +114,14 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
                 key={s}
                 onClick={() => sendChat(s)}
                 disabled={sending}
-                className="rounded-full border border-line bg-surface px-2.5 py-1 text-[11.5px] font-medium text-ink-2 transition-colors hover:border-brand/40 hover:bg-brand-soft hover:text-brand disabled:opacity-50"
+                className="rounded-full bg-surface px-2.5 py-1 text-[11.5px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:bg-line hover:text-ink disabled:opacity-50"
               >
                 {s}
               </button>
             ))}
           </div>
         )}
-        <div className="flex items-end gap-2 rounded-xl border border-line-strong bg-surface p-1.5 pl-3 transition-colors focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10">
+        <div className="flex items-end gap-2 rounded-xl bg-surface p-1.5 pl-3 transition-colors focus-within:ring-2 focus-within:ring-ink/10">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}

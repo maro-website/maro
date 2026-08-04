@@ -50,7 +50,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative w-full rounded-2xl border border-line bg-surface shadow-pop animate-scale-in",
+          "relative w-full rounded-2xl bg-surface animate-scale-in",
           sizes[size],
           className
         )}
@@ -83,7 +83,7 @@ export function ModalHeader({
   return (
     <div className="px-6 pt-6 pb-4">
       {icon && (
-        <div className="mb-3.5 grid h-11 w-11 place-items-center rounded-xl bg-brand-soft text-brand">
+        <div className="mb-3.5 grid h-11 w-11 place-items-center rounded-2xl bg-surface-2 text-ink">
           {icon}
         </div>
       )}
@@ -97,7 +97,7 @@ export function ModalHeader({
 
 export function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-end gap-2.5 border-t border-line px-6 py-4">
+    <div className="flex items-center justify-end gap-2.5 bg-surface-2/50 px-6 py-4">
       {children}
     </div>
   );

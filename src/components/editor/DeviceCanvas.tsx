@@ -26,7 +26,7 @@ export function DeviceCanvas() {
       >
         <div
           className={cn(
-            "maro-edit-mode overflow-hidden rounded-xl border border-line bg-white shadow-card"
+            "maro-edit-mode overflow-hidden rounded-xl bg-white"
           )}
         >
           <WebsitePreview

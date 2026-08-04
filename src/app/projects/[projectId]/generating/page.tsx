@@ -144,7 +144,7 @@ function GeneratingInner() {
 
             {/* Assistant */}
             <div className="flex gap-3">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-ink">
                 <Sparkles className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1 space-y-3">
@@ -167,7 +167,7 @@ function GeneratingInner() {
                       {done && project && (
                         <ResultCard
                           name={project.businessName}
-                          color={project.theme?.primaryColor ?? "#6b46e5"}
+                          color={project.theme?.primaryColor ?? "#0f1419"}
                           pages={pageCount}
                           onOpen={() => router.push(`/projects/${projectId}/editor`)}
                           onPreview={() => router.push(`/projects/${projectId}/preview`)}
@@ -204,7 +204,7 @@ function RotatingHeading() {
 
 function StepList({ active, done }: { active: number; done: boolean }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-2">
+    <div className="rounded-2xl bg-surface p-2">
       {GENERATION_STAGES.map((stage, i) => {
         const isDone = i < active || done;
         const isActive = i === active && !done;
@@ -220,9 +220,9 @@ function StepList({ active, done }: { active: number; done: boolean }) {
               className={cn(
                 "grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all",
                 isDone
-                  ? "border-brand bg-brand text-white"
+                  ? "bg-brand text-brand-fg"
                   : isActive
-                  ? "border-brand text-brand"
+                  ? "bg-surface-2 text-ink"
                   : "border-line-strong text-ink-3"
               )}
             >
@@ -267,7 +267,7 @@ function ResultCard({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="overflow-hidden rounded-2xl border border-line bg-surface shadow-pop"
+      className="overflow-hidden rounded-2xl bg-surface"
     >
       {/* Mini browser mockup */}
       <div className="relative h-36 overflow-hidden" style={{ background: color }}>
@@ -353,7 +353,7 @@ function ErrorCard({
 
 function CreditCard({ needed, onBack }: { needed: number; onBack: () => void }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="rounded-2xl bg-surface p-4">
       <div className="flex items-center gap-2 text-[15px] font-semibold text-ink">
         <Coins className="h-5 w-5 text-brand" /> Kredite të pamjaftueshme
       </div>

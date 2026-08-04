@@ -48,7 +48,7 @@ export default function PreviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-canvas/90 px-4 py-2 backdrop-blur">
+      <div className="sticky top-0 z-50 flex items-center justify-between bg-canvas/90 px-4 py-2 backdrop-blur">
         <button
           onClick={() => router.push(`/projects/${projectId}/editor`)}
           className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"

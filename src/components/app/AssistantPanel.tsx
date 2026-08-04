@@ -105,9 +105,9 @@ export function AssistantPanel({
   const body = (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-soft text-brand">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface-2 text-ink">
             <MessageSquare className="h-5 w-5" />
           </span>
           <div>
@@ -148,8 +148,8 @@ export function AssistantPanel({
       </div>
 
       {/* Composer */}
-      <div className="shrink-0 border-t border-line p-3">
-        <div className="flex items-end gap-2 rounded-2xl border border-line-strong bg-surface p-2">
+      <div className="shrink-0 p-3">
+        <div className="flex items-end gap-2 rounded-2xl bg-surface p-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -211,7 +211,7 @@ function DrawerShell({ children, onClose }: { children: React.ReactNode; onClose
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="absolute right-0 top-0 h-full w-full max-w-md border-l border-line bg-canvas shadow-pop"
+        className="absolute right-0 top-0 h-full w-full max-w-md bg-canvas"
       >
         {children}
       </motion.div>
@@ -245,7 +245,7 @@ function AssistantBubble({
         <img src="/brand/symbol.svg" alt="maro" className="h-7 w-7 rounded-lg" draggable={false} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="rounded-3xl rounded-tl-lg border border-line bg-surface px-4 py-3">
+        <div className="rounded-3xl rounded-tl-lg bg-surface px-4 py-3">
           {item.content ? (
             <p className="whitespace-pre-wrap text-[14.5px] leading-relaxed text-ink">
               {item.content}
@@ -309,7 +309,7 @@ function EmptyState({ toolId, onPick }: { toolId?: string; onPick: (q: string) =
   ];
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
+      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-2 text-ink">
         <Sparkles className="h-7 w-7" />
       </span>
       <h3 className="mt-4 text-[17px] font-bold text-ink">Si mund të ndihmoj?</h3>
@@ -321,7 +321,7 @@ function EmptyState({ toolId, onPick }: { toolId?: string; onPick: (q: string) =
           <button
             key={q}
             onClick={() => onPick(q)}
-            className="rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-[13.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+            className="rounded-xl bg-surface px-3 py-2.5 text-left text-[13.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
           >
             {q}
           </button>

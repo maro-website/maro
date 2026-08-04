@@ -58,7 +58,7 @@ export function PublishModal({
         <>
           <ModalHeader icon={<Rocket className="h-5 w-5" />} title="Publiko website-in" description="Zgjidh domainin dhe publiko website-in tënd." />
           <div className="space-y-4 px-6 pb-2">
-            <div className="rounded-xl border border-line bg-surface p-4">
+            <div className="rounded-xl bg-surface p-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[13px] font-bold text-ink">maro Domain</span>
                 <Badge tone="success"><Check className="h-3 w-3" /> Available</Badge>
@@ -68,7 +68,7 @@ export function PublishModal({
                 <span className="text-[14px] font-semibold text-ink">{project.previewUrl}</span>
               </div>
             </div>
-            <div className="rounded-xl border border-line bg-surface p-4">
+            <div className="rounded-xl bg-surface p-4">
               <div className="mb-2 flex items-center gap-2">
                 <span className="text-[13px] font-bold text-ink">Custom Domain</span>
                 <Badge tone="neutral">opsionale</Badge>
@@ -92,7 +92,7 @@ export function PublishModal({
               const active = i === step;
               return (
                 <div key={label} className="flex items-center gap-3 py-2.5">
-                  <span className={cn("grid h-7 w-7 place-items-center rounded-full border transition-all", done ? "border-brand bg-brand text-white" : active ? "border-brand text-brand" : "border-line-strong text-ink-3")}>
+                  <span className={cn("grid h-7 w-7 place-items-center rounded-full border transition-all", done ? "bg-brand text-brand-fg" : active ? "bg-surface-2 text-ink" : "border-line-strong text-ink-3")}>
                     {done ? <Check className="h-4 w-4" /> : active ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                   </span>
                   <span className={cn("text-[14px]", done || active ? "font-semibold text-ink" : "text-ink-3")}>{label}</span>
@@ -114,7 +114,7 @@ export function PublishModal({
               href={`/projects/${project.id}/preview`}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-[14px] font-semibold text-brand transition-colors hover:bg-surface-2"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-brand transition-colors hover:bg-surface-2"
             >
               <Globe className="h-4 w-4" /> {project.previewUrl}
             </a>

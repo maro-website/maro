@@ -32,7 +32,7 @@ export function SeoPanel() {
           </div>
           <div>
             <PanelLabel>URL Slug</PanelLabel>
-            <div className="flex items-center rounded-xl border border-line-strong bg-surface px-3">
+            <div className="flex items-center rounded-xl bg-surface px-3">
               <span className="text-[13px] text-ink-3">{project.previewUrl}/</span>
               <input
                 value={seo.slug}
@@ -45,7 +45,7 @@ export function SeoPanel() {
       </PanelSection>
 
       <PanelSection title="Pamja në Google">
-        <div className="rounded-xl border border-line bg-surface p-3.5">
+        <div className="rounded-xl bg-surface p-3.5">
           <div className="flex items-center gap-1.5 text-[12px] text-ink-2">
             <span className="grid h-4 w-4 place-items-center rounded-full bg-surface-2"><Globe className="h-2.5 w-2.5" /></span>
             {project.previewUrl} › {seo.slug}

@@ -51,7 +51,7 @@ function CopyRow({ label, value, icon: Icon }: { label: string; value: string; i
       <div className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-2">
         <Icon className="h-3.5 w-3.5 text-brand" /> {label}
       </div>
-      <div className="flex items-center gap-2 rounded-2xl border border-line-strong bg-surface-2 px-4 py-3">
+      <div className="flex items-center gap-2 rounded-2xl bg-surface-2 px-4 py-3">
         <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-ink">{value}</span>
         <button
           onClick={copy}
@@ -100,7 +100,7 @@ function StatCard({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: EASE, delay }}
-      className="rounded-2xl border border-line bg-surface p-5"
+      className="rounded-2xl bg-surface p-5"
     >
       <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface-2 text-ink-2">
         <Icon className="h-4 w-4" />
@@ -159,7 +159,7 @@ function CreatorDashboard() {
 
         {/* Link + code */}
         {stats && !stats.hasCode ? (
-          <div className="mt-8 rounded-2xl border border-line bg-surface p-6 text-[14px] text-ink-2">
+          <div className="mt-8 rounded-2xl bg-surface p-6 text-[14px] text-ink-2">
             Kodi yt i Kreatorit po përgatitet nga ekipi i maro. Kthehu së shpejti.
           </div>
         ) : (
@@ -168,7 +168,7 @@ function CreatorDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: EASE, delay: 0.05 }}
-              className="rounded-[24px] border border-line bg-surface p-6"
+              className="rounded-[24px] bg-surface p-6"
             >
               <CopyRow label="Kodi yt i shitjes" value={stats?.code ?? "…"} icon={Ticket} />
             </motion.div>
@@ -176,7 +176,7 @@ function CreatorDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: EASE, delay: 0.1 }}
-              className="rounded-[24px] border border-line bg-surface p-6"
+              className="rounded-[24px] bg-surface p-6"
             >
               <CopyRow label="Linku yt i referimit" value={link ?? "…"} icon={Link2} />
             </motion.div>
@@ -278,7 +278,7 @@ function JoinView() {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: EASE }}
-          className="max-w-md rounded-[28px] border border-line bg-surface p-8 text-center"
+          className="max-w-md rounded-[28px] bg-surface p-8 text-center"
         >
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand text-brand-fg">
             <Check className="h-7 w-7" />
@@ -318,7 +318,7 @@ function JoinView() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE, delay: 0.08 }}
-          className="mt-8 rounded-[28px] border border-line bg-surface p-6 sm:p-8"
+          className="mt-8 rounded-[28px] bg-surface p-6 sm:p-8"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Emri *">
@@ -347,7 +347,7 @@ function JoinView() {
             {SOCIALS.map((s) => (
               <div
                 key={s.key}
-                className="flex items-center gap-2.5 rounded-2xl border border-line-strong bg-surface px-4 py-3"
+                className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3"
               >
                 <s.icon className="h-4 w-4 shrink-0 text-ink-2" />
                 <span className="text-[14px] text-ink-3">{s.prefix}</span>
@@ -378,7 +378,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div>
       <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">{label}</div>
-      <div className="rounded-2xl border border-line-strong bg-surface px-4 py-3">{children}</div>
+      <div className="rounded-2xl bg-surface px-4 py-3">{children}</div>
     </div>
   );
 }

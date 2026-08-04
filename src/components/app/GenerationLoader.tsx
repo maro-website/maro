@@ -18,7 +18,7 @@ export function GenerationLoader({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={
-        "flex flex-col items-center overflow-hidden rounded-3xl border border-line bg-surface px-6 py-10 " +
+        "flex flex-col items-center overflow-hidden rounded-3xl bg-surface px-6 py-10 " +
         (className ?? "")
       }
     >

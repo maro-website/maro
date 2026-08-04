@@ -31,7 +31,7 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
   const { project, device, setDevice, saveStatus, undo, redo, canUndo, canRedo } = useEditor();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line bg-canvas px-3">
+    <header className="flex h-14 shrink-0 items-center justify-between bg-canvas px-3">
       <div className="flex items-center gap-1">
         <button
           onClick={() => router.push("/dashboard")}
@@ -86,7 +86,7 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
                 onClick={() => setDevice(d.key)}
                 className={cn(
                   "grid h-8 w-8 place-items-center rounded-md transition-all",
-                  device === d.key ? "bg-surface text-brand shadow-subtle" : "text-ink-2 hover:text-ink"
+                  device === d.key ? "bg-surface text-brand" : "text-ink-2 hover:text-ink"
                 )}
               >
                 <d.icon className="h-4 w-4" />

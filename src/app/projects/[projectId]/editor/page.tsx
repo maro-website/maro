@@ -54,13 +54,13 @@ function EditorInner() {
         />
         <div className="flex min-h-0 flex-1">
           {chatOpen ? (
-            <div className="w-[300px] shrink-0 border-r border-line">
+            <div className="w-[300px] shrink-0">
               <ChatPanel onCollapse={() => setChatOpen(false)} />
             </div>
           ) : (
             <button
               onClick={() => setChatOpen(true)}
-              className="flex w-11 shrink-0 flex-col items-center gap-2 border-r border-line bg-canvas py-3 text-ink-3 transition-colors hover:text-brand"
+              className="flex w-11 shrink-0 flex-col items-center gap-2 bg-canvas py-3 text-ink-3 transition-colors hover:text-brand"
             >
               <PanelLeftOpen className="h-4 w-4" />
               <Sparkles className="h-4 w-4" />
@@ -72,7 +72,7 @@ function EditorInner() {
           </div>
 
           {project.renderMode !== "html" && (
-            <div className="w-[340px] shrink-0 border-l border-line">
+            <div className="w-[340px] shrink-0">
               <RightSidebar />
             </div>
           )}
@@ -82,7 +82,7 @@ function EditorInner() {
       {/* Mobile fallback */}
       <div className="grid h-screen place-items-center px-6 lg:hidden">
         <div className="max-w-sm text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-surface-2 text-ink">
             <Monitor className="h-6 w-6" />
           </div>
           <h1 className="text-[20px] font-bold tracking-tight text-ink">Hape maro në desktop</h1>

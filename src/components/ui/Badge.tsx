@@ -9,22 +9,22 @@ const STATUS_MAP: Record<
   draft: {
     label: "Draft",
     dot: "bg-ink-3",
-    className: "bg-surface-2 text-ink-2 border-line-strong",
+    className: "bg-surface-2 text-ink-2",
   },
   generating: {
     label: "Duke gjeneruar",
     dot: "bg-warning animate-pulse-soft",
-    className: "bg-warning/10 text-warning border-warning/20",
+    className: "bg-surface-2 text-warning",
   },
   ready: {
     label: "Gati",
-    dot: "bg-brand",
-    className: "bg-brand-soft text-brand border-brand/15",
+    dot: "bg-ink",
+    className: "bg-surface-2 text-ink",
   },
   published: {
     label: "Publikuar",
     dot: "bg-success",
-    className: "bg-success/10 text-success border-success/20",
+    className: "bg-surface-2 text-success",
   },
 };
 
@@ -39,7 +39,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold",
         s.className,
         className
       )}
@@ -62,14 +62,14 @@ export function Badge({
   style?: React.CSSProperties;
 }) {
   const tones = {
-    neutral: "bg-surface-2 text-ink-2 border-line-strong",
-    brand: "bg-brand-soft text-brand border-brand/15",
-    success: "bg-success/10 text-success border-success/20",
+    neutral: "bg-surface-2 text-ink-2",
+    brand: "bg-brand text-brand-fg",
+    success: "bg-surface-2 text-success",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
         tones[tone],
         className
       )}

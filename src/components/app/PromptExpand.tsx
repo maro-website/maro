@@ -63,7 +63,7 @@ export function PromptExpand({
               <span className="text-[14px] font-semibold text-ink-2">Redakto promptin</span>
               <button
                 onClick={onClose}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-line text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                className="grid h-9 w-9 place-items-center rounded-xl text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
                 aria-label="Mbyll"
                 title="Zvogëlo"
               >
@@ -76,7 +76,7 @@ export function PromptExpand({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
-              className="min-h-0 flex-1 w-full resize-none rounded-3xl border border-line bg-surface p-5 text-[17px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+              className="min-h-0 flex-1 w-full resize-none rounded-3xl bg-surface p-5 text-[17px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
             />
 
             <div className="mt-3 flex items-center justify-between">
@@ -84,7 +84,7 @@ export function PromptExpand({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onClose}
-                  className="flex items-center gap-1.5 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+                  className="flex items-center gap-1.5 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
                 >
                   <X className="h-4 w-4" /> Mbyll
                 </button>

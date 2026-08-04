@@ -46,7 +46,7 @@ export function SegRow<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             "flex-1 rounded-md px-2 py-1.5 text-[12px] font-semibold transition-all",
-            value === o.value ? "bg-surface text-ink shadow-subtle" : "text-ink-3 hover:text-ink"
+            value === o.value ? "bg-surface text-ink" : "text-ink-3 hover:text-ink"
           )}
         >
           {o.label}

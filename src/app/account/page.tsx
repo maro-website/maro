@@ -59,8 +59,8 @@ function AccountInner() {
         <h1 className="text-[30px] font-light tracking-[-0.02em] text-ink">Llogaria</h1>
 
         {/* Hero: avatar + identity + stat chips, with a soft brand wash */}
-        <div className="relative mt-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-7">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-soft blur-2xl" />
+        <div className="relative mt-6 overflow-hidden rounded-3xl bg-surface p-6 sm:p-7">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-surface-2 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-12 right-16 h-24 w-24 rotate-12 rounded-2xl" style={{ background: "color-mix(in srgb, var(--c-teal) 22%, transparent)" }} />
           <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <button
@@ -120,7 +120,7 @@ function AccountInner() {
 
         <div className="mt-5 grid gap-5 md:grid-cols-[1.5fr_1fr]">
           {/* Profile with inline editing */}
-          <div className="rounded-2xl border border-line bg-surface p-6">
+          <div className="rounded-2xl bg-surface p-6">
             <div className="text-[14px] font-bold text-ink">Profili</div>
             <div className="mt-4 flex flex-col gap-4">
               <EditableField
@@ -151,7 +151,7 @@ function AccountInner() {
           </div>
 
           {/* Credits aside */}
-          <div className="relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface p-6">
+          <div className="relative flex flex-col overflow-hidden rounded-2xl bg-surface p-6">
             <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-2">
               <Coins className="h-4 w-4 text-brand" /> maro Credits
             </span>
@@ -214,7 +214,7 @@ function EditableField({
     <div>
       <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">{label}</div>
       {editing ? (
-        <div className="flex items-center gap-2 rounded-xl border border-brand bg-surface px-3 py-2">
+        <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2">
           <input
             type={type}
             value={draft}
@@ -229,11 +229,11 @@ function EditableField({
           <button
             onClick={save}
             disabled={saving}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand hover:bg-brand-soft disabled:opacity-50"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand hover:bg-line disabled:opacity-50"
             aria-label="Ruaj"
           >
             {saving ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/40 border-t-brand" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink" />
             ) : (
               <Check className="h-4 w-4" />
             )}
@@ -247,7 +247,7 @@ function EditableField({
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2 px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5">
           <span className="truncate text-[15px] text-ink">{value || "Shto…"}</span>
           <button
             onClick={() => setEditing(true)}
@@ -264,7 +264,7 @@ function EditableField({
 
 function StatChip({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-center">
+    <div className="rounded-2xl bg-surface-2 px-4 py-3 text-center">
       <div className={`text-[22px] font-extrabold leading-none tracking-tight ${accent ? "text-brand" : "text-ink"}`}>
         {value}
       </div>
@@ -293,7 +293,7 @@ function PreferencesSection() {
   };
 
   return (
-    <div className="mt-5 rounded-2xl border border-line bg-surface p-6">
+    <div className="mt-5 rounded-2xl bg-surface p-6">
       <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
         <Bell className="h-4 w-4 text-ink-2" /> Preferencat
       </div>
@@ -315,7 +315,7 @@ function PreferencesSection() {
         <div className="flex items-center gap-2 text-[13.5px] font-medium text-ink-2">
           <Globe className="h-4 w-4 text-ink-3" /> Gjuha e platformës
         </div>
-        <span className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-[14px] font-medium text-ink">
+        <span className="inline-flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[14px] font-medium text-ink">
           Shqip
         </span>
       </div>
@@ -417,7 +417,7 @@ function SecuritySection() {
   return (
     <div className="mt-5 grid gap-5 md:grid-cols-2">
       {/* Phone */}
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      <div className="rounded-2xl bg-surface p-6">
         <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
           <Phone className="h-4 w-4 text-ink-2" /> Numri i telefonit *
         </div>
@@ -425,7 +425,7 @@ function SecuritySection() {
           <select
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
-            className="h-11 shrink-0 rounded-xl border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none"
+            className="h-11 shrink-0 rounded-xl bg-surface px-3 text-[14px] text-ink outline-none"
           >
             {COUNTRY_CODES.map((c) => (
               <option key={c.code} value={c.code}>
@@ -438,7 +438,7 @@ function SecuritySection() {
             onChange={(e) => setPhone(e.target.value)}
             inputMode="tel"
             placeholder="44 123 456"
-            className="h-11 min-w-0 flex-1 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
           />
         </div>
         <button
@@ -451,7 +451,7 @@ function SecuritySection() {
       </div>
 
       {/* Password */}
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      <div className="rounded-2xl bg-surface p-6">
         <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
           <Lock className="h-4 w-4 text-ink-2" /> Ndrysho fjalëkalimin
         </div>
@@ -461,14 +461,14 @@ function SecuritySection() {
             value={pw}
             onChange={(e) => setPw(e.target.value)}
             placeholder="Fjalëkalimi i ri"
-            className="h-11 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
           />
           <input
             type="password"
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
             placeholder="Konfirmo fjalëkalimin"
-            className="h-11 rounded-xl border border-line-strong bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
           />
         </div>
         <button
@@ -481,7 +481,7 @@ function SecuritySection() {
       </div>
 
       {/* 2FA */}
-      <div className="rounded-2xl border border-line bg-surface p-6 md:col-span-2">
+      <div className="rounded-2xl bg-surface p-6 md:col-span-2">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
@@ -493,7 +493,7 @@ function SecuritySection() {
           </div>
           <button
             disabled
-            className="shrink-0 cursor-not-allowed rounded-xl border border-line-strong bg-surface-2 px-4 py-2.5 text-[13.5px] font-semibold text-ink-3"
+            className="shrink-0 cursor-not-allowed rounded-xl bg-surface-2 px-4 py-2.5 text-[13.5px] font-semibold text-ink-3"
           >
             Së shpejti
           </button>

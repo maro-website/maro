@@ -120,7 +120,7 @@ export default function PromptsPage() {
 
           {/* Search bar */}
           <div className="mt-7">
-            <div className="flex items-center gap-2 rounded-2xl border border-line-strong bg-surface px-3 py-2 shadow-pop">
+            <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2">
               <Search className="h-5 w-5 shrink-0 text-ink-3" />
               <input
                 value={keyword}
@@ -166,7 +166,7 @@ export default function PromptsPage() {
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="grid place-items-center rounded-2xl border border-line bg-surface py-20 text-center">
+              <div className="grid place-items-center rounded-2xl bg-surface py-20 text-center">
                 <Lightbulb className="h-8 w-8 text-ink-3" />
                 <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë prompt për këtë kërkim</p>
                 <p className="mt-1 text-[13.5px] text-ink-3">Provo një kategori ose fjalëkyç tjetër.</p>
@@ -315,7 +315,7 @@ function PromptCard({
 }) {
   const toolName = getTool(item.target_tool)?.name ?? item.target_tool;
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-shadow hover:shadow-pop">
+    <div className="group relative overflow-hidden rounded-2xl bg-surface transition-colors">
       <button onClick={onOpen} className="block w-full text-left">
         <div className="relative w-full overflow-hidden bg-surface-2">
           {item.featured_url ? (
@@ -354,7 +354,7 @@ function PromptCard({
       </button>
       <button
         onClick={onLike}
-        className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white shadow-sm backdrop-blur transition-colors hover:bg-black/55"
+        className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
         style={liked ? { color: "#ff5a7a" } : undefined}
         aria-label="Pëlqe"
       >
@@ -491,7 +491,7 @@ function PromptLightbox({
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4 overflow-hidden"
               >
-                <div className="rounded-xl border border-line bg-surface-2 p-3">
+                <div className="rounded-xl bg-surface-2 p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11.5px] font-bold uppercase tracking-wide text-ink-3">
                       Prompti
@@ -528,7 +528,7 @@ function PromptLightbox({
                 <button
                   onClick={requestReveal}
                   disabled={revealing}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   {revealing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -544,7 +544,7 @@ function PromptLightbox({
               ) : null}
               <button
                 onClick={onLike}
-                className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl border border-line-strong bg-surface text-ink-3 transition-colors hover:text-ink"
+                className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-surface text-ink-3 transition-colors hover:text-ink"
                 style={liked ? { color: "#ff5a7a" } : undefined}
                 aria-label="Pëlqe"
               >
@@ -604,7 +604,7 @@ function PromptLightbox({
           <div className="mt-5 flex gap-2">
             <button
               onClick={() => setConfirmOpen(false)}
-              className="flex-1 rounded-xl border border-line-strong bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
+              className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-surface-2"
             >
               Anulo
             </button>

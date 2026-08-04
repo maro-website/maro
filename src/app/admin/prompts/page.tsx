@@ -307,7 +307,7 @@ function AdminPromptsInner() {
         </div>
 
         {!supabaseConfigured && (
-          <div className="mt-6 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+          <div className="mt-6 rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
             Supabase nuk është konfiguruar.
           </div>
         )}
@@ -340,13 +340,13 @@ function AdminPromptsInner() {
                 value: r.reveal_count,
               }))}
             />
-            <div className="rounded-2xl border border-line bg-surface p-4">
+            <div className="rounded-2xl bg-surface p-4">
               <div className="text-[13px] font-bold text-ink">Të ardhura nga zbulimet</div>
               <div className="mt-2 flex items-center gap-1.5 text-[26px] font-extrabold text-ink">
                 <Coins className="h-5 w-5 text-brand" />
                 {(analytics?.creditsFromReveals ?? 0).toLocaleString()}
               </div>
-              <div className="mt-3 border-t border-line pt-3">
+              <div className="mt-3 pt-3">
                 <Field label="Kosto e zbulimit (kredite)">
                   <div className="flex gap-2">
                     <Input
@@ -365,7 +365,7 @@ function AdminPromptsInner() {
         </div>
 
         {/* Add / edit form */}
-        <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
+        <div className="mt-8 rounded-2xl bg-surface p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-[16px] font-bold text-ink">
               {editingId ? "Ndrysho promptin" : "Shto prompt të ri"}
@@ -387,7 +387,7 @@ function AdminPromptsInner() {
                     e.preventDefault();
                     handleFile(e.dataTransfer.files?.[0]);
                   }}
-                  className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-xl border border-dashed border-line-strong bg-surface-2"
+                  className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-surface-2 bg-surface-2"
                 >
                   {draft.featured_url ? (
                     <>
@@ -437,7 +437,7 @@ function AdminPromptsInner() {
                   <select
                     value={draft.category}
                     onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                    className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:border-brand"
+                    className="w-full rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:ring-2 focus:ring-ink/10"
                   >
                     {PROMPT_CATEGORIES.map((c) => (
                       <option key={c} value={c}>
@@ -450,7 +450,7 @@ function AdminPromptsInner() {
                   <select
                     value={draft.target_tool}
                     onChange={(e) => setDraft((d) => ({ ...d, target_tool: e.target.value }))}
-                    className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:border-brand"
+                    className="w-full rounded-xl bg-surface px-3 py-2.5 text-[14px] text-ink outline-none focus:ring-2 focus:ring-ink/10"
                   >
                     {PROMPT_TARGET_TOOLS.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -471,7 +471,7 @@ function AdminPromptsInner() {
               </Field>
 
               <Field label="Fjalëkyçe (ndaj me presje)">
-                <div className="rounded-xl border border-line-strong bg-surface px-2.5 py-2">
+                <div className="rounded-xl bg-surface px-2.5 py-2">
                   {draft.keywords.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-1.5">
                       {draft.keywords.map((k) => (
@@ -519,7 +519,7 @@ function AdminPromptsInner() {
         {/* List + filters */}
         <div className="mt-8">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-2">
+            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2">
               <Search className="h-4 w-4 text-ink-3" />
               <input
                 value={query}
@@ -531,7 +531,7 @@ function AdminPromptsInner() {
             <select
               value={fCat}
               onChange={(e) => setFCat(e.target.value)}
-              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none"
+              className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
             >
               <option value="">Të gjitha kategoritë</option>
               {PROMPT_CATEGORIES.map((c) => (
@@ -543,7 +543,7 @@ function AdminPromptsInner() {
             <select
               value={fTool}
               onChange={(e) => setFTool(e.target.value)}
-              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none"
+              className="rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none"
             >
               <option value="">Të gjitha toolet</option>
               {PROMPT_TARGET_TOOLS.map((t) => (
@@ -559,11 +559,11 @@ function AdminPromptsInner() {
               <Spinner className="h-6 w-6" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-line bg-surface py-16 text-center text-[14px] text-ink-3">
+            <div className="rounded-2xl bg-surface py-16 text-center text-[14px] text-ink-3">
               Asnjë prompt.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+            <div className="overflow-hidden rounded-2xl bg-surface">
               {filtered.map((p, i) => {
                 const toolName =
                   PROMPT_TARGET_TOOLS.find((t) => t.id === p.target_tool)?.label ?? p.target_tool;
@@ -644,7 +644,7 @@ function StatCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="rounded-2xl bg-surface p-4">
       <div className="flex items-center gap-2 text-[12.5px] font-medium text-ink-3">
         <Icon className="h-4 w-4" /> {label}
       </div>
@@ -663,7 +663,7 @@ function RankCard({
   rows: { code: string; category: string; value: number }[];
 }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="rounded-2xl bg-surface p-4">
       <div className="text-[13px] font-bold text-ink">{title}</div>
       {rows.length === 0 ? (
         <div className="mt-3 text-[12.5px] text-ink-3">Ende asgjë.</div>

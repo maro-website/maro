@@ -43,7 +43,7 @@ export function ContentPanel() {
   return (
     <div>
       <PanelSection>
-        <div className="flex items-center gap-2.5 rounded-xl bg-brand-soft px-3 py-2.5">
+        <div className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white">
             <Meta.icon className="h-4 w-4" />
           </span>
@@ -93,7 +93,7 @@ export function ContentPanel() {
       {selection.kind === "image" && (
         <>
           <PanelSection title="Imazhi aktual">
-            <div className="overflow-hidden rounded-xl border border-line">
+            <div className="overflow-hidden rounded-xl">
               <img src={current} alt="" className="h-32 w-full object-cover" />
             </div>
           </PanelSection>
@@ -104,7 +104,7 @@ export function ContentPanel() {
                   key={a.id}
                   onClick={() => updateSectionField(selection.sectionId, selection.field, a.url)}
                   className={`overflow-hidden rounded-lg border-2 transition-all ${
-                    a.url === current ? "border-brand" : "border-line hover:border-brand/40"
+                    a.url === current ? "" : "border-line hover:bg-surface-2"
                   }`}
                 >
                   <img src={a.url} alt={a.name} className="aspect-square w-full object-cover" />

@@ -13,9 +13,9 @@ export default function ExplorePage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="flex max-w-md flex-col items-center rounded-3xl border border-line bg-surface px-8 py-16 text-center"
+          className="flex max-w-md flex-col items-center rounded-3xl bg-surface px-8 py-16 text-center"
         >
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-soft text-brand">
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-2 text-ink">
             <Compass className="h-7 w-7" />
           </span>
           <h1 className="mt-5 text-[22px] font-extrabold tracking-[-0.02em] text-ink">

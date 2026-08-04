@@ -25,7 +25,7 @@ function HtmlPreview({
   return (
     <div className="w-full bg-white">
       {pages.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2">
+        <div className="flex flex-wrap items-center gap-1 bg-surface px-3 py-2">
           {pages.map((p) => (
             <button
               key={p.id}

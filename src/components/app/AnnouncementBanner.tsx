@@ -46,7 +46,7 @@ function AnnouncementCard({ a }: { a: Announcement }) {
       <img src={a.imageUrl} alt={a.title || "Njoftim"} className="h-auto w-full object-cover" />
     );
     return (
-      <div className="overflow-hidden rounded-2xl border border-line bg-surface-2">
+      <div className="overflow-hidden rounded-2xl bg-surface-2">
         {a.link ? (
           <a href={a.link} target="_blank" rel="noopener noreferrer" className="block">
             {img}
@@ -61,7 +61,7 @@ function AnnouncementCard({ a }: { a: Announcement }) {
   // Text announcement with customizable colors.
   return (
     <div
-      className="flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3"
+      className="flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3"
       style={{ background: a.bg || "var(--surface-2)", color: a.textColor || "var(--ink)" }}
     >
       <div className="min-w-0 flex-1">

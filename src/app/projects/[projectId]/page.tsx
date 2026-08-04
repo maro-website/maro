@@ -57,7 +57,7 @@ function OverviewInner() {
             </div>
             <p className="mt-1.5 text-[14px] text-ink-2">{project.tagline ?? project.goal}</p>
 
-            <div className="mt-5 space-y-2.5 rounded-2xl border border-line bg-surface p-4">
+            <div className="mt-5 space-y-2.5 rounded-2xl bg-surface p-4">
               <InfoRow icon={<Globe className="h-4 w-4" />} label="Preview URL" value={project.previewUrl} />
               <InfoRow
                 icon={<Globe className="h-4 w-4 text-success" />}
@@ -86,7 +86,7 @@ function OverviewInner() {
 
         {/* Activity + assets */}
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <div className="mb-4 flex items-center gap-2 text-[14px] font-bold text-ink">
               <History className="h-4 w-4 text-brand" /> Aktiviteti i fundit
             </div>
@@ -100,13 +100,13 @@ function OverviewInner() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-5">
+          <div className="rounded-2xl bg-surface p-5">
             <div className="mb-4 flex items-center gap-2 text-[14px] font-bold text-ink">
               <ImageIcon className="h-4 w-4 text-brand" /> Asetet e projektit
             </div>
             <div className="grid grid-cols-4 gap-2">
               {project.assets.slice(0, 8).map((a) => (
-                <img key={a.id} src={a.url} alt={a.name} className="aspect-square w-full rounded-lg border border-line object-cover" />
+                <img key={a.id} src={a.url} alt={a.name} className="aspect-square w-full rounded-lg object-cover" />
               ))}
             </div>
           </div>

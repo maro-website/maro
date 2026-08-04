@@ -45,7 +45,7 @@ export function AssetsPanel() {
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
                 filter === c.key
-                  ? "border-brand bg-brand-soft text-brand"
+                  ? "bg-brand text-brand-fg"
                   : "border-line text-ink-2 hover:bg-surface-2"
               )}
             >
@@ -66,7 +66,7 @@ export function AssetsPanel() {
         ) : (
           <div className="grid grid-cols-2 gap-2.5">
             {assets.map((a) => (
-              <div key={a.id} className="group relative overflow-hidden rounded-lg border border-line">
+              <div key={a.id} className="group relative overflow-hidden rounded-lg">
                 <img src={a.url} alt={a.name} className="aspect-square w-full object-cover" />
                 <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Dropdown

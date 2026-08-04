@@ -56,26 +56,24 @@ export function UploadArea({
         handle(e.dataTransfer.files);
       }}
       className={cn(
-        "group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed text-center transition-all",
+        "group flex cursor-pointer flex-col items-center justify-center rounded-2xl text-center transition-all",
         compact ? "gap-1.5 p-5" : "gap-2 p-8",
-        dragging
-          ? "border-brand bg-brand-soft"
-          : "border-line-strong bg-surface hover:border-brand/50 hover:bg-surface-2",
+        dragging ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-line",
         className
       )}
     >
       <div
         className={cn(
-          "grid place-items-center rounded-xl bg-brand-soft text-brand transition-transform group-hover:scale-105",
+          "grid place-items-center rounded-2xl bg-surface text-ink transition-transform group-hover:scale-105",
           compact ? "h-9 w-9" : "h-12 w-12"
         )}
       >
         <UploadCloud className={compact ? "h-4 w-4" : "h-5 w-5"} />
       </div>
-      <div className={cn("font-semibold text-ink", compact ? "text-[13px]" : "text-[14px]")}>
+      <div className={cn("font-semibold", compact ? "text-[13px]" : "text-[14px]")}>
         {label}
       </div>
-      <div className="text-[12px] text-ink-3">{hint}</div>
+      <div className={cn("text-[12px]", dragging ? "text-brand-fg/70" : "text-ink-3")}>{hint}</div>
       <input
         ref={inputRef}
         type="file"

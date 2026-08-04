@@ -18,7 +18,7 @@ export function AppHeader() {
   React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-lg">
+    <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center">
@@ -38,7 +38,7 @@ export function AppHeader() {
           </Link>
           <Link
             href="/credits"
-            className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
+            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
           >
             <Coins className="h-4 w-4 text-brand" />
             {credits}

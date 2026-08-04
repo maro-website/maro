@@ -94,7 +94,7 @@ function SettingsInner() {
 
             {active === "domain" && (
               <Card title="Domain">
-                <div className="rounded-xl border border-line bg-surface p-4">
+                <div className="rounded-xl bg-surface p-4">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-[13px] font-bold text-ink">maro Domain</span>
                     <Badge tone="success"><Check className="h-3 w-3" /> Aktiv</Badge>
@@ -117,7 +117,7 @@ function SettingsInner() {
               <Card title="Brand">
                 <div className="grid gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl border border-line bg-surface-2">
+                    <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl bg-surface-2">
                       {project.brand.logoUrl ? (
                         <img src={project.brand.logoUrl} alt="logo" className="h-full w-full object-contain" />
                       ) : (
@@ -169,7 +169,7 @@ function SettingsInner() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <div className="rounded-2xl bg-surface p-5">
       <h2 className="mb-4 text-[15px] font-bold text-ink">{title}</h2>
       {children}
     </div>

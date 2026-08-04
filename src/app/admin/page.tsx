@@ -138,14 +138,14 @@ function AdminInner() {
         </div>
 
         {!supabaseConfigured && (
-          <div className="mt-6 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+          <div className="mt-6 rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
             Supabase nuk është konfiguruar. Shto çelësat te .env.local për të aktivizuar panelin.
           </div>
         )}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[220px_1fr]">
           {/* Vertical nav */}
-          <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-line bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col lg:overflow-visible">
+          <nav className="flex gap-1 overflow-x-auto rounded-2xl bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col lg:overflow-visible">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -226,7 +226,7 @@ function OverviewTab() {
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
+          <div key={c.label} className="rounded-2xl bg-surface p-5">
             <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
               <c.icon className="h-4 w-4" /> {c.label}
             </div>
@@ -279,7 +279,7 @@ function NotificationsTestCard() {
   };
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <div className="rounded-2xl bg-surface p-5">
       <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
         <Bell className="h-4 w-4 text-brand" /> Njoftime provë
       </div>
@@ -292,7 +292,7 @@ function NotificationsTestCard() {
           <button
             key={s.type}
             onClick={() => send(s)}
-            className="inline-flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
+            className="inline-flex items-center gap-2 rounded-xl bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
           >
             <s.icon className="h-4 w-4 text-brand" /> {s.title}
           </button>
@@ -403,7 +403,7 @@ function UsersTab() {
         onChange={(e) => setQuery(e.target.value)}
         className="mb-4 max-w-sm"
       />
-      <div className="overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl">
         <table className="w-full text-left text-[13.5px]">
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
@@ -429,12 +429,12 @@ function UsersTab() {
                     onClick={() => toggleCreator(p)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
                       p.is_creator
-                        ? "border-brand bg-brand-soft text-brand"
+                        ? "bg-brand text-brand-fg"
                         : "border-line-strong text-ink-3 hover:bg-surface-2"
                     }`}
                     title={p.is_creator ? "Hiq nga Kreatorët" : "Bëje Kreator"}
                   >
-                    <Star className={`h-3.5 w-3.5 ${p.is_creator ? "fill-brand" : ""}`} />
+                    <Star className={`h-3.5 w-3.5 ${p.is_creator ? "fill-ink" : ""}`} />
                     {p.is_creator ? "Kreator" : "Bëje"}
                   </button>
                 </td>
@@ -443,7 +443,7 @@ function UsersTab() {
                     onClick={() => togglePlan(p)}
                     className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
                       p.plan === "fort"
-                        ? "border-brand bg-brand-soft text-brand"
+                        ? "bg-brand text-brand-fg"
                         : "border-line-strong text-ink-3 hover:bg-surface-2"
                     }`}
                     title={p.plan === "fort" ? "Hiq maroFort" : "Aktivizo maroFort"}
@@ -471,7 +471,7 @@ function UsersTab() {
                               [p.id]: String((parseInt(x[p.id] ?? String(p.credits), 10) || 0) + n),
                             }))
                           }
-                          className="rounded-lg border border-line-strong px-2 py-1 text-[12px] font-semibold text-ink-2 hover:bg-surface-2"
+                          className="rounded-lg px-2 py-1 text-[12px] font-semibold text-ink-2 hover:bg-surface-2"
                         >
                           +{n}
                         </button>
@@ -580,7 +580,7 @@ function PromosTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>promo_codes</code> nuk ekziston ende. Ekzekuto migrimin
         0006_creators_promos.sql në Supabase për të aktivizuar promo kodet.
       </div>
@@ -590,7 +590,7 @@ function PromosTab() {
   return (
     <div className="space-y-6">
       {/* New code */}
-      <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className="rounded-2xl bg-surface p-5">
         <div className="text-[14px] font-bold text-ink">Shto kod të ri</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Kodi i shitjes">
@@ -618,7 +618,7 @@ function PromosTab() {
             <select
               value={draft.creator_id}
               onChange={(e) => setDraft((d) => ({ ...d, creator_id: e.target.value }))}
-              className="h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-[13.5px] text-ink outline-none"
+              className="h-10 w-full rounded-xl bg-surface px-3 text-[13.5px] text-ink outline-none"
             >
               <option value="">— asnjë —</option>
               {creators.map((c) => (
@@ -635,7 +635,7 @@ function PromosTab() {
       </div>
 
       {/* Existing codes */}
-      <div className="overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl">
         <table className="w-full text-left text-[13.5px]">
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
@@ -668,7 +668,7 @@ function PromosTab() {
                     onClick={() => void update(r.id, { active: !r.active })}
                     className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold ${
                       r.active
-                        ? "border-brand bg-brand-soft text-brand"
+                        ? "bg-brand text-brand-fg"
                         : "border-line-strong text-ink-3"
                     }`}
                   >
@@ -804,7 +804,7 @@ function CreatorsTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>creator_applications</code> nuk ekziston ende. Ekzekuto migrimin
         0006_creators_promos.sql në Supabase.
       </div>
@@ -827,7 +827,7 @@ function CreatorsTab() {
       {/* Active creators */}
       <div>
         <div className="mb-3 text-[14px] font-bold text-ink">Kreatorët aktivë ({creators.length})</div>
-        <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
           Bëje një përdorues Kreator te tabi <span className="font-semibold text-ink">Përdoruesit</span>,
           pastaj krijo kodin/linkun e tij te <span className="font-semibold text-ink">Promo Kode</span>.
         </div>
@@ -836,9 +836,9 @@ function CreatorsTab() {
             {creators.map((c) => (
               <span
                 key={c.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] text-ink"
+                className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[13px] text-ink"
               >
-                <Star className="h-3.5 w-3.5 fill-brand text-brand" /> {c.email}
+                <Star className="h-3.5 w-3.5 fill-ink text-ink" /> {c.email}
               </span>
             ))}
           </div>
@@ -850,7 +850,7 @@ function CreatorsTab() {
         <div className="mb-3 text-[14px] font-bold text-ink">Aplikimet</div>
         <div className="space-y-3">
           {apps.map((a) => (
-            <div key={a.id} className="rounded-2xl border border-line bg-surface p-5">
+            <div key={a.id} className="rounded-2xl bg-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-[15px] font-bold text-ink">
@@ -878,7 +878,7 @@ function CreatorsTab() {
             </div>
           ))}
           {apps.length === 0 && (
-            <div className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-[13.5px] text-ink-3">
+            <div className="rounded-xl bg-surface px-4 py-8 text-center text-[13.5px] text-ink-3">
               Ende s&apos;ka aplikime për Kreator.
             </div>
           )}
@@ -904,7 +904,7 @@ function Collapse({
 }) {
   const [open, setOpen] = React.useState(Boolean(defaultOpen));
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <div className="overflow-hidden rounded-2xl bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -977,7 +977,7 @@ function MasterPromptsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+      <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Prompti final = <span className="font-semibold text-ink">Baza</span> e tool-it + prompti i çdo
         opsioni të zgjedhur nga përdoruesi + teksti i tij. Çdo opsion ka koston e vet.
       </div>
@@ -1149,7 +1149,7 @@ function FortTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-line bg-surface p-1.5">
+      <div className="flex flex-wrap gap-1.5 rounded-2xl bg-surface p-1.5">
         {FORT_SUBS.map((s) => (
           <button
             key={s.key}
@@ -1202,7 +1202,7 @@ function FortGeneral({
         checked={resolved.enabled}
         onChange={(v) => patch({ enabled: v })}
       />
-      <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="rounded-2xl bg-surface p-4">
         <div className="mb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">
           Aktiv për tool
         </div>
@@ -1287,7 +1287,7 @@ function FortModuleEditor({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+      <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Aktivizo/çaktivizo fusha, ndrysho etiketat dhe kërkesat. Fushat kombinohen automatikisht në
         brief-in final.
       </div>
@@ -1298,7 +1298,7 @@ function FortModuleEditor({
               const ov = overrides[f.id] ?? {};
               const enabled = ov.enabled !== false;
               return (
-                <div key={f.id} className="rounded-xl border border-line bg-surface p-3">
+                <div key={f.id} className="rounded-xl bg-surface p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -1368,11 +1368,11 @@ function FortLayers({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+      <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Fragmente prompti të riperdorshme që shtohen kur maroFort është aktiv për tool-in përkatës.
       </div>
       {layers.map((l) => (
-        <div key={l.id} className="rounded-2xl border border-line bg-surface p-4">
+        <div key={l.id} className="rounded-2xl bg-surface p-4">
           <div className="flex flex-wrap items-center gap-2">
             <Input
               value={l.name}
@@ -1382,7 +1382,7 @@ function FortLayers({
             <select
               value={l.module}
               onChange={(e) => update(l.id, { module: e.target.value as FortPromptLayer["module"] })}
-              className="rounded-lg border border-line-strong bg-surface px-2 py-2 text-[13px] text-ink"
+              className="rounded-lg bg-surface px-2 py-2 text-[13px] text-ink"
             >
               <option value="universal">Universal</option>
               <option value="web">maro Web</option>
@@ -1405,7 +1405,7 @@ function FortLayers({
             </label>
             <button
               onClick={() => remove(l.id)}
-              className="ml-auto grid h-8 w-8 place-items-center rounded-lg border border-line-strong text-ink-3 hover:text-c-red"
+              className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:text-c-red"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -1437,7 +1437,7 @@ function FortAccess({
     patch({ plan: { ...plan, ...p } });
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+      <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Cakto planin <span className="font-semibold text-ink">maroFort</span> për përdorues të veçantë
         te tab-i <span className="font-semibold text-ink">Përdoruesit</span>. Këtu konfiguron kartën e
         abonimit që shfaqet te faqja e krediteve.
@@ -1483,7 +1483,7 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-surface px-4 py-3">
       <div className="min-w-0">
         <div className="text-[13.5px] font-semibold text-ink">{label}</div>
         {hint && <div className="text-[12px] text-ink-3">{hint}</div>}
@@ -1558,7 +1558,7 @@ function ReportsTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>reports</code> nuk ekziston ende. Ekzekuto migrimin{" "}
         <code>0008_reports_announcements.sql</code> në Supabase.
       </div>
@@ -1568,7 +1568,7 @@ function ReportsTab() {
   return (
     <div className="space-y-3">
       {rows.map((r) => (
-        <div key={r.id} className="rounded-2xl border border-line bg-surface p-4">
+        <div key={r.id} className="rounded-2xl bg-surface p-4">
           <div className="flex flex-wrap items-start gap-4">
             {r.target_url && !r.target_url.startsWith("data:") && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -1576,7 +1576,7 @@ function ReportsTab() {
                 src={r.target_url}
                 alt=""
                 onClick={() => setBig(r.target_url)}
-                className="h-16 w-16 shrink-0 cursor-zoom-in rounded-xl border border-line object-cover"
+                className="h-16 w-16 shrink-0 cursor-zoom-in rounded-xl object-cover"
               />
             )}
             <div className="min-w-0 flex-1">
@@ -1616,7 +1616,7 @@ function ReportsTab() {
         </div>
       ))}
       {rows.length === 0 && (
-        <div className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
+        <div className="rounded-xl bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
           Ende s&apos;ka raporte.
         </div>
       )}
@@ -1647,7 +1647,7 @@ function newAnnouncement(): Announcement {
     ctaLink: "",
     bg: "#f3f0fe",
     textColor: "#131316",
-    btnColor: "#6b46e5",
+    btnColor: "#0f1419",
     btnTextColor: "#ffffff",
   };
 }
@@ -1742,9 +1742,9 @@ function ReklamatTab() {
       </div>
 
       {list.map((a) => (
-        <div key={a.id} className="rounded-2xl border border-line bg-surface p-5">
+        <div key={a.id} className="rounded-2xl bg-surface p-5">
           <div className="mb-4 flex items-center justify-between">
-            <div className="inline-flex rounded-xl border border-line p-0.5">
+            <div className="inline-flex rounded-xl p-0.5">
               {(["text", "image"] as const).map((k) => (
                 <button
                   key={k}
@@ -1840,7 +1840,7 @@ function ReklamatTab() {
                       })
                     }
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${
-                      on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-2"
+                      on ? "bg-brand text-brand-fg" : "border-line text-ink-2"
                     }`}
                   >
                     <t.icon className="h-3.5 w-3.5" /> {t.name}
@@ -1853,7 +1853,7 @@ function ReklamatTab() {
       ))}
 
       {list.length === 0 && (
-        <div className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
+        <div className="rounded-xl bg-surface px-4 py-10 text-center text-[13.5px] text-ink-3">
           Ende s&apos;ka njoftime. Kliko &laquo;Shto&raquo;.
         </div>
       )}
@@ -1869,7 +1869,7 @@ function ColorField({ label, value, onChange }: { label: string; value?: string;
   return (
     <div>
       <div className="mb-1.5 text-[12px] font-medium text-ink-2">{label}</div>
-      <div className="flex items-center gap-2 rounded-xl border border-line-strong bg-surface px-2 py-1.5">
+      <div className="flex items-center gap-2 rounded-xl bg-surface px-2 py-1.5">
         <input
           type="color"
           value={value || "#000000"}
@@ -1925,7 +1925,7 @@ function AnalyticsTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>prompt_events</code> nuk ekziston ende. Ekzekuto migrimin
         0005_prompt_events.sql në Supabase për të aktivizuar analitikën.
       </div>
@@ -1962,7 +1962,7 @@ function AnalyticsTab() {
     <div>
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border border-line bg-surface p-5">
+          <div key={c.label} className="rounded-2xl bg-surface p-5">
             <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
               <c.icon className="h-4 w-4" /> {c.label}
             </div>
@@ -1973,7 +1973,7 @@ function AnalyticsTab() {
         ))}
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-line">
+      <div className="mt-6 overflow-hidden rounded-xl">
         <table className="w-full text-left text-[13.5px]">
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
@@ -2045,7 +2045,7 @@ function OrdersTab() {
 
   if (missing) {
     return (
-      <div className="rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
         Tabela <code>credit_orders</code> nuk ekziston ende. Ekzekuto migrimin
         0004_explore_orders.sql në Supabase për të aktivizuar porositë.
       </div>
@@ -2053,7 +2053,7 @@ function OrdersTab() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line">
+    <div className="overflow-hidden rounded-xl">
       <table className="w-full text-left text-[13.5px]">
         <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
           <tr>
@@ -2138,7 +2138,7 @@ function PricingTab() {
 
   return (
     <div className="max-w-2xl">
-      <div className="rounded-xl border border-line bg-surface p-5">
+      <div className="rounded-xl bg-surface p-5">
         <div className="text-[13px] font-bold text-ink">Kosto bazë sipas tipit (kredite)</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {types.map((t) => (
@@ -2158,11 +2158,11 @@ function PricingTab() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl border border-line bg-surface p-5">
+      <div className="mt-5 rounded-xl bg-surface p-5">
         <div className="text-[13px] font-bold text-ink">Shpejtësia (shumëzues çmimi + effort)</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {speeds.map((s) => (
-            <div key={s} className="rounded-xl border border-line p-3">
+            <div key={s} className="rounded-xl p-3">
               <div className="mb-2 text-[13px] font-semibold capitalize text-ink">{s}</div>
               <Field label="Shumëzues">
                 <Input
@@ -2189,7 +2189,7 @@ function PricingTab() {
                       },
                     }))
                   }
-                  className="h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-[13.5px] text-ink outline-none"
+                  className="h-10 w-full rounded-xl bg-surface px-3 text-[13.5px] text-ink outline-none"
                 >
                   {["low", "medium", "high", "xhigh"].map((ef) => (
                     <option key={ef} value={ef}>
@@ -2203,7 +2203,7 @@ function PricingTab() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+      <div className="mt-5 rounded-xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Kostot për çdo tool (Web / Logo / Reklama…) tani menaxhohen për çdo opsion te tabi{" "}
         <span className="font-semibold text-ink">Master Prompts</span> — çmim + prompt në një vend.
       </div>
@@ -2218,7 +2218,7 @@ function PricingTab() {
         </Field>
       </div>
 
-      <div className="mt-5 rounded-xl border border-line bg-surface-2 p-4 text-[13px] text-ink-2">
+      <div className="mt-5 rounded-xl bg-surface-2 p-4 text-[13px] text-ink-2">
         <div className="font-semibold text-ink">Parapamje kostosh</div>
         <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
           {types.map((t) => (
@@ -2275,7 +2275,7 @@ function LogTab() {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl">
         <table className="w-full text-left text-[13px]">
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
@@ -2299,7 +2299,7 @@ function LogTab() {
                   <td className="px-4 py-3">
                     {thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt="" className="h-10 w-10 rounded-lg border border-line object-cover" />
+                      <img src={thumb} alt="" className="h-10 w-10 rounded-lg object-cover" />
                     ) : (
                       <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface-2 text-ink-3">
                         <FileText className="h-4 w-4" />
@@ -2351,13 +2351,13 @@ function LogTab() {
                     src={u}
                     alt=""
                     onClick={() => setBig(u)}
-                    className="h-28 w-28 cursor-zoom-in rounded-xl border border-line object-cover"
+                    className="h-28 w-28 cursor-zoom-in rounded-xl object-cover"
                   />
                 ))}
               </div>
             )}
 
-            <div className="mt-4 max-h-[40vh] overflow-auto rounded-xl border border-line bg-surface-2 p-4">
+            <div className="mt-4 max-h-[40vh] overflow-auto rounded-xl bg-surface-2 p-4">
               <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-relaxed text-ink-2">
                 {detail.final_prompt || detail.prompt || "—"}
               </pre>

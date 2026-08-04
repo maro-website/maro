@@ -30,9 +30,9 @@ export function ProjectCard({
   };
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-line bg-surface transition-all hover:-translate-y-0.5 hover:shadow-card">
+    <div className="group overflow-hidden rounded-2xl bg-surface transition-all hover:-translate-y-0.5">
       <button onClick={open} className="relative block w-full">
-        <div className="relative h-[188px] overflow-hidden border-b border-line bg-surface-2">
+        <div className="relative h-[188px] overflow-hidden bg-surface-2">
           {generating ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-surface-2">
               <Spinner className="h-5 w-5" />

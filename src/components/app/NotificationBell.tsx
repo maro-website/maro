@@ -88,9 +88,9 @@ export function NotificationBell() {
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
                 style={{ position: "fixed", top: pos.top, left: pos.left, width: 320 }}
-                className="z-[130] overflow-hidden rounded-2xl border border-line bg-surface shadow-pop"
+                className="z-[130] overflow-hidden rounded-2xl bg-surface"
               >
-                <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+                <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-[13px] font-bold text-ink">Njoftime</span>
                   {items.length > 0 && (
                     <button
@@ -113,7 +113,7 @@ export function NotificationBell() {
                     items.map((n) => {
                       const Icon = ICONS[n.type] ?? Bell;
                       return (
-                        <div key={n.id} className="flex gap-3 border-b border-line px-4 py-3 last:border-0">
+                        <div key={n.id} className="flex gap-3 px-4 py-3 last:border-0">
                           <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-brand">
                             <Icon className="h-4 w-4" />
                           </span>

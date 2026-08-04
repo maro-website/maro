@@ -34,7 +34,7 @@ export function FortSelect({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "border-brand bg-brand-soft text-brand"
+                  ? "bg-brand text-brand-fg"
                   : "border-line-strong bg-surface text-ink-2 hover:text-ink"
               )}
             >
@@ -50,7 +50,7 @@ export function FortSelect({
           value={otherValue ?? ""}
           placeholder="Shkruaj zgjedhjen tënde…"
           onChange={(e) => onOtherChange(e.target.value)}
-          className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+          className="w-full rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-ink/10"
         />
       )}
     </div>
@@ -97,7 +97,7 @@ export function FortMultiSelect({
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "border-brand bg-brand-soft text-brand"
+                  ? "bg-brand text-brand-fg"
                   : full
                   ? "cursor-not-allowed border-line bg-surface text-ink-3 opacity-60"
                   : "border-line-strong bg-surface text-ink-2 hover:text-ink"
@@ -116,7 +116,7 @@ export function FortMultiSelect({
           value={otherValue ?? ""}
           placeholder="Shkruaj zgjedhjen tënde…"
           onChange={(e) => onOtherChange(e.target.value)}
-          className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+          className="w-full rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-ink/10"
         />
       )}
     </div>
@@ -141,7 +141,7 @@ export function FortTextInput({
       value={value ?? ""}
       placeholder={field.placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+      className="w-full rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-ink/10"
     />
   );
 }
@@ -161,7 +161,7 @@ export function FortTextarea({
       placeholder={field.placeholder}
       rows={3}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full resize-none rounded-xl border border-line-strong bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand"
+      className="w-full resize-none rounded-xl bg-surface px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-ink/10"
     />
   );
 }
@@ -214,7 +214,7 @@ export function FortColorPicker({
   const v = value || fallback;
   return (
     <div className="flex items-center gap-2">
-      <label className="relative h-9 w-9 cursor-pointer overflow-hidden rounded-lg border border-line-strong">
+      <label className="relative h-9 w-9 cursor-pointer overflow-hidden rounded-lg">
         <span className="block h-full w-full" style={{ background: v }} />
         <input
           type="color"
@@ -227,7 +227,7 @@ export function FortColorPicker({
         type="text"
         value={v}
         onChange={(e) => onChange(e.target.value)}
-        className="w-28 rounded-xl border border-line-strong bg-surface px-3 py-2 text-[13px] font-medium text-ink outline-none focus:border-brand"
+        className="w-28 rounded-xl bg-surface px-3 py-2 text-[13px] font-medium text-ink outline-none focus:ring-2 focus:ring-ink/10"
       />
     </div>
   );
@@ -256,7 +256,7 @@ export function FortPositionGrid({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="inline-grid grid-cols-3 gap-1 rounded-xl border border-line-strong bg-surface p-1">
+    <div className="inline-grid grid-cols-3 gap-1 rounded-xl bg-surface p-1">
       {GRID_CELLS.map((c) => {
         const active = value === c;
         return (
@@ -309,7 +309,7 @@ export function FortAssetControl({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "border-brand bg-brand-soft text-brand"
+                  ? "bg-brand text-brand-fg"
                   : "border-line-strong bg-surface text-ink-2 hover:text-ink"
               )}
             >

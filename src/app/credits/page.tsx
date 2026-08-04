@@ -188,7 +188,7 @@ export default function CreditsPage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE }}
-            className="relative overflow-hidden rounded-3xl border border-line bg-surface p-8 sm:p-10"
+            className="relative overflow-hidden rounded-3xl bg-surface p-8 sm:p-10"
           >
             <div className="relative flex flex-wrap items-end justify-between gap-6">
               <div>
@@ -206,7 +206,7 @@ export default function CreditsPage() {
               {user && (!user.plan || user.plan === "free") && (
                 <a
                   href="#fort"
-                  className="rounded-xl border border-line-strong px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                  className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:bg-surface-2"
                 >
                   Shiko maroFort
                 </a>
@@ -221,7 +221,7 @@ export default function CreditsPage() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: EASE, delay: 0.06 }}
-              className="mt-8 scroll-mt-24 overflow-hidden rounded-3xl border border-brand/40 bg-surface p-6 sm:p-8"
+              className="mt-8 scroll-mt-24 overflow-hidden rounded-3xl  bg-surface p-6 sm:p-8"
             >
               <div className="flex flex-wrap items-start justify-between gap-6">
                 <div className="min-w-0 flex-1">
@@ -255,7 +255,7 @@ export default function CreditsPage() {
                   <button
                     onClick={subscribeFort}
                     disabled={hasFort}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-line-strong bg-surface-2 px-6 py-3.5 text-[15px] font-semibold text-ink-2 transition-colors hover:bg-line disabled:cursor-not-allowed sm:w-auto"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface-2 px-6 py-3.5 text-[15px] font-semibold text-ink-2 transition-colors hover:bg-line disabled:cursor-not-allowed sm:w-auto"
                   >
                     {hasFort ? "Aktiv" : "Së shpejti"}
                   </button>
@@ -272,7 +272,7 @@ export default function CreditsPage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE, delay: 0.08 }}
-            className="mt-8 rounded-[28px] border border-line bg-surface p-6 sm:p-8"
+            className="mt-8 rounded-[28px] bg-surface p-6 sm:p-8"
           >
             <h2 className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">Shto kredite</h2>
             <p className="mt-1 text-[14px] text-ink-2">Zgjidh një paketë ose shkruaj sasinë që dëshiron.</p>
@@ -289,11 +289,11 @@ export default function CreditsPage() {
                       setCustom("");
                     }}
                     className={`relative rounded-2xl border p-4 text-left transition-colors ${
-                      active ? "border-brand bg-brand-soft" : "border-line-strong bg-surface hover:bg-surface-2"
+                      active ? "bg-surface-2" : "border-line-strong bg-surface hover:bg-surface-2"
                     }`}
                   >
                     {t.worth && (
-                      <span className="absolute right-2 top-2 rounded-md border border-line-strong px-1.5 py-0.5 text-[10px] font-semibold text-ink-2">
+                      <span className="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-ink-2">
                         −{Math.round((1 - t.eur / t.worth) * 100)}%
                       </span>
                     )}
@@ -317,7 +317,7 @@ export default function CreditsPage() {
                 <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-2">
                   Sasi e personalizuar (min. {MIN_CREDITS})
                 </label>
-                <div className="flex items-center gap-2 rounded-2xl border border-line-strong bg-surface px-4 py-3">
+                <div className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-3">
                   <Coins className="h-4 w-4 text-brand" />
                   <input
                     type="number"
@@ -348,7 +348,7 @@ export default function CreditsPage() {
             <div className="mt-5">
               <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-2">Kod promocional</label>
               {promo ? (
-                <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border bg-brand-soft px-4 py-3">
                   <div className="flex items-center gap-2 text-[14px] font-semibold text-ink">
                     <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-fg">
                       <Check className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ export default function CreditsPage() {
                   <button
                     onClick={() => void applyPromo(promoInput)}
                     disabled={promoState === "checking" || !promoInput.trim()}
-                    className="shrink-0 rounded-2xl border border-line-strong bg-surface px-5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
+                    className="shrink-0 rounded-2xl bg-surface px-5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
                   >
                     {promoState === "checking" ? "…" : "Apliko"}
                   </button>
@@ -426,7 +426,7 @@ export default function CreditsPage() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+            <div className="overflow-hidden rounded-2xl bg-surface">
               {!usage ? (
                 <div className="px-5 py-10 text-center text-[13.5px] text-ink-3">Duke ngarkuar…</div>
               ) : usage.items.length === 0 ? (

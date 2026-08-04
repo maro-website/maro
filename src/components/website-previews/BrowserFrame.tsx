@@ -15,13 +15,13 @@ export function BrowserFrame({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-line-strong bg-surface shadow-pop",
+        "overflow-hidden rounded-2xl bg-surface",
         className
       )}
     >
       <div
         className={cn(
-          "flex items-center gap-2 border-b border-line bg-surface-2 px-3.5",
+          "flex items-center gap-2 bg-surface-2 px-3.5",
           compact ? "h-8" : "h-10"
         )}
       >

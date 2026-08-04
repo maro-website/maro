@@ -38,7 +38,7 @@ export function Switch({
     >
       <span
         className={cn(
-          "absolute top-0.5 rounded-full shadow-sm transition-transform",
+          "absolute top-0.5 rounded-full transition-transform",
           d.knob,
           checked ? d.on : d.off
         )}

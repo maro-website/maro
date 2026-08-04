@@ -126,7 +126,7 @@ export function HomeSidebar({
         </div>
 
         {/* Thin line separating tools from the rest */}
-        <div className="mx-2 mb-3 border-t border-line" />
+        <div className="mx-2 mb-3" />
 
         {/* maro Prompts + Çka ke maru — separate from the generation tools */}
         <div className="mb-3 flex flex-col gap-0.5">
@@ -204,7 +204,7 @@ export function HomeSidebar({
           <button
             onClick={() => go("/sign-in")}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-3 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-surface-2"
+              "flex w-full items-center justify-center gap-2 rounded-xl bg-surface px-3 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-surface-2"
             )}
           >
             <UserIcon className="h-5 w-5" /> Hyr / Regjistrohu
@@ -291,7 +291,7 @@ function SettingsPanel({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.98 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3"
+      className="flex flex-col gap-3 rounded-2xl bg-surface p-3"
     >
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-bold text-ink">Cilësimet</span>
@@ -347,10 +347,10 @@ function SettingsPanel({
               key={t.id}
               onClick={() => setTheme(t.id)}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-[11.5px] font-semibold transition-colors",
+                "flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[11.5px] font-semibold transition-colors",
                 theme === t.id
-                  ? "border-brand bg-brand-soft text-ink"
-                  : "border-line-strong text-ink-2 hover:bg-surface-2"
+                  ? "bg-brand text-brand-fg"
+                  : "bg-surface-2 text-ink-2 hover:bg-line"
               )}
             >
               <t.icon className="h-4 w-4" />
@@ -471,7 +471,7 @@ function RowShell({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1 rounded-lg border border-brand bg-surface px-2 py-1.5">
+      <div className="flex items-center gap-1 rounded-lg bg-surface-2 px-2 py-1.5">
         <input
           ref={inputRef}
           value={value}
@@ -485,7 +485,7 @@ function RowShell({
         />
         <button
           onClick={() => onSaveName(value.trim() || editInitial)}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-brand hover:bg-brand-soft"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink hover:bg-line"
         >
           <Check className="h-4 w-4" />
         </button>
@@ -500,15 +500,15 @@ function RowShell({
           <span className="relative shrink-0">
             {thumb}
             {favourite && (
-              <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-surface text-brand shadow-sm">
-                <Star className="h-2.5 w-2.5 fill-brand" />
+              <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-surface text-brand">
+                <Star className="h-2.5 w-2.5 fill-ink" />
               </span>
             )}
           </span>
         )}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            {!thumb && favourite && <Star className="h-3 w-3 shrink-0 fill-brand text-brand" />}
+            {!thumb && favourite && <Star className="h-3 w-3 shrink-0 fill-ink text-ink" />}
             <span className="truncate text-[14px] font-medium text-ink">{title}</span>
           </span>
           <span className="block truncate text-[12px] text-ink-3">{subtitle}</span>
@@ -633,7 +633,7 @@ function ToolNav({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-line pl-2">
+            <div className="ml-3 mt-0.5 flex flex-col gap-0.5 pl-2">
               {!hasRecent && (
                 <div className="px-2 py-2 text-[12.5px] text-ink-3">
                   Ende s&apos;ke krijime këtu.
@@ -711,7 +711,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-[284px] border-r border-line bg-canvas"
+            className="absolute inset-y-0 left-0 w-[284px] bg-canvas"
           >
             <HomeSidebar onNavigate={onClose} />
           </motion.div>
