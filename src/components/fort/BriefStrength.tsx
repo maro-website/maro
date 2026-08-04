@@ -4,7 +4,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
 
-// Brief Strength meter — shows how complete/meaningful the expert brief is.
 export function BriefStrength({
   score,
   suggestion,
@@ -12,7 +11,7 @@ export function BriefStrength({
   score: number;
   suggestion?: string;
 }) {
-  const tone = score >= 80 ? "bg-brand" : score >= 40 ? "bg-c-teal" : "bg-c-red";
+  const tone = score >= 80 ? "bg-brand" : score >= 40 ? "bg-ink-3" : "bg-line-strong";
   return (
     <div>
       <div className="flex items-center justify-between text-[12px]">

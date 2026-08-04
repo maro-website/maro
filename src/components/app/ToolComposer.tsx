@@ -925,15 +925,17 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </Modal>
 
-      {/* maroFort pop-up */}
-      <Modal open={fortModalOpen} onClose={() => setFortModalOpen(false)} size="lg" className="max-w-2xl">
-        <div className="h-1 w-full" style={{ background: "#ff0000" }} />
+      {/* maroFort pop-up — canvas bg, surface controls (Qelt/Mshelt) */}
+      <Modal
+        open={fortModalOpen}
+        onClose={() => setFortModalOpen(false)}
+        size="lg"
+        className="max-w-2xl overflow-hidden bg-canvas"
+        hideClose
+      >
         <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <span
-              className="grid h-9 w-9 place-items-center rounded-xl"
-              style={{ background: "rgba(255,0,0,0.1)", color: "#ff0000" }}
-            >
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface text-ink">
               <Sparkles className="h-5 w-5" />
             </span>
             <div>
@@ -944,14 +946,14 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           <button
             type="button"
             onClick={resetFort}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:opacity-80"
           >
             <Eraser className="h-3.5 w-3.5" />
             Pastroje
           </button>
         </div>
 
-        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 py-4">
+        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 pb-4">
           {fortModule && (
             <FortPanel
               module={fortModule}
@@ -962,12 +964,12 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           )}
         </div>
 
-        <div className="flex gap-2 px-5 py-4">
+        <div className="flex gap-2 bg-canvas px-5 py-4">
           {fortActive && (
             <button
               type="button"
               onClick={clearFort}
-              className="rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-danger transition-colors hover:bg-danger/10"
+              className="rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-danger transition-colors hover:opacity-80"
             >
               Fshije
             </button>
@@ -975,7 +977,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           <button
             type="button"
             onClick={() => setFortModalOpen(false)}
-            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:opacity-80"
           >
             Anulo
           </button>
@@ -983,8 +985,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             type="button"
             onClick={saveFort}
             disabled={!fortDirty}
-            className="flex-1 rounded-xl px-4 py-3 text-[14px] font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-45"
-            style={{ background: fortDirty ? "#ff0000" : "#ff0000" }}
+            className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-bold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-45"
           >
             Ruaj
           </button>
