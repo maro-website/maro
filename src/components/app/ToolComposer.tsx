@@ -65,6 +65,15 @@ const IMG_ERRORS: Record<string, string> = {
   "no-key": "Çelësi i OpenAI nuk është konfiguruar në server ende.",
   unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
   "ai-failed": "Modeli nuk u përgjigj. Provo përsëri ose ndrysho përshkrimin.",
+  job_create_failed: "Gjenerimi dështoi në server. Provo përsëri pas pak sekondash.",
+  jobs_table_missing:
+    "Baza e të dhënave nuk është e konfiguruar plotësisht (generation_jobs). Kontakto support.",
+  jobs_db_permission: "Serveri nuk ka akses në bazën e të dhënave. Kontakto support.",
+  concurrency_limit: "Ke një gjenerim aktiv. Prit pak sekonda dhe provo sërish.",
+  platform_busy: "Platforma është e ngarkuar. Provo përsëri pas pak.",
+  rate_limited: "Shumë kërkesa shpejt. Prit pak dhe provo sërish.",
+  email_not_verified: "Verifiko email-in para se të gjenerosh.",
+  generation_paused: "Gjenerimi është pezulluar për llogarinë tënde.",
   empty: "Nuk u kthye asnjë imazh. Provo përsëri.",
   "bad-tool": "Tool i pavlefshëm.",
 };
@@ -1404,41 +1413,50 @@ function UserBubble({
   fort?: boolean;
   promptCode?: string;
 }) {
+  const hasText = Boolean(text?.trim());
+  const hasAttachments = Boolean(attachments?.length);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex flex-col items-end"
+      className="flex flex-col items-end gap-1.5"
     >
-      <div className="mb-1 flex items-center gap-1.5">
-        {promptCode && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
-            style={{ background: PROMPT_TEAL, color: "#04231b" }}
-          >
-            <Lightbulb className="h-3 w-3" /> maro Prompt
-          </span>
+      {(promptCode || fort) && (
+        <div className="flex items-center gap-1.5">
+          {promptCode && (
+            <span className="text-chat-prompt-badge inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide">
+              <Lightbulb className="h-3 w-3" /> maro Prompt
+            </span>
+          )}
+          {fort && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#ff0000] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide text-white">
+              <Sparkles className="h-3 w-3" /> maroFort
+            </span>
+          )}
+        </div>
+      )}
+      <div
+        className={cn(
+          "w-fit max-w-[min(100%,340px)] rounded-3xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed",
+          "bg-chat-user shadow-none"
         )}
-        {fort && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
-            style={{ background: "#ff0000" }}
-          >
-            <Sparkles className="h-3 w-3" /> maroFort
-          </span>
-        )}
-      </div>
-      <div className="max-w-[80%] rounded-3xl rounded-br-lg bg-brand px-4 py-2.5 text-[15px] leading-relaxed text-brand-fg">
-        {attachments && attachments.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {attachments.map((src, i) => (
+      >
+        {hasAttachments && (
+          <div className={cn("flex flex-wrap gap-2", hasText && "mb-2.5")}>
+            {attachments!.map((src, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={src} alt="" className="h-14 w-14 rounded-lg object-cover" />
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className="max-h-44 max-w-full rounded-xl object-cover"
+              />
             ))}
           </div>
         )}
-        {text && <p className="whitespace-pre-wrap">{text}</p>}
+        {hasText && <p className="whitespace-pre-wrap">{text}</p>}
       </div>
     </motion.div>
   );
@@ -1466,12 +1484,12 @@ function MaroBubble({
       </span>
       <div className="min-w-0 max-w-[80%]">
         {message.status === "thinking" && (
-          <div className="rounded-3xl rounded-tl-lg bg-surface px-4 py-4">
+          <div className="rounded-3xl rounded-tl-lg bg-chat-maro px-4 py-4">
             <GenerationLoader variant="image" title={toolName} />
           </div>
         )}
         {message.status === "error" && (
-          <div className="rounded-3xl rounded-tl-lg border border-danger/40 bg-danger/5 px-4 py-3 text-[14px] text-danger">
+          <div className="rounded-3xl rounded-tl-lg bg-chat-maro px-4 py-3 text-[14px] leading-relaxed text-danger">
             {message.error || "Gabim gjenerimi."}
           </div>
         )}

@@ -99,6 +99,12 @@
 
   --hub-tool: #00392a;
   --hub-tool-sub: #00392a;
+
+  --chat-user-bg: #ffffff;
+  --chat-user-fg: #00392a;
+  --chat-user-border: #d7d7d7;
+  --chat-maro-bg: #ffffff;
+  --chat-maro-border: #d7d7d7;
 }
 
 /* ---- Mshelt (dark) — #111111 #0A0A0A #262626 #D7D7D7 #00FDBA #00392A ---- */
@@ -152,6 +158,12 @@
 
   --hub-tool: #ffffff;
   --hub-tool-sub: #d7d7d7;
+
+  --chat-user-bg: #00392a;
+  --chat-user-fg: #ffffff;
+  --chat-user-border: transparent;
+  --chat-maro-bg: #262626;
+  --chat-maro-border: transparent;
 }
 
 /* Smoothly cross-fade colors when switching themes. */
@@ -278,6 +290,20 @@ body {
 }
 .text-hub-tool-sub {
   color: var(--hub-tool-sub);
+}
+
+.bg-chat-user {
+  background-color: var(--chat-user-bg);
+  color: var(--chat-user-fg);
+  border: 1px solid var(--chat-user-border);
+}
+.bg-chat-maro {
+  background-color: var(--chat-maro-bg);
+  border: 1px solid var(--chat-maro-border);
+}
+.text-chat-prompt-badge {
+  background-color: var(--generate-bg);
+  color: var(--generate-fg);
 }
 
 /* Tool card icon tones — #00392A in light, white in dark, #D7D7D7 locked */

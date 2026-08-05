@@ -10,6 +10,7 @@ import { getPromptMaxChars, MAX_REFERENCE_IMAGES } from "@/lib/generation/limits
 import {
   countActiveJobs,
   createJob,
+  cleanupStaleJobs,
   findJobByIdempotency,
   updateJob,
   type GenerationJob,
@@ -165,6 +166,8 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       ? (limits.maxConcurrentFort ?? 3)
       : (limits.maxConcurrentFree ?? 1);
 
+    await cleanupStaleJobs(user.id);
+
     const active = await countActiveJobs(user.id);
     if (active >= maxConcurrent) {
       throw new GenerationGuardError(429, "concurrency_limit", undefined, {
@@ -200,19 +203,20 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     }
   }
 
-  const job =
-    (await createJob({
-      user_id: user.id,
-      module,
-      model,
-      idempotency_key: idempotencyKey,
-      priority: isFort ? 10 : 0,
-      metadata: metadata ?? {},
-    })) ?? null;
+  const created = await createJob({
+    user_id: user.id,
+    module,
+    model,
+    idempotency_key: idempotencyKey,
+    priority: isFort ? 10 : 0,
+    metadata: metadata ?? {},
+  });
 
-  if (!job) {
-    throw new GenerationGuardError(500, "job_create_failed");
+  if (!created.ok) {
+    throw new GenerationGuardError(500, created.code, created.detail);
   }
+
+  const job = created.job;
 
   if (!skipBilling && cost > 0) {
     const available = profile.credits;
