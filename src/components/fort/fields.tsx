@@ -4,7 +4,7 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { FortFieldSchema, FortValue } from "@/lib/fort/types";
-import { FORT_FIELD_PLACEHOLDER } from "./FortInfoHint";
+import { fortFieldPlaceholder } from "./FortInfoHint";
 
 // ---------------------------------------------------------------------------
 // Pill (single) select
@@ -138,7 +138,7 @@ export function FortTextInput({
     <input
       type="text"
       value={value ?? ""}
-      placeholder={FORT_FIELD_PLACEHOLDER}
+      placeholder={fortFieldPlaceholder(field)}
       onChange={(e) => onChange(e.target.value)}
       className="w-full rounded-xl bg-surface-2 px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:bg-surface focus:ring-2 focus:ring-ink/10"
     />
@@ -157,7 +157,7 @@ export function FortTextarea({
   return (
     <textarea
       value={value ?? ""}
-      placeholder={FORT_FIELD_PLACEHOLDER}
+      placeholder={fortFieldPlaceholder(field)}
       rows={3}
       onChange={(e) => onChange(e.target.value)}
       className="w-full resize-none rounded-xl bg-surface-2 px-3 py-2 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:bg-surface focus:ring-2 focus:ring-ink/10"

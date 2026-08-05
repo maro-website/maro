@@ -4,7 +4,11 @@ import { Info } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { FortFieldSchema } from "@/lib/fort/types";
 
-export const FORT_FIELD_PLACEHOLDER = "Përshkruaj çka po don me maro…";
+export function fortFieldPlaceholder(field: FortFieldSchema): string {
+  const label = field.label?.trim();
+  if (!label) return "Shkruje…";
+  return `Shkruje ${label}`;
+}
 
 /** Hint for the info icon: description + example placeholder (not shown in the input). */
 export function fieldInfoHint(field: FortFieldSchema): string | undefined {

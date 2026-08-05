@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/dashboard/AuthGate";
-import { AppHeader } from "@/components/dashboard/AppHeader";
+import { AppShell } from "@/components/app/AppShell";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
@@ -53,9 +53,8 @@ function AccountInner() {
   };
 
   return (
-    <div className="min-h-screen">
-      <AppHeader />
-      <main className="mx-auto max-w-3xl px-5 py-10">
+    <AppShell showFooter>
+      <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:py-10">
         <h1 className="text-[30px] font-light tracking-[-0.02em] text-ink">Llogaria</h1>
 
         {/* Hero: avatar + identity + stat chips, with a soft brand wash */}
@@ -171,7 +170,7 @@ function AccountInner() {
         <PreferencesSection />
         <SecuritySection />
         <DangerZone />
-      </main>
+      </div>
 
       <AvatarCropper
         src={cropSrc}
@@ -180,7 +179,7 @@ function AccountInner() {
         onCancel={() => setCropSrc(null)}
         onConfirm={saveCrop}
       />
-    </div>
+    </AppShell>
   );
 }
 

@@ -1,18 +1,35 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import { WorkspaceTopBar } from "@/components/app/WorkspaceTopBar";
 import { AppFooter } from "@/components/app/AppFooter";
 import { MaroIcon } from "@/components/app/OptionIcon";
+import { MAIN_TOOLS } from "@/lib/tools/registry";
 import { cn } from "@/lib/utils/cn";
 
 const COLLAPSE_KEY = "maro.sidebar.collapsed";
+const TOOL_ROUTES = new Set(MAIN_TOOLS.map((t) => t.route));
 
-export function AppShell({ children, hideFooter }: { children: React.ReactNode; hideFooter?: boolean }) {
+export function AppShell({
+  children,
+  hideFooter,
+  showFooter,
+}: {
+  children: React.ReactNode;
+  /** Force-hide footer (tool workspace, etc.). */
+  hideFooter?: boolean;
+  /** Force-show footer at scroll end (desktop only). */
+  showFooter?: boolean;
+}) {
+  const pathname = usePathname();
   const [drawer, setDrawer] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
+
+  const isToolPage = TOOL_ROUTES.has(pathname);
+  const footerVisible = showFooter ?? (!hideFooter && !isToolPage);
 
   React.useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
@@ -61,9 +78,14 @@ export function AppShell({ children, hideFooter }: { children: React.ReactNode; 
             <WorkspaceTopBar />
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto">{children}</div>
-
-          {!hideFooter && <AppFooter />}
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto">
+            <div className="flex min-h-full flex-col">
+              {children}
+              {footerVisible && (
+                <AppFooter className="mt-auto hidden shrink-0 pt-8 lg:flex" />
+              )}
+            </div>
+          </div>
         </main>
       </div>
     </div>

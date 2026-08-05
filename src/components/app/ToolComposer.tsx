@@ -556,7 +556,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       ? "Prompte gati për t'u përdorur. Së shpejti…"
       : isAudio
       ? audioPlaceholder
-      : "Shkruje…";
+      : `Menoje edhe shkruje cka po don, ${tool.name} ta bon.`;
 
   // Whole-page drag & drop for image tools: dropping anywhere attaches images.
   const dndEnabled = isImage && functional;
