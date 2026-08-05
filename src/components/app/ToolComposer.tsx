@@ -33,6 +33,7 @@ import {
   getTool,
   toolSelectionCost,
   visibleSettings,
+  MAIN_TOOLS,
   type ToolDef,
   type ToolSelections,
   type ToolSetting,
@@ -649,10 +650,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — width grows with toolbar so controls stay on one row */}
+      {/* Docked prompt box — full width, aligns with canvas edges */}
       <div className="shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="flex w-full justify-center px-4 py-4 sm:px-6 sm:py-5">
-          <div className="w-full max-w-[920px]">
+        <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
+          <div className="w-full">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -755,105 +756,113 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="grid w-full grid-cols-1 rounded-[28px] bg-prompt-dock p-3 ring-1 ring-line/70">
-            {needsPrompt ? (
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
-                }}
-                onPaste={onPasteImages}
-                rows={2}
-                placeholder={placeholder}
-                className="relative block max-h-56 min-h-[88px] w-full resize-none rounded-2xl bg-transparent px-4 pt-3 text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
-              />
-            ) : (
-              <div className="flex min-h-[88px] items-center px-4 pt-1 text-[17px] text-ink-3">
-                {audioInput ? "Audio gati. Kliko gjenero." : audioPlaceholder}
-              </div>
-            )}
-
-            <div className="flex max-w-full flex-nowrap items-center gap-2.5 overflow-x-auto scroll-thin px-2 pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex flex-nowrap items-center gap-2.5">
-              <span className="inline-flex shrink-0 items-center gap-2 rounded-2xl border-2 border-accent-teal bg-accent-teal-soft px-4 py-2.5 text-[15px] font-bold text-accent-teal">
-                <ToolIcon toolId={tool.id} fallback={tool.icon} className="h-5 w-5" />
-                {tool.name}
-              </span>
-              {isImage && (
-                <>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      addFiles(e.target.files);
-                      e.target.value = "";
-                    }}
-                  />
-                  <IconBtn
-                    onClick={() => fileRef.current?.click()}
-                    disabled={attachments.length >= MAX_ATTACHMENTS}
-                    label="Bashkëngjit imazh"
-                  >
-                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
-                  </IconBtn>
-                </>
-              )}
-              {isAudio && needsAudioInput && (
-                <>
-                  <input
-                    ref={audioFileRef}
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      pickAudio(e.target.files);
-                      e.target.value = "";
-                    }}
-                  />
-                  <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
-                    <Mic className="h-4 w-4" />
-                  </IconBtn>
-                </>
+          <div className="w-full rounded-[28px] bg-prompt-dock ring-1 ring-line/70">
+            {/* Text row — 30px left padding, expand top-right */}
+            <div className="relative">
+              {needsPrompt ? (
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
+                  }}
+                  onPaste={onPasteImages}
+                  rows={2}
+                  placeholder={placeholder}
+                  className="relative block max-h-56 min-h-[72px] w-full resize-none bg-transparent pl-[30px] pr-14 pt-[24px] text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+                />
+              ) : (
+                <div className="flex min-h-[72px] items-center pl-[30px] pr-14 pt-[24px] text-[17px] text-ink-3">
+                  {audioInput ? "Audio gati. Kliko gjenero." : audioPlaceholder}
+                </div>
               )}
               {needsPrompt && (
-                <IconBtn onClick={() => setExpanded(true)} label="Zgjero promptin">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                  aria-label="Zgjero promptin"
+                >
                   <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
-                </IconBtn>
+                </button>
               )}
-              {shownSettings.map((s) =>
-                s.toggle ? (
-                  <ToggleSetting
-                    key={s.id}
-                    setting={s}
-                    value={selections[s.id] ?? s.default}
-                    onChange={(optId) => setOption(s.id, optId)}
-                  />
-                ) : (
-                  <SettingSelect
-                    key={s.id}
-                    toolId={tool.id}
-                    setting={s}
-                    value={selections[s.id] ?? s.default}
-                    optionIcons={toolOptionIcons}
-                    onChange={(optId, opt) => {
-                      if (opt.confirm) {
-                        setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
-                      } else {
-                        setOption(s.id, optId);
-                      }
-                    }}
-                  />
-                )
-              )}
+            </div>
+
+            {/* Toolbar row — 35px left padding, 50px gap before credits+maro */}
+            <div className="flex items-center gap-3 pb-[24px] pl-[30px] pr-[30px] pt-2">
+              <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2.5 overflow-x-auto scroll-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {isImage && (
+                  <>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        addFiles(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                    <IconBtn
+                      onClick={() => fileRef.current?.click()}
+                      disabled={attachments.length >= MAX_ATTACHMENTS}
+                      label="Bashkëngjit imazh"
+                    >
+                      <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
+                    </IconBtn>
+                  </>
+                )}
+                {isAudio && needsAudioInput && (
+                  <>
+                    <input
+                      ref={audioFileRef}
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        pickAudio(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                    <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
+                      <Mic className="h-5 w-5" />
+                    </IconBtn>
+                  </>
+                )}
+
+                <ToolSwitcher currentId={tool.id} onNavigate={(route) => router.push(route)} />
+
+                {shownSettings.map((s) =>
+                  s.toggle ? (
+                    <ToggleSetting
+                      key={s.id}
+                      setting={s}
+                      value={selections[s.id] ?? s.default}
+                      onChange={(optId) => setOption(s.id, optId)}
+                    />
+                  ) : (
+                    <SettingSelect
+                      key={s.id}
+                      toolId={tool.id}
+                      setting={s}
+                      value={selections[s.id] ?? s.default}
+                      optionIcons={toolOptionIcons}
+                      onChange={(optId, opt) => {
+                        if (opt.confirm) {
+                          setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
+                        } else {
+                          setOption(s.id, optId);
+                        }
+                      }}
+                    />
+                  )
+                )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-3 pl-[50px]">
                 {functional && (
-                  <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-surface-2 px-4 py-2.5 text-[15px] font-semibold text-ink-2">
+                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-surface-2 px-4 text-[14.5px] font-semibold text-ink-2">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
                     {cost} kredite
                   </span>
@@ -863,7 +872,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-12 min-w-[48px] shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-[16px] font-bold transition-all",
+                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all",
                     functional && canGenerate && !loading
                       ? "bg-generate text-generate-fg hover:opacity-90"
                       : "cursor-not-allowed bg-line-strong text-ink-3"
@@ -1049,6 +1058,84 @@ function IconBtn({
   );
 }
 
+// ---- Tool switcher pill (135px, green) — navigates between tools ----
+function ToolSwitcher({
+  currentId,
+  onNavigate,
+}: {
+  currentId: string;
+  onNavigate: (route: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const current = getTool(currentId);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  if (!current) return null;
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-11 w-[135px] items-center gap-2 rounded-xl bg-card-active px-3 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90"
+      >
+        <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left">{current.name}</span>
+        <ChevronDown className="h-4 w-4 shrink-0" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="absolute bottom-[calc(100%+8px)] left-0 z-50 w-64 overflow-hidden rounded-2xl bg-surface p-1.5 ring-1 ring-line"
+          >
+            <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
+            {MAIN_TOOLS.map((t) => {
+              const locked = !t.functional;
+              const active = t.id === currentId;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => {
+                    if (locked) return;
+                    onNavigate(t.route);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
+                    locked ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
+                  )}
+                >
+                  <ToolIcon toolId={t.id} fallback={t.icon} className="h-5 w-5 shrink-0" />
+                  <span className={cn("flex-1 text-[14px] font-semibold", active ? "text-accent-teal" : "text-ink")}>
+                    {t.name}
+                  </span>
+                  {locked && <Lock className="h-3.5 w-3.5 text-ink-3" />}
+                  {active && !locked && <Check className="h-4 w-4 text-accent-teal" />}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ---- Toggle setting (renders a Switch; second option id == "on") ----
 function ToggleSetting({
   setting,
@@ -1064,9 +1151,9 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="flex shrink-0 items-center gap-2.5 rounded-2xl bg-surface-2 px-3 py-2">
+    <div className="flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-surface-2 px-3.5">
       <Icon className="h-5 w-5 shrink-0 text-ink-3" />
-      <span className="hidden truncate text-[15px] font-semibold text-ink sm:inline">{setting.label}</span>
+      <span className="hidden truncate text-[14.5px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}

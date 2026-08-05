@@ -65,7 +65,7 @@ export function NotificationBell() {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-12 w-12 place-items-center rounded-2xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+        className="relative grid h-10 w-10 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
         aria-label="Njoftime"
         title="Njoftime"
       >

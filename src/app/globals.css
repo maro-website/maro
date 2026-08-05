@@ -36,19 +36,19 @@
 
   /* Figma brand + UI scale */
   --accent-teal: #00fdba;
-  --accent-teal-soft: rgba(0, 253, 186, 0.1);
+  --accent-teal-soft: rgba(0, 253, 186, 0.12);
   --accent-teal-border: rgba(0, 253, 186, 0.55);
-  --accent-teal-active: #0a221c;
-  --sidebar-width: 300px;
+  --sidebar-width: 220px;
   --sidebar-card: #161616;
-  --prompt-dock: #0a0a0a;
+  --prompt-dock: #141414;
   --generate-bg: #00fdba;
-  --generate-fg: #000000;
-  --ui-btn-h: 48px;
-  --ui-btn-h-lg: 52px;
-  --ui-icon-sm: 20px;
-  --ui-icon-md: 22px;
-  --ui-icon-lg: 32px;
+  --generate-fg: #003528;
+  --card-active-bg: #00392a;
+  --card-active-fg: #ffffff;
+  --card-idle-bg: #161616;
+  --card-idle-fg: #ffffff;
+  --card-locked-fg: #888888;
+  --ui-btn-h: 44px;
   --ui-radius-card: 16px;
   --ui-radius-dock: 28px;
 }
@@ -86,9 +86,14 @@
   --dim: rgba(15, 20, 25, 0.45);
   --on-scrim: #ffffff;
 
-  --sidebar-card: #f0f6ff;
-  --generate-bg: var(--brand);
-  --generate-fg: var(--brand-fg);
+  --sidebar-card: #ffffff;
+  --generate-bg: #00fdba;
+  --generate-fg: #003528;
+  --card-active-bg: #d8f6ed;
+  --card-active-fg: #013b2b;
+  --card-idle-bg: #ffffff;
+  --card-idle-fg: #0f1419;
+  --card-locked-fg: #5a677a;
 }
 [data-theme="mshelt"] {
   --brand: #ffffff;
@@ -122,9 +127,13 @@
   --on-scrim: #ffffff;
 
   --sidebar-card: #161616;
-  --accent-teal-active: #0a221c;
   --generate-bg: #00fdba;
-  --generate-fg: #000000;
+  --generate-fg: #003528;
+  --card-active-bg: #00392a;
+  --card-active-fg: #ffffff;
+  --card-idle-bg: #161616;
+  --card-idle-fg: #ffffff;
+  --card-locked-fg: #888888;
 }
 
 /* Smoothly cross-fade colors when switching themes. */
@@ -225,8 +234,12 @@ body {
   color: var(--generate-fg);
 }
 
-.bg-teal-active {
-  background-color: var(--accent-teal-active);
+.bg-card-active {
+  background-color: var(--card-active-bg);
+  color: var(--card-active-fg);
+}
+.bg-card-idle {
+  background-color: var(--card-idle-bg);
 }
 
 .maro-pill {
@@ -234,9 +247,9 @@ body {
   align-items: center;
   gap: 0.5rem;
   height: var(--ui-btn-h);
-  padding-inline: 1rem;
-  border-radius: var(--ui-radius-card);
-  font-size: 15px;
+  padding-inline: 0.875rem;
+  border-radius: 12px;
+  font-size: 14.5px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -247,7 +260,7 @@ body {
   width: var(--ui-btn-h);
   height: var(--ui-btn-h);
   min-width: var(--ui-btn-h);
-  border-radius: var(--ui-radius-card);
+  border-radius: 12px;
   flex-shrink: 0;
 }
 

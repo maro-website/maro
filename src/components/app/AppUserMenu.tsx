@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Camera, Moon, Shield, Star, Sun, User as UserIcon } from "lucide-react";
+import { Bookmark, Camera, Moon, Shield, SlidersHorizontal, Star, Sun, User as UserIcon } from "lucide-react";
 
 const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
   { id: "qelt", label: "Qelt", icon: Sun },
@@ -46,7 +46,7 @@ function Avatar({
 
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
-  const { user, isAdmin, isCreator, signOut, updateAvatar } = useMaro();
+  const { user, isAdmin, signOut, updateAvatar } = useMaro();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
@@ -104,10 +104,10 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="grid h-12 w-12 place-items-center rounded-full transition-opacity hover:opacity-90"
+        className="grid h-11 w-11 place-items-center rounded-full transition-opacity hover:opacity-90"
         aria-label="Llogaria"
       >
-        <Avatar user={user} className="h-11 w-11 text-[15px]" />
+        <Avatar user={user} className="h-10 w-10 text-[14px]" />
       </button>
 
       <AnimatePresence>
@@ -117,11 +117,12 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface-2 p-3 shadow-xl"
+            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface-2 px-[20px] py-[20px] shadow-xl"
           >
-            <div className="flex items-center gap-3 px-1 py-2">
+            {/* User header */}
+            <div className="flex items-center gap-3">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
-                <Avatar user={user} className="h-12 w-12 text-[16px]" />
+                <Avatar user={user} className="h-11 w-11 text-[15px]" />
                 <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
                   {uploading ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
@@ -136,36 +137,39 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             </div>
 
-            <div className="mt-2 flex flex-col gap-1">
+            {/* Group 1 */}
+            <div className="mt-[20px] flex flex-col">
               <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
-              <MenuRow icon="settings" fallback={UserIcon} label="Cilësimet" onClick={() => go("/account")} />
-              <MenuRow icon="save" fallback={Star} label="T'trujtuna" onClick={() => go("/favourites")} />
-              {isCreator && (
-                <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
-              )}
+              <MenuRow icon="settings" fallback={SlidersHorizontal} label="Cilesimet" onClick={() => go("/account")} />
             </div>
 
-            <div className="mt-3 px-1">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Pamja</div>
-              <div className="grid grid-cols-2 gap-2">
-                {THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTheme(t.id)}
-                    className={cn(
-                      "flex h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold",
-                      theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-surface text-ink-2 hover:bg-line"
-                    )}
-                  >
-                    <t.icon className="h-4 w-4" />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+            <div className="my-[16px] h-px bg-line" />
+
+            {/* Group 2 */}
+            <div className="flex flex-col">
+              <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
+              <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
+            </div>
+
+            {/* Theme toggle (compact) */}
+            <div className="mt-[16px] grid grid-cols-2 gap-2">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  className={cn(
+                    "flex h-10 items-center justify-center gap-2 rounded-xl text-[13px] font-semibold transition-colors",
+                    theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-surface text-ink-2 hover:bg-line"
+                  )}
+                >
+                  <t.icon className="h-4 w-4" />
+                  {t.label}
+                </button>
+              ))}
             </div>
 
             <button
@@ -174,7 +178,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                 await signOut();
                 go("/");
               }}
-              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#ff0000] text-[16px] font-bold text-white transition-opacity hover:opacity-90"
+              className="mt-[20px] flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#ff0000] text-[16px] font-bold text-white transition-opacity hover:opacity-90"
             >
               <MaroIcon name="logout" className="h-5 w-5" />
               Dil

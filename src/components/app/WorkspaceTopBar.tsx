@@ -19,10 +19,10 @@ export function WorkspaceTopBar() {
   }
 
   return (
-    <div className="flex shrink-0 items-center justify-end gap-3 px-6 py-5">
+    <div className="flex shrink-0 items-center justify-end gap-2.5 px-6 py-4">
       <Link
         href="/credits"
-        className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-surface-2 px-5 text-[16px] font-semibold text-ink transition-colors hover:bg-line"
+        className="inline-flex h-11 items-center gap-2 rounded-full bg-surface-2 px-4 text-[15px] font-semibold text-ink transition-colors hover:bg-line"
       >
         <MaroIcon name="coins" fallback={Coins} className="h-5 w-5" />
         <span>{credits}</span>
@@ -30,7 +30,7 @@ export function WorkspaceTopBar() {
       </Link>
       <Link
         href="/credits"
-        className="maro-icon-btn bg-accent-teal text-generate-fg transition-opacity hover:opacity-90"
+        className="grid h-11 w-11 place-items-center rounded-xl bg-accent-teal text-generate-fg transition-opacity hover:opacity-90"
         aria-label="Shto kredite"
       >
         <MaroIcon name="wallet" className="h-5 w-5" />

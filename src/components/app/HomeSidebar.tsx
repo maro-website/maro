@@ -21,17 +21,17 @@ export function HomeSidebar({
   return (
     <div className="flex h-full flex-col bg-surface">
       {showHeader && (
-        <div className="flex items-center justify-between px-5 pb-2 pt-5">
+        <div className="flex items-center justify-between px-[20px] pb-[12px] pt-[20px]">
           <Link href="/" className="flex items-center" onClick={onNavigate}>
-            <Logo showWord wordClassName="h-8 w-auto" />
+            <Logo showWord wordClassName="h-7 w-auto" />
           </Link>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <NotificationBell />
             {onCollapse && (
               <button
                 type="button"
                 onClick={onCollapse}
-                className="maro-icon-btn text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
                 aria-label="Mbyll sidebar"
                 title="Mbyll sidebar"
               >
@@ -42,7 +42,7 @@ export function HomeSidebar({
               <button
                 type="button"
                 onClick={onNavigate}
-                className="maro-icon-btn text-ink-3 hover:bg-surface-2 lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 hover:bg-surface-2 lg:hidden"
                 aria-label="Mbyll"
               >
                 <X className="h-6 w-6" />

@@ -8,14 +8,11 @@ import { MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
 import { cn } from "@/lib/utils/cn";
 import { Lock, Lightbulb } from "lucide-react";
 
-type GridTool = ToolDef | { id: "plan"; name: string; functional: false; icon: typeof Lightbulb; route?: never };
+type GridTool =
+  | ToolDef
+  | { id: "plan"; name: string; functional: false; icon: typeof Lightbulb; route?: undefined };
 
-const LOCKED_PLAN: GridTool = {
-  id: "plan",
-  name: "maro Plan",
-  functional: false,
-  icon: Lightbulb,
-};
+const LOCKED_PLAN: GridTool = { id: "plan", name: "maro Plan", functional: false, icon: Lightbulb };
 
 export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
@@ -29,20 +26,21 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
   const gridTools: GridTool[] = [...MAIN_TOOLS, LOCKED_PLAN];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
+    <div className="flex min-h-0 flex-1 flex-col px-[20px] pb-[20px]">
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-        <div className="grid grid-cols-2 gap-3">
+        {/* Tool grid — 2 columns, 10px gap */}
+        <div className="grid grid-cols-2 gap-[10px]">
           {gridTools.map((tool) => {
-            const isLocked = tool.id === "plan" || !tool.functional;
-            const active = !isLocked && "route" in tool && pathname === tool.route;
+            const locked = tool.id === "plan" || tool.functional === false;
+            const active = !locked && "route" in tool && pathname === tool.route;
             return (
               <ToolGridCard
                 key={tool.id}
                 tool={tool}
                 active={Boolean(active)}
-                locked={isLocked}
+                locked={locked}
                 onClick={() => {
-                  if (isLocked || !("route" in tool)) return;
+                  if (locked || !("route" in tool) || !tool.route) return;
                   go(tool.route);
                 }}
               />
@@ -50,54 +48,37 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
           })}
         </div>
 
-        <div className="mt-5 flex flex-col gap-2">
+        {/* maro Prompts (teal) + Çka ke maru */}
+        <div className="mt-[20px] flex flex-col gap-[10px]">
           <button
             type="button"
             onClick={() => go("/prompts")}
             className={cn(
-              "flex h-[52px] w-full items-center justify-center gap-2.5 rounded-2xl border-2 text-[16px] font-bold transition-colors",
+              "flex h-[52px] w-full items-center gap-2.5 rounded-2xl px-4 text-left text-[15px] font-bold transition-colors",
               pathname === "/prompts"
-                ? "border-accent-teal bg-accent-teal-soft text-accent-teal"
-                : "border-accent-teal text-accent-teal hover:bg-accent-teal-soft"
+                ? "bg-accent-teal-soft text-accent-teal"
+                : "bg-card-idle text-accent-teal hover:bg-surface-2"
             )}
           >
-            <MaroIcon name="prompts" className="h-5 w-5" />
+            <MaroIcon name="prompts" className="h-[25px] w-[25px]" />
             maro Prompts
           </button>
           <button
             type="button"
             onClick={() => go("/krijimet")}
             className={cn(
-              "flex h-[52px] w-full items-center gap-3 rounded-2xl bg-sidebar-card px-4 text-left text-[16px] font-semibold transition-colors hover:bg-surface-2",
-              pathname === "/krijimet" ? "text-ink ring-1 ring-line" : "text-ink-2"
+              "flex h-[52px] w-full items-center gap-2.5 rounded-2xl px-4 text-left text-[15px] font-semibold transition-colors",
+              pathname === "/krijimet" ? "bg-surface-2 text-ink" : "bg-card-idle text-ink-2 hover:bg-surface-2"
             )}
           >
-            <MaroIcon name="history" className="h-5 w-5 shrink-0" />
+            <MaroIcon name="history" className="h-[25px] w-[25px] shrink-0" />
             Çka ke maru
           </button>
         </div>
       </div>
 
-      <Link
-        href="/credits#fort"
-        onClick={onNavigate}
-        className="relative mt-4 flex min-h-[88px] items-end overflow-hidden rounded-2xl bg-sidebar-card p-4 transition-opacity hover:opacity-95"
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            background:
-              "radial-gradient(circle at 20% 30%, #3b17ff 0%, transparent 50%), radial-gradient(circle at 80% 70%, #00fdba 0%, transparent 45%), radial-gradient(circle at 50% 50%, #ff0000 0%, transparent 40%)",
-          }}
-        />
-        <div className="relative flex w-full items-center justify-between gap-2">
-          <div>
-            <span className="block text-[17px] font-extrabold text-ink">maroFort</span>
-            <span className="block text-[13px] text-ink-3">Modaliteti ekspert</span>
-          </div>
-          <MaroIcon name="maroFort" className="h-10 w-10 shrink-0" />
-        </div>
-      </Link>
+      {/* maroFort banner — 985x470 upload + link */}
+      <MaroFortBanner onNavigate={onNavigate} />
     </div>
   );
 }
@@ -114,7 +95,8 @@ function ToolGridCard({
   onClick: () => void;
 }) {
   const Icon = tool.icon;
-  const available = !locked;
+  const [first, ...rest] = tool.name.split(" ");
+  const restLabel = rest.join(" ");
 
   return (
     <button
@@ -122,29 +104,55 @@ function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex min-h-[120px] flex-col justify-between rounded-2xl p-4 text-left transition-colors",
-        available
-          ? "bg-teal-active text-ink ring-1 ring-accent-teal/30 hover:ring-accent-teal/50"
-          : "cursor-default bg-sidebar-card text-ink-3",
-        active && available && "ring-2 ring-accent-teal"
+        "relative flex min-h-[104px] flex-col justify-between gap-3 rounded-2xl p-[18px] text-left transition-colors",
+        active
+          ? "bg-card-active ring-2 ring-accent-teal"
+          : locked
+          ? "cursor-default bg-card-idle"
+          : "bg-card-active hover:ring-1 hover:ring-accent-teal/40"
       )}
+      style={{ color: locked ? "var(--card-locked-fg)" : "var(--card-active-fg)" }}
     >
       <span className="flex w-full items-start justify-between">
-        {tool.id !== "plan" ? (
-          <ToolIcon toolId={tool.id} fallback={Icon} className="h-8 w-8" />
+        {tool.id === "plan" ? (
+          <Lightbulb className="h-[25px] w-[25px] opacity-70" />
         ) : (
-          <MaroIcon name="prompts" fallback={Lightbulb} className="h-8 w-8 opacity-50" />
+          <ToolIcon toolId={tool.id} fallback={Icon} className="h-[25px] w-[25px]" />
         )}
-        {locked && (
-          <MaroIcon name="lock" fallback={Lock} className="h-5 w-5 opacity-60" />
-        )}
+        {locked && <MaroIcon name="lock" fallback={Lock} className="h-[18px] w-[18px] opacity-70" />}
       </span>
-      <span>
-        <span className="block text-[15px] font-bold leading-tight">{tool.name}</span>
-        {locked && (
-          <span className="mt-0.5 block text-[12px] font-medium text-ink-3">së shpejti</span>
-        )}
+      <span className="leading-tight">
+        <span className="block text-[16px] font-normal opacity-80">{first}</span>
+        {restLabel && <span className="block text-[16px] font-bold">{restLabel}</span>}
+        {locked && <span className="mt-1 block text-[12px] font-medium opacity-70">së shpejti</span>}
       </span>
     </button>
+  );
+}
+
+function MaroFortBanner({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <Link
+      href="/credits#fort"
+      onClick={onNavigate}
+      className="relative mt-[20px] block aspect-[985/470] w-full overflow-hidden rounded-2xl"
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 15% 25%, #3b17ff 0%, transparent 45%), radial-gradient(circle at 85% 30%, #00fdba 0%, transparent 40%), radial-gradient(circle at 60% 85%, #ff0000 0%, transparent 45%), #0a0a0a",
+        }}
+      />
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="inline-flex items-center gap-2 rounded-full bg-white py-1 pl-3.5 pr-1.5">
+          <span className="text-[15px] font-extrabold tracking-tight text-black">maroFort</span>
+          <span className="relative h-6 w-11 rounded-full bg-[#ff0000]">
+            <span className="absolute right-0.5 top-0.5 h-5 w-5 rounded-full bg-white" />
+          </span>
+          <span className="pr-1 text-[13px] font-bold text-black">Falas</span>
+        </div>
+      </div>
+    </Link>
   );
 }
