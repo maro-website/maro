@@ -89,6 +89,7 @@
   --dock-btn: #f8f8f8;
   --dock-tool-btn: #d4fff4;
   --dock-tool-fg: #111111;
+  --dock-muted: #818181;
   --generate-bg: #00fdba;
   --generate-fg: #00392a;
   --menu-bg: #ffffff;
@@ -108,12 +109,13 @@
 
   --card-active-bg: #d4fff4;
   --card-active-fg: #111111;
-  --card-idle-bg: #ffffff;
+  --card-idle-bg: #d4fff4;
   --card-idle-fg: #111111;
-  --card-idle-border: #d7d7d7;
-  --card-hover-bg: #f8f8f8;
+  --card-idle-border: transparent;
+  --card-hover-bg: #c8f5eb;
   --card-locked-bg: #f8f8f8;
   --card-locked-fg: #d7d7d7;
+  --card-active-ring: #00fdba;
 
   --hub-tool: #111111;
   --hub-tool-sub: #111111;
@@ -166,6 +168,7 @@
   --dock-btn: #262626;
   --dock-tool-btn: #00392a;
   --dock-tool-fg: #ffffff;
+  --dock-muted: #818181;
   --generate-bg: #00fdba;
   --generate-fg: #00392a;
   --menu-bg: #262626;
@@ -192,6 +195,7 @@
   --card-hover-bg: #004532;
   --card-locked-bg: #262626;
   --card-locked-fg: #d7d7d7;
+  --card-active-ring: #00fdba;
 
   --hub-tool: #ffffff;
   --hub-tool-sub: #d7d7d7;
@@ -309,6 +313,12 @@ body {
   background-color: var(--card-active-bg);
   color: var(--card-active-fg);
   border: 1px solid transparent;
+}
+.ring-card-active {
+  box-shadow: inset 0 0 0 2px var(--card-active-ring);
+}
+.text-dock-muted {
+  color: var(--dock-muted);
 }
 .bg-card-locked {
   background-color: var(--card-locked-bg);

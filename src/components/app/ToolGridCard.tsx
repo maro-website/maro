@@ -35,9 +35,7 @@ export function ToolGridCard({
         "relative flex aspect-square w-full flex-col justify-between rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
         locked
           ? "cursor-default bg-card-locked"
-          : active
-          ? "bg-card-active bg-card-hover"
-          : "bg-card-idle bg-card-hover"
+          : cn("bg-card-active bg-card-hover", active && "ring-card-active")
       )}
     >
       <span className="flex w-full items-start justify-between">
@@ -45,17 +43,14 @@ export function ToolGridCard({
           <Lightbulb
             className={cn(
               "h-[28px] w-[28px]",
-              locked ? "icon-tone-locked" : active ? "icon-tone-active" : "icon-tone-idle"
+              locked ? "icon-tone-locked" : "icon-tone-active"
             )}
           />
         ) : (
           <ToolIcon
             toolId={tool.id}
             fallback={Icon}
-            className={cn(
-              "h-[28px] w-[28px]",
-              locked ? "icon-tone-locked" : active ? "icon-tone-active" : "icon-tone-idle"
-            )}
+            className={cn("h-[28px] w-[28px]", locked ? "icon-tone-locked" : "icon-tone-active")}
           />
         )}
         {locked && (
@@ -66,7 +61,7 @@ export function ToolGridCard({
         <span
           className={cn(
             "block truncate text-[16px] font-normal",
-            locked ? "text-card-locked-fg" : active ? "text-card-active-fg opacity-80" : "text-card-idle-fg opacity-80"
+            locked ? "text-card-locked-fg" : "text-card-active-fg"
           )}
         >
           {first}
@@ -75,7 +70,7 @@ export function ToolGridCard({
           <span
             className={cn(
               "block truncate text-[16px] font-bold",
-              locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
+              locked ? "text-card-locked-fg" : "text-card-active-fg"
             )}
           >
             {restLabel}

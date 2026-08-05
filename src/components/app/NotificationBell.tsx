@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMaro } from "@/context/store";
 import { timeAgo } from "@/lib/utils/format";
+import { MaroIcon } from "@/components/app/OptionIcon";
 import {
   loadNotifications,
   markAllRead,
@@ -12,7 +13,7 @@ import {
   subscribeNotifications,
   type MaroNotification,
 } from "@/lib/notifications/store";
-import { Bell, Coins, Gift, Users } from "lucide-react";
+import { Coins, Gift, Users } from "lucide-react";
 
 const ICONS: Record<MaroNotification["type"], React.ElementType> = {
   credits: Coins,
@@ -69,7 +70,7 @@ export function NotificationBell() {
         aria-label="Njoftime"
         title="Njoftime"
       >
-        <Bell className="h-6 w-6" />
+        <MaroIcon name="notification" className="icon-tone-menu h-6 w-6" />
         {unread > 0 && (
           <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-c-red px-1 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}

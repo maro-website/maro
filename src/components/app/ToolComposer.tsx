@@ -768,7 +768,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="w-full rounded-[28px] bg-prompt-dock">
+          <div className="w-full rounded-[28px] border border-line bg-prompt-dock shadow-[0_1px_0_rgba(0,0,0,0.04)]">
             {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
@@ -821,7 +821,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     disabled={attachments.length >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="icon-tone-menu h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -875,9 +875,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="dock-toolbar-actions">
                 {functional && (
-                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-ink-2">
-                    <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
-                    {cost} kredite
+                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-topbar-credits">
+                    <MaroIcon name="coins" className="icon-tone-menu h-5 w-5 shrink-0" />
+                    {cost}
+                    <span className="text-dock-muted">kredite</span>
                   </span>
                 )}
                 <motion.button
