@@ -104,7 +104,7 @@ function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex min-h-[104px] flex-col justify-between gap-3 rounded-2xl p-[18px] text-left transition-colors",
+        "relative flex min-h-[120px] flex-col justify-between gap-3 rounded-2xl p-[20px] text-left transition-colors",
         active
           ? "bg-card-active ring-2 ring-accent-teal"
           : locked
@@ -115,11 +115,11 @@ function ToolGridCard({
     >
       <span className="flex w-full items-start justify-between">
         {tool.id === "plan" ? (
-          <Lightbulb className="h-[25px] w-[25px] opacity-70" />
+          <Lightbulb className="h-[28px] w-[28px] opacity-70" />
         ) : (
-          <ToolIcon toolId={tool.id} fallback={Icon} className="h-[25px] w-[25px]" />
+          <ToolIcon toolId={tool.id} fallback={Icon} className="h-[28px] w-[28px]" />
         )}
-        {locked && <MaroIcon name="lock" fallback={Lock} className="h-[18px] w-[18px] opacity-70" />}
+        {locked && <MaroIcon name="lock" fallback={Lock} className="h-[20px] w-[20px] opacity-70" />}
       </span>
       <span className="leading-tight">
         <span className="block text-[16px] font-normal opacity-80">{first}</span>

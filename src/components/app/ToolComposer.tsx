@@ -650,10 +650,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — full width, aligns with canvas edges */}
+      {/* Docked prompt box — centered block */}
       <div className="shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
-          <div className="w-full">
+        <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+          <div className="mx-auto w-full max-w-[880px]">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -1086,10 +1086,10 @@ function ToolSwitcher({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-[135px] items-center gap-2 rounded-xl bg-card-active px-3 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90"
+        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-card-active px-3.5 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90"
       >
         <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-left">{current.name}</span>
+        <span className="whitespace-nowrap text-left">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
       <AnimatePresence>
