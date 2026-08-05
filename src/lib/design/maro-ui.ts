@@ -25,6 +25,8 @@ export const BRAND_PALETTE = {
     muted: "#d7d7d7",
     teal: "#00fdba",
     forest: "#00392a",
+    ink: "#111111",
+    inkMuted: "#818181",
   },
   dark: {
     canvas: "#111111",
@@ -33,6 +35,8 @@ export const BRAND_PALETTE = {
     muted: "#d7d7d7",
     teal: "#00fdba",
     forest: "#00392a",
+    inkMuted: "#818181",
+    menuHover: "#323232",
   },
 } as const;
 

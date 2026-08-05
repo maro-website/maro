@@ -76,6 +76,8 @@ const IMG_ERRORS: Record<string, string> = {
   generation_paused: "Gjenerimi është pezulluar për llogarinë tënde.",
   empty: "Nuk u kthye asnjë imazh. Provo përsëri.",
   "bad-tool": "Tool i pavlefshëm.",
+  "http-524": "Gjenerimi zgjati shumë (Cloudflare timeout). Provo përsëri.",
+  "http-504": "Gjenerimi zgjati shumë dhe u ndërpre. Provo përsëri.",
 };
 
 const AUDIO_ERRORS: Record<string, string> = {

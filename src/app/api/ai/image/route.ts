@@ -31,12 +31,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-function bearer(req: Request): string | null {
-  const h = req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!h) return null;
-  return h.startsWith("Bearer ") ? h.slice(7) : h;
-}
-
 export async function POST(req: Request) {
   if (!hasOpenAiKey()) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
@@ -58,12 +52,9 @@ export async function POST(req: Request) {
   }
 
   const settings = await getAppSettings();
-  // Compose the final prompt: base + each selected option's fragment + user text.
   const selections = body.selections ?? {};
   let finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
 
-  // maro Prompts: if a curated prompt is attached, prepend its hidden template
-  // as the leading instruction. Fetched server-side; never exposed to the client.
   let maroPromptId: string | undefined;
   if (body.maroPrompt?.id) {
     const tpl = await getPromptTemplate(body.maroPrompt.id);
@@ -73,7 +64,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // If the user attached reference images, tell the model to actually use them.
   const hasRefs = (body.attachments ?? []).some(
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
@@ -81,7 +71,6 @@ export async function POST(req: Request) {
     finalPrompt = `${finalPrompt}\n\nIMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.`;
   }
 
-  // maro Imazh: honour the Text on/off switch and the selected font style.
   const textSetting = tool.settings.find((s) => s.id === "text");
   if (textSetting) {
     const textOn = (selections.text ?? textSetting.default) === "on";
@@ -97,7 +86,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // Derive the requested image size from the selected format option, if any.
   let size = body.size;
   for (const s of tool.settings) {
     const opt = findOption(s, selections[s.id] ?? s.default);
@@ -132,8 +120,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // maroFort: augment the prompt with the structured expert brief + relevant
-  // prompt layers. Only when the user is entitled and the toggle was on.
   const fortModule = toolToFortModule(tool.id);
   let fortLog: Record<string, unknown> | undefined;
   if (entitled && body.fort?.enabled && fortModule) {
@@ -141,7 +127,6 @@ export async function POST(req: Request) {
       module: fortModule,
       config: settings.fort_config,
       values: body.fort.values ?? {},
-      // base finalPrompt already carries the user text; don't duplicate it here.
     });
     const compiled = compileBrief(brief.briefText);
     const layerText = brief.appliedLayers
@@ -165,83 +150,120 @@ export async function POST(req: Request) {
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
 
-  try {
-    const b64s = refs.length
-      ? await editImages({
-          prompt: finalPrompt,
-          images: refs,
-          size,
-          quality: body.quality,
-          n: body.n,
-        })
-      : await generateImages({
-          prompt: finalPrompt,
-          size,
-          quality: body.quality,
-          n,
+  // Stream heartbeats while OpenAI generates so Cloudflare (~100s proxy timeout)
+  // keeps the connection open until images are ready (maro Imazh + maro Logo).
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (payload: Record<string, unknown>) => {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+      const heartbeat = setInterval(() => {
+        controller.enqueue(enc.encode(": ping\n\n"));
+      }, 15000);
+
+      try {
+        const b64s = refs.length
+          ? await editImages({
+              prompt: finalPrompt,
+              images: refs,
+              size,
+              quality: body.quality,
+              n: body.n,
+            })
+          : await generateImages({
+              prompt: finalPrompt,
+              size,
+              quality: body.quality,
+              n,
+            });
+
+        if (!b64s.length) {
+          let refunded = false;
+          if (prep && cost) {
+            refunded = await failGeneration({
+              jobId: prep.job.id,
+              idempotencyKey: prep.idempotencyKey,
+              error: "empty",
+            });
+          }
+          send({ ok: false, error: "empty", refunded, jobId: prep?.job.id });
+          return;
+        }
+
+        let urls: string[] = [];
+        if (userId && supabaseServerConfigured()) {
+          urls = (await Promise.all(b64s.map((b) => uploadGeneratedImage(userId!, b)))).filter(
+            (u): u is string => Boolean(u)
+          );
+        }
+        if (!urls.length) {
+          urls = b64s.map((b) => `data:image/png;base64,${b}`);
+        }
+
+        if (userId) {
+          await logGeneration({
+            user_id: userId,
+            user_email: userEmail,
+            prompt: body.prompt,
+            final_prompt: finalPrompt,
+            model: IMAGE_MODEL,
+            credits_spent: cost,
+            tool_id: tool.id,
+            kind: "image",
+            output_urls: urls.filter((u) => !u.startsWith("data:")),
+            selections: Object.keys(selections).length ? selections : undefined,
+            fort: fortLog,
+          });
+          if (prep) {
+            await completeGeneration({
+              jobId: prep.job.id,
+              userId,
+              module: tool.id,
+              cost,
+              model: IMAGE_MODEL,
+              imageCount: b64s.length,
+            });
+          }
+        }
+
+        if (maroPromptId) await incrementPromptUse(maroPromptId);
+
+        send({
+          ok: true,
+          images: urls,
+          creditsSpent: cost,
+          jobId: prep?.job.id,
         });
-    if (!b64s.length) {
-      if (prep && cost) {
-        await failGeneration({
-          jobId: prep.job.id,
-          idempotencyKey: prep.idempotencyKey,
-          error: "empty",
+      } catch (err) {
+        console.error("[ai/image] failed:", err);
+        let refunded = false;
+        if (prep && cost) {
+          refunded = await failGeneration({
+            jobId: prep.job.id,
+            idempotencyKey: prep.idempotencyKey,
+            error: (err as Error)?.message ?? "ai-failed",
+          });
+        }
+        send({
+          ok: false,
+          error: "ai-failed",
+          detail: (err as Error)?.message,
+          refunded,
+          jobId: prep?.job.id,
         });
+      } finally {
+        clearInterval(heartbeat);
+        controller.close();
       }
-      return NextResponse.json({ error: "empty" }, { status: 502 });
-    }
+    },
+  });
 
-    // Persist images to Supabase Storage (public URLs) so they survive.
-    let urls: string[] = [];
-    if (userId && supabaseServerConfigured()) {
-      urls = (await Promise.all(b64s.map((b) => uploadGeneratedImage(userId!, b)))).filter(
-        (u): u is string => Boolean(u)
-      );
-    }
-    // Fallback to inline data URLs if storage failed / not configured.
-    if (!urls.length) {
-      urls = b64s.map((b) => `data:image/png;base64,${b}`);
-    }
-
-    if (userId) {
-      await logGeneration({
-        user_id: userId,
-        user_email: userEmail,
-        prompt: body.prompt,
-        final_prompt: finalPrompt,
-        model: IMAGE_MODEL,
-        credits_spent: cost,
-        tool_id: tool.id,
-        kind: "image",
-        output_urls: urls.filter((u) => !u.startsWith("data:")),
-        selections: Object.keys(selections).length ? selections : undefined,
-        fort: fortLog,
-      });
-      if (prep) {
-        await completeGeneration({
-          jobId: prep.job.id,
-          userId,
-          module: tool.id,
-          cost,
-          model: IMAGE_MODEL,
-          imageCount: b64s.length,
-        });
-      }
-    }
-
-    // Count the curated-prompt usage (best-effort analytics).
-    if (maroPromptId) await incrementPromptUse(maroPromptId);
-
-    return NextResponse.json({ images: urls, creditsSpent: cost, jobId: prep?.job.id });
-  } catch (err) {
-    console.error("[ai/image] failed:", err);
-    if (prep && cost) {
-      await failGeneration({
-        jobId: prep.job.id,
-        idempotencyKey: prep.idempotencyKey,
-        error: (err as Error)?.message ?? "ai-failed",
-      });
-    }
-    return NextResponse.json({ error: "ai-failed" }, { status: 502 });
-  }
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+    },
+  });
 }

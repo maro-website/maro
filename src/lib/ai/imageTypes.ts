@@ -24,4 +24,5 @@ export interface AiImageRequest {
 export interface AiImageResponse {
   images: string[]; // public URLs
   creditsSpent: number;
+  jobId?: string;
 }

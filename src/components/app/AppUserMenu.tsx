@@ -126,7 +126,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface-2 px-[20px] py-[20px] shadow-xl"
+            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-menu bg-menu px-[20px] py-[20px] shadow-xl"
           >
             {/* User header */}
             <div className="flex items-center gap-3">
@@ -141,8 +141,8 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                 </span>
               </button>
               <div className="min-w-0">
-                <div className="truncate text-[16px] font-bold text-ink">{user.name}</div>
-                <div className="truncate text-[13px] text-ink-3">{user.email}</div>
+                <div className="truncate text-[16px] font-bold text-menu-fg">{user.name}</div>
+                <div className="truncate text-[13px] text-menu-muted">{user.email}</div>
               </div>
             </div>
 
@@ -155,7 +155,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               <MenuRow icon="settings" fallback={SlidersHorizontal} label="Cilesimet" onClick={() => go("/account")} />
             </div>
 
-            <div className="my-[16px] h-px bg-line" />
+            <div className="my-[16px] h-px bg-menu-divider" />
 
             {/* Group 2 */}
             <div className="flex flex-col">
@@ -172,7 +172,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={() => setTheme(t.id)}
                   className={cn(
                     "flex h-10 items-center justify-center gap-2 rounded-xl text-[13px] font-semibold transition-colors",
-                    theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-surface text-ink-2 hover:bg-line"
+                    theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-menu-chip text-menu-muted hover:bg-menu-row hover:text-menu-fg"
                   )}
                 >
                   <t.icon className="h-4 w-4" />
@@ -187,9 +187,9 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                 await signOut();
                 go("/");
               }}
-              className="mt-[20px] flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#ff0000] text-[16px] font-bold text-white transition-opacity hover:opacity-90"
+              className="mt-[20px] flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-menu-logout text-[16px] font-bold text-menu-logout transition-opacity hover:opacity-90"
             >
-              <MaroIcon name="logout" className="h-5 w-5" />
+              <MaroIcon name="logout" className="icon-tone-white h-5 w-5" />
               Dil
             </button>
 
@@ -201,13 +201,13 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                     key={link.href}
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="text-[12px] font-medium text-ink-3 transition-colors hover:text-ink"
+                    className="text-[12px] font-medium text-menu-muted transition-colors hover:text-menu-fg"
                   >
                     {link.label}
                   </Link>
                 ))}
               </div>
-              <p className="mt-[10px] text-[11px] text-ink-3">
+              <p className="mt-[10px] text-[11px] text-menu-muted">
                 © {new Date().getFullYear()} — maro.al — Powered by NICE.al
               </p>
             </div>
@@ -252,9 +252,9 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[16px] font-medium text-ink transition-colors hover:bg-surface"
+      className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[16px] font-medium text-menu-fg transition-colors hover:bg-menu-row"
     >
-      <MaroIcon name={icon} fallback={Fallback} className="h-5 w-5 shrink-0" />
+      <MaroIcon name={icon} fallback={Fallback} className="icon-tone-menu h-5 w-5 shrink-0" />
       {label}
     </button>
   );

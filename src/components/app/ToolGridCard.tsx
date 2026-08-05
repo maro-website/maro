@@ -32,11 +32,11 @@ export function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex h-[120px] flex-col justify-between rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
+        "relative flex aspect-square w-full flex-col justify-between rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
         locked
-          ? "cursor-default bg-card-idle"
+          ? "cursor-default bg-card-locked"
           : active
-          ? "bg-card-active"
+          ? "bg-card-active bg-card-hover"
           : "bg-card-idle bg-card-hover"
       )}
     >

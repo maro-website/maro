@@ -54,12 +54,12 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-bold transition-colors focus:outline-none",
               pathname === "/prompts"
-                ? "border border-transparent bg-white text-black"
-                : "bg-card-idle text-card-idle-fg hover:border-transparent hover:bg-white hover:text-black"
+                ? "bg-sidebar-nav text-sidebar-nav-prompts"
+                : "bg-sidebar-nav text-sidebar-nav-prompts hover:opacity-90"
             )}
           >
             <span>maro Prompts</span>
-            <MaroIcon name="prompts" className="h-[25px] w-[25px] shrink-0" />
+            <MaroIcon name="prompts" className="icon-tone-teal h-[25px] w-[25px] shrink-0" />
           </button>
           <button
             type="button"
@@ -67,12 +67,12 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-semibold transition-colors focus:outline-none",
               pathname === "/krijimet"
-                ? "border border-transparent bg-surface-2 text-ink"
-                : "bg-card-idle text-card-idle-fg hover:border-transparent hover:bg-surface-2"
+                ? "bg-sidebar-nav text-sidebar-nav-history"
+                : "bg-sidebar-nav text-sidebar-nav-history hover:opacity-90"
             )}
           >
             <span>Çka ke maru</span>
-            <MaroIcon name="history" className="h-[25px] w-[25px] shrink-0 icon-tone-active" />
+            <MaroIcon name="history" className="icon-tone-history h-[25px] w-[25px] shrink-0" />
           </button>
         </div>
       </div>

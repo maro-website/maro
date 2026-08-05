@@ -61,8 +61,8 @@
   --line: #d7d7d7;
   --line-strong: #d7d7d7;
 
-  --ink: #00392a;
-  --ink-2: #00392a;
+  --ink: #111111;
+  --ink-2: #111111;
   --ink-3: #d7d7d7;
   --ink-inv: #ffffff;
 
@@ -82,26 +82,44 @@
   --on-scrim: #ffffff;
 
   --sidebar-card: #ffffff;
+  --sidebar-nav-bg: #f8f8f8;
+  --sidebar-nav-prompts-fg: #00fdba;
+  --sidebar-nav-history-fg: #111111;
   --prompt-dock: #ffffff;
   --dock-btn: #f8f8f8;
   --dock-tool-btn: #d4fff4;
-  --dock-tool-fg: #00392a;
+  --dock-tool-fg: #111111;
   --generate-bg: #00fdba;
   --generate-fg: #00392a;
+  --menu-bg: #ffffff;
+  --menu-fg: #111111;
+  --menu-muted: #818181;
+  --menu-divider: #d7d7d7;
+  --menu-row-hover: #f8f8f8;
+  --menu-chip-bg: #f8f8f8;
+  --menu-border: #d7d7d7;
+  --menu-logout-bg: #ff0000;
+  --menu-logout-fg: #ffffff;
+  --topbar-credits-bg: #ffffff;
+  --topbar-credits-fg: #111111;
+  --topbar-credits-muted: #818181;
+  --topbar-wallet-bg: #00fdba;
+  --topbar-wallet-fg: #111111;
 
   --card-active-bg: #d4fff4;
-  --card-active-fg: #00392a;
+  --card-active-fg: #111111;
   --card-idle-bg: #ffffff;
-  --card-idle-fg: #00392a;
+  --card-idle-fg: #111111;
   --card-idle-border: #d7d7d7;
   --card-hover-bg: #f8f8f8;
+  --card-locked-bg: #f8f8f8;
   --card-locked-fg: #d7d7d7;
 
-  --hub-tool: #00392a;
-  --hub-tool-sub: #00392a;
+  --hub-tool: #111111;
+  --hub-tool-sub: #111111;
 
   --chat-user-bg: #ffffff;
-  --chat-user-fg: #00392a;
+  --chat-user-fg: #111111;
   --chat-user-border: #d7d7d7;
   --chat-maro-bg: #ffffff;
   --chat-maro-border: #d7d7d7;
@@ -141,19 +159,38 @@
   --on-scrim: #ffffff;
 
   --sidebar-card: #0a0a0a;
+  --sidebar-nav-bg: #262626;
+  --sidebar-nav-prompts-fg: #00fdba;
+  --sidebar-nav-history-fg: #ffffff;
   --prompt-dock: #0a0a0a;
   --dock-btn: #262626;
   --dock-tool-btn: #00392a;
-  --dock-tool-fg: #00fdba;
+  --dock-tool-fg: #ffffff;
   --generate-bg: #00fdba;
   --generate-fg: #00392a;
+  --menu-bg: #262626;
+  --menu-fg: #ffffff;
+  --menu-muted: #818181;
+  --menu-divider: #323232;
+  --menu-row-hover: #323232;
+  --menu-chip-bg: #323232;
+  --menu-border: #323232;
+  --menu-logout-bg: #ff0000;
+  --menu-logout-fg: #ffffff;
+  --topbar-credits-bg: #262626;
+  --topbar-credits-fg: #ffffff;
+  --topbar-credits-muted: #818181;
+  --topbar-wallet-bg: #00fdba;
+  --topbar-wallet-fg: #111111;
 
+  /* Unlocked tool cards — forest green per Figma; locked stay charcoal */
   --card-active-bg: #00392a;
   --card-active-fg: #ffffff;
-  --card-idle-bg: #262626;
+  --card-idle-bg: #00392a;
   --card-idle-fg: #ffffff;
   --card-idle-border: transparent;
-  --card-hover-bg: #303030;
+  --card-hover-bg: #004532;
+  --card-locked-bg: #262626;
   --card-locked-fg: #d7d7d7;
 
   --hub-tool: #ffffff;
@@ -273,8 +310,66 @@ body {
   color: var(--card-active-fg);
   border: 1px solid transparent;
 }
+.bg-card-locked {
+  background-color: var(--card-locked-bg);
+  border: 1px solid transparent;
+}
 .bg-card-hover:hover {
   background-color: var(--card-hover-bg);
+}
+.bg-sidebar-nav {
+  background-color: var(--sidebar-nav-bg);
+}
+.text-sidebar-nav-prompts {
+  color: var(--sidebar-nav-prompts-fg);
+}
+.text-sidebar-nav-history {
+  color: var(--sidebar-nav-history-fg);
+}
+.bg-menu {
+  background-color: var(--menu-bg);
+}
+.text-menu-fg {
+  color: var(--menu-fg);
+}
+.text-menu-muted {
+  color: var(--menu-muted);
+}
+.hover\:bg-menu-row:hover {
+  background-color: var(--menu-row-hover);
+}
+.bg-topbar-credits {
+  background-color: var(--topbar-credits-bg);
+}
+.text-topbar-credits {
+  color: var(--topbar-credits-fg);
+}
+.text-topbar-credits-muted {
+  color: var(--topbar-credits-muted);
+}
+.bg-topbar-wallet {
+  background-color: var(--topbar-wallet-bg);
+}
+.bg-menu-divider {
+  background-color: var(--menu-divider);
+}
+.bg-menu-logout {
+  background-color: var(--menu-logout-bg);
+}
+.text-menu-logout {
+  color: var(--menu-logout-fg);
+}
+.icon-tone-white {
+  filter: brightness(0) invert(1);
+}
+.bg-menu-chip {
+  background-color: var(--menu-chip-bg);
+}
+.border-menu {
+  border-color: var(--menu-border);
+}
+.icon-tone-wallet {
+  filter: brightness(0) saturate(100%);
 }
 .text-card-active-fg {
   color: var(--card-active-fg);
@@ -306,10 +401,10 @@ body {
   color: var(--generate-fg);
 }
 
-/* Tool card icon tones — #00392A in light, white in dark, #D7D7D7 locked */
+/* Tool card icon tones — #111111 in light, white in dark, #D7D7D7 locked */
 .icon-tone-active,
 .icon-tone-idle {
-  filter: brightness(0) saturate(100%) invert(18%) sepia(42%) saturate(1200%) hue-rotate(125deg) brightness(95%) contrast(101%);
+  filter: brightness(0) saturate(100%);
 }
 [data-theme="mshelt"] .icon-tone-active,
 [data-theme="mshelt"] .icon-tone-idle {
@@ -321,10 +416,20 @@ body {
 [data-theme="mshelt"] .icon-tone-locked {
   filter: brightness(0) saturate(100%) invert(84%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
 }
+.icon-tone-teal {
+  filter: brightness(0) saturate(100%) invert(86%) sepia(22%) saturate(7462%) hue-rotate(112deg) brightness(101%) contrast(101%);
+}
+/* History nav icon — white in dark, #111 in light */
+.icon-tone-history {
+  filter: brightness(0) saturate(100%);
+}
+[data-theme="mshelt"] .icon-tone-history {
+  filter: brightness(0) invert(1);
+}
 
-/* Hub home tool icons — #00392A in light, white in dark */
+/* Hub home tool icons — #111111 in light, white in dark */
 .hub-tool-icon {
-  filter: brightness(0) saturate(100%) invert(18%) sepia(42%) saturate(1200%) hue-rotate(125deg) brightness(95%) contrast(101%);
+  filter: brightness(0) saturate(100%);
 }
 [data-theme="mshelt"] .hub-tool-icon {
   filter: brightness(0) invert(1);
@@ -413,9 +518,9 @@ body {
   --switch-knob: #262626;
 }
 
-/* Tool pill icon — #00392A icons in light, white in dark */
+/* Tool pill icon — #111111 in light, white in dark */
 .dock-tool-icon {
-  filter: brightness(0) saturate(100%) invert(18%) sepia(42%) saturate(1200%) hue-rotate(125deg) brightness(95%) contrast(101%);
+  filter: brightness(0) saturate(100%);
 }
 [data-theme="mshelt"] .dock-tool-icon {
   filter: brightness(0) invert(1);
