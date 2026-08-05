@@ -15,9 +15,9 @@ const FOOTER_LINKS = [
 export function AppFooter({ className }: { className?: string }) {
   return (
     <footer
-      className={
+        className={
         className ??
-        "flex shrink-0 flex-col gap-3 border-t border-line/60 bg-canvas px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+        "flex shrink-0 flex-col gap-3 bg-canvas px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
       }
     >
       <p className="text-[13px] text-ink-3">

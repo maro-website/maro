@@ -1,12 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
+import { MaroIcon } from "@/components/app/OptionIcon";
+import { ToolGridCard } from "@/components/app/ToolGridCard";
 import { MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
 import { cn } from "@/lib/utils/cn";
-import { Lock, Lightbulb } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 
 type GridTool =
   | ToolDef
@@ -28,7 +28,6 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col px-[20px] pb-[20px]">
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-        {/* Tool grid — 2 columns, 10px gap */}
         <div className="grid grid-cols-2 gap-[10px]">
           {gridTools.map((tool) => {
             const locked = tool.id === "plan" || tool.functional === false;
@@ -48,85 +47,36 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
           })}
         </div>
 
-        {/* maro Prompts (teal) + Çka ke maru */}
         <div className="mt-[20px] flex flex-col gap-[10px]">
           <button
             type="button"
             onClick={() => go("/prompts")}
             className={cn(
-              "flex h-[52px] w-full items-center gap-2.5 rounded-2xl px-4 text-left text-[15px] font-bold transition-colors",
+              "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-bold transition-colors focus:outline-none",
               pathname === "/prompts"
-                ? "bg-accent-teal-soft text-accent-teal"
-                : "bg-card-idle text-accent-teal hover:bg-surface-2"
+                ? "bg-white text-black"
+                : "bg-card-idle text-accent-teal hover:bg-white hover:text-black"
             )}
           >
-            <MaroIcon name="prompts" className="h-[25px] w-[25px]" />
-            maro Prompts
+            <span>maro Prompts</span>
+            <MaroIcon name="prompts" className="h-[25px] w-[25px] shrink-0" />
           </button>
           <button
             type="button"
             onClick={() => go("/krijimet")}
             className={cn(
-              "flex h-[52px] w-full items-center gap-2.5 rounded-2xl px-4 text-left text-[15px] font-semibold transition-colors",
-              pathname === "/krijimet" ? "bg-surface-2 text-ink" : "bg-card-idle text-ink-2 hover:bg-surface-2"
+              "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-semibold transition-colors focus:outline-none",
+              pathname === "/krijimet" ? "bg-surface-2 text-ink" : "bg-card-idle text-ink hover:bg-surface-2"
             )}
           >
-            <MaroIcon name="history" className="h-[25px] w-[25px] shrink-0" />
-            Çka ke maru
+            <span>Çka ke maru</span>
+            <MaroIcon name="history" className="h-[25px] w-[25px] shrink-0 icon-tone-active" />
           </button>
         </div>
       </div>
 
-      {/* maroFort banner — 985x470 upload + link */}
       <MaroFortBanner onNavigate={onNavigate} />
     </div>
-  );
-}
-
-function ToolGridCard({
-  tool,
-  active,
-  locked,
-  onClick,
-}: {
-  tool: GridTool;
-  active: boolean;
-  locked: boolean;
-  onClick: () => void;
-}) {
-  const Icon = tool.icon;
-  const [first, ...rest] = tool.name.split(" ");
-  const restLabel = rest.join(" ");
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={locked}
-      className={cn(
-        "relative flex min-h-[120px] flex-col justify-between gap-3 rounded-2xl p-[20px] text-left transition-colors",
-        active
-          ? "bg-card-active ring-2 ring-accent-teal"
-          : locked
-          ? "cursor-default bg-card-idle"
-          : "bg-card-active hover:ring-1 hover:ring-accent-teal/40"
-      )}
-      style={{ color: locked ? "var(--card-locked-fg)" : "var(--card-active-fg)" }}
-    >
-      <span className="flex w-full items-start justify-between">
-        {tool.id === "plan" ? (
-          <Lightbulb className="h-[28px] w-[28px] opacity-70" />
-        ) : (
-          <ToolIcon toolId={tool.id} fallback={Icon} className="h-[28px] w-[28px]" />
-        )}
-        {locked && <MaroIcon name="lock" fallback={Lock} className="h-[20px] w-[20px] opacity-70" />}
-      </span>
-      <span className="leading-tight">
-        <span className="block text-[16px] font-normal opacity-80">{first}</span>
-        {restLabel && <span className="block text-[16px] font-bold">{restLabel}</span>}
-        {locked && <span className="mt-1 block text-[12px] font-medium opacity-70">së shpejti</span>}
-      </span>
-    </button>
   );
 }
 

@@ -242,6 +242,17 @@ body {
   background-color: var(--card-idle-bg);
 }
 
+/* Tool card icon tones */
+.icon-tone-active {
+  filter: none;
+}
+[data-theme="mshelt"] .icon-tone-active {
+  filter: brightness(0) invert(1);
+}
+.icon-tone-locked {
+  filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(88%);
+}
+
 .maro-pill {
   display: inline-flex;
   align-items: center;
@@ -370,4 +381,12 @@ body {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Remove default browser focus ring on buttons (custom focus handled per component) */
+button:focus {
+  outline: none;
+}
+textarea:focus {
+  outline: none;
 }

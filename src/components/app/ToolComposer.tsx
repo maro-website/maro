@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
@@ -547,7 +548,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     if (mode === "sts") return "Ngarko audio dhe zgjidh zërin e ri…";
     if (mode === "isolate") return "Ngarko audio për të pastruar zhurmën…";
     if (mode === "stt") return "Ngarko audio për ta kthyer në tekst…";
-    return `Përshkruaj çka po don me ${tool.name}…`;
+    return `Shkruje…`;
   })();
 
   const placeholder =
@@ -555,7 +556,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       ? "Prompte gati për t'u përdorur. Së shpejti…"
       : isAudio
       ? audioPlaceholder
-      : `Menoje edhe shkruje cka po don, ${tool.name} ta bon.`;
+      : "Shkruje…";
 
   // Whole-page drag & drop for image tools: dropping anywhere attaches images.
   const dndEnabled = isImage && functional;
@@ -650,10 +651,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — centered block */}
-      <div className="shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* Docked prompt box — centered block, grows with toolbar */}
+      <div className="relative z-20 shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
-          <div className="mx-auto w-full max-w-[880px]">
+          <div className="mx-auto w-full max-w-[1040px]">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -756,8 +757,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="w-full rounded-[28px] bg-prompt-dock ring-1 ring-line/70">
-            {/* Text row — 30px left padding, expand top-right */}
+          <div className="w-full rounded-[28px] bg-prompt-dock">
+            {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
                 <textarea
@@ -769,7 +770,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onPaste={onPasteImages}
                   rows={2}
                   placeholder={placeholder}
-                  className="relative block max-h-56 min-h-[72px] w-full resize-none bg-transparent pl-[30px] pr-14 pt-[24px] text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
+                  className="relative block max-h-56 min-h-[72px] w-full resize-none bg-transparent pl-[30px] pr-14 pt-[24px] text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3 focus:outline-none"
                 />
               ) : (
                 <div className="flex min-h-[72px] items-center pl-[30px] pr-14 pt-[24px] text-[17px] text-ink-3">
@@ -780,7 +781,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                  className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none"
                   aria-label="Zgjero promptin"
                 >
                   <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
@@ -788,79 +789,77 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
             </div>
 
-            {/* Toolbar row — 35px left padding, 50px gap before credits+maro */}
-            <div className="flex items-center gap-3 pb-[24px] pl-[30px] pr-[30px] pt-2">
-              <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2.5 overflow-x-auto scroll-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {isImage && (
-                  <>
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        addFiles(e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
-                    <IconBtn
-                      onClick={() => fileRef.current?.click()}
-                      disabled={attachments.length >= MAX_ATTACHMENTS}
-                      label="Bashkëngjit imazh"
-                    >
-                      <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
-                    </IconBtn>
-                  </>
-                )}
-                {isAudio && needsAudioInput && (
-                  <>
-                    <input
-                      ref={audioFileRef}
-                      type="file"
-                      accept="audio/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        pickAudio(e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
-                    <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
-                      <Mic className="h-5 w-5" />
-                    </IconBtn>
-                  </>
-                )}
+            {/* Toolbar — no horizontal scroll; credits+maro ~35px from settings */}
+            <div className="flex flex-wrap items-center gap-2.5 pb-[24px] pl-[30px] pr-[30px] pt-2">
+              {isImage && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      addFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                  <IconBtn
+                    onClick={() => fileRef.current?.click()}
+                    disabled={attachments.length >= MAX_ATTACHMENTS}
+                    label="Bashkëngjit imazh"
+                  >
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
+                  </IconBtn>
+                </>
+              )}
+              {isAudio && needsAudioInput && (
+                <>
+                  <input
+                    ref={audioFileRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      pickAudio(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                  <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
+                    <Mic className="h-5 w-5" />
+                  </IconBtn>
+                </>
+              )}
 
-                <ToolSwitcher currentId={tool.id} onNavigate={(route) => router.push(route)} />
+              <ToolSwitcher currentId={tool.id} onNavigate={(route) => router.push(route)} />
 
-                {shownSettings.map((s) =>
-                  s.toggle ? (
-                    <ToggleSetting
-                      key={s.id}
-                      setting={s}
-                      value={selections[s.id] ?? s.default}
-                      onChange={(optId) => setOption(s.id, optId)}
-                    />
-                  ) : (
-                    <SettingSelect
-                      key={s.id}
-                      toolId={tool.id}
-                      setting={s}
-                      value={selections[s.id] ?? s.default}
-                      optionIcons={toolOptionIcons}
-                      onChange={(optId, opt) => {
-                        if (opt.confirm) {
-                          setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
-                        } else {
-                          setOption(s.id, optId);
-                        }
-                      }}
-                    />
-                  )
-                )}
-              </div>
+              {shownSettings.map((s) =>
+                s.toggle ? (
+                  <ToggleSetting
+                    key={s.id}
+                    setting={s}
+                    value={selections[s.id] ?? s.default}
+                    onChange={(optId) => setOption(s.id, optId)}
+                  />
+                ) : (
+                  <SettingSelect
+                    key={s.id}
+                    toolId={tool.id}
+                    setting={s}
+                    value={selections[s.id] ?? s.default}
+                    optionIcons={toolOptionIcons}
+                    onChange={(optId, opt) => {
+                      if (opt.confirm) {
+                        setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
+                      } else {
+                        setOption(s.id, optId);
+                      }
+                    }}
+                  />
+                )
+              )}
 
-              <div className="flex shrink-0 items-center gap-3 pl-[50px]">
+              <div className="ml-[35px] flex shrink-0 items-center gap-3">
                 {functional && (
                   <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-surface-2 px-4 text-[14.5px] font-semibold text-ink-2">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
@@ -872,7 +871,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all",
+                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all focus:outline-none",
                     functional && canGenerate && !loading
                       ? "bg-generate text-generate-fg hover:opacity-90"
                       : "cursor-not-allowed bg-line-strong text-ink-3"
@@ -1051,7 +1050,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn bg-surface-2 text-ink-2 transition-colors hover:bg-line hover:text-ink disabled:opacity-50"
+      className="maro-icon-btn bg-surface-2 text-ink-2 transition-colors hover:bg-line hover:text-ink focus:outline-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -1067,71 +1066,96 @@ function ToolSwitcher({
   onNavigate: (route: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const [pos, setPos] = React.useState<{ bottom: number; left: number; width: number } | null>(null);
+  const btnRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const current = getTool(currentId);
+
+  const place = React.useCallback(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+  }, []);
 
   React.useEffect(() => {
     if (!open) return;
+    place();
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
     };
+    const onScroll = () => place();
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", place);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open, place]);
 
   if (!current) return null;
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div className="relative shrink-0">
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-card-active px-3.5 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90"
+        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-card-active px-3.5 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90 focus:outline-none"
       >
         <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0" />
         <span className="whitespace-nowrap text-left">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.16 }}
-            className="absolute bottom-[calc(100%+8px)] left-0 z-50 w-64 overflow-hidden rounded-2xl bg-surface p-1.5 ring-1 ring-line"
-          >
-            <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
-            {MAIN_TOOLS.map((t) => {
-              const locked = !t.functional;
-              const active = t.id === currentId;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={locked}
-                  onClick={() => {
-                    if (locked) return;
-                    onNavigate(t.route);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
-                    locked ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
-                  )}
-                >
-                  <ToolIcon toolId={t.id} fallback={t.icon} className="h-5 w-5 shrink-0" />
-                  <span className={cn("flex-1 text-[14px] font-semibold", active ? "text-accent-teal" : "text-ink")}>
-                    {t.name}
-                  </span>
-                  {locked && <Lock className="h-3.5 w-3.5 text-ink-3" />}
-                  {active && !locked && <Check className="h-4 w-4 text-accent-teal" />}
-                </button>
-              );
-            })}
-          </motion.div>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && pos && (
+              <motion.div
+                ref={menuRef}
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                transition={{ duration: 0.16 }}
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
+                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl ring-1 ring-line/60"
+              >
+                <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
+                {MAIN_TOOLS.map((t) => {
+                  const locked = !t.functional;
+                  const active = t.id === currentId;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => {
+                        if (locked) return;
+                        onNavigate(t.route);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors focus:outline-none",
+                        locked ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
+                      )}
+                    >
+                      <ToolIcon toolId={t.id} fallback={t.icon} className="h-5 w-5 shrink-0" />
+                      <span className={cn("flex-1 text-[14px] font-semibold", active ? "text-accent-teal" : "text-ink")}>
+                        {t.name}
+                      </span>
+                      {locked && <Lock className="h-3.5 w-3.5 text-ink-3" />}
+                      {active && !locked && <Check className="h-4 w-4 text-accent-teal" />}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -1179,26 +1203,45 @@ function SettingSelect({
   onChange: (optionId: string, opt: NonNullable<ReturnType<typeof findOption>>) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const [pos, setPos] = React.useState<{ bottom: number; left: number; width: number } | null>(null);
+  const btnRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const current = findOption(setting, value) ?? setting.options[0];
   const Icon = setting.icon;
   const currentId = current?.id ?? value;
 
+  const place = React.useCallback(() => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+  }, []);
+
   React.useEffect(() => {
     if (!open) return;
+    place();
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
     };
+    const onScroll = () => place();
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", place);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open, place]);
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div className="relative shrink-0">
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill shrink-0 bg-surface-2 text-ink hover:bg-line"
+        className="maro-pill shrink-0 bg-surface-2 text-ink hover:bg-line focus:outline-none"
         title={setting.label}
       >
         <OptionIcon
@@ -1212,67 +1255,73 @@ function SettingSelect({
         <span className="truncate">{current?.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
       </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.16 }}
-            className="absolute bottom-[calc(100%+8px)] left-0 z-50 w-64 overflow-hidden rounded-2xl bg-surface p-1.5"
-          >
-            <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
-              {setting.label}
-            </div>
-            {setting.options.map((o) => {
-              const disabled = o.available === false;
-              const active = o.id === value;
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    if (disabled) return;
-                    onChange(o.id, o);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
-                    disabled ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
-                  )}
-                >
-                  <OptionIcon
-                    toolId={toolId}
-                    settingId={setting.id}
-                    optionId={o.id}
-                    icons={optionIcons}
-                    fallback={Icon}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && pos && (
+              <motion.div
+                ref={menuRef}
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                transition={{ duration: 0.16 }}
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
+                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl ring-1 ring-line/60"
+              >
+                <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
+                  {setting.label}
+                </div>
+                {setting.options.map((o) => {
+                  const disabled = o.available === false;
+                  const active = o.id === value;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (disabled) return;
+                        onChange(o.id, o);
+                        setOpen(false);
+                      }}
                       className={cn(
-                        "block text-[13.5px] font-semibold",
-                        active ? "text-brand" : "text-ink"
+                        "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors focus:outline-none",
+                        disabled ? "cursor-not-allowed opacity-55" : active ? "bg-surface-2" : "hover:bg-surface-2"
                       )}
                     >
-                      {o.label}
-                    </span>
-                    {o.hint && <span className="block text-[12px] text-ink-3">{o.hint}</span>}
-                  </span>
-                  {disabled ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-3">
-                      <Lock className="h-3 w-3" /> së shpejti
-                    </span>
-                  ) : (
-                    active && <Check className="h-4 w-4 shrink-0 text-brand" />
-                  )}
-                </button>
-              );
-            })}
-          </motion.div>
+                      <OptionIcon
+                        toolId={toolId}
+                        settingId={setting.id}
+                        optionId={o.id}
+                        icons={optionIcons}
+                        fallback={Icon}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            "block text-[13.5px] font-semibold",
+                            active ? "text-brand" : "text-ink"
+                          )}
+                        >
+                          {o.label}
+                        </span>
+                        {o.hint && <span className="block text-[12px] text-ink-3">{o.hint}</span>}
+                      </span>
+                      {disabled ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-3">
+                          <Lock className="h-3 w-3" /> së shpejti
+                        </span>
+                      ) : (
+                        active && <Check className="h-4 w-4 shrink-0 text-brand" />
+                      )}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }

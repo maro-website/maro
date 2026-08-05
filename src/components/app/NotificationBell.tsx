@@ -65,11 +65,11 @@ export function NotificationBell() {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-10 w-10 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+        className="relative grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface-2 focus:outline-none"
         aria-label="Njoftime"
         title="Njoftime"
       >
-        <Bell className="h-[18px] w-[18px]" />
+        <Bell className="h-6 w-6" />
         {unread > 0 && (
           <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-c-red px-1 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}

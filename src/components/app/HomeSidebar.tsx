@@ -31,7 +31,7 @@ export function HomeSidebar({
               <button
                 type="button"
                 onClick={onCollapse}
-                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface-2 focus:outline-none"
                 aria-label="Mbyll sidebar"
                 title="Mbyll sidebar"
               >
