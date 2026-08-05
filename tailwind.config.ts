@@ -38,6 +38,9 @@ const config: Config = {
         "accent-teal": "var(--accent-teal)",
         "sidebar-card": "var(--sidebar-card)",
         "prompt-dock": "var(--prompt-dock)",
+        "dock-btn": "var(--dock-btn)",
+        "dock-tool": "var(--dock-tool-btn)",
+        "dock-tool-fg": "var(--dock-tool-fg)",
         generate: {
           DEFAULT: "var(--generate-bg)",
           fg: "var(--generate-fg)",

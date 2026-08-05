@@ -78,7 +78,7 @@ export function Switch({
           "ring-1 ring-black/5",
           s.knob,
           checked ? s.on : "translate-x-0",
-          checked ? "bg-[var(--brand-fg)]" : "bg-white"
+          checked ? "bg-[var(--brand-fg)]" : "bg-[var(--switch-knob,#ffffff)]"
         )}
       />
     </button>

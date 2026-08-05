@@ -40,9 +40,12 @@
   --accent-teal-border: rgba(0, 253, 186, 0.55);
   --sidebar-width: 280px;
   --sidebar-card: #161616;
-  --prompt-dock: #141414;
+  --prompt-dock: #ffffff;
+  --dock-btn: #f8f8f8;
+  --dock-tool-btn: #d4fff4;
+  --dock-tool-fg: #00392a;
   --generate-bg: #00fdba;
-  --generate-fg: #003528;
+  --generate-fg: #00392a;
   --card-active-bg: #00392a;
   --card-active-fg: #ffffff;
   --card-idle-bg: #161616;
@@ -53,7 +56,7 @@
   --ui-radius-dock: 28px;
 }
 
-/* ---- Qelt: canvas #d0e6fd, promptbox / cards #ffffff ---- */
+/* ---- Qelt (light) ---- */
 :root,
 [data-theme="qelt"] {
   --brand: #0f1419;
@@ -61,9 +64,9 @@
   --brand-soft: #e8f2fe;
   --brand-fg: #ffffff;
 
-  --canvas: #d0e6fd;
+  --canvas: #d4fff4;
   --surface: #ffffff;
-  --surface-2: #e8f2fe;
+  --surface-2: #f8f8f8;
   --line: #b3cff0;
   --line-strong: #94b8e8;
 
@@ -77,8 +80,9 @@
   --danger: #dc2626;
   --info: #3a4656;
 
-  --switch-off: #ffffff;
   --switch-track: #94b8e8;
+  --switch-knob: #ffffff;
+  --switch-off: #ffffff;
   --skeleton-shine: rgba(255, 255, 255, 0.65);
 
   --overlay: rgba(15, 20, 25, 0.45);
@@ -87,10 +91,14 @@
   --on-scrim: #ffffff;
 
   --sidebar-card: #ffffff;
+  --prompt-dock: #ffffff;
+  --dock-btn: #f8f8f8;
+  --dock-tool-btn: #d4fff4;
+  --dock-tool-fg: #00392a;
   --generate-bg: #00fdba;
-  --generate-fg: #003528;
-  --card-active-bg: #d8f6ed;
-  --card-active-fg: #013b2b;
+  --generate-fg: #00392a;
+  --card-active-bg: #d4fff4;
+  --card-active-fg: #00392a;
   --card-idle-bg: #ffffff;
   --card-idle-fg: #0f1419;
   --card-locked-fg: #5a677a;
@@ -103,7 +111,7 @@
 
   --canvas: #111111;
   --surface: #0a0a0a;
-  --surface-2: #141414;
+  --surface-2: #262626;
   --line: #2a2a2a;
   --line-strong: #3a3a3a;
 
@@ -117,8 +125,9 @@
   --danger: #ff0000;
   --info: #cccccc;
 
-  --switch-off: #ffffff;
   --switch-track: #3a3a3a;
+  --switch-knob: #ffffff;
+  --switch-off: #ffffff;
   --skeleton-shine: rgba(255, 255, 255, 0.08);
 
   --overlay: rgba(0, 0, 0, 0.72);
@@ -127,8 +136,12 @@
   --on-scrim: #ffffff;
 
   --sidebar-card: #161616;
+  --prompt-dock: #0a0a0a;
+  --dock-btn: #262626;
+  --dock-tool-btn: #00392a;
+  --dock-tool-fg: #00fdba;
   --generate-bg: #00fdba;
-  --generate-fg: #003528;
+  --generate-fg: #00392a;
   --card-active-bg: #00392a;
   --card-active-fg: #ffffff;
   --card-idle-bg: #161616;
@@ -273,6 +286,23 @@ body {
   min-width: var(--ui-btn-h);
   border-radius: 12px;
   flex-shrink: 0;
+}
+
+/* Prompt dock — Tekst switch colors */
+.dock-control {
+  --switch-track: #d7d7d7;
+  --switch-knob: #ffffff;
+}
+[data-theme="mshelt"] .dock-control {
+  --switch-knob: #262626;
+}
+
+/* Tool pill icon — white on dark green, native on light mint */
+.dock-tool-icon {
+  filter: none;
+}
+[data-theme="mshelt"] .dock-tool-icon {
+  filter: brightness(0) invert(1);
 }
 
 @keyframes float-slow {

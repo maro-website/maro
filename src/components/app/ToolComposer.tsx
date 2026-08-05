@@ -861,7 +861,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="ml-[35px] flex shrink-0 items-center gap-3">
                 {functional && (
-                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-surface-2 px-4 text-[14.5px] font-semibold text-ink-2">
+                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-ink-2">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
                     {cost} kredite
                   </span>
@@ -1050,7 +1050,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn bg-surface-2 text-ink-2 transition-colors hover:bg-line hover:text-ink focus:outline-none disabled:opacity-50"
+      className="maro-icon-btn bg-dock-btn text-ink-2 transition-colors hover:opacity-80 focus:outline-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -1104,9 +1104,9 @@ function ToolSwitcher({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-card-active px-3.5 text-[14.5px] font-bold text-accent-teal transition-opacity hover:opacity-90 focus:outline-none"
+        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-dock-tool px-3.5 text-[14.5px] font-bold text-dock-tool-fg transition-opacity hover:opacity-90 focus:outline-none"
       >
-        <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0" />
+        <ToolIcon toolId={current.id} fallback={current.icon} className="dock-tool-icon h-5 w-5 shrink-0" />
         <span className="whitespace-nowrap text-left">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
@@ -1175,7 +1175,7 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-surface-2 px-3.5">
+    <div className="dock-control flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-dock-btn px-3.5">
       <Icon className="h-5 w-5 shrink-0 text-ink-3" />
       <span className="hidden truncate text-[14.5px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
@@ -1241,7 +1241,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill shrink-0 bg-surface-2 text-ink hover:bg-line focus:outline-none"
+        className="maro-pill shrink-0 bg-dock-btn text-ink hover:opacity-80 focus:outline-none"
         title={setting.label}
       >
         <OptionIcon
