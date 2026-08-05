@@ -12,11 +12,9 @@ export function resolveOptionIconUrl(
   icons: ToolOptionIcons | undefined,
   toolId: string,
   settingId: string,
-  optionId: string,
-  theme: "qelt" | "mshelt"
+  optionId: string
 ): string | undefined {
   const set = icons?.[optionKey(toolId, settingId, optionId)];
   if (!set) return undefined;
-  if (theme === "mshelt") return set.dark ?? set.light;
-  return set.light ?? set.dark;
+  return set.dark ?? set.light;
 }

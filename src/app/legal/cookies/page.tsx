@@ -18,8 +18,7 @@ export default function CookiesPage() {
       <LegalSection title="2. Llojet e cookies që përdorim">
         <ul className="list-disc space-y-3 pl-5">
           <li>
-            <strong className="text-ink">Të domosdoshme:</strong> autentifikim sesioni, preferenca teme
-            (Qelt/Mshelt), siguri CSRF. Pa to, maro nuk funksionon siç duhet.
+            <strong className="text-ink">Të domosdoshme:</strong> autentifikim sesioni, siguri CSRF. Pa to, maro nuk funksionon siç duhet.
           </li>
           <li>
             <strong className="text-ink">Funksionale:</strong> ruajnë zgjedhjet tuaja (p.sh. promocode,

@@ -955,7 +955,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </Modal>
 
-      {/* maroFort pop-up — canvas bg, surface controls (Qelt/Mshelt) */}
+      {/* maroFort pop-up */}
       <Modal
         open={fortModalOpen}
         onClose={() => setFortModalOpen(false)}

@@ -1,7 +1,6 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { useTheme } from "@/context/theme";
 import { resolveOptionIconUrl, type ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { staticOptionIconSrc, toolIconSrc, type UiIconKey, uiIconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
@@ -52,8 +51,7 @@ export function OptionIcon({
   fallback: LucideIcon;
   className?: string;
 }) {
-  const { theme } = useTheme();
-  const adminUrl = resolveOptionIconUrl(icons, toolId, settingId, optionId, theme);
+  const adminUrl = resolveOptionIconUrl(icons, toolId, settingId, optionId);
   const staticUrl = staticOptionIconSrc(toolId, settingId, optionId);
   const url = adminUrl ?? staticUrl;
   if (url) return <IconImg src={url} className={cn("h-3.5 w-3.5", className)} />;

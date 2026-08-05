@@ -28,15 +28,16 @@ export function OptionIconFields({
   getAccessToken: () => Promise<string | null>;
   toast: (msg: string) => void;
 }) {
-  const [busy, setBusy] = React.useState<"light" | "dark" | null>(null);
+  const [busy, setBusy] = React.useState(false);
   const set = icons[optionKey] ?? {};
+  const iconUrl = set.dark ?? set.light;
 
-  const upload = async (variant: "light" | "dark", file: File) => {
+  const upload = async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".svg") && file.type !== "image/svg+xml") {
       toast("Vetëm SVG lejohet.");
       return;
     }
-    setBusy(variant);
+    setBusy(true);
     try {
       const dataUrl = await readSvgDataUrl(file);
       const token = await getAccessToken();
@@ -46,7 +47,7 @@ export function OptionIconFields({
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ dataUrl, key: optionKey, variant }),
+        body: JSON.stringify({ dataUrl, key: optionKey, variant: "dark" }),
       });
       const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (!res.ok || !j.url) {
@@ -55,71 +56,61 @@ export function OptionIconFields({
       }
       onChange({
         ...icons,
-        [optionKey]: { ...set, [variant]: j.url },
+        [optionKey]: { dark: j.url },
       });
       toast("Ikona u ngarkua.");
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
-  const clear = (variant: "light" | "dark") => {
-    const nextSet = { ...set };
-    delete nextSet[variant];
+  const clear = () => {
     const next = { ...icons };
-    if (!nextSet.light && !nextSet.dark) delete next[optionKey];
-    else next[optionKey] = nextSet;
+    delete next[optionKey];
     onChange(next);
   };
 
   return (
-    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-      {(
-        [
-          { variant: "light" as const, label: "Ikona SVG — Qelt (light)" },
-          { variant: "dark" as const, label: "Ikona SVG — Mshelt (dark)" },
-        ] as const
-      ).map(({ variant, label }) => (
-        <Field key={variant} label={label}>
-          <div className="flex items-center gap-2">
-            {set[variant] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={set[variant]}
-                alt=""
-                className="h-9 w-9 shrink-0 rounded-lg bg-surface-2 object-contain p-1"
-              />
-            ) : (
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-[10px] text-ink-3">
-                —
-              </span>
-            )}
-            <label className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center rounded-xl bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-line">
-              {busy === variant ? <Spinner className="h-4 w-4" /> : "Ngarko SVG"}
-              <input
-                type="file"
-                accept=".svg,image/svg+xml"
-                className="hidden"
-                disabled={busy !== null}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) void upload(variant, f);
-                }}
-              />
-            </label>
-            {set[variant] && (
-              <button
-                type="button"
-                onClick={() => clear(variant)}
-                className="shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-ink-3 hover:bg-surface-2 hover:text-ink"
-              >
-                Hiq
-              </button>
-            )}
-          </div>
-        </Field>
-      ))}
+    <div className="mt-3">
+      <Field label="Ikona SVG">
+        <div className="flex items-center gap-2">
+          {iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={iconUrl}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-lg bg-surface-2 object-contain p-1"
+            />
+          ) : (
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-[10px] text-ink-3">
+              —
+            </span>
+          )}
+          <label className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center rounded-xl bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-line">
+            {busy ? <Spinner className="h-4 w-4" /> : "Ngarko SVG"}
+            <input
+              type="file"
+              accept=".svg,image/svg+xml"
+              className="hidden"
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void upload(f);
+              }}
+            />
+          </label>
+          {iconUrl && (
+            <button
+              type="button"
+              onClick={clear}
+              className="shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-ink-3 hover:bg-surface-2 hover:text-ink"
+            >
+              Hiq
+            </button>
+          )}
+        </div>
+      </Field>
     </div>
   );
 }
@@ -127,13 +118,13 @@ export function OptionIconFields({
 export function optionIconPreview(
   icons: ToolOptionIcons,
   optionKey: string,
-  variant: "light" | "dark" = "dark",
+  _variant: "light" | "dark" = "dark",
   toolId?: string,
   settingId?: string,
   optionId?: string
 ): string | undefined {
   const set: ToolOptionIconSet | undefined = icons[optionKey];
-  const admin = variant === "dark" ? set?.dark ?? set?.light : set?.light ?? set?.dark;
+  const admin = set?.dark ?? set?.light;
   if (admin) return admin;
   if (toolId && settingId && optionId) {
     return staticOptionIconSrc(toolId, settingId, optionId);

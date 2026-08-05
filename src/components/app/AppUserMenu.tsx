@@ -7,12 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
-import { useTheme, type Theme } from "@/context/theme";
 import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, Moon, Shield, SlidersHorizontal, Star, Sun, User as UserIcon } from "lucide-react";
+import { Bookmark, Camera, Shield, SlidersHorizontal, Star, User as UserIcon } from "lucide-react";
 
 const FOOTER_LINKS = [
   { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
@@ -22,11 +21,6 @@ const FOOTER_LINKS = [
   { href: "/legal/cookies", label: "Cookies" },
   { href: "/credits", label: "Çmimet" },
 ] as const;
-
-const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
-  { id: "qelt", label: "Qelt", icon: Sun },
-  { id: "mshelt", label: "Mshelt", icon: Moon },
-];
 
 function Avatar({
   user,
@@ -56,7 +50,6 @@ function Avatar({
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { user, isAdmin, signOut, updateAvatar } = useMaro();
-  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -161,24 +154,6 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             <div className="flex flex-col">
               <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
               <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
-            </div>
-
-            {/* Theme toggle (compact) */}
-            <div className="mt-[16px] grid grid-cols-2 gap-2">
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTheme(t.id)}
-                  className={cn(
-                    "flex h-10 items-center justify-center gap-2 rounded-xl text-[13px] font-semibold transition-colors",
-                    theme === t.id ? "bg-accent-teal text-generate-fg" : "bg-menu-chip text-menu-muted hover:bg-menu-row hover:text-menu-fg"
-                  )}
-                >
-                  <t.icon className="h-4 w-4" />
-                  {t.label}
-                </button>
-              ))}
             </div>
 
             <button

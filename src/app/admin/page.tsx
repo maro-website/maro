@@ -1000,7 +1000,7 @@ function MasterPromptsTab() {
       <div className="rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
         Prompti final = <span className="font-semibold text-ink">Baza</span> e tool-it + prompti i çdo
         opsioni të zgjedhur nga përdoruesi + teksti i tij. Çdo opsion ka koston e vet dhe mund të ketë
-        ikonë SVG (Qelt + Mshelt) për selectorët në prompt box.
+        ikonë SVG për selectorët në prompt box.
       </div>
 
       {TOOLS.map((tool) => (
