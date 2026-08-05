@@ -37,7 +37,7 @@ export function AppShell({ children, hideFooter }: { children: React.ReactNode; 
         )}
       >
         {!collapsed && (
-          <aside className="hidden min-h-0 border-r border-line/40 bg-surface lg:block">
+          <aside className="hidden min-h-0 bg-surface lg:block">
             <HomeSidebar onCollapse={toggleCollapse} showHeader />
           </aside>
         )}
