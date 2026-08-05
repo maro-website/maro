@@ -119,6 +119,7 @@
 
   --hub-tool: #111111;
   --hub-tool-sub: #111111;
+  --hub-page-bg: #ffffff;
 
   --chat-user-bg: #ffffff;
   --chat-user-fg: #111111;
@@ -199,6 +200,7 @@
 
   --hub-tool: #ffffff;
   --hub-tool-sub: #d7d7d7;
+  --hub-page-bg: #111111;
 
   --chat-user-bg: #00392a;
   --chat-user-fg: #ffffff;
@@ -395,6 +397,9 @@ body {
 }
 .text-hub-tool-sub {
   color: var(--hub-tool-sub);
+}
+.bg-hub-page {
+  background-color: var(--hub-page-bg);
 }
 
 .bg-chat-user {
