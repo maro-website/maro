@@ -871,10 +871,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all focus:outline-none",
+                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl bg-generate px-5 text-[16px] font-bold text-generate-fg transition-all focus:outline-none",
                     functional && canGenerate && !loading
-                      ? "bg-generate text-generate-fg hover:opacity-90"
-                      : "cursor-not-allowed bg-line-strong text-ink-3"
+                      ? "hover:opacity-90"
+                      : "cursor-not-allowed opacity-60"
                   )}
                   aria-label="Gjenero"
                 >
