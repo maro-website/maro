@@ -193,8 +193,8 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               Dil
             </button>
 
-            {/* Footer / legal — always reachable here (no sticky page footer) */}
-            <div className="mt-[16px] border-t border-line pt-[14px]">
+            {/* Footer / legal — always reachable here */}
+            <div className="mt-[16px] pt-[14px]">
               <div className="flex flex-wrap gap-x-3 gap-y-1.5">
                 {FOOTER_LINKS.map((link) => (
                   <Link

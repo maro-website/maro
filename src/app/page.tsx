@@ -30,13 +30,13 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE }}
-          className="w-full max-w-lg"
+          className="w-full max-w-xl"
         >
           <h1 className="text-balance text-center text-[clamp(32px,5vw,48px)] font-normal leading-[1.06] tracking-[-0.03em] text-ink">
             {firstName ? `Çka po marojmë ${dayPart}, ${firstName}?` : `Çka po marojmë ${dayPart}?`}
           </h1>
 
-          <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8">
+          <div className="mx-auto mt-10 flex w-fit max-w-full flex-col gap-8">
             {activeTools.map((tool) => (
               <HomeToolPick
                 key={tool.id}

@@ -32,7 +32,7 @@ export function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex min-h-[120px] flex-col justify-between gap-3 rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
+        "relative flex h-[120px] flex-col justify-between rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
         locked
           ? "cursor-default bg-card-idle"
           : active
@@ -62,10 +62,10 @@ export function ToolGridCard({
           <MaroIcon name="lock" fallback={Lock} className="icon-tone-locked h-[20px] w-[20px]" />
         )}
       </span>
-      <span className="leading-tight">
+      <span className="min-w-0 leading-tight">
         <span
           className={cn(
-            "block text-[16px] font-normal",
+            "block truncate text-[16px] font-normal",
             locked ? "text-card-locked-fg" : active ? "text-card-active-fg opacity-80" : "text-card-idle-fg opacity-80"
           )}
         >
@@ -74,14 +74,16 @@ export function ToolGridCard({
         {restLabel && (
           <span
             className={cn(
-              "block text-[16px] font-bold",
+              "block truncate text-[16px] font-bold",
               locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
             )}
           >
             {restLabel}
           </span>
         )}
-        {locked && <span className="mt-1 block text-[12px] font-medium text-card-locked-fg">së shpejti</span>}
+        <span className={cn("mt-1 block h-[14px] text-[12px] font-medium", locked ? "text-card-locked-fg" : "invisible")}>
+          së shpejti
+        </span>
       </span>
     </button>
   );

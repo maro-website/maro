@@ -309,9 +309,9 @@ body {
   align-items: center;
   gap: 0.5rem;
   height: var(--ui-btn-h);
-  padding-inline: 0.875rem;
+  padding-inline: 0.75rem;
   border-radius: 12px;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -324,6 +324,58 @@ body {
   min-width: var(--ui-btn-h);
   border-radius: 12px;
   flex-shrink: 0;
+}
+
+/* Prompt dock toolbar — one row: controls left, credits+maro right */
+.dock-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 35px;
+  row-gap: 10px;
+}
+.dock-toolbar-controls {
+  display: flex;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dock-toolbar-controls::-webkit-scrollbar {
+  display: none;
+}
+.dock-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  justify-self: end;
+}
+@media (max-width: 767px) {
+  .dock-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .dock-toolbar-controls {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .dock-toolbar-actions {
+    width: 100%;
+    justify-self: stretch;
+    justify-content: flex-end;
+  }
+}
+
+.dock-pill {
+  max-width: 148px;
+}
+.dock-pill-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Prompt dock — Tekst switch colors */

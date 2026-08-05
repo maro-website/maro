@@ -651,9 +651,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — centered, pinned to bottom */}
+      {/* Docked prompt box — full workspace width, pinned bottom */}
       <div className="relative z-20 shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+        <div className="w-full px-4 pb-4 pt-2 lg:px-6 lg:pb-6">
           <div className="w-full">
           <AnnouncementBanner toolId={tool.id} />
 
@@ -789,9 +789,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
             </div>
 
-            {/* Toolbar — single row on desktop; credits+maro pushed right */}
-            <div className="flex items-center gap-2 pb-[24px] pl-[30px] pr-[30px] pt-2 max-lg:flex-wrap lg:flex-nowrap lg:gap-2.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2 max-lg:w-full lg:flex-nowrap lg:gap-2.5">
+            {/* Toolbar — grid keeps credits+maro on the same row (right column) */}
+            <div className="dock-toolbar pb-[24px] pl-[30px] pr-[30px] pt-2">
+              <div className="dock-toolbar-controls">
               {isImage && (
                 <>
                   <input
@@ -862,7 +862,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               </div>
 
-              <div className="ml-auto flex shrink-0 items-center gap-3 pl-[35px] max-lg:ml-0 max-lg:w-full max-lg:pl-0 max-lg:pt-1">
+              <div className="dock-toolbar-actions">
                 {functional && (
                   <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-ink-2">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
@@ -1107,10 +1107,10 @@ function ToolSwitcher({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-auto min-w-[135px] items-center gap-2 rounded-xl bg-dock-tool px-3.5 text-[14.5px] font-bold text-dock-tool-fg transition-opacity hover:opacity-90 focus:outline-none"
+        className="flex h-11 w-auto min-w-[120px] max-w-[148px] items-center gap-2 rounded-xl bg-dock-tool px-3 text-[14px] font-bold text-dock-tool-fg transition-opacity hover:opacity-90 focus:outline-none"
       >
         <ToolIcon toolId={current.id} fallback={current.icon} className="dock-tool-icon h-5 w-5 shrink-0" />
-        <span className="whitespace-nowrap text-left">{current.name}</span>
+        <span className="dock-pill-label min-w-0 flex-1 text-left">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
       {typeof document !== "undefined" &&
@@ -1178,9 +1178,8 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="dock-control flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-dock-btn px-3.5">
+    <div className="dock-control flex h-11 shrink-0 items-center gap-2 rounded-xl bg-dock-btn px-3">
       <Icon className="h-5 w-5 shrink-0 text-ink-3" />
-      <span className="hidden truncate text-[14.5px] font-semibold text-ink sm:inline">{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}
@@ -1244,7 +1243,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill shrink-0 bg-dock-btn text-ink hover:opacity-80 focus:outline-none"
+        className="maro-pill dock-pill shrink-0 bg-dock-btn text-ink hover:opacity-80 focus:outline-none"
         title={setting.label}
       >
         <OptionIcon
@@ -1253,9 +1252,9 @@ function SettingSelect({
           optionId={currentId}
           icons={optionIcons}
           fallback={Icon}
-          className="h-5 w-5"
+          className="h-5 w-5 shrink-0"
         />
-        <span className="truncate">{current?.label}</span>
+        <span className="dock-pill-label min-w-0">{current?.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
       </button>
       {typeof document !== "undefined" &&

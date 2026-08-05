@@ -65,7 +65,7 @@ export function FortToggle({
             layout
             transition={{ type: "spring", stiffness: 520, damping: 32 }}
             className={cn(
-              "block h-3 w-3 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] ring-1 ring-black/5",
+              "block h-3 w-3 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)]",
               active ? "translate-x-3 bg-[var(--brand-fg)]" : "translate-x-0 bg-white"
             )}
           />

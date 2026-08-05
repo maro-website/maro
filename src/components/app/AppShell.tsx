@@ -29,7 +29,7 @@ export function AppShell({
   const [collapsed, setCollapsed] = React.useState(false);
 
   const isToolPage = TOOL_ROUTES.has(pathname);
-  const footerVisible = showFooter ?? (!hideFooter && !isToolPage);
+  const footerVisible = showFooter === true;
 
   React.useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
