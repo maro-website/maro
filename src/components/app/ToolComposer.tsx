@@ -651,10 +651,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — centered block, grows with toolbar */}
+      {/* Docked prompt box — full width, single row on desktop */}
       <div className="relative z-20 shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
-          <div className="mx-auto w-full max-w-[1040px]">
+          <div className="w-full">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (

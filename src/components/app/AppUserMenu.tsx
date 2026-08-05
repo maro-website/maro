@@ -14,6 +14,15 @@ import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
 import { Bookmark, Camera, Moon, Shield, SlidersHorizontal, Star, Sun, User as UserIcon } from "lucide-react";
 
+const FOOTER_LINKS = [
+  { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
+  { href: "/legal/terms", label: "Kushtet" },
+  { href: "/legal/privacy", label: "Privatësia" },
+  { href: "/legal/refund", label: "Rimbursimi" },
+  { href: "/legal/cookies", label: "Cookies" },
+  { href: "/credits", label: "Çmimet" },
+] as const;
+
 const THEMES: { id: Theme; label: string; icon: React.ElementType }[] = [
   { id: "qelt", label: "Qelt", icon: Sun },
   { id: "mshelt", label: "Mshelt", icon: Moon },
@@ -183,6 +192,25 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               <MaroIcon name="logout" className="h-5 w-5" />
               Dil
             </button>
+
+            {/* Footer / legal — always reachable here (no sticky page footer) */}
+            <div className="mt-[16px] border-t border-line pt-[14px]">
+              <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                {FOOTER_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className="text-[12px] font-medium text-ink-3 transition-colors hover:text-ink"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-[10px] text-[11px] text-ink-3">
+                © {new Date().getFullYear()} — maro.al — Powered by NICE.al
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
