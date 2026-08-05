@@ -33,21 +33,29 @@ export function ToolGridCard({
       disabled={locked}
       className={cn(
         "relative flex min-h-[120px] flex-col justify-between gap-3 rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
-        active
-          ? "bg-card-active"
-          : locked
+        locked
           ? "cursor-default bg-card-idle"
-          : "bg-card-active"
+          : active
+          ? "bg-card-active"
+          : "bg-card-idle bg-card-hover"
       )}
     >
       <span className="flex w-full items-start justify-between">
         {tool.id === "plan" ? (
-          <Lightbulb className={cn("h-[28px] w-[28px]", locked ? "icon-tone-locked" : "icon-tone-active")} />
+          <Lightbulb
+            className={cn(
+              "h-[28px] w-[28px]",
+              locked ? "icon-tone-locked" : active ? "icon-tone-active" : "icon-tone-idle"
+            )}
+          />
         ) : (
           <ToolIcon
             toolId={tool.id}
             fallback={Icon}
-            className={cn("h-[28px] w-[28px]", locked ? "icon-tone-locked" : "icon-tone-active")}
+            className={cn(
+              "h-[28px] w-[28px]",
+              locked ? "icon-tone-locked" : active ? "icon-tone-active" : "icon-tone-idle"
+            )}
           />
         )}
         {locked && (
@@ -58,7 +66,7 @@ export function ToolGridCard({
         <span
           className={cn(
             "block text-[16px] font-normal",
-            locked ? "text-[#818181]" : "text-card-active-fg opacity-80"
+            locked ? "text-card-locked-fg" : active ? "text-card-active-fg opacity-80" : "text-card-idle-fg opacity-80"
           )}
         >
           {first}
@@ -67,13 +75,13 @@ export function ToolGridCard({
           <span
             className={cn(
               "block text-[16px] font-bold",
-              locked ? "text-[#818181]" : "text-card-active-fg"
+              locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
             )}
           >
             {restLabel}
           </span>
         )}
-        {locked && <span className="mt-1 block text-[12px] font-medium text-[#818181]">së shpejti</span>}
+        {locked && <span className="mt-1 block text-[12px] font-medium text-card-locked-fg">së shpejti</span>}
       </span>
     </button>
   );

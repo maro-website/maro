@@ -54,7 +54,7 @@ export function AppShell({
         )}
       >
         {!collapsed && (
-          <aside className="hidden min-h-0 bg-surface lg:block">
+          <aside className="hidden min-h-0 overflow-hidden bg-surface lg:block">
             <HomeSidebar onCollapse={toggleCollapse} showHeader />
           </aside>
         )}
@@ -78,11 +78,18 @@ export function AppShell({
             <WorkspaceTopBar />
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto">
+          <div
+            className={cn(
+              "min-h-0 min-w-0 flex-1",
+              isToolPage
+                ? "flex flex-col overflow-hidden"
+                : "overflow-x-clip overflow-y-auto"
+            )}
+          >
             {footerVisible ? (
               <div className="flex min-h-full flex-col">
                 {children}
-                <AppFooter className="mt-auto hidden shrink-0 flex-col gap-3 border-t border-line/40 px-6 py-4 lg:flex lg:flex-row lg:items-center lg:justify-between" />
+                <AppFooter className="mt-auto hidden shrink-0 flex-col gap-3 px-6 py-4 lg:flex lg:flex-row lg:items-center lg:justify-between" />
               </div>
             ) : (
               children

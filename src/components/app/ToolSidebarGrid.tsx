@@ -54,8 +54,8 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-bold transition-colors focus:outline-none",
               pathname === "/prompts"
-                ? "bg-white text-black"
-                : "bg-card-idle text-accent-teal hover:bg-white hover:text-black"
+                ? "border border-transparent bg-white text-black"
+                : "bg-card-idle text-card-idle-fg hover:border-transparent hover:bg-white hover:text-black"
             )}
           >
             <span>maro Prompts</span>
@@ -66,7 +66,9 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             onClick={() => go("/krijimet")}
             className={cn(
               "flex h-[52px] w-full items-center justify-between rounded-2xl px-4 text-[15px] font-semibold transition-colors focus:outline-none",
-              pathname === "/krijimet" ? "bg-surface-2 text-ink" : "bg-card-idle text-ink hover:bg-surface-2"
+              pathname === "/krijimet"
+                ? "border border-transparent bg-surface-2 text-ink"
+                : "bg-card-idle text-card-idle-fg hover:border-transparent hover:bg-surface-2"
             )}
           >
             <span>Çka ke maru</span>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
-import { ToolGridCard } from "@/components/app/ToolGridCard";
+import { HomeToolPick } from "@/components/app/HomeToolPick";
 import { useMaro } from "@/context/store";
 import { MAIN_TOOLS } from "@/lib/tools/registry";
 
@@ -30,19 +30,17 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE }}
-          className="w-full max-w-md"
+          className="w-full max-w-lg"
         >
           <h1 className="text-balance text-center text-[clamp(32px,5vw,48px)] font-normal leading-[1.06] tracking-[-0.03em] text-ink">
             {firstName ? `Çka po marojmë ${dayPart}, ${firstName}?` : `Çka po marojmë ${dayPart}?`}
           </h1>
 
-          <div className="mt-10 grid grid-cols-2 gap-[10px]">
+          <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8">
             {activeTools.map((tool) => (
-              <ToolGridCard
+              <HomeToolPick
                 key={tool.id}
                 tool={tool}
-                active={false}
-                locked={false}
                 onClick={() => router.push(tool.route)}
               />
             ))}

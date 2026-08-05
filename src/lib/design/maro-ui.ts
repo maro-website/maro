@@ -1,11 +1,11 @@
 /** Shared Figma sizing — keep buttons, icons, and radii consistent. */
 export const UI = {
-  sidebarWidth: 300,
-  btnH: 48,
+  sidebarWidth: 280,
+  btnH: 44,
   btnHLg: 52,
   iconSm: 20,
   iconMd: 22,
-  iconLg: 32,
+  iconLg: 28,
   iconXL: 36,
   radiusCard: 16,
   radiusDock: 28,
@@ -16,17 +16,32 @@ export const UI = {
   textXL: 22,
 } as const;
 
+/** Brand hex palette — authoritative Figma handoff (do not approximate). */
+export const BRAND_PALETTE = {
+  light: {
+    canvas: "#d4fff4",
+    surface: "#ffffff",
+    surface2: "#f8f8f8",
+    muted: "#d7d7d7",
+    teal: "#00fdba",
+    forest: "#00392a",
+  },
+  dark: {
+    canvas: "#111111",
+    surface: "#0a0a0a",
+    surface2: "#262626",
+    muted: "#d7d7d7",
+    teal: "#00fdba",
+    forest: "#00392a",
+  },
+} as const;
+
 export const BRAND = {
   teal: "#00fdba",
-  tealSoft: "rgba(0, 253, 186, 0.1)",
-  tealBorder: "rgba(0, 253, 186, 0.55)",
-  tealActiveBg: "#0a221c",
+  forest: "#00392a",
+  muted: "#d7d7d7",
   red: "#ff0000",
-  black: "#000000",
-  surface: "#0a0a0a",
-  surface2: "#141414",
-  card: "#161616",
-  ink: "#ffffff",
-  inkMuted: "#8a8a8a",
-  inkDim: "#666666",
+  canvasDark: "#111111",
+  surfaceDark: "#0a0a0a",
+  surface2Dark: "#262626",
 } as const;

@@ -49,7 +49,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         "group relative inline-flex shrink-0 items-center rounded-full transition-all duration-300 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
+        "focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-45",
         "active:scale-[0.96]",
         s.track,
@@ -75,7 +75,6 @@ export function Switch({
           "pointer-events-none relative block rounded-full",
           "transition-transform duration-300 ease-[cubic-bezier(0.34,1.45,0.64,1)]",
           "shadow-[0_1px_2px_rgba(0,0,0,0.28),0_3px_10px_rgba(0,0,0,0.14)]",
-          "ring-1 ring-black/5",
           s.knob,
           checked ? s.on : "translate-x-0",
           checked ? "bg-[var(--brand-fg)]" : "bg-[var(--switch-knob,#ffffff)]"

@@ -651,9 +651,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — full width, single row on desktop */}
+      {/* Docked prompt box — centered, pinned to bottom */}
       <div className="relative z-20 shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="w-full px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+        <div className="mx-auto w-full max-w-[1040px] px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
           <div className="w-full">
           <AnnouncementBanner toolId={tool.id} />
 
@@ -789,8 +789,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
             </div>
 
-            {/* Toolbar — no horizontal scroll; credits+maro ~35px from settings */}
-            <div className="flex flex-wrap items-center gap-2.5 pb-[24px] pl-[30px] pr-[30px] pt-2">
+            {/* Toolbar — single row on desktop; credits+maro pushed right */}
+            <div className="flex items-center gap-2 pb-[24px] pl-[30px] pr-[30px] pt-2 max-lg:flex-wrap lg:flex-nowrap lg:gap-2.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 max-lg:w-full lg:flex-nowrap lg:gap-2.5">
               {isImage && (
                 <>
                   <input
@@ -859,7 +860,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 )
               )}
 
-              <div className="ml-[35px] flex shrink-0 items-center gap-3">
+              </div>
+
+              <div className="ml-auto flex shrink-0 items-center gap-3 pl-[35px] max-lg:ml-0 max-lg:w-full max-lg:pl-0 max-lg:pt-1">
                 {functional && (
                   <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-ink-2">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
@@ -1121,7 +1124,7 @@ function ToolSwitcher({
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
                 style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl ring-1 ring-line/60"
+                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
                 {MAIN_TOOLS.map((t) => {
@@ -1266,7 +1269,7 @@ function SettingSelect({
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
                 style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl ring-1 ring-line/60"
+                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
                   {setting.label}
