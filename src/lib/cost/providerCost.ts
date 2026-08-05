@@ -1,6 +1,7 @@
 /** Estimated provider cost in USD (conservative defaults for margin tracking). */
 const MODEL_COST_PER_1K: Record<string, { input: number; output: number }> = {
   "claude-opus-4-8": { input: 0.015, output: 0.075 },
+  "claude-opus-5": { input: 0.015, output: 0.075 },
   "gpt-4o": { input: 0.0025, output: 0.01 },
   "dall-e-3": { input: 0, output: 0.04 },
   default: { input: 0.01, output: 0.03 },

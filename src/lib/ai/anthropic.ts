@@ -2,7 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChatMsg } from "@/lib/ai/chatTypes";
 
-export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
+export const AI_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
 const AI_EFFORT = process.env.ANTHROPIC_EFFORT || "high";
 const AI_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS || "", 10) || 64000;
 // Wall-clock budget for a single website generation/edit. Our own abort fires
@@ -148,9 +148,10 @@ export async function callClaudeJSON<T>(opts: {
   user: string;
   maxTokens?: number;
   effort?: string;
+  model?: string;
 }): Promise<T> {
   const res = await runClaudeStream({
-    model: AI_MODEL,
+    model: opts.model ?? AI_MODEL,
     max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
     // Opus 5 uses adaptive thinking (on by default); depth is controlled via effort.
     thinking: { type: "adaptive" },
@@ -187,9 +188,10 @@ export async function callClaudeText(opts: {
   user: string;
   maxTokens?: number;
   effort?: string;
+  model?: string;
 }): Promise<{ text: string; truncated: boolean }> {
   const res = await runClaudeStream({
-    model: AI_MODEL,
+    model: opts.model ?? AI_MODEL,
     max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
     thinking: { type: "adaptive" },
     output_config: { effort: opts.effort || AI_EFFORT },

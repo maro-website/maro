@@ -98,6 +98,8 @@ export interface AiEditHtmlRequest {
   businessName: string;
   language: string;
   page: { name: string; slug: string; html: string };
+  /** maro Web model selector id (e.g. opus-4-8). */
+  modelOptionId?: string;
   idempotencyKey?: string;
 }
 

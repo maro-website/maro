@@ -20,6 +20,7 @@ export const OPTION_ICON_FILES: Record<string, string> = {
   "reklama.text.on": "teksti.svg",
   "logo.model.gpt-image-2": "chatgpt.svg",
   "website.model.opus-4-8": "chatgpt.svg",
+  "website.model.opus-5": "chatgpt.svg",
   "reklama.format.ig-post": "formati or size.svg",
   "reklama.format.ig-story": "formati or size.svg",
   "reklama.format.fb-post": "formati or size.svg",

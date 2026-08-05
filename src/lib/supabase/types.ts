@@ -7,7 +7,7 @@ import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 export type WebsiteKind = "landing" | "business" | "platform";
 export type SpeedKey = "slow" | "fast" | "2x";
 export type EffortLevel = "low" | "medium" | "high" | "xhigh";
-export type ModelKey = "claude-opus-4-8";
+export type ModelKey = "claude-opus-4-8" | "claude-opus-5" | "gpt-5-6-sol";
 export type PlanKey = "free" | "fort";
 
 export interface Profile {
@@ -138,7 +138,9 @@ export const SPEED_OPTIONS: { key: SpeedKey; label: string; hint: string }[] = [
 ];
 
 export const MODEL_OPTIONS: { key: ModelKey; label: string }[] = [
-  { key: "claude-opus-4-8", label: "Claude Opus 5" },
+  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { key: "claude-opus-5", label: "Claude Opus 5" },
+  { key: "gpt-5-6-sol", label: "GPT 5.6 Sol" },
 ];
 
 // Compute credit cost for a given website type + speed using a pricing config.

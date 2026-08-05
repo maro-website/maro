@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { AI_MODEL, callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
+import { callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
+import { resolveWebModel } from "@/lib/ai/webModels";
 import {
   buildHtmlGenerateSystem,
   buildHtmlGenerateUser,
@@ -56,9 +57,17 @@ export async function POST(req: Request) {
   const speed = (body.speed ?? "fast") as SpeedKey;
   const selections = body.selections;
   const settings = await getAppSettings();
+  const webTool = getTool("website");
+  const modelOptionId = selections?.model ?? webTool?.settings.find((s) => s.id === "model")?.default;
+  const modelOpt = webTool?.settings
+    .find((s) => s.id === "model")
+    ?.options.find((o) => o.id === modelOptionId);
+  if (modelOpt && modelOpt.available === false) {
+    return NextResponse.json({ error: "model-unavailable" }, { status: 400 });
+  }
+  const claudeModel = resolveWebModel(modelOptionId);
 
   // Per-option prompt fragments (Lloji/MaroSpeed etc.) appended to the master.
-  const webTool = getTool("website");
   let extraPrompt = "";
   if (webTool && selections) {
     const frags: string[] = [];
@@ -110,7 +119,7 @@ export async function POST(req: Request) {
         req,
         module: "web",
         cost,
-        model: AI_MODEL,
+        model: claudeModel,
         idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
         promptText: body.userPrompt || body.goal || "",
         attachmentCount: 0,
@@ -174,7 +183,7 @@ export async function POST(req: Request) {
       }, 15000);
 
       try {
-        const { text } = await callClaudeText({ system, user, effort });
+        const { text } = await callClaudeText({ system, user, effort, model: claudeModel });
         const pages = parseHtmlPages(text);
         if (!pages.length) {
           let refunded = false;
@@ -203,7 +212,7 @@ export async function POST(req: Request) {
             final_prompt: `${system}\n\n---\n\n${user}`,
             website_type: kind,
             speed,
-            model: AI_MODEL,
+            model: claudeModel,
             credits_spent: cost,
             selections: selections && Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
@@ -214,7 +223,7 @@ export async function POST(req: Request) {
               userId,
               module: "web",
               cost,
-              model: AI_MODEL,
+              model: claudeModel,
             });
           }
         }

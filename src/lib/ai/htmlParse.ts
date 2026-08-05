@@ -46,18 +46,34 @@ export function parseHtmlEdit(text: string): ParsedHtmlEdit | null {
     const m = text.match(re);
     return m ? m[1].trim() : "";
   };
-  const reply = grab(/===REPLY===\s*([\s\S]*?)\s*===LABEL===/);
-  const label = grab(/===LABEL===\s*([\s\S]*?)\s*===COST===/);
-  const costStr = grab(/===COST===\s*([\s\S]*?)\s*---HTML---/);
-  let html = grab(/---HTML---\s*([\s\S]*?)\s*===END===/);
+
+  const reply =
+    grab(/===REPLY===\s*([\s\S]*?)\s*===LABEL===/i) ||
+    grab(/REPLY:\s*([\s\S]*?)(?:\n|$)/i);
+  const label =
+    grab(/===LABEL===\s*([\s\S]*?)\s*===COST===/i) ||
+    grab(/===LABEL===\s*([\s\S]*?)\s*---HTML---/i);
+  const costStr =
+    grab(/===COST===\s*([\s\S]*?)\s*---HTML---/i) ||
+    grab(/COST:\s*(\d+)/i);
+
+  let html =
+    grab(/---HTML---\s*([\s\S]*?)\s*===END===/i) ||
+    grab(/---HTML---\s*([\s\S]*)$/i);
 
   if (!html) {
-    // Fallback: maybe only a raw document came back.
     const cleaned = stripFences(text);
-    if (cleaned.toLowerCase().includes("<!doctype") || cleaned.toLowerCase().includes("<html")) {
+    const docStart = cleaned.search(/<!doctype|<html/i);
+    if (docStart >= 0) {
+      html = cleaned.slice(docStart);
+    } else if (
+      cleaned.toLowerCase().includes("<!doctype") ||
+      cleaned.toLowerCase().includes("<html")
+    ) {
       html = cleaned;
     }
   }
+
   html = stripFences(html);
   if (!html || !(html.toLowerCase().includes("<html") || html.toLowerCase().includes("<!doctype"))) {
     return null;

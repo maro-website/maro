@@ -20,7 +20,7 @@ import {
   InsufficientCreditsError,
   type AiEditResult,
 } from "@/lib/services/aiEditService";
-import { requestHtmlEdit } from "@/lib/services/htmlEditService";
+import { requestHtmlEdit, htmlEditErrorMessage } from "@/lib/services/htmlEditService";
 import { uid, slugify } from "@/lib/utils/format";
 
 export type Device = "desktop" | "tablet" | "mobile";
@@ -433,7 +433,7 @@ export function EditorProvider({
               );
               return;
             }
-            showError("Nuk munda ta bëj këtë ndryshim tani. Provo përsëri ose ndrysho kërkesën.");
+            showError(htmlEditErrorMessage(err));
           });
         return;
       }
