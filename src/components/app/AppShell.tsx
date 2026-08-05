@@ -54,7 +54,7 @@ export function AppShell({
         )}
       >
         {!collapsed && (
-          <aside className="hidden min-h-0 overflow-hidden bg-surface lg:block">
+          <aside className="hidden min-h-0 overflow-hidden lg:block">
             <HomeSidebar onCollapse={toggleCollapse} showHeader />
           </aside>
         )}

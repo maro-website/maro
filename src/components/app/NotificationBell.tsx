@@ -13,7 +13,7 @@ import {
   subscribeNotifications,
   type MaroNotification,
 } from "@/lib/notifications/store";
-import { Coins, Gift, Users } from "lucide-react";
+import { Bell, Coins, Gift, Users } from "lucide-react";
 
 const ICONS: Record<MaroNotification["type"], React.ElementType> = {
   credits: Coins,

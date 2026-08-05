@@ -41,9 +41,9 @@
   --brand-forest: #00392a;
   --brand-muted: #d7d7d7;
 
-  --sidebar-width: 280px;
+  --sidebar-width: 316px;
   --ui-btn-h: 44px;
-  --ui-radius-card: 16px;
+  --ui-radius-card: 11px;
   --ui-radius-dock: 28px;
 }
 
@@ -194,7 +194,7 @@
   --card-idle-border: transparent;
   --card-hover-bg: #004532;
   --card-locked-bg: #262626;
-  --card-locked-fg: #d7d7d7;
+  --card-locked-fg: #818181;
   --card-active-ring: #00fdba;
 
   --hub-tool: #ffffff;

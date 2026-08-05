@@ -19,9 +19,9 @@ export function HomeSidebar({
   showHeader?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col bg-surface">
+    <div className="flex h-full flex-col rounded-[10px] bg-surface">
       {showHeader && (
-        <div className="flex items-center justify-between px-[20px] pb-[12px] pt-[20px]">
+        <div className="flex items-center justify-between px-[26px] pb-3 pt-[26px]">
           <Link href="/" className="flex items-center" onClick={onNavigate}>
             <Logo showWord wordClassName="h-7 w-auto" />
           </Link>

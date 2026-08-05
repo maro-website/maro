@@ -32,32 +32,30 @@ export function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex aspect-square w-full flex-col justify-between rounded-2xl p-[20px] text-left transition-colors focus:outline-none",
+        "relative flex aspect-square w-full flex-col rounded-[11px] p-5 text-left tracking-[-0.03em] transition-colors focus:outline-none",
         locked
           ? "cursor-default bg-card-locked"
-          : cn("bg-card-active bg-card-hover", active && "ring-card-active")
+          : cn(
+              "bg-card-active bg-card-hover",
+              active && "ring-card-active"
+            )
       )}
     >
-      <span className="flex w-full items-start justify-between">
-        {tool.id === "plan" ? (
-          <Lightbulb
-            className={cn(
-              "h-[28px] w-[28px]",
-              locked ? "icon-tone-locked" : "icon-tone-active"
-            )}
-          />
-        ) : (
-          <ToolIcon
-            toolId={tool.id}
-            fallback={Icon}
-            className={cn("h-[28px] w-[28px]", locked ? "icon-tone-locked" : "icon-tone-active")}
-          />
-        )}
-        {locked && (
-          <MaroIcon name="lock" fallback={Lock} className="icon-tone-locked h-[20px] w-[20px]" />
-        )}
-      </span>
-      <span className="min-w-0 leading-tight">
+      {locked ? (
+        <span className="flex flex-1 items-start justify-center pt-1">
+          <MaroIcon name="lock" fallback={Lock} className="icon-tone-locked h-5 w-5" />
+        </span>
+      ) : (
+        <span className="flex w-full items-start">
+          {tool.id === "plan" ? (
+            <Lightbulb className="icon-tone-active h-7 w-7" />
+          ) : (
+            <ToolIcon toolId={tool.id} fallback={Icon} className="icon-tone-active h-7 w-7" />
+          )}
+        </span>
+      )}
+
+      <span className="min-w-0 leading-[1.12]">
         <span
           className={cn(
             "block truncate text-[16px] font-normal",
@@ -76,8 +74,13 @@ export function ToolGridCard({
             {restLabel}
           </span>
         )}
-        <span className={cn("mt-1 block h-[14px] text-[12px] font-medium", locked ? "text-card-locked-fg" : "invisible")}>
-          së shpejti
+        <span
+          className={cn(
+            "mt-0.5 block text-[10px] font-bold tracking-[-0.03em]",
+            locked ? "text-card-locked-fg" : "invisible"
+          )}
+        >
+          se shpejti
         </span>
       </span>
     </button>
