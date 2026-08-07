@@ -8,7 +8,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { useMaro } from "@/context/store";
 import { initials } from "@/lib/utils/format";
 import { randomMaroLabel } from "@/lib/utils/maroButton";
-import { Coins, LogOut, Settings, Shield, User as UserIcon, Plus } from "lucide-react";
+import { Coins, LogOut, Shield, User as UserIcon, Plus } from "lucide-react";
 
 export function AppHeader() {
   const { user, isAdmin, credits, signOut } = useMaro();
@@ -71,7 +71,6 @@ export function AppHeader() {
               ...(isAdmin
                 ? [{ label: "Admin", icon: <Shield />, onClick: () => router.push("/admin") }]
                 : []),
-              { label: "Cilësimet", icon: <Settings />, onClick: () => router.push("/account") },
               { divider: true, label: "" },
               {
                 label: "Dil",

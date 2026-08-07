@@ -11,7 +11,26 @@ import { useToast } from "@/components/ui/Toast";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { Switch } from "@/components/ui/Switch";
 import { initials } from "@/lib/utils/format";
-import { Coins, Pencil, Check, X, Plus, Camera, Lock, ShieldCheck, Phone, Bell, Globe, Trash2 } from "lucide-react";
+import { OrdersSection } from "@/components/account/OrdersSection";
+import {
+  AccountSidebar,
+  AccountTabSelect,
+  useAccountTab,
+} from "@/components/account/AccountSidebar";
+import {
+  Coins,
+  Pencil,
+  Check,
+  X,
+  Plus,
+  Camera,
+  Lock,
+  ShieldCheck,
+  Phone,
+  Bell,
+  Globe,
+  Trash2,
+} from "lucide-react";
 
 const COUNTRY_CODES = [
   { code: "+383", label: "Kosovë (+383)" },
@@ -25,6 +44,7 @@ const COUNTRY_CODES = [
 
 function AccountInner() {
   const router = useRouter();
+  const { active, setTab } = useAccountTab();
   const { user, credits, projects, creations, session, updateProfileName, updateAvatar } = useMaro();
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState(false);
@@ -54,122 +74,154 @@ function AccountInner() {
 
   return (
     <AppShell showFooter>
-      <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:py-10">
-        <h1 className="text-[30px] font-light tracking-[-0.02em] text-ink">Llogaria</h1>
+      <div className="flex h-full min-w-0 overflow-x-clip max-lg:h-auto">
+        <AccountSidebar active={active} onSelect={setTab} />
 
-        {/* Hero: avatar + identity + stat chips, with a soft brand wash */}
-        <div className="relative mt-6 overflow-hidden rounded-3xl bg-surface p-6 sm:p-7">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-surface-2 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-12 right-16 h-24 w-24 rotate-12 rounded-2xl" style={{ background: "color-mix(in srgb, var(--c-teal) 22%, transparent)" }} />
-          <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="group relative h-20 w-20 shrink-0"
-              title="Ndrysho foton"
-            >
-              {user?.avatarUrl ? (
-                <span className="block h-20 w-20 overflow-hidden rounded-full ring-2 ring-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                </span>
-              ) : (
-                <span
-                  className="grid h-20 w-20 place-items-center rounded-full text-[24px] font-bold text-white"
-                  style={{ background: user?.avatarColor }}
-                >
-                  {initials(user?.name ?? "U")}
-                </span>
-              )}
-              <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
-                {uploading ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
-                ) : (
-                  <Camera className="h-5 w-5 text-white" />
-                )}
-              </span>
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                pickAvatar(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="text-[22px] font-bold tracking-[-0.01em] text-ink">{user?.name}</div>
-              <div className="truncate text-[13.5px] text-ink-3">{user?.email}</div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge tone="brand" className="capitalize">Plani {user?.plan || "free"}</Badge>
-                {memberSince && (
-                  <span className="text-[12.5px] text-ink-3">Anëtar që nga {memberSince}</span>
-                )}
+        <div className="min-w-0 flex-1 overflow-y-auto scroll-thin px-5 py-8 sm:px-8 sm:py-10">
+          <AccountTabSelect active={active} onSelect={setTab} />
+
+          <h1 className="text-[30px] font-light tracking-[-0.02em] text-ink">Llogaria</h1>
+
+          {active === "profile" && (
+            <>
+              <div className="relative mt-6 overflow-hidden rounded-3xl bg-surface p-6 sm:p-7">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-surface-2 blur-2xl" />
+                <div
+                  className="pointer-events-none absolute -bottom-12 right-16 h-24 w-24 rotate-12 rounded-2xl"
+                  style={{ background: "color-mix(in srgb, var(--c-teal) 22%, transparent)" }}
+                />
+                <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="group relative h-20 w-20 shrink-0"
+                    title="Ndrysho foton"
+                  >
+                    {user?.avatarUrl ? (
+                      <span className="block h-20 w-20 overflow-hidden rounded-full ring-2 ring-line">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                      </span>
+                    ) : (
+                      <span
+                        className="grid h-20 w-20 place-items-center rounded-full text-[24px] font-bold text-white"
+                        style={{ background: user?.avatarColor }}
+                      >
+                        {initials(user?.name ?? "U")}
+                      </span>
+                    )}
+                    <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
+                      {uploading ? (
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                      ) : (
+                        <Camera className="h-5 w-5 text-white" />
+                      )}
+                    </span>
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      pickAvatar(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[22px] font-bold tracking-[-0.01em] text-ink">{user?.name}</div>
+                    <div className="truncate text-[13.5px] text-ink-3">{user?.email}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge tone="brand" className="capitalize">
+                        Plani {user?.plan || "free"}
+                      </Badge>
+                      {memberSince && (
+                        <span className="text-[12.5px] text-ink-3">Anëtar që nga {memberSince}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative mt-6 grid grid-cols-3 gap-3">
+                  <StatChip label="Website" value={projects.length} />
+                  <StatChip label="Imazhe" value={creations.length} />
+                  <StatChip label="Kredite" value={credits} accent />
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="relative mt-6 grid grid-cols-3 gap-3">
-            <StatChip label="Website" value={projects.length} />
-            <StatChip label="Imazhe" value={creations.length} />
-            <StatChip label="Kredite" value={credits} accent />
-          </div>
+              <div className="mt-5 grid gap-5 md:grid-cols-[1.5fr_1fr]">
+                <div className="rounded-2xl bg-surface p-6">
+                  <div className="text-[14px] font-bold text-ink">Profili</div>
+                  <div className="mt-4 flex flex-col gap-4">
+                    <EditableField
+                      label="Emri"
+                      value={user?.name ?? ""}
+                      onSave={async (v) => {
+                        const { error } = await updateProfileName(v);
+                        if (error) toast(`Gabim: ${error}`);
+                        else toast("Emri u ruajt.");
+                        return !error;
+                      }}
+                    />
+                    <EditableField
+                      label="Email"
+                      value={user?.email ?? ""}
+                      type="email"
+                      onSave={async (v) => {
+                        const { error } = await getSupabaseBrowser().auth.updateUser({ email: v.trim() });
+                        if (error) {
+                          toast(`Gabim: ${error.message}`);
+                          return false;
+                        }
+                        toast("Të dërguam një email konfirmimi.");
+                        return true;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="relative flex flex-col overflow-hidden rounded-2xl bg-surface p-6">
+                  <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-2">
+                    <Coins className="h-4 w-4 text-brand" /> maro Credits
+                  </span>
+                  <div className="mt-2 text-[40px] font-extrabold leading-none tracking-tight text-ink">
+                    {credits}
+                  </div>
+                  <div className="text-[12.5px] text-ink-3">kredite të disponueshme</div>
+                  <button
+                    onClick={() => router.push("/pricing")}
+                    className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+                  >
+                    <Plus className="h-4 w-4" /> Shto
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {active === "preferences" && (
+            <div className="mt-6">
+              <PreferencesSection />
+            </div>
+          )}
+
+          {active === "security" && (
+            <div className="mt-6">
+              <SecuritySection />
+            </div>
+          )}
+
+          {active === "orders" && (
+            <div className="mt-6">
+              <OrdersSection />
+            </div>
+          )}
+
+          {active === "danger" && (
+            <div className="mt-6">
+              <DangerZone />
+            </div>
+          )}
         </div>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-[1.5fr_1fr]">
-          {/* Profile with inline editing */}
-          <div className="rounded-2xl bg-surface p-6">
-            <div className="text-[14px] font-bold text-ink">Profili</div>
-            <div className="mt-4 flex flex-col gap-4">
-              <EditableField
-                label="Emri"
-                value={user?.name ?? ""}
-                onSave={async (v) => {
-                  const { error } = await updateProfileName(v);
-                  if (error) toast(`Gabim: ${error}`);
-                  else toast("Emri u ruajt.");
-                  return !error;
-                }}
-              />
-              <EditableField
-                label="Email"
-                value={user?.email ?? ""}
-                type="email"
-                onSave={async (v) => {
-                  const { error } = await getSupabaseBrowser().auth.updateUser({ email: v.trim() });
-                  if (error) {
-                    toast(`Gabim: ${error.message}`);
-                    return false;
-                  }
-                  toast("Të dërguam një email konfirmimi.");
-                  return true;
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Credits aside */}
-          <div className="relative flex flex-col overflow-hidden rounded-2xl bg-surface p-6">
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-2">
-              <Coins className="h-4 w-4 text-brand" /> maro Credits
-            </span>
-            <div className="mt-2 text-[40px] font-extrabold leading-none tracking-tight text-ink">
-              {credits}
-            </div>
-            <div className="text-[12.5px] text-ink-3">kredite të disponueshme</div>
-            <button
-              onClick={() => router.push("/pricing")}
-              className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
-            >
-              <Plus className="h-4 w-4" /> Shto
-            </button>
-          </div>
-        </div>
-
-        <PreferencesSection />
-        <SecuritySection />
-        <DangerZone />
       </div>
 
       <AvatarCropper
@@ -292,7 +344,7 @@ function PreferencesSection() {
   };
 
   return (
-    <div className="mt-5 rounded-2xl bg-surface p-6">
+    <div className="rounded-2xl bg-surface p-6">
       <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
         <Bell className="h-4 w-4 text-ink-2" /> Preferencat
       </div>
@@ -355,7 +407,7 @@ function ToggleRow({
 function DangerZone() {
   const { toast } = useToast();
   return (
-    <div className="mt-5 rounded-2xl border border-danger/30 bg-danger/5 p-6">
+    <div className="rounded-2xl border border-danger/30 bg-danger/5 p-6">
       <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
         <Trash2 className="h-4 w-4 text-danger" /> Zona e rrezikut
       </div>
@@ -414,7 +466,7 @@ function SecuritySection() {
   };
 
   return (
-    <div className="mt-5 grid gap-5 md:grid-cols-2">
+    <div className="grid gap-5 md:grid-cols-2">
       {/* Phone */}
       <div className="rounded-2xl bg-surface p-6">
         <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
@@ -505,7 +557,9 @@ function SecuritySection() {
 export default function AccountPage() {
   return (
     <AuthGate>
-      <AccountInner />
+      <React.Suspense fallback={null}>
+        <AccountInner />
+      </React.Suspense>
     </AuthGate>
   );
 }

@@ -2046,47 +2046,58 @@ function AnalyticsTab() {
 }
 
 // ---- Orders ----
-interface CreditOrder {
+interface AdminOrderApiRow {
   id: string;
-  user_email: string | null;
+  userEmail: string | null;
   credits: number;
-  amount_cents: number;
+  amountCents: number;
   currency: string;
   status: string;
   provider: string | null;
-  item_type: string | null;
-  item_id: string | null;
-  created_at: string;
+  itemType: string | null;
+  itemId: string | null;
+  label: string;
+  displayStatus: string;
+  createdAt: string;
 }
 
 function OrdersTab() {
-  const [orders, setOrders] = React.useState<CreditOrder[] | null>(null);
-  const [missing, setMissing] = React.useState(false);
+  const { getAccessToken } = useMaro();
+  const [orders, setOrders] = React.useState<AdminOrderApiRow[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     (async () => {
       if (!supabaseConfigured) return setOrders([]);
-      const { data, error } = await getSupabaseBrowser()
-        .from("credit_orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) {
-        setMissing(true);
+      const token = await getAccessToken();
+      const res = await fetch("/api/admin/orders", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        setError(res.status === 403 ? "forbidden" : "fetch_failed");
         setOrders([]);
         return;
       }
-      setOrders((data as CreditOrder[]) ?? []);
+      const data = (await res.json()) as { orders: AdminOrderApiRow[] };
+      setOrders(data.orders ?? []);
     })();
-  }, []);
+  }, [getAccessToken]);
 
   if (orders === null) return <Spinner className="h-6 w-6" />;
 
-  if (missing) {
+  if (error === "forbidden") {
     return (
       <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
-        Tabela <code>credit_orders</code> nuk ekziston ende. Ekzekuto migrimin
-        0004_explore_orders.sql në Supabase për të aktivizuar porositë.
+        Nuk ke akses admin për porositë.
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+        Porositë nuk u ngarkuan. Kontrollo migrimin{" "}
+        <code>0014_payments_maro_plan.sql</code>.
       </div>
     );
   }
@@ -2107,27 +2118,36 @@ function OrdersTab() {
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
             <tr key={o.id} className="bg-surface">
-              <td className="px-4 py-3 text-ink-2">{o.user_email}</td>
+              <td className="px-4 py-3 text-ink-2">{o.userEmail}</td>
               <td className="px-4 py-3 text-ink-2">
-                {o.item_type ?? "—"}
-                {o.item_id ? ` · ${o.item_id}` : ""}
+                {o.label}
+                {o.itemId ? ` · ${o.itemId}` : ""}
               </td>
               <td className="px-4 py-3 font-semibold text-ink">{o.credits}</td>
               <td className="px-4 py-3 text-ink-2">
-                {(o.amount_cents / 100).toFixed(2)} {o.currency}
+                {(o.amountCents / 100).toFixed(2)} {o.currency}
               </td>
               <td className="px-4 py-3">
-                <Badge tone={o.status === "paid" ? "brand" : "neutral"} className="text-[11px]">
+                <Badge
+                  tone={
+                    o.status === "paid"
+                      ? "brand"
+                      : o.status === "cancelled"
+                        ? "neutral"
+                        : "neutral"
+                  }
+                  className="text-[11px]"
+                >
                   {o.status}
                 </Badge>
               </td>
-              <td className="px-4 py-3 text-ink-3">{timeAgo(o.created_at)}</td>
+              <td className="px-4 py-3 text-ink-3">{timeAgo(o.createdAt)}</td>
             </tr>
           ))}
           {orders.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-ink-3">
-                Ende s&apos;ka porosi. Kur të lidhen pagesat, porositë shfaqen këtu.
+              <td colSpan={6} className="px-4 py-8 text-center text-ink-3">
+                Ende s&apos;ka porosi. Testo flow-in te /pricing → checkout.
               </td>
             </tr>
           )}

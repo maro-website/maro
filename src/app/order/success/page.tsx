@@ -92,10 +92,10 @@ function OrderSuccessPageInner() {
             Fillo me maro
           </Link>
           <Link
-            href="/pricing"
+            href="/account?tab=orders"
             className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-2 px-6 text-[14px] font-semibold text-ink hover:bg-line"
           >
-            Shiko planet
+            Porositë e mia
           </Link>
         </div>
 

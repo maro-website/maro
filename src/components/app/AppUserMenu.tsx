@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, Shield, SlidersHorizontal, Star, User as UserIcon } from "lucide-react";
+import { Bookmark, Camera, Shield, Star, User as UserIcon } from "lucide-react";
 
 const FOOTER_LINKS = [
   { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
@@ -145,7 +145,6 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
-              <MenuRow icon="settings" fallback={SlidersHorizontal} label="Cilesimet" onClick={() => go("/account")} />
             </div>
 
             <div className="my-[16px] h-px bg-menu-divider" />

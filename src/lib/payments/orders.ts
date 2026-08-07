@@ -88,3 +88,44 @@ export async function getOrderById(orderId: string): Promise<CreditOrderRow | nu
   if (error || !data) return null;
   return data as CreditOrderRow;
 }
+
+export async function listOrdersForUser(userId: string, limit = 50): Promise<CreditOrderRow[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("credit_orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data as CreditOrderRow[];
+}
+
+export async function listAllOrders(limit = 100): Promise<CreditOrderRow[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("credit_orders")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data as CreditOrderRow[];
+}
+
+export function serializeOrder(order: CreditOrderRow) {
+  const item = order.item_id ? getCheckoutItem(order.item_id) : null;
+  return {
+    id: order.id,
+    status: order.status,
+    cancelReason: order.cancel_reason ?? null,
+    credits: order.credits,
+    amountCents: order.amount_cents,
+    currency: order.currency,
+    itemType: order.item_type,
+    itemId: order.item_id,
+    label: item?.label ?? order.item_id ?? "Porosi",
+    priceEur: item?.priceEur ?? order.amount_cents / 100,
+    provider: order.provider,
+    billing: order.billing_snapshot,
+    createdAt: order.created_at,
+    paidAt: order.paid_at ?? null,
+  };
+}
