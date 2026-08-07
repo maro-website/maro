@@ -1,3 +1,5 @@
+import { listPriceEur } from "@/lib/credits/money";
+
 /** Estimated provider cost in USD (conservative defaults for margin tracking). */
 const MODEL_COST_PER_1K: Record<string, { input: number; output: number }> = {
   "claude-opus-4-8": { input: 0.015, output: 0.075 },
@@ -22,7 +24,7 @@ export function estimateProviderCostUsd(opts: {
 }
 
 export function marginPct(creditsCharged: number, costUsd: number): number {
-  const revenue = creditsCharged * 0.01;
+  const revenue = listPriceEur(creditsCharged);
   if (revenue <= 0) return 0;
   return Math.round(((revenue - costUsd) / revenue) * 100);
 }

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <LegalLayout title="Politika e Privatësisë" current="Politika e Privatësisë">
       <LegalSection title="1. Kush jemi ne">
         <p>
-          <strong className="text-ink">{LEGAL_ENTITY.name}</strong> (NUI {LEGAL_ENTITY.nui}), me seli në{" "}
+          <strong className="text-ink">{LEGAL_ENTITY.name}</strong> (NRB {LEGAL_ENTITY.nrb}), me seli në{" "}
           {LEGAL_ADDRESS}, është operatori i platformës <strong className="text-ink">{LEGAL_ENTITY.product}</strong>{" "}
           (&quot;maro&quot;). Ne veprojmë si kontrollues i të dhënave personale në kuptim të Ligjit nr.
           9887/2008 &quot;Për mbrojtjen e të dhënave personale&quot; dhe akteve nënligjore të zbatueshme.
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-ink">Të dhëna pagese:</strong> shuma, data dhe statusi i transaksioneve.
-            Detajet e plota të kartës bankare përpunohen nga ofruesi i pagesave (p.sh. Paysera), jo nga ne
+            Detajet e plota të kartës bankare përpunohen nga Raiffeisen Bank Kosova (hosted checkout), jo nga ne
             drejtpërdrejt.
           </li>
           <li>

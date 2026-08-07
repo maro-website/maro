@@ -26,6 +26,15 @@ export function CookieBanner() {
     setVisible(false);
   };
 
+  const reject = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, "0");
+    } catch {
+      /* ignore */
+    }
+    setVisible(false);
+  };
+
   if (!visible) return null;
 
   return (
@@ -49,13 +58,20 @@ export function CookieBanner() {
           </Link>
           .
         </p>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Link
             href="/legal/cookies"
             className="rounded-xl px-4 py-2.5 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
           >
             Mëso më shumë
           </Link>
+          <button
+            type="button"
+            onClick={reject}
+            className="rounded-xl px-4 py-2.5 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            Refuzoj
+          </button>
           <button
             type="button"
             onClick={accept}

@@ -18,9 +18,9 @@ export default function ReferralRedirect({ params }: { params: Promise<{ slug: s
       if (cancelled) return;
       if (promo) {
         await trackPromo(promo.code, "link");
-        router.replace(`/credits?promo=${encodeURIComponent(promo.code)}&via=link`);
+        router.replace(`/pricing?promo=${encodeURIComponent(promo.code)}&via=link`);
       } else {
-        router.replace("/credits");
+        router.replace("/pricing");
       }
     })();
     return () => {

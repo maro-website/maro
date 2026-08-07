@@ -21,7 +21,7 @@ export function WorkspaceTopBar() {
   return (
     <div className="flex shrink-0 items-center justify-end gap-2.5 px-6 py-4">
       <Link
-        href="/credits"
+        href="/pricing"
         className="inline-flex h-11 items-center gap-2 rounded-full bg-topbar-credits px-4 text-[15px] font-semibold text-topbar-credits transition-opacity hover:opacity-90"
       >
         <MaroIcon name="coins" fallback={Coins} className="icon-tone-menu h-5 w-5" />
@@ -29,7 +29,7 @@ export function WorkspaceTopBar() {
         <span className="text-topbar-credits-muted">kredite</span>
       </Link>
       <Link
-        href="/credits"
+        href="/pricing"
         className="grid h-11 w-11 place-items-center rounded-xl bg-topbar-wallet transition-opacity hover:opacity-90"
         aria-label="Shto kredite"
       >

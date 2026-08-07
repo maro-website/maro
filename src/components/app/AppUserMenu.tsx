@@ -19,7 +19,7 @@ const FOOTER_LINKS = [
   { href: "/legal/privacy", label: "Privatësia" },
   { href: "/legal/refund", label: "Rimbursimi" },
   { href: "/legal/cookies", label: "Cookies" },
-  { href: "/credits", label: "Çmimet" },
+  { href: "/pricing", label: "Çmimet" },
 ] as const;
 
 function Avatar({

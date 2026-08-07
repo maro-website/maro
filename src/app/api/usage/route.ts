@@ -15,7 +15,7 @@ function bearer(req: Request): string | null {
 }
 
 // Return the signed-in user's generation history (all tools) plus totals, used
-// for the interactive credit-usage feed on /credits.
+// Credit transaction history for account/usage views.
 export async function GET(req: Request) {
   const empty = { items: [], totalCount: 0, totalCredits: 0 };
   if (!supabaseServerConfigured()) return NextResponse.json(empty);

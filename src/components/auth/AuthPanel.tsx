@@ -9,17 +9,23 @@ import {
   LEGAL_CONSENT_REQUIRED,
 } from "@/components/legal/LegalConsentCheckbox";
 import { TurnstileWidget, turnstileConfigured } from "@/components/auth/TurnstileWidget";
+import { isSignupEnabled } from "@/lib/config/features";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AuthPanel({
   initialMode = "sign-in",
   onDone,
+  signupDisabledMessage,
 }: {
   initialMode?: "sign-in" | "sign-up";
   onDone?: () => void;
+  signupDisabledMessage?: string;
 }) {
+  const signupEnabled = isSignupEnabled();
   const { signIn, signUp, supabaseReady } = useMaro();
-  const [mode, setMode] = React.useState<"sign-in" | "sign-up">(initialMode);
+  const [mode, setMode] = React.useState<"sign-in" | "sign-up">(
+    signupEnabled ? initialMode : "sign-in"
+  );
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -33,6 +39,10 @@ export function AuthPanel({
     e?.preventDefault();
     setError(null);
     setNotice(null);
+    if (mode === "sign-up" && !signupEnabled) {
+      setError(signupDisabledMessage ?? "Regjistrimi është i mbyllur për momentin.");
+      return;
+    }
     if (!email.trim() || !password.trim()) {
       setError("Plotëso email-in dhe fjalëkalimin.");
       return;
@@ -77,28 +87,37 @@ export function AuthPanel({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
-        {(["sign-in", "sign-up"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m);
-              setError(null);
-              setNotice(null);
-              if (m === "sign-in") setLegalAccepted(false);
-            }}
-            className={`h-9 rounded-lg text-[13.5px] font-semibold transition-all ${
-              mode === m ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
-            }`}
-          >
-            {m === "sign-in" ? "Hyr" : "Regjistrohu"}
-          </button>
-        ))}
-      </div>
+      {signupEnabled ? (
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
+          {(["sign-in", "sign-up"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setMode(m);
+                setError(null);
+                setNotice(null);
+                if (m === "sign-in") setLegalAccepted(false);
+              }}
+              className={`h-9 rounded-lg text-[13.5px] font-semibold transition-all ${
+                mode === m ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
+              }`}
+            >
+              {m === "sign-in" ? "Hyr" : "Regjistrohu"}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {mode === "sign-up" && !signupEnabled && (
+        <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] leading-relaxed text-ink-2">
+          {signupDisabledMessage ??
+            "Platforma është në development mode. Regjistrimi hapet së shpejti — hyr nëse ke llogari."}
+        </div>
+      )}
 
       <form onSubmit={submit} className="flex flex-col gap-4">
-        {mode === "sign-up" && (
+        {mode === "sign-up" && signupEnabled && (
           <Field label="Emri">
             <Input placeholder="Emri yt" value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
@@ -110,6 +129,7 @@ export function AuthPanel({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            disabled={mode === "sign-up" && !signupEnabled}
           />
         </Field>
         <Field label="Fjalëkalimi">
@@ -119,6 +139,7 @@ export function AuthPanel({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
+            disabled={mode === "sign-up" && !signupEnabled}
           />
         </Field>
 
@@ -133,7 +154,7 @@ export function AuthPanel({
           </div>
         )}
 
-        {mode === "sign-up" && (
+        {mode === "sign-up" && signupEnabled && (
           <LegalConsentCheckbox
             id="auth-legal-consent"
             checked={legalAccepted}
@@ -141,7 +162,7 @@ export function AuthPanel({
           />
         )}
 
-        {mode === "sign-up" && turnstileConfigured() && (
+        {mode === "sign-up" && signupEnabled && turnstileConfigured() && (
           <TurnstileWidget
             onToken={(t) => setTurnstileToken(t)}
             onExpire={() => setTurnstileToken(null)}
@@ -154,8 +175,9 @@ export function AuthPanel({
           loading={loading}
           disabled={
             !supabaseReady ||
-            (mode === "sign-up" && !legalAccepted) ||
-            (mode === "sign-up" && turnstileConfigured() && !turnstileToken)
+            (mode === "sign-up" && !signupEnabled) ||
+            (mode === "sign-up" && signupEnabled && !legalAccepted) ||
+            (mode === "sign-up" && signupEnabled && turnstileConfigured() && !turnstileToken)
           }
         >
           {mode === "sign-in" ? "Hyr" : "Krijo llogari"}

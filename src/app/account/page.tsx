@@ -159,7 +159,7 @@ function AccountInner() {
             </div>
             <div className="text-[12.5px] text-ink-3">kredite të disponueshme</div>
             <button
-              onClick={() => router.push("/credits")}
+              onClick={() => router.push("/pricing")}
               className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
             >
               <Plus className="h-4 w-4" /> Shto

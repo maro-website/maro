@@ -9,7 +9,7 @@ export default function RefundPage() {
     <LegalLayout title="Politika e Rimbursimit" current="Politika e Rimbursimit">
       <LegalSection title="1. Përmbledhje">
         <p>
-          Kjo Politikë e Rimbursimit shpjegon kur dhe si {LEGAL_ENTITY.name} (NUI {LEGAL_ENTITY.nui}),
+          Kjo Politikë e Rimbursimit shpjegon kur dhe si {LEGAL_ENTITY.name} (NRB {LEGAL_ENTITY.nrb}),
           operatori i <strong className="text-ink">{LEGAL_ENTITY.product}</strong>, rimburson pagesat ose
           kthen kredite. Ajo plotëson{" "}
           <Link href="/legal/terms" className="font-semibold text-ink underline-offset-2 hover:underline">
@@ -18,12 +18,12 @@ export default function RefundPage() {
           .
         </p>
         <p>
-          maro përdor kredite si njësi pagese: <strong className="text-ink">1 kredit = €0,01</strong>.
-          Blerja minimale e krediteve është zakonisht 500 kredite (€5,00), siç shfaqet në faqen e{" "}
-          <Link href="/credits" className="font-semibold text-ink underline-offset-2 hover:underline">
-            Çmimeve & Krediteve
+          maro përdor kredite si njësi pagese. Planet maroStandard (€9 / 100 kredite) dhe maroPro (€35 /
+          500 kredite) shfaqen në{" "}
+          <Link href="/pricing" className="font-semibold text-ink underline-offset-2 hover:underline">
+            Planet & Kreditet
           </Link>
-          .
+          . Blerja minimale është €9.
         </p>
       </LegalSection>
 

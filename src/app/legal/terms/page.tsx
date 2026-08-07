@@ -11,8 +11,8 @@ export default function TermsPage() {
         <p>
           Këto Kushte të Përdorimit (&quot;Kushtet&quot;) rregullojnë aksesin dhe përdorimin tuaj të platformës{" "}
           <strong className="text-ink">{LEGAL_ENTITY.product}</strong> (&quot;maro&quot;, &quot;Platforma&quot;,
-          &quot;Shërbimi&quot;), e operuar nga <strong className="text-ink">{LEGAL_ENTITY.name}</strong> (NUI{" "}
-          {LEGAL_ENTITY.nui}), me seli në {LEGAL_ADDRESS}.
+          &quot;Shërbimi&quot;), e operuar nga <strong className="text-ink">{LEGAL_ENTITY.name}</strong> (NRB{" "}
+          {LEGAL_ENTITY.nrb}), me seli në {LEGAL_ADDRESS}.
         </p>
         <p>
           Duke krijuar llogari, hyrë ose përdorur maro, ju pranoni këto Kushte dhe{" "}
@@ -31,8 +31,8 @@ export default function TermsPage() {
           manual nga ana juaj para publikimit.
         </p>
         <p>
-          Shërbimi ofrohet në version beta. Funksionalitete, çmime dhe kufizime mund të ndryshojnë pa njoftim
-          paraprak, por do të përpiqemi të informojmë përdoruesit për ndryshime materiale.
+          Funksionalitete, çmime dhe kufizime mund të ndryshojnë; do të informojmë përdoruesit për ndryshime
+          materiale.
         </p>
       </LegalSection>
 
@@ -53,18 +53,18 @@ export default function TermsPage() {
 
       <LegalSection title="4. Kreditet dhe pagesat">
         <p>
-          Shërbimi funksionon me sistem kreditesh. 1 kredit = €0,01. Blerja minimale është 500 kredite
-          (€5,00), përveç rasteve kur ofrohet ndryshe në faqen e{" "}
-          <Link href="/credits" className="font-semibold text-ink underline-offset-2 hover:underline">
-            Çmimeve & Krediteve
+          Shërbimi funksionon me sistem kreditesh. Çmimi i blerjes së krediteve është €0,09 për kredit.
+          Planet maroStandard (€9 / 100 kredite) dhe maroPro (€35 / 500 kredite) shfaqen në{" "}
+          <Link href="/pricing" className="font-semibold text-ink underline-offset-2 hover:underline">
+            Planet & Kreditet
           </Link>
-          .
+          . Blerja minimale është €9.
         </p>
         <p>
           Kreditet zbriten kur inicirohet një veprim që konsumon burime (p.sh. gjenerim website, imazh,
           redaktim AI). Çmimi në kredite shfaqet para konfirmimit të veprimit. Pagesat proces-ohen përmes
-          partnerëve tanë të pagesave (p.sh. Paysera). Çmimet përfshijnë TVSH-në ku aplikohet, sipas
-          ligjit shqiptar.
+          Raiffeisen Bank Kosova (hosted checkout). Çmimet përfshijnë TVSH-në ku aplikohet, sipas ligjit të
+          Kosovës.
         </p>
         <p>
           Kreditet e blera nuk janë monedhë elektronike dhe nuk mund të shkëmbehen për para, përveç rasteve
@@ -76,11 +76,11 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="5. maroFort (abonim)">
+      <LegalSection title="5. maroFort dhe planet">
         <p>
-          maroFort është plan abonimi opsional që mund të ofrojë akses shtesë (p.sh. maroFort mode, kredite
-          mujore, beta tools). Detajet e planit, çmimi dhe përfitimet shfaqen në Platformë dhe mund të
-          ndryshojnë. Abonimet rinovohen sipas kushteve të blerjes, derisa të anulohen nga ju ose nga ne.
+          maroPro përfshin maroFort falas për 14 ditë. maroFort ofron akses shtesë (mode i avancuar,
+          vegla të reja). Detajet e planit dhe përfitimet shfaqen në Platformë. Planet janë blerje
+          njëherëshe — pa abonim mujor të detyrueshëm.
         </p>
       </LegalSection>
 
@@ -152,16 +152,16 @@ export default function TermsPage() {
 
       <LegalSection title="12. Ligji zbatues dhe kontakt">
         <p>
-          Këto Kushte rregullohen nga ligji i Republikës së Shqipërisë. Mosmarrëveshjet do të zgjidhen
+          Këto Kushte rregullohen nga ligji i Republikës së Kosovës. Mosmarrëveshjet do të zgjidhen
           fillimisht me negociata të ndershme; në mungesë marrëveshjeje, kompetente janë gjykatat e
-          Republikës së Shqipërisë.
+          Republikës së Kosovës.
         </p>
         <p>
           Kontakt:{" "}
           <a href={`mailto:${LEGAL_ENTITY.contactEmail}`} className="font-semibold text-ink hover:underline">
             {LEGAL_ENTITY.contactEmail}
           </a>{" "}
-          · {LEGAL_ENTITY.name}, NUI {LEGAL_ENTITY.nui}
+          · {LEGAL_ENTITY.name}, NRB {LEGAL_ENTITY.nrb}
           <br />
           {LEGAL_ADDRESS}
         </p>

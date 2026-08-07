@@ -13,9 +13,6 @@ export const metadata: Metadata = {
   description:
     "maro AI Hub: krijo website, logo dhe imazhe me AI. Përshkruaj çka do dhe maro e maron.",
   icons: { icon: "/brand/symbol.svg" },
-  other: {
-    "verify-paysera": "a55fe77b2b44938064f4cc9e74c40792",
-  },
 };
 
 export const viewport: Viewport = {
@@ -35,8 +32,6 @@ export default function RootLayout({
   return (
     <html lang="sq">
       <head>
-        {/* Paysera domain verification — remove once confirmed in Paysera dashboard */}
-        <meta name="verify-paysera" content="a55fe77b2b44938064f4cc9e74c40792" />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">

@@ -250,7 +250,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   // Open the maroFort pop-up (or trigger the upgrade flow when not entitled).
   const openFortModal = () => {
     if (!hasFort) {
-      router.push("/credits#fort");
+      router.push("/pricing");
       return;
     }
     setFortDirty(false);
@@ -736,7 +736,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   label={fortResolved.label}
                   badgeText={fortResolved.badgeText}
                   onToggle={() => openFortModal()}
-                  onUpgrade={() => router.push("/credits#fort")}
+                  onUpgrade={() => router.push("/pricing")}
                 />
               )}
             </div>

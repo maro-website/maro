@@ -81,7 +81,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
 function MaroFortBanner({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <Link
-      href="/credits#fort"
+      href="/pricing"
       onClick={onNavigate}
       className="relative mt-[20px] block h-[120px] w-full overflow-hidden rounded-[11px]"
     >

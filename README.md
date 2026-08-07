@@ -1,15 +1,10 @@
-# MARO Beta Version
+# MARO · maro.al
 
 > Trego çka të duhet. **Maro e maron.**
 
-An AI-powered website builder — **Beta**. A single-screen, app-first experience:
-you land, type what website you want, pick the type + speed, and Maro generates
-it with **Anthropic Claude Opus 4.8** (`claude-opus-4-8`).
-
-Real backend is wired in via **Supabase**: real email/password auth, per-user
-credits, a generation log, and an in-app **Admin** panel (grant credits, edit the
-master prompt, edit pricing). Projects are stored in `localStorage` for this
-iteration. Credits are **test mode** — only the admin grants them.
+An AI-powered creative platform — website, logo, imazhe dhe më shumë me AI.
+Real backend via **Supabase**: auth, kredite, gjenerime, admin panel.
+Pagesat përmes **Raiffeisen Bank Kosova** (hosted checkout).
 
 ## Stack
 

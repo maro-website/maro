@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { initials } from "@/lib/utils/format";
 import { randomMaroLabel } from "@/lib/utils/maroButton";
@@ -24,9 +23,6 @@ export function AppHeader() {
           <Link href="/" className="flex items-center">
             <Logo mobileWordOnly />
           </Link>
-          <Badge tone="brand" className="hidden text-[10px] sm:inline-flex">
-            Beta
-          </Badge>
         </div>
 
         <div className="flex items-center gap-3">
@@ -37,7 +33,7 @@ export function AppHeader() {
             <Plus className="h-4 w-4" /> {maroLabel}
           </Link>
           <Link
-            href="/credits"
+            href="/pricing"
             className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
           >
             <Coins className="h-4 w-4 text-brand" />

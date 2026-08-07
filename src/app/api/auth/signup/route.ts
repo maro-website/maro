@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
+import { isSignupEnabled } from "@/lib/config/features";
 import { isDisposableEmail, normalizeEmail } from "@/lib/security/disposableEmails";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
@@ -21,6 +22,9 @@ function uaHash(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  if (!isSignupEnabled()) {
+    return NextResponse.json({ error: "signup_disabled" }, { status: 403 });
+  }
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }

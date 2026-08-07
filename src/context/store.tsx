@@ -39,6 +39,8 @@ interface MaroContextValue {
   isCreator: boolean;
   /** True when the user's plan unlocks maroFort mode. */
   hasFort: boolean;
+  /** True when user has purchased a maro plan (enables top-up). */
+  hasMaroPlan: boolean;
   credits: number;
   supabaseReady: boolean;
   projects: Project[];
@@ -472,6 +474,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       hasFort:
         profile?.plan === "fort" &&
         (!profile.fort_until || new Date(profile.fort_until) > new Date()),
+      hasMaroPlan: Boolean(profile?.maro_plan),
       credits: profile?.credits ?? 0,
       supabaseReady: supabaseConfigured,
       projects: state.projects,

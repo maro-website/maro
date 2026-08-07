@@ -2054,6 +2054,8 @@ interface CreditOrder {
   currency: string;
   status: string;
   provider: string | null;
+  item_type: string | null;
+  item_id: string | null;
   created_at: string;
 }
 
@@ -2095,6 +2097,7 @@ function OrdersTab() {
         <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
           <tr>
             <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
+            <th className="px-4 py-2.5 font-semibold">Artikulli</th>
             <th className="px-4 py-2.5 font-semibold">Kredite</th>
             <th className="px-4 py-2.5 font-semibold">Shuma</th>
             <th className="px-4 py-2.5 font-semibold">Statusi</th>
@@ -2105,6 +2108,10 @@ function OrdersTab() {
           {orders.map((o) => (
             <tr key={o.id} className="bg-surface">
               <td className="px-4 py-3 text-ink-2">{o.user_email}</td>
+              <td className="px-4 py-3 text-ink-2">
+                {o.item_type ?? "—"}
+                {o.item_id ? ` · ${o.item_id}` : ""}
+              </td>
               <td className="px-4 py-3 font-semibold text-ink">{o.credits}</td>
               <td className="px-4 py-3 text-ink-2">
                 {(o.amount_cents / 100).toFixed(2)} {o.currency}

@@ -57,7 +57,7 @@ export function LegalLayout({
         <main className="min-w-0 flex-1">
           <header className="border-b border-line pb-6">
             <p className="text-[12px] font-semibold uppercase tracking-wider text-ink-3">
-              {LEGAL_ENTITY.name} · NUI {LEGAL_ENTITY.nui}
+              {LEGAL_ENTITY.name} · NRB {LEGAL_ENTITY.nrb}
             </p>
             <p className="mt-1 text-[13px] text-ink-3">{LEGAL_ADDRESS}</p>
             <h1 className="mt-2 text-[clamp(28px,5vw,40px)] font-light tracking-[-0.03em] text-ink">
@@ -93,7 +93,7 @@ export function LegalLayout({
           <footer className="mt-12 text-[12px] leading-relaxed text-ink-3">
             <p>
               © {new Date().getFullYear()} {LEGAL_ENTITY.product}, një produkt i{" "}
-              {LEGAL_ENTITY.name} (NUI {LEGAL_ENTITY.nui}).
+              {LEGAL_ENTITY.name} (NRB {LEGAL_ENTITY.nrb}).
             </p>
             <p className="mt-1">
               {LEGAL_ADDRESS}

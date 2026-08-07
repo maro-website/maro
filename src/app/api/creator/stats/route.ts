@@ -86,10 +86,10 @@ export async function GET(req: Request) {
   const sales = paid.length;
   const salesCents = paid.reduce((a, o) => a + ((o.amount_cents as number) ?? 0), 0);
   const creditsSold = paid.reduce((a, o) => a + ((o.credits as number) ?? 0), 0);
-  // 1 credit = 1 cent, so full value in cents == creditsSold. Buyer discount:
-  const savedCents = Math.max(0, creditsSold - salesCents);
-  // Creator earns 10% of the credit value sold via their code.
-  const earningsCents = Math.round(creditsSold * 0.1);
+  // List price €0.09/credit; savedCents approximates buyer discount vs list.
+  const listCents = creditsSold * 9;
+  const savedCents = Math.max(0, listCents - salesCents);
+  const earningsCents = Math.round(listCents * 0.1);
 
   return NextResponse.json({
     isCreator: true,

@@ -29,7 +29,7 @@ export function AuthLayout({
           </div>
         </div>
         <div className="text-center text-[12.5px] text-ink-3">
-          MARO Beta Version · maro.al
+          maro.al · Powered by NICE.al
         </div>
       </div>
 

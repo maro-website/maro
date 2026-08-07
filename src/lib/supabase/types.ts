@@ -9,6 +9,7 @@ export type SpeedKey = "slow" | "fast" | "2x";
 export type EffortLevel = "low" | "medium" | "high" | "xhigh";
 export type ModelKey = "claude-opus-4-8" | "claude-opus-5" | "gpt-5-6-sol";
 export type PlanKey = "free" | "fort";
+export type MaroPlanKey = "standard" | "pro" | "biz";
 
 export interface Profile {
   id: string;
@@ -19,6 +20,8 @@ export interface Profile {
   is_creator?: boolean;
   /** Subscription plan. "fort" unlocks maroFort mode. */
   plan?: PlanKey;
+  /** Purchased maro plan tier (standard/pro/biz). Required for top-up. */
+  maro_plan?: MaroPlanKey | null;
   fort_until?: string | null;
   created_at: string;
 }
