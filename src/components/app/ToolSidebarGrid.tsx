@@ -25,7 +25,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
   const gridTools: GridTool[] = [...MAIN_TOOLS, LOCKED_PLAN];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-[26px] pb-[26px]">
+    <div className="flex min-h-0 flex-1 flex-col px-[26px] pb-[26px] pt-10">
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
         <div className="grid grid-cols-2 gap-[11px]">
           {gridTools.map((tool) => {

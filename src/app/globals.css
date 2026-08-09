@@ -187,8 +187,8 @@ body {
 
 .bg-sketch-dots {
   background-color: var(--canvas);
-  background-image: radial-gradient(circle, color-mix(in srgb, #c7c7c7 35%, transparent) 0.55px, transparent 0.55px);
-  background-size: 18px 18px;
+  background-image: radial-gradient(circle, rgba(199, 199, 199, 0.55) 0.8px, transparent 0.8px);
+  background-size: 15px 15px;
 }
 
 .bg-aurora {

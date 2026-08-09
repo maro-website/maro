@@ -665,7 +665,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       </div>
 
       {/* Docked prompt box — full workspace width, pinned bottom */}
-      <div className="relative z-20 shrink-0 bg-canvas max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 shrink-0 bg-transparent max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="w-full px-4 pb-4 pt-2 lg:px-6 lg:pb-6">
           <div className="w-full">
           <AnnouncementBanner toolId={tool.id} />
@@ -831,7 +831,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     }}
                   />
                   <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
-                    <Mic className="h-5 w-5" />
+                    <Mic className="h-5 w-5 text-white" />
                   </IconBtn>
                 </>
               )}
@@ -868,7 +868,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="dock-toolbar-actions">
                 {functional && (
-                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-white/10 px-4 text-[14.5px] font-semibold text-white">
+                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap px-1 text-[14.5px] font-semibold text-white">
                     <MaroIcon name="coins" className="icon-tone-white h-5 w-5 shrink-0" />
                     {cost}
                     <span className="text-dock-muted">kredite</span>
@@ -1059,7 +1059,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none disabled:opacity-50"
+      className="maro-icon-btn text-white transition-opacity hover:opacity-75 focus:outline-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -1184,8 +1184,8 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="dock-control flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white/10 px-3 text-white">
-      <Icon className="h-5 w-5 shrink-0 text-ink-3" />
+    <div className="dock-control flex h-11 shrink-0 items-center gap-2 px-1 text-white">
+      <Icon className="h-5 w-5 shrink-0 text-white/70" />
       <Switch
         size="sm"
         checked={checked}
@@ -1249,7 +1249,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill dock-pill shrink-0 bg-white/10 text-white hover:bg-white/15 focus:outline-none"
+        className="maro-pill dock-pill shrink-0 bg-transparent text-white transition-opacity hover:opacity-75 focus:outline-none"
         title={setting.label}
       >
         <OptionIcon
@@ -1258,7 +1258,7 @@ function SettingSelect({
           optionId={currentId}
           icons={optionIcons}
           fallback={Icon}
-          className="h-5 w-5 shrink-0"
+          className="icon-tone-white h-5 w-5 shrink-0"
         />
         <span className="dock-pill-label min-w-0">{current?.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-white/60" />

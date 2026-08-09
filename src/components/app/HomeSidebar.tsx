@@ -19,9 +19,9 @@ export function HomeSidebar({
   showHeader?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-[10px] border border-line bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+    <div className="flex h-full flex-col bg-transparent">
       {showHeader && (
-        <div className="flex items-center justify-between px-[26px] pb-3 pt-[26px]">
+        <div className="flex shrink-0 items-center justify-between px-[26px] pb-0 pt-[26px]">
           <Link href="/" className="flex items-center" onClick={onNavigate}>
             <Logo showWord wordClassName="h-7 w-auto" />
           </Link>
@@ -31,7 +31,7 @@ export function HomeSidebar({
               <button
                 type="button"
                 onClick={onCollapse}
-                className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface-2 focus:outline-none"
+                className="grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface/80 focus:outline-none"
                 aria-label="Mbyll sidebar"
                 title="Mbyll sidebar"
               >
@@ -42,7 +42,7 @@ export function HomeSidebar({
               <button
                 type="button"
                 onClick={onNavigate}
-                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 hover:bg-surface-2 lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 hover:bg-surface/80 lg:hidden"
                 aria-label="Mbyll"
               >
                 <X className="h-6 w-6" />
@@ -74,7 +74,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] border-r border-line bg-surface"
+            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] border-r border-line bg-sketch-dots"
           >
             <HomeSidebar onNavigate={onClose} showHeader />
           </motion.div>

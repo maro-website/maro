@@ -34,7 +34,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
-      <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
+      <body className="w-full overflow-x-clip bg-sketch-dots text-ink antialiased">
         <ThemeProvider>
           <MaroProvider>
             <ToastProvider>
