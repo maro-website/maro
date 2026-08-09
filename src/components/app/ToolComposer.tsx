@@ -11,7 +11,7 @@ import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { GenerationCard, type GenerationCardMessage } from "@/components/app/GenerationCard";
 import { CreationLightbox } from "@/components/app/cards";
-import { resolveImageFormatMeta } from "@/lib/design/aspectRatio";
+import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
 import { FortToggle } from "@/components/fort/FortToggle";
@@ -108,6 +108,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("open");
+  const isReadOnlyView = Boolean(openId);
   const { toast } = useToast();
   const { user, credits, hasFort, creations, addProject, addCreation, spendCredits } = useMaro();
   const { pricing, fortConfig, toolOptionIcons } = useSettings(Boolean(user));
@@ -203,6 +204,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             text: c.prompt || "",
             format: c.format,
             size: c.size,
+            formatLabel: c.formatLabel ?? c.format,
+            modelLabel: c.modelLabel,
+            speedLabel: c.speedLabel,
             fort: c.fort,
             promptCode: c.promptCode,
             createdAt: c.createdAt,
@@ -466,7 +470,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     const sentAttachments = attachments.length ? [...attachments] : undefined;
     const maroId = uid("g");
     const now = new Date().toISOString();
-    const { format, size } = resolveImageFormatMeta(tool, selections);
+    const labels = resolveGenerationLabels(tool, selections);
     setMessages((m) => [
       ...m,
       {
@@ -476,8 +480,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         attachments: sentAttachments,
         fort: Boolean(fortPayload),
         promptCode: promptAttach?.code,
-        format,
-        size,
+        format: labels.format,
+        size: labels.size,
+        formatLabel: labels.formatLabel,
+        modelLabel: labels.modelLabel,
+        speedLabel: labels.speedLabel,
         createdAt: now,
         status: "thinking",
         mediaType: "image",
@@ -504,8 +511,11 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         toolId: tool.id,
         prompt: text,
         urls: res.images,
-        format,
-        size,
+        format: labels.format,
+        size: labels.size,
+        formatLabel: labels.formatLabel,
+        modelLabel: labels.modelLabel,
+        speedLabel: labels.speedLabel,
         fort: Boolean(fortPayload),
         promptCode: promptAttach?.code,
         createdAt: now,
@@ -644,7 +654,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           maroFort expert panel (when enabled). */}
       <div
         ref={scrollRef}
-        className="scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto"
+        className={cn(
+          "scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto",
+          isReadOnlyView && "pb-10"
+        )}
       >
         <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:max-w-[798px] sm:px-5 sm:pt-12">
           {maintenance ? (
@@ -664,7 +677,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         </div>
       </div>
 
-      {/* Docked prompt box — full workspace width, pinned bottom */}
+      {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-transparent max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="w-full px-4 pb-4 pt-2 lg:px-6 lg:pb-6">
           <div className="w-full">
@@ -792,9 +805,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
             </div>
 
-            {/* Toolbar — black pill */}
-            <div className="mx-3 mb-3 rounded-full bg-dock-btn px-3 py-2 text-white sm:mx-4 dock-toolbar-dark">
-            <div className="dock-toolbar pb-0 pl-0 pr-0 pt-0">
+            {/* Toolbar — individual pills, no shared background */}
+            <div className="mx-3 mb-3 sm:mx-4 dock-toolbar">
               <div className="dock-toolbar-controls">
               {isImage && (
                 <>
@@ -868,10 +880,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="dock-toolbar-actions">
                 {functional && (
-                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap px-1 text-[14.5px] font-semibold text-white">
+                  <span className="maro-pill shrink-0 bg-dock-btn text-[14.5px] font-semibold text-white">
                     <MaroIcon name="coins" className="icon-tone-white h-5 w-5 shrink-0" />
                     {cost}
-                    <span className="text-dock-muted">kredite</span>
+                    <span className="text-ink-3">kredite</span>
                   </span>
                 )}
                 <motion.button
@@ -897,7 +909,6 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                 </motion.button>
               </div>
             </div>
-            </div>
           </div>
           {maintenance ? (
             <p className="mt-2 text-center text-[12.5px] text-ink-3">
@@ -914,6 +925,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           </div>
         </div>
       </div>
+      )}
 
       <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm">
         <ModalHeader
@@ -1059,7 +1071,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn text-white transition-opacity hover:opacity-75 focus:outline-none disabled:opacity-50"
+      className="maro-icon-btn bg-dock-btn text-white transition-opacity hover:opacity-75 focus:outline-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -1184,7 +1196,7 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="dock-control flex h-11 shrink-0 items-center gap-2 px-1 text-white">
+    <div className="maro-pill shrink-0 bg-dock-btn text-white">
       <Icon className="h-5 w-5 shrink-0 text-white/70" />
       <Switch
         size="sm"
@@ -1249,7 +1261,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill dock-pill shrink-0 bg-transparent text-white transition-opacity hover:opacity-75 focus:outline-none"
+        className="maro-pill dock-pill shrink-0 bg-dock-btn text-white transition-opacity hover:opacity-90 focus:outline-none"
         title={setting.label}
       >
         <OptionIcon

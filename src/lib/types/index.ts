@@ -64,6 +64,10 @@ export interface ImageCreation {
   fort?: boolean;
   promptCode?: string;
   format?: string;
+  /** Display label e.g. "9:16", "1:1". */
+  formatLabel?: string;
+  modelLabel?: string;
+  speedLabel?: string;
   createdAt: string;
 }
 

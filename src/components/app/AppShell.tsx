@@ -44,7 +44,7 @@ export function AppShell({
   };
 
   return (
-    <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-sketch-dots">
+    <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-canvas">
       <AppTopBar onOpenDrawer={() => setDrawer(true)} />
 
       <div

@@ -39,6 +39,7 @@ const config: Config = {
         "sidebar-card": "var(--sidebar-card)",
         "prompt-dock": "var(--prompt-dock)",
         "dock-btn": "var(--dock-btn)",
+        "fort-pill": "var(--fort-pill)",
         "dock-tool": "var(--dock-tool-btn)",
         "dock-tool-fg": "var(--dock-tool-fg)",
         generate: {

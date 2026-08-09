@@ -15,7 +15,7 @@ export function AuthLayout({
   subtitle: string;
 }) {
   return (
-    <div className="grid min-h-screen bg-sketch-dots lg:grid-cols-2">
+    <div className="grid min-h-screen bg-canvas lg:grid-cols-2">
       {/* Form side */}
       <div className="flex flex-col px-5 py-8 sm:px-10">
         <Link href="/" className="inline-flex">
@@ -35,7 +35,6 @@ export function AuthLayout({
 
       {/* Brand side */}
       <div className="relative hidden overflow-hidden bg-brand lg:block">
-        <div className="absolute inset-0 bg-sketch-dots opacity-30" />
         <div className="absolute -right-24 top-1/4 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex h-full flex-col justify-between p-12">
           <div className="flex items-center gap-2 text-white/90">

@@ -74,7 +74,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] border-r border-line bg-sketch-dots"
+            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] border-r border-line bg-canvas"
           >
             <HomeSidebar onNavigate={onClose} showHeader />
           </motion.div>

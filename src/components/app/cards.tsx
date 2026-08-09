@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMaro } from "@/context/store";
 import { resolveAspectBox } from "@/lib/design/aspectRatio";
@@ -28,6 +29,13 @@ import {
   AudioLines,
   FileText,
 } from "lucide-react";
+
+/** Tool page URL to reopen a creation as a read-only conversation. */
+export function creationConversationHref(creation: ImageCreation): string | null {
+  const tool = getTool(creation.toolId);
+  if (!tool?.functional) return null;
+  return `${tool.route}?open=${creation.id}`;
+}
 
 // A small helper: a creation's media kind (defaults to image for legacy items).
 function mediaOf(c: ImageCreation): "image" | "audio" | "text" {
@@ -310,16 +318,28 @@ export function CreationCard({
   creation: ImageCreation;
   onOpen?: (c: ImageCreation) => void;
 }) {
+  const router = useRouter();
   const { renameCreation, deleteCreation, toggleFavouriteCreation } = useMaro();
   const [editing, setEditing] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
   const tool = getTool(creation.toolId);
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
   const { ratio } = resolveAspectBox(creation.format, creation.size);
+
+  const openCreation = () => {
+    if (onOpen) {
+      onOpen(creation);
+      return;
+    }
+    const href = creationConversationHref(creation);
+    if (href) router.push(href);
+    else setLightbox(true);
+  };
+
   return (
     <div className="group relative rounded-2xl border border-line bg-surface transition-colors">
       <button
-        onClick={() => (onOpen ? onOpen(creation) : setLightbox(true))}
+        onClick={openCreation}
         className="block w-full"
       >
         <div className="w-full overflow-hidden rounded-t-2xl bg-surface-2" style={{ aspectRatio: ratio }}>
@@ -372,15 +392,23 @@ export function CreationCard({
 // Compact horizontal row (thumbnail + title + time + 3-dot menu). Used for the
 // past-generations list on mobile so items don't take up huge squares.
 export function CreationListRow({ creation }: { creation: ImageCreation }) {
+  const router = useRouter();
   const { renameCreation, deleteCreation, toggleFavouriteCreation } = useMaro();
   const [editing, setEditing] = React.useState(false);
   const [lightbox, setLightbox] = React.useState(false);
   const tool = getTool(creation.toolId);
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
+
+  const openCreation = () => {
+    const href = creationConversationHref(creation);
+    if (href) router.push(href);
+    else setLightbox(true);
+  };
+
   return (
     <div className="group flex items-center gap-3 rounded-xl bg-surface p-2 pr-1">
       <button
-        onClick={() => setLightbox(true)}
+        onClick={openCreation}
         className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-2"
       >
         <CreationThumb creation={creation} />
@@ -404,7 +432,7 @@ export function CreationListRow({ creation }: { creation: ImageCreation }) {
         </div>
       ) : (
         <>
-          <button onClick={() => setLightbox(true)} className="min-w-0 flex-1 text-left">
+          <button onClick={openCreation} className="min-w-0 flex-1 text-left">
             <div className="truncate text-[14px] font-semibold text-ink">{title}</div>
             <div className="truncate text-[12px] text-ink-3">
               {tool?.name} · {timeAgo(creation.createdAt)}

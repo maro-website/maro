@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
-import { ItemMenu, CreationLightbox } from "@/components/app/cards";
+import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
 import { getTool } from "@/lib/tools/registry";
 import { initials } from "@/lib/utils/format";
@@ -165,7 +165,9 @@ function KrijimetInner() {
       const href = r.project.status === "generating" ? `/projects/${r.id}/generating` : `/projects/${r.id}/editor`;
       router.push(href);
     } else {
-      setLightbox(r.creation);
+      const href = creationConversationHref(r.creation);
+      if (href) router.push(href);
+      else setLightbox(r.creation);
     }
   };
 

@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Lightbulb, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
 import { MaroBuildingLoader, MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
+import { fallbackFormatLabel } from "@/lib/design/generationMeta";
 import type { ImageCreation } from "@/lib/types";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -31,6 +33,28 @@ function UserAvatar({
       style={{ background: user.avatarColor }}
     >
       {initials(user.name)}
+    </span>
+  );
+}
+
+function MetaPill({
+  variant,
+  icon: Icon,
+  children,
+}: {
+  variant: "fort" | "muted";
+  icon?: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold text-white",
+        variant === "fort" ? "bg-fort-pill" : "bg-ink"
+      )}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      {children}
     </span>
   );
 }
@@ -120,6 +144,9 @@ export type GenerationCardMessage = {
   promptCode?: string;
   format?: string;
   size?: string;
+  formatLabel?: string;
+  modelLabel?: string;
+  speedLabel?: string;
   createdAt: string;
   status: "thinking" | "done" | "error";
   creation?: ImageCreation;
@@ -138,6 +165,13 @@ export function GenerationCard({
   const isAudio = message.mediaType === "audio";
   const isText = message.mediaType === "text";
 
+  const formatLabel =
+    message.formatLabel ??
+    message.creation?.formatLabel ??
+    fallbackFormatLabel(message.format ?? message.creation?.format, message.size ?? message.creation?.size);
+  const modelLabel = message.modelLabel ?? message.creation?.modelLabel;
+  const speedLabel = message.speedLabel ?? message.creation?.speedLabel;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 10 }}
@@ -145,22 +179,35 @@ export function GenerationCard({
       transition={{ duration: 0.28 }}
       className="flex flex-col gap-3"
     >
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      {/* Header — attribute pills like mockup */}
+      <div className="flex flex-wrap items-center gap-2">
         {user && <UserAvatar user={user} className="h-9 w-9 text-[13px]" />}
         {message.fort && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-[12px] font-bold text-brand-fg">
-            <Sparkles className="h-3.5 w-3.5" />
+          <MetaPill variant="fort" icon={Flame}>
             maroFort
-          </span>
+          </MetaPill>
         )}
         {message.promptCode && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-[12px] font-bold text-white">
-            <Lightbulb className="h-3.5 w-3.5" />
-            maroPrompt
-          </span>
+          <MetaPill variant="muted" icon={Lightbulb}>
+            {message.promptCode}
+          </MetaPill>
         )}
-        <time className="ml-auto text-[13px] font-medium text-ink-3">
+        {modelLabel && (
+          <MetaPill variant="muted" icon={Globe}>
+            {modelLabel}
+          </MetaPill>
+        )}
+        {formatLabel && (
+          <MetaPill variant="muted" icon={Ratio}>
+            {formatLabel}
+          </MetaPill>
+        )}
+        {speedLabel && (
+          <MetaPill variant="muted" icon={Clock}>
+            {speedLabel}
+          </MetaPill>
+        )}
+        <time className="ml-auto shrink-0 text-[13px] font-medium text-ink-3">
           {formatGenerationDate(message.createdAt)}
         </time>
       </div>

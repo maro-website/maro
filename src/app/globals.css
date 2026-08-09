@@ -86,6 +86,7 @@
   --sidebar-nav-history-fg: #111111;
   --prompt-dock: #ffffff;
   --dock-btn: #111111;
+  --fort-pill: #e53935;
   --dock-tool-btn: #253fda;
   --dock-tool-fg: #ffffff;
   --dock-muted: #c7c7c7;
@@ -183,12 +184,6 @@ body {
 .bg-dot {
   background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
   background-size: 22px 22px;
-}
-
-.bg-sketch-dots {
-  background-color: var(--canvas);
-  background-image: radial-gradient(circle, rgba(199, 199, 199, 0.55) 0.8px, transparent 0.8px);
-  background-size: 15px 15px;
 }
 
 .bg-aurora {
@@ -380,47 +375,32 @@ body {
   flex-shrink: 0;
 }
 
-/* Prompt dock toolbar — one row: controls left, credits+maro right */
+/* Prompt dock toolbar — individual pills in one scrollable row */
 .dock-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 35px;
-  row-gap: 10px;
-}
-.dock-toolbar-controls {
   display: flex;
   min-width: 0;
-  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.dock-toolbar-controls::-webkit-scrollbar {
+.dock-toolbar::-webkit-scrollbar {
   display: none;
+}
+.dock-toolbar-controls {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
 }
 .dock-toolbar-actions {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 12px;
-  justify-self: end;
-}
-@media (max-width: 767px) {
-  .dock-toolbar {
-    grid-template-columns: 1fr;
-  }
-  .dock-toolbar-controls {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-  .dock-toolbar-actions {
-    width: 100%;
-    justify-self: stretch;
-    justify-content: flex-end;
-  }
+  gap: 10px;
 }
 
 .dock-pill {
@@ -472,10 +452,6 @@ body {
 }
 .image-reveal {
   animation: image-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.dock-toolbar-dark .text-dock-muted {
-  color: #c7c7c7;
 }
 
 @keyframes float-slow {
