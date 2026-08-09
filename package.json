@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "node start.mjs",
     "lint": "next lint",
-    "sync:design-system": "node scripts/sync-design-system.mjs"
+    "sync:design-system": "node maro-design-system/scripts/sync-public.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
