@@ -32,27 +32,27 @@ export function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex aspect-square w-full flex-col rounded-[11px] p-5 text-left tracking-[-0.03em] transition-colors focus:outline-none",
+        "relative flex aspect-square w-full min-h-[128px] flex-col rounded-maro16 p-5 text-left tracking-brand transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-maro-border-focus",
         locked
           ? "cursor-default bg-card-locked"
           : active
-          ? "bg-card-active ring-card-active"
+          ? "bg-card-active"
           : "border border-line bg-card-idle bg-card-hover"
       )}
     >
       {locked ? (
         <span className="flex flex-1 items-start justify-center pt-1">
-          <MaroIcon name="lock" fallback={Lock} className="icon-tone-locked h-5 w-5" />
+          <MaroIcon name="lock" fallback={Lock} className="h-5 w-5 text-card-locked-fg" />
         </span>
       ) : (
         <span className="flex w-full items-start">
           {tool.id === "plan" ? (
-            <Lightbulb className={cn("h-7 w-7", active ? "icon-tone-active" : "icon-tone-idle")} />
+            <Lightbulb className={cn("h-7 w-7", active ? "text-card-active-fg" : "text-card-idle-fg")} />
           ) : (
             <ToolIcon
               toolId={tool.id}
               fallback={Icon}
-              className={cn("h-7 w-7", active ? "icon-tone-active" : "icon-tone-idle")}
+              className={cn("h-7 w-7", active ? "text-card-active-fg" : "text-card-idle-fg")}
             />
           )}
         </span>

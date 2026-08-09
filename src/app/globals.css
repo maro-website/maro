@@ -1,9 +1,13 @@
-/* App UI font — Manrope (100%), tracking -40 (Figma) = -0.04em */
+/* App UI font — Manrope (400–700 per MARO-DESIGN-SYSTEM.md) */
 @import "@fontsource/manrope/400.css";
 @import "@fontsource/manrope/500.css";
 @import "@fontsource/manrope/600.css";
 @import "@fontsource/manrope/700.css";
-@import "@fontsource/manrope/800.css";
+
+/* Canonical design system — import once at root (§14) */
+@import "../../maro-design-system/tokens/maro.css";
+@import "../../maro-design-system/components/maro-primitives.css";
+@import "../styles/maro-compat.css";
 
 /* Website-preview selectable fonts (self-hosted, no external font API) */
 @import "@fontsource-variable/plus-jakarta-sans";
@@ -24,114 +28,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Logo shape colors (loader / symbol only). */
-  --c-blue: #253fda;
-  --c-teal: #253fda;
-  --c-red: #253fda;
-  --c-pale: #253fda;
-  --c-yellow: #253fda;
-
-  --font-app: "Manrope", system-ui, -apple-system, sans-serif;
-
-  /* Brand palette — see BRAND_PALETTE in lib/design/maro-ui.ts */
-  --accent: #253fda;
-  --accent-teal: #253fda;
-  --accent-soft: rgba(37, 63, 218, 0.1);
-  --accent-teal-soft: rgba(37, 63, 218, 0.1);
-  --accent-teal-border: rgba(37, 63, 218, 0.35);
-  --brand-forest: #111111;
-  --brand-muted: #c7c7c7;
-
-  --sidebar-width: 316px;
-  --ui-btn-h: 44px;
-  --ui-radius-card: 11px;
-  --ui-radius-dock: 28px;
-
-  /* App surfaces — light UI */
-  --brand: #253fda;
-  --brand-hover: #1e33b8;
-  --brand-soft: rgba(37, 63, 218, 0.1);
-  --brand-fg: #ffffff;
-
-  --canvas: #f5f5f5;
-  --surface: #ffffff;
-  --surface-2: #efefef;
-  --line: #c7c7c7;
-  --line-strong: #c7c7c7;
-
-  --ink: #111111;
-  --ink-2: #c7c7c7;
-  --ink-3: #c7c7c7;
-  --ink-inv: #ffffff;
-
-  --success: #253fda;
-  --warning: #f59e0b;
-  --danger: #ff0000;
-  --info: #c7c7c7;
-
-  --switch-track: #c7c7c7;
-  --switch-knob: #ffffff;
-  --switch-off: #111111;
-  --skeleton-shine: rgba(0, 0, 0, 0.06);
-
-  --overlay: rgba(0, 0, 0, 0.45);
-  --scrim: rgba(0, 0, 0, 0.72);
-  --dim: rgba(0, 0, 0, 0.4);
-  --on-scrim: #ffffff;
-
-  --sidebar-card: #ffffff;
-  --sidebar-nav-bg: #ffffff;
-  --sidebar-nav-prompts-fg: #111111;
-  --sidebar-nav-history-fg: #111111;
-  --prompt-dock: #ffffff;
-  --dock-btn: #111111;
-  --fort-pill: #e53935;
-  --dock-tool-btn: #253fda;
-  --dock-tool-fg: #ffffff;
-  --dock-muted: #c7c7c7;
-  --generate-bg: #253fda;
-  --generate-fg: #ffffff;
-  --menu-bg: #ffffff;
-  --menu-fg: #111111;
-  --menu-muted: #c7c7c7;
-  --menu-divider: #efefef;
-  --menu-row-hover: #f5f5f5;
-  --menu-chip-bg: #f5f5f5;
-  --menu-border: #c7c7c7;
-  --menu-logout-bg: #253fda;
-  --menu-logout-fg: #ffffff;
-  --topbar-credits-bg: #ffffff;
-  --topbar-credits-fg: #253fda;
-  --topbar-credits-muted: #c7c7c7;
-  --topbar-wallet-bg: #ffffff;
-  --topbar-wallet-fg: #111111;
-
-  --card-active-bg: #253fda;
-  --card-active-fg: #ffffff;
-  --card-idle-bg: #ffffff;
-  --card-idle-fg: #111111;
-  --card-idle-border: #c7c7c7;
-  --card-hover-bg: #f5f5f5;
-  --card-locked-bg: #efefef;
-  --card-locked-fg: #c7c7c7;
-  --card-active-ring: #253fda;
-
-  --hub-tool: #111111;
-  --hub-tool-sub: #c7c7c7;
-  --hub-page-bg: #f5f5f5;
-
-  --chat-user-bg: #ffffff;
-  --chat-user-fg: #111111;
-  --chat-user-border: #c7c7c7;
-  --chat-maro-bg: #ffffff;
-  --chat-maro-border: #c7c7c7;
-
-  --footer-bg: #111111;
-  --footer-fg: #ffffff;
-  --footer-muted: #c7c7c7;
-}
-
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -141,19 +37,15 @@ html {
 }
 
 body {
-  background-color: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-app);
-  font-feature-settings: "cv11", "ss01";
-  letter-spacing: -0.04em;
   overflow-x: clip;
   width: 100%;
   max-width: 100%;
+  font-feature-settings: "cv11", "ss01";
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--ink) 14%, transparent);
-  color: var(--ink);
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-selected);
 }
 
 /* Touch-friendly vertical scroll */
@@ -288,17 +180,22 @@ body {
 .text-menu-logout {
   color: var(--menu-logout-fg);
 }
-.icon-tone-white {
-  filter: brightness(0) invert(1);
+
+.maro-icon {
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
+
 .bg-menu-chip {
   background-color: var(--menu-chip-bg);
 }
 .border-menu {
   border-color: var(--menu-border);
-}
-.icon-tone-wallet {
-  filter: brightness(0) saturate(100%);
 }
 .text-card-active-fg {
   color: var(--card-active-fg);
@@ -331,26 +228,6 @@ body {
 .text-chat-prompt-badge {
   background-color: var(--generate-bg);
   color: var(--generate-fg);
-}
-
-/* Tool card / menu icon tones — light UI */
-.icon-tone-active {
-  filter: brightness(0) invert(1);
-}
-.icon-tone-idle,
-.icon-tone-menu,
-.icon-tone-history,
-.hub-tool-icon {
-  filter: brightness(0) saturate(100%);
-}
-.dock-tool-icon {
-  filter: brightness(0) invert(1);
-}
-.icon-tone-locked {
-  filter: brightness(0) saturate(100%) invert(84%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
-}
-.icon-tone-teal {
-  filter: brightness(0) saturate(100%) invert(22%) sepia(95%) saturate(3500%) hue-rotate(224deg) brightness(95%) contrast(95%);
 }
 
 .maro-pill {

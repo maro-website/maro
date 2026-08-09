@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="The canonical maro.al solid icon library" />
+    <title>maro Icons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../tokens/maro.css" />
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <header class="library-header">
+      <a href="../guide/" aria-label="Back to maro design system"><img src="../maro-logo.svg" alt="maro" /></a>
+      <div class="header-title"><span>Design system</span><strong>Icons</strong></div>
+      <a class="back-link" href="../guide/">Full guide <span>↗</span></a>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">maro.al · Solid icon family</p>
+        <h1>Small shapes.<br />One clear language.</h1>
+        <p class="intro-copy">A normalized 24×24 library for product navigation, actions, feedback, account flows, and media tools. Every icon inherits <code>currentColor</code>.</p>
+        <div class="library-stats">
+          <span><strong id="total-count">78</strong> icons</span>
+          <span><strong>24×24</strong> grid</span>
+          <span><strong>Solid</strong> style</span>
+          <span><strong>SVG</strong> format</span>
+        </div>
+      </section>
+
+      <section class="browser" aria-labelledby="browser-title">
+        <div class="browser-heading">
+          <div><p class="eyebrow">Library</p><h2 id="browser-title">Find an icon</h2></div>
+          <p>Search by English or Albanian aliases. Select a card to copy its canonical path.</p>
+        </div>
+
+        <div class="toolbar">
+          <label class="search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M10.5 3a7.5 7.5 0 1 0 4.61 13.42l4.73 4.73 1.41-1.41-4.73-4.73A7.5 7.5 0 0 0 10.5 3Zm-5.5 7.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z" /></svg>
+            <span class="sr-only">Search icons</span>
+            <input id="icon-search" type="search" placeholder="Search icons — e.g. ruaj, user, media…" autocomplete="off" />
+            <kbd>/</kbd>
+          </label>
+          <div class="tone-switch" aria-label="Preview color">
+            <button type="button" data-tone="ink" aria-pressed="true"><span class="tone-dot tone-dot--ink"></span>Ink</button>
+            <button type="button" data-tone="blue" aria-pressed="false"><span class="tone-dot tone-dot--blue"></span>Blue</button>
+            <button type="button" data-tone="inverse" aria-pressed="false"><span class="tone-dot tone-dot--inverse"></span>Inverse</button>
+          </div>
+        </div>
+
+        <div class="filter-row" role="group" aria-label="Icon categories">
+          <button type="button" data-category="all" aria-pressed="true">All <span>78</span></button>
+          <button type="button" data-category="product" aria-pressed="false">Product</button>
+          <button type="button" data-category="navigation" aria-pressed="false">Navigation</button>
+          <button type="button" data-category="action" aria-pressed="false">Actions</button>
+          <button type="button" data-category="feedback" aria-pressed="false">Feedback</button>
+          <button type="button" data-category="account" aria-pressed="false">Account</button>
+          <button type="button" data-category="media" aria-pressed="false">Media</button>
+          <button type="button" data-category="visibility" aria-pressed="false">Visibility</button>
+        </div>
+
+        <div class="result-row"><span id="result-count">78 icons</span><span>Click to copy path</span></div>
+        <div class="icon-grid" id="icon-grid"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <img src="../maro-symbol.svg" alt="" />
+          <h3>No icon found</h3>
+          <p>Try another name, alias, or category.</p>
+        </div>
+      </section>
+
+      <section class="usage" aria-labelledby="usage-title">
+        <div><p class="eyebrow">Implementation</p><h2 id="usage-title">Use, don’t redraw.</h2></div>
+        <div class="usage-rules">
+          <article><span>01</span><h3>Inherit color</h3><p>Use icons through masks, inline SVG, or a component so <code>currentColor</code> follows state automatically.</p></article>
+          <article><span>02</span><h3>Keep the grid</h3><p>Use the native 24×24 viewBox. Default visible size is 20px; navigation may use 24px.</p></article>
+          <article><span>03</span><h3>Label actions</h3><p>Unknown icon-only actions need an accessible name and tooltip. Touch targets stay at least 44px.</p></article>
+          <article><span>04</span><h3>Don’t mix styles</h3><p>Do not add outline, emoji, or another family beside these solid forms.</p></article>
+        </div>
+        <pre><code>&lt;img src="/icons/save.svg" alt="" aria-hidden="true" /&gt;
+
+/* For semantic color control, use as a mask */
+.icon {
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+}</code></pre>
+      </section>
+    </main>
+
+    <div class="toast" role="status" aria-live="polite"></div>
+
+    <script src="./icons-data.js"></script>
+    <script src="./preview.js"></script>
+  </body>
+</html>

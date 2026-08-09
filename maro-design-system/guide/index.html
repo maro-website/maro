@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="The canonical visual design system for maro.al" />
+    <title>maro — Design System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../tokens/maro.css" />
+    <link rel="stylesheet" href="./guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand-link" href="#overview" aria-label="maro design system home">
+        <img src="../maro-logo.svg" alt="maro" width="128" />
+      </a>
+      <div class="header-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Design system</span>
+        <span class="version">v1.0</span>
+      </div>
+      <button class="mobile-menu" type="button" aria-expanded="false" aria-controls="guide-nav">
+        <span class="sr-only">Open guide navigation</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
+    </header>
+
+    <div class="guide-layout">
+      <aside class="guide-aside" id="guide-nav">
+        <nav aria-label="Design system sections">
+          <p class="nav-label">Foundations</p>
+          <a href="#overview">Overview</a>
+          <a href="#logo">Logo</a>
+          <a href="#color">Color</a>
+          <a href="#type">Typography</a>
+          <a href="#space">Spacing & shape</a>
+          <p class="nav-label">Product</p>
+          <a href="#components">Components</a>
+          <a href="#shell">Application shell</a>
+          <a href="#responsive">Responsive</a>
+          <a href="#accessibility">Accessibility</a>
+          <p class="nav-label">Build</p>
+          <a href="#cursor">Cursor handoff</a>
+        </nav>
+        <div class="aside-note">
+          <span class="symbol-tile"><img src="../maro-symbol-white.svg" alt="" /></span>
+          <div><strong>Source of truth</strong><span>MARO-DESIGN-SYSTEM.md</span></div>
+        </div>
+      </aside>
+
+      <main id="content">
+        <section class="hero" id="overview">
+          <p class="eyebrow">maro.al · Product foundation</p>
+          <h1>One language for every maro experience.</h1>
+          <p class="hero-copy">A calm, precise system for building advanced AI tools that always feel connected, understandable, and unmistakably maro.</p>
+          <div class="hero-actions">
+            <a class="button button--brand" href="#components">Explore components</a>
+            <a class="button button--secondary" href="../MARO-DESIGN-SYSTEM.md">Read specification</a>
+          </div>
+          <div class="principle-grid" aria-label="Brand principles">
+            <article><span>01</span><h2>Direct</h2><p>The next action is always obvious.</p></article>
+            <article><span>02</span><h2>Calm</h2><p>Space and hierarchy beat decoration.</p></article>
+            <article><span>03</span><h2>Capable</h2><p>Advanced tools stay understandable.</p></article>
+            <article><span>04</span><h2>Human</h2><p>Clear Albanian language, warm feedback.</p></article>
+          </div>
+        </section>
+
+        <section class="section" id="logo">
+          <div class="section-heading">
+            <div><p class="eyebrow">01 · Identity</p><h2>Logo system</h2></div>
+            <p>The supplied vector artwork is the only approved logo source. The lockup leads; the symbol supports compact and already-branded contexts.</p>
+          </div>
+          <div class="logo-grid">
+            <div class="logo-stage logo-stage--wide">
+              <span class="spec-label">Primary lockup</span>
+              <img src="../maro-logo.svg" alt="maro primary logo" />
+              <small>Minimum digital width · 120px</small>
+            </div>
+            <div class="logo-stage">
+              <span class="spec-label">Symbol</span>
+              <img src="../maro-symbol.svg" alt="maro symbol" />
+              <small>Preferred UI size · 32px</small>
+            </div>
+            <div class="logo-stage logo-stage--inverse">
+              <span class="spec-label">Assistant tile</span>
+              <span class="assistant-mark"><img src="../maro-symbol.svg" alt="" /></span>
+              <small>Use original artwork; preserve clear space</small>
+            </div>
+          </div>
+          <div class="rule-strip"><strong>Clear space</strong><span>Keep at least half the symbol circle’s diameter around every side.</span><strong>Never alter</strong><span>No stretching, rotating, effects, recoloring, or reconstructed wordmarks.</span></div>
+        </section>
+
+        <section class="section" id="color">
+          <div class="section-heading">
+            <div><p class="eyebrow">02 · Foundation</p><h2>Color with purpose</h2></div>
+            <p>Near-black sets hierarchy, white builds functional surfaces, and soft gray creates the workspace. Blue signals platform action; red remains exceptional.</p>
+          </div>
+          <div class="swatch-grid">
+            <article class="swatch swatch--white"><div></div><h3>White</h3><p>#FFFFFF · Surface</p></article>
+            <article class="swatch swatch--ink"><div></div><h3>Ink</h3><p>#111111 · Hierarchy</p></article>
+            <article class="swatch swatch--blue"><div></div><h3>maro Blue</h3><p>#253FDA · Selection</p></article>
+            <article class="swatch swatch--gray050"><div></div><h3>Gray 050</h3><p>#F5F5F5 · Canvas</p></article>
+            <article class="swatch swatch--gray300"><div></div><h3>Gray 300</h3><p>#C7C7C7 · Disabled</p></article>
+            <article class="swatch swatch--gray600"><div></div><h3>Gray 600</h3><p>#818181 · Supporting</p></article>
+            <article class="swatch swatch--black"><div></div><h3>Black</h3><p>#000000 · Maximum</p></article>
+            <article class="swatch swatch--red"><div></div><h3>Danger Red</h3><p>#DA2525 · Destructive</p></article>
+          </div>
+          <div class="color-guidance">
+            <article class="guidance-card guidance-card--blue"><span>Use blue for</span><h3>Selected · Linked · Platform action</h3></article>
+            <article class="guidance-card guidance-card--red"><span>Reserve red for</span><h3>Destructive · Error · Exceptional mode</h3></article>
+          </div>
+        </section>
+
+        <section class="section" id="type">
+          <div class="section-heading">
+            <div><p class="eyebrow">03 · Foundation</p><h2>Manrope, tuned for maro</h2></div>
+            <p>Short UI text carries the supplied −30 tracking. In CSS that is <code>-0.03em</code>, never <code>-30px</code>. Long copy opens slightly for readability.</p>
+          </div>
+          <div class="type-specimen">
+            <div class="type-row"><span>H1 · 40/46 · 600</span><p class="type-h1">Krijo pa kufij.</p></div>
+            <div class="type-row"><span>H2 · 32/38 · 600</span><p class="type-h2">Nga ideja te rezultati.</p></div>
+            <div class="type-row"><span>H3 · 24/30 · 600</span><p class="type-h3">Mjetet e tua krijuese</p></div>
+            <div class="type-row"><span>Body · 16/24 · 400</span><p class="type-body">Përshkruaj çfarë dëshiron të krijosh dhe maro e kthen idenë në një rezultat të qartë.</p></div>
+            <div class="type-row"><span>Label · 14/18 · 600</span><p class="type-label">Krijo imazhin</p></div>
+            <div class="type-row"><span>Meta · 12/16 · 500</span><p class="type-meta">9 gusht 2026 · 11:34</p></div>
+          </div>
+        </section>
+
+        <section class="section" id="space">
+          <div class="section-heading">
+            <div><p class="eyebrow">04 · Foundation</p><h2>Four-point rhythm</h2></div>
+            <p>A limited spacing and radius set makes the platform feel related even when products have different workflows.</p>
+          </div>
+          <div class="foundation-pair">
+            <div class="measure-card">
+              <h3>Spacing</h3>
+              <div class="measure"><span>4</span><i style="--w:4px"></i></div>
+              <div class="measure"><span>8</span><i style="--w:8px"></i></div>
+              <div class="measure"><span>12</span><i style="--w:12px"></i></div>
+              <div class="measure"><span>16</span><i style="--w:16px"></i></div>
+              <div class="measure"><span>24</span><i style="--w:24px"></i></div>
+              <div class="measure"><span>32</span><i style="--w:32px"></i></div>
+              <div class="measure"><span>48</span><i style="--w:48px"></i></div>
+              <div class="measure"><span>64</span><i style="--w:64px"></i></div>
+            </div>
+            <div class="measure-card">
+              <h3>Radius</h3>
+              <div class="radius-row"><i class="radius-8"></i><span>8px · compact controls</span></div>
+              <div class="radius-row"><i class="radius-12"></i><span>12px · buttons and fields</span></div>
+              <div class="radius-row"><i class="radius-16"></i><span>16px · cards and menus</span></div>
+              <div class="radius-row"><i class="radius-20"></i><span>20px · large panels</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="components">
+          <div class="section-heading">
+            <div><p class="eyebrow">05 · Product</p><h2>Core components</h2></div>
+            <p>Components expose purpose and state. They stay flat by default and use familiar geometry across every maro product.</p>
+          </div>
+          <div class="component-board">
+            <article class="component-demo">
+              <header><h3>Buttons</h3><span>40px default</span></header>
+              <div class="component-row">
+                <button class="button button--ink">Krijo tani</button>
+                <button class="button button--brand">Zgjidh</button>
+                <button class="button button--secondary">Anulo</button>
+                <button class="button button--danger">Fshi</button>
+                <button class="button button--secondary" disabled>Joaktiv</button>
+              </div>
+            </article>
+            <article class="component-demo">
+              <header><h3>Configuration chips</h3><span>Meaning before decoration</span></header>
+              <div class="component-row">
+                <button class="chip chip--brand"><img src="../maro-symbol.svg" alt="" />maro Imazh <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></svg></button>
+                <button class="chip chip--ink"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16" /></svg>9:16 <svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></svg></button>
+                <button class="chip chip--light">Normal</button>
+                <span class="chip chip--credit">105 kredite</span>
+              </div>
+            </article>
+            <article class="component-demo">
+              <header><h3>Fields</h3><span>Labels remain visible</span></header>
+              <div class="field-row">
+                <label class="field"><span>Emri i projektit</span><input value="Fushata verore" /></label>
+                <label class="field field--error"><span>Adresa e emailit</span><input value="emri@" aria-invalid="true" aria-describedby="email-error" /><small id="email-error">Shkruaj një adresë të vlefshme.</small></label>
+              </div>
+            </article>
+            <article class="component-demo component-demo--dark">
+              <header><h3>Exceptional mode</h3><span>Gradient is rare</span></header>
+              <div class="fort-pill"><span>●</span> maroFort</div>
+              <p>Reserved for a named product capability. Never a generic page treatment.</p>
+            </article>
+          </div>
+          <a class="section-link" href="../icons/">Browse all 78 maro icons <span>↗</span></a>
+        </section>
+
+        <section class="section" id="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">06 · Product</p><h2>The creation workspace</h2></div>
+            <p>The product rail creates orientation. The center stays spacious. Configuration lives close to the prompt and result.</p>
+          </div>
+          <div class="shell-frame">
+            <div class="shell-topbar">
+              <img src="../maro-logo.svg" alt="maro" />
+              <div><span class="mini-credit">1685 kredite</span><span class="mini-icon" aria-hidden="true">⌁</span><span class="mini-avatar"></span></div>
+            </div>
+            <div class="shell-body">
+              <aside class="product-rail">
+                <div class="product-card product-card--active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2-2 5 5"/></svg><span>maro Imazh</span></div>
+                <div class="product-card"><svg viewBox="0 0 24 24"><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/><circle cx="12" cy="12" r="4"/></svg><span>maro Brand</span></div>
+                <div class="product-card product-card--disabled"><span>së shpejti</span><strong>maro Filma</strong></div>
+              </aside>
+              <div class="work-area">
+                <div class="prompt-context">
+                  <span class="mini-avatar"></span><span class="tag tag--gradient">maroFort</span><span class="tag">ChatGPT Image 2</span><span class="tag">9:16</span>
+                </div>
+                <div class="prompt-message">Krijo një reklamë vertikale premium që ndjek kompozimin, ndriçimin dhe atmosferën e referencës.</div>
+                <div class="generation-state"><span class="assistant-mark assistant-mark--small"><img src="../maro-symbol-white.svg" alt="" /></span><span class="loader" aria-hidden="true"></span><span>maro po krijon</span></div>
+                <div class="result-placeholder"><img src="../maro-symbol.svg" alt="" /></div>
+                <div class="composer-demo">
+                  <p>Shkruaj çfarë dëshiron të krijosh…</p>
+                  <div class="composer-toolbar"><span class="attach">＋</span><span class="tag tag--brand">maro Imazh</span><span class="tag tag--dark">ChatGPT Image 2</span><span class="tag tag--dark">9:16</span><span class="tag tag--dark">Normal</span><span class="credits">105 kredite</span><button disabled>maro ↑</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="responsive">
+          <div class="section-heading">
+            <div><p class="eyebrow">07 · Behavior</p><h2>Simplify as space narrows</h2></div>
+            <p>Responsive maro is not a scaled-down desktop. Navigation becomes a drawer, menus become sheets, and creation controls remain reachable.</p>
+          </div>
+          <div class="breakpoint-grid">
+            <article><span class="device device--phone"></span><small>&lt; 768</small><h3>Mobile</h3><p>16px gutter · single column · sheets · 44px targets</p></article>
+            <article><span class="device device--tablet"></span><small>768–1023</small><h3>Tablet</h3><p>24px gutter · 8 columns · navigation drawer</p></article>
+            <article><span class="device device--desktop"></span><small>≥ 1024</small><h3>Desktop</h3><p>32–48px gutter · 12 columns · visible product rail</p></article>
+          </div>
+        </section>
+
+        <section class="section" id="accessibility">
+          <div class="section-heading">
+            <div><p class="eyebrow">08 · Quality</p><h2>Usability is part of the brand</h2></div>
+            <p>A maro interface is only complete when it works with keyboard, zoom, assistive technology, touch, long Albanian strings, and reduced motion.</p>
+          </div>
+          <div class="check-grid">
+            <article><span>AA</span><h3>Contrast</h3><p>Essential normal text reaches 4.5:1. Gray 300 never carries meaning alone.</p></article>
+            <article><span>44</span><h3>Touch targets</h3><p>Every touch action has at least 44×44px of interactive area.</p></article>
+            <article><span>⌨</span><h3>Keyboard</h3><p>Logical order, visible focus, correct semantics, and reliable focus return.</p></article>
+            <article><span>200</span><h3>Zoom</h3><p>At 200%, actions stay available and the page never scrolls in two directions.</p></article>
+          </div>
+        </section>
+
+        <section class="section cursor-section" id="cursor">
+          <div class="section-heading">
+            <div><p class="eyebrow">09 · Handoff</p><h2>Ready for Cursor</h2></div>
+            <p>The repository includes an always-on rule, a complete written specification, CSS tokens, and platform-neutral JSON tokens.</p>
+          </div>
+          <div class="handoff-grid">
+            <ol>
+              <li><span>1</span><div><strong>Keep the files together</strong><p>Copy this folder into the project or expose it as a shared package.</p></div></li>
+              <li><span>2</span><div><strong>Import the token layer</strong><p>Load <code>tokens/maro.css</code> once at the app root.</p></div></li>
+              <li><span>3</span><div><strong>Let Cursor read the contract</strong><p>The included <code>.cursor/rules</code> file points to the canonical specification.</p></div></li>
+              <li><span>4</span><div><strong>Review states and breakpoints</strong><p>Verify every new screen at the defined viewport sizes before shipping.</p></div></li>
+            </ol>
+            <div class="prompt-box">
+              <div><span>Starter prompt</span><button class="copy-button" type="button">Copy</button></div>
+              <pre id="starter-prompt">Build this as part of maro.al. Read MARO-DESIGN-SYSTEM.md and tokens/maro.css first. Use only the documented semantic tokens, components, responsive behaviors, interaction states, and accessibility rules. Treat Figma tracking -30 as CSS -0.03em. Reuse the official SVG assets and explain any intentional exception.</pre>
+            </div>
+          </div>
+        </section>
+
+        <footer class="guide-footer"><img src="../maro-symbol.svg" alt="" /><span>maro.al design system · v1.0</span><a href="#overview">Back to top ↑</a></footer>
+      </main>
+    </div>
+
+    <script src="./guide.js"></script>
+  </body>
+</html>

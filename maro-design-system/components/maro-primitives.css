@@ -1,0 +1,339 @@
+/* maro.al component primitives
+   Optional baseline implementation. Import after tokens/maro.css. */
+
+.maro-button,
+.maro-icon-button,
+.maro-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  font-weight: var(--maro-font-weight-semibold);
+  letter-spacing: var(--maro-tracking-brand);
+  cursor: pointer;
+  transition:
+    color var(--maro-duration-fast) var(--maro-ease-standard),
+    background-color var(--maro-duration-fast) var(--maro-ease-standard),
+    border-color var(--maro-duration-fast) var(--maro-ease-standard),
+    transform var(--maro-duration-instant) var(--maro-ease-standard);
+}
+
+.maro-button {
+  min-height: var(--maro-control-height-md);
+  gap: var(--maro-space-2);
+  padding-inline: var(--maro-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--maro-radius-12);
+  font-size: var(--maro-font-size-14);
+  line-height: var(--maro-line-height-control);
+}
+
+.maro-button[data-size="sm"] {
+  min-height: var(--maro-control-height-sm);
+  padding-inline: var(--maro-space-3);
+  border-radius: var(--maro-radius-8);
+  font-size: var(--maro-font-size-12);
+}
+
+.maro-button[data-size="lg"] {
+  min-height: var(--maro-control-height-lg);
+  padding-inline: var(--maro-space-5);
+}
+
+.maro-button[data-variant="inverse"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-inverse);
+}
+
+.maro-button[data-variant="brand"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-selected);
+}
+
+.maro-button[data-variant="secondary"] {
+  color: var(--maro-color-text-primary);
+  border-color: var(--maro-color-border-subtle);
+  background: var(--maro-color-bg-surface);
+}
+
+.maro-button[data-variant="ghost"] {
+  color: var(--maro-color-text-primary);
+  background: transparent;
+}
+
+.maro-button[data-variant="danger"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-danger);
+}
+
+.maro-button:hover:not(:disabled) {
+  filter: brightness(.96);
+}
+
+.maro-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.maro-button:disabled,
+.maro-icon-button:disabled,
+.maro-chip:disabled {
+  color: var(--maro-color-text-disabled);
+  background: var(--maro-color-bg-disabled);
+  cursor: not-allowed;
+  filter: none;
+}
+
+.maro-button[aria-busy="true"] {
+  position: relative;
+  cursor: wait;
+}
+
+.maro-button[aria-busy="true"]::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--maro-radius-pill);
+  animation: maro-spin .7s linear infinite;
+}
+
+.maro-icon-button {
+  width: var(--maro-control-height-md);
+  height: var(--maro-control-height-md);
+  padding: 0;
+  border-radius: var(--maro-radius-8);
+  color: var(--maro-color-icon-primary);
+  background: var(--maro-color-bg-surface);
+}
+
+.maro-icon-button:hover:not(:disabled) {
+  background: var(--maro-color-bg-canvas);
+}
+
+.maro-icon-button > svg,
+.maro-button > svg,
+.maro-chip > svg {
+  width: var(--maro-icon-size-md);
+  height: var(--maro-icon-size-md);
+  flex: 0 0 auto;
+  fill: currentColor;
+  stroke: none;
+}
+
+.maro-chip {
+  min-height: var(--maro-control-height-sm);
+  gap: var(--maro-space-2);
+  padding-inline: var(--maro-space-3);
+  border-radius: var(--maro-radius-12);
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-surface);
+  font-size: var(--maro-font-size-12);
+}
+
+.maro-chip[data-variant="inverse"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-inverse);
+}
+
+.maro-chip[data-selected="true"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-selected);
+}
+
+.maro-field {
+  display: grid;
+  gap: var(--maro-space-2);
+}
+
+.maro-field__label {
+  color: var(--maro-color-text-primary);
+  font-size: var(--maro-font-size-14);
+  font-weight: var(--maro-font-weight-semibold);
+  line-height: var(--maro-line-height-control);
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+.maro-field :is(input, select, textarea) {
+  width: 100%;
+  min-height: var(--maro-control-height-lg);
+  padding: var(--maro-space-3) var(--maro-space-4);
+  border: 1px solid var(--maro-color-border-subtle);
+  border-radius: var(--maro-radius-12);
+  outline: 0;
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-surface);
+  font-size: var(--maro-font-size-16);
+  line-height: var(--maro-line-height-body);
+  letter-spacing: var(--maro-tracking-body);
+}
+
+.maro-field textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.maro-field :is(input, select, textarea):focus-visible {
+  border-color: var(--maro-color-border-focus);
+  box-shadow: var(--maro-focus-ring);
+}
+
+.maro-field [aria-invalid="true"] {
+  border-color: var(--maro-color-text-danger);
+}
+
+.maro-field__help,
+.maro-field__error {
+  font-size: var(--maro-font-size-12);
+  line-height: var(--maro-line-height-control);
+  letter-spacing: var(--maro-tracking-body);
+}
+
+.maro-field__help { color: var(--maro-color-text-secondary); }
+.maro-field__error { color: var(--maro-color-text-danger); }
+
+.maro-surface,
+.maro-card {
+  border-radius: var(--maro-radius-16);
+  background: var(--maro-color-bg-surface);
+}
+
+.maro-card {
+  padding: var(--maro-space-6);
+}
+
+.maro-card[data-interactive="true"] {
+  transition:
+    background-color var(--maro-duration-fast) var(--maro-ease-standard),
+    transform var(--maro-duration-fast) var(--maro-ease-standard);
+}
+
+.maro-card[data-interactive="true"]:hover {
+  background: color-mix(in srgb, var(--maro-color-bg-surface) 88%, var(--maro-color-bg-canvas));
+}
+
+.maro-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--maro-radius-12);
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-inverse);
+  font-size: var(--maro-font-size-12);
+  font-weight: var(--maro-font-weight-bold);
+}
+
+.maro-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.maro-menu {
+  min-width: 13.75rem;
+  max-width: 20rem;
+  padding: var(--maro-space-2);
+  border: 1px solid var(--maro-color-border-subtle);
+  border-radius: var(--maro-radius-16);
+  background: var(--maro-color-bg-surface);
+  box-shadow: var(--maro-shadow-float);
+}
+
+.maro-menu__item {
+  width: 100%;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--maro-space-3);
+  padding-inline: var(--maro-space-3);
+  border: 0;
+  border-radius: var(--maro-radius-8);
+  color: var(--maro-color-text-primary);
+  background: transparent;
+  font-size: var(--maro-font-size-14);
+  font-weight: var(--maro-font-weight-medium);
+  text-align: left;
+}
+
+.maro-menu__item:hover,
+.maro-menu__item:focus-visible {
+  background: var(--maro-color-bg-canvas);
+}
+
+.maro-menu__item[data-variant="danger"] {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-danger);
+}
+
+.maro-composer {
+  min-height: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--maro-space-4);
+  padding: var(--maro-space-6);
+  border-radius: var(--maro-radius-16);
+  background: var(--maro-color-bg-surface);
+}
+
+.maro-composer__input {
+  width: 100%;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  resize: none;
+  color: var(--maro-color-text-primary);
+  background: transparent;
+  font-size: var(--maro-font-size-16);
+  line-height: var(--maro-line-height-body);
+  letter-spacing: var(--maro-tracking-body);
+}
+
+.maro-composer__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--maro-space-2);
+  min-width: 0;
+}
+
+.maro-composer__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--maro-space-2);
+  margin-left: auto;
+}
+
+@keyframes maro-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 47.999rem) {
+  .maro-icon-button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .maro-composer {
+    padding: var(--maro-space-4);
+  }
+
+  .maro-composer__toolbar {
+    margin-inline: calc(var(--maro-space-4) * -1);
+    padding-inline: var(--maro-space-4);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .maro-composer__toolbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maro-button[aria-busy="true"]::before {
+    animation: none;
+    border-right-color: currentColor;
+  }
+}

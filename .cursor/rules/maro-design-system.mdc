@@ -1,0 +1,14 @@
+---
+description: maro.al UI must follow the canonical maro-design-system package
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: true
+---
+
+Before changing UI, read `maro-design-system/MARO-DESIGN-SYSTEM.md` and `maro-design-system/tokens/maro.css`.
+
+- Import order: Manrope → `tokens/maro.css` → `maro-primitives.css` → `src/styles/maro-compat.css` (wired in `globals.css`).
+- Use semantic `--maro-*` tokens; never hardcode brand hex in components.
+- Figma tracking -30 = `letter-spacing: -0.03em` (`--maro-tracking-brand`).
+- Reuse official SVGs from `maro-design-system/` (sync via `pnpm sync:design-system`).
+- Product rail active state uses Ink, not blue. Blue is for selection/platform action only.
+- Run `pnpm sync:design-system` after updating icons or logos in the design system folder.

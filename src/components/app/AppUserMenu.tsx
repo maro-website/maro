@@ -152,7 +152,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               }}
               className="mt-[20px] flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-menu-logout text-[16px] font-bold text-menu-logout transition-opacity hover:opacity-90"
             >
-              <MaroIcon name="logout" className="icon-tone-white h-5 w-5" />
+              <MaroIcon name="logout" className="h-5 w-5 text-white" />
               Dil
               <span className="text-[12px] font-normal opacity-80">(mos t&apos;ruaj qeke)</span>
             </button>
@@ -199,7 +199,7 @@ function MenuRow({
       onClick={onClick}
       className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[16px] font-medium text-menu-fg transition-colors hover:bg-menu-row"
     >
-      <MaroIcon name={icon} fallback={Fallback} className="icon-tone-menu h-5 w-5 shrink-0" />
+      <MaroIcon name={icon} fallback={Fallback} className="h-5 w-5 shrink-0 text-ink" />
       {label}
     </button>
   );

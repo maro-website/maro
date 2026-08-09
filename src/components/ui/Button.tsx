@@ -2,29 +2,28 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
-import { Loader2 } from "lucide-react";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "subtle";
+type Variant = "primary" | "brand" | "secondary" | "ghost" | "outline" | "danger" | "subtle";
 type Size = "sm" | "md" | "lg" | "icon";
 
-const variants: Record<Variant, string> = {
-  primary: "bg-brand text-brand-fg hover:bg-brand-hover active:scale-[0.985]",
-  secondary: "bg-surface-2 text-ink hover:bg-line active:scale-[0.985]",
-  outline: "bg-surface-2 text-ink hover:bg-line active:scale-[0.99]",
-  ghost: "text-ink-2 hover:text-ink hover:bg-surface-2",
-  subtle: "bg-surface-2 text-ink hover:bg-line",
-  danger: "bg-danger text-white hover:brightness-95 active:scale-[0.985]",
+/** Maps app variant names to maro-primitives data-variant values. */
+const MARO_VARIANT: Record<Variant, string> = {
+  primary: "inverse",
+  brand: "brand",
+  secondary: "secondary",
+  outline: "secondary",
+  ghost: "ghost",
+  subtle: "ghost",
+  danger: "danger",
 };
 
-const sizes: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-xl",
-  md: "h-11 px-5 text-[14px] gap-2 rounded-2xl",
-  lg: "h-[52px] px-7 text-[15px] gap-2.5 rounded-2xl",
-  icon: "h-9 w-9 rounded-xl",
+const MARO_SIZE: Record<Exclude<Size, "icon">, string> = {
+  sm: "sm",
+  md: "md",
+  lg: "lg",
 };
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;
@@ -34,28 +33,39 @@ export interface ButtonProps
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = "primary", size = "md", loading, icon, iconRight, children, disabled, ...props },
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      loading,
+      icon,
+      iconRight,
+      children,
+      disabled,
+      ...props
+    },
     ref
   ) => {
+    const isIcon = size === "icon";
+
     return (
       <button
         ref={ref}
+        type="button"
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        data-variant={MARO_VARIANT[variant]}
+        data-size={isIcon ? undefined : MARO_SIZE[size]}
         className={cn(
-          "inline-flex items-center justify-center font-semibold whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:pointer-events-none",
-          variants[variant],
-          sizes[size],
+          isIcon ? "maro-icon-button" : "maro-button",
+          isIcon && "min-h-[2.75rem] min-w-[2.75rem]",
           className
         )}
         {...props}
       >
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          icon && <span className="shrink-0">{icon}</span>
-        )}
-        {children}
-        {iconRight && !loading && <span className="shrink-0">{iconRight}</span>}
+        {!loading && icon && <span className="shrink-0">{icon}</span>}
+        {!isIcon && children}
+        {!loading && iconRight && !isIcon && <span className="shrink-0">{iconRight}</span>}
       </button>
     );
   }

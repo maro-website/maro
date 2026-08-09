@@ -70,7 +70,7 @@ export function NotificationBell() {
         aria-label="Njoftime"
         title="Njoftime"
       >
-        <MaroIcon name="notification" className="icon-tone-menu h-6 w-6" />
+        <MaroIcon name="notification" className="h-6 w-6 text-ink" />
         {unread > 0 && (
           <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-c-red px-1 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}

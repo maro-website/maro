@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Centralized Maro brand tokens (see globals.css :root)
+        // Legacy app aliases (see src/styles/maro-compat.css)
         brand: {
           DEFAULT: "var(--brand)",
           hover: "var(--brand-hover)",
@@ -29,7 +29,6 @@ const config: Config = {
         scrim: "var(--scrim)",
         dim: "var(--dim)",
         "on-scrim": "var(--on-scrim)",
-        // Brand accent palette (logo shapes)
         "c-blue": "var(--c-blue)",
         "c-teal": "var(--c-teal)",
         "c-red": "var(--c-red)",
@@ -46,10 +45,24 @@ const config: Config = {
           DEFAULT: "var(--generate-bg)",
           fg: "var(--generate-fg)",
         },
+        // Canonical maro semantic tokens (prefer for new code)
+        maro: {
+          canvas: "var(--maro-color-bg-canvas)",
+          surface: "var(--maro-color-bg-surface)",
+          inverse: "var(--maro-color-bg-inverse)",
+          selected: "var(--maro-color-bg-selected)",
+          danger: "var(--maro-color-bg-danger)",
+          "text-primary": "var(--maro-color-text-primary)",
+          "text-secondary": "var(--maro-color-text-secondary)",
+          "text-tertiary": "var(--maro-color-text-tertiary)",
+          brand: "var(--maro-color-text-brand)",
+          "text-danger": "var(--maro-color-text-danger)",
+          "border-subtle": "var(--maro-color-border-subtle)",
+          "border-focus": "var(--maro-color-border-focus)",
+        },
       },
       fontFamily: {
-        sans: ["var(--font-app)", "system-ui", "sans-serif"],
-        // Website-preview fonts (selectable inside the editor)
+        sans: ["var(--maro-font-family)", "system-ui", "sans-serif"],
         jakarta: ['"Plus Jakarta Sans Variable"', "Plus Jakarta Sans", "sans-serif"],
         inter: ["Inter", "system-ui", "sans-serif"],
         manrope: ["Manrope", "system-ui", "sans-serif"],
@@ -58,16 +71,35 @@ const config: Config = {
         playfair: ['"Playfair Display"', "Georgia", "serif"],
         instrument: ['"Instrument Serif"', "Georgia", "serif"],
       },
+      letterSpacing: {
+        brand: "var(--maro-tracking-brand)",
+        body: "var(--maro-tracking-body)",
+      },
       borderRadius: {
+        maro8: "var(--maro-radius-8)",
+        maro12: "var(--maro-radius-12)",
+        maro16: "var(--maro-radius-16)",
+        maro20: "var(--maro-radius-20)",
         xl: "0.875rem",
         "2xl": "1.125rem",
         "3xl": "1.5rem",
       },
       boxShadow: {
+        float: "var(--maro-shadow-float)",
+        overlay: "var(--maro-shadow-overlay)",
         subtle: "none",
         card: "none",
         pop: "none",
         brand: "none",
+      },
+      transitionDuration: {
+        instant: "var(--maro-duration-instant)",
+        fast: "var(--maro-duration-fast)",
+        normal: "var(--maro-duration-normal)",
+        slow: "var(--maro-duration-slow)",
+      },
+      transitionTimingFunction: {
+        maro: "var(--maro-ease-standard)",
       },
       keyframes: {
         "fade-in": {
@@ -95,10 +127,6 @@ const config: Config = {
         },
       },
       animation: {
-        // NOTE: fill-mode is intentionally "forwards" (not "both"). With "both"
-        // the element sits at the keyframe's starting opacity:0 before the
-        // animation runs, which can leave content invisible if the first frame
-        // is never painted. "forwards" keeps the resting state fully visible.
         "fade-in": "fade-in 0.3s ease-out forwards",
         "fade-up": "fade-up 0.4s cubic-bezier(0.22,1,0.36,1) forwards",
         "scale-in": "scale-in 0.2s cubic-bezier(0.22,1,0.36,1) forwards",

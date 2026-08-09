@@ -70,7 +70,7 @@ export function AppShell({
               aria-label="Hap sidebar"
               title="Hap sidebar"
             >
-              <MaroIcon name="sidebarFlip" className="h-6 w-6" />
+              <MaroIcon name="sidebarFlip" className="h-6 w-6 text-ink" />
             </button>
           )}
 

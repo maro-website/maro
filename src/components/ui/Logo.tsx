@@ -1,11 +1,25 @@
 import * as React from "react";
+import { MARO_LOGO } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 
 export function MaroSymbol({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/maro-symbol.svg"
+      src={MARO_LOGO.symbol}
       alt="maro"
+      className={cn("h-[30px] w-[30px] select-none", className)}
+      draggable={false}
+    />
+  );
+}
+
+/** White symbol for inverse/dark surfaces (assistant tile, footer). */
+export function MaroSymbolWhite({ className }: { className?: string }) {
+  return (
+    <img
+      src={MARO_LOGO.symbolWhite}
+      alt=""
+      aria-hidden
       className={cn("h-[30px] w-[30px] select-none", className)}
       draggable={false}
     />
@@ -16,7 +30,7 @@ function MaroLockup({ wordClassName }: { wordClassName?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/maro-logo.svg"
+      src={MARO_LOGO.lockup}
       alt="maro"
       className={cn("logo-lockup-light h-7 w-auto select-none", wordClassName)}
       draggable={false}
@@ -28,7 +42,7 @@ function MaroTextLogo({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/maro-logo.svg"
+      src={MARO_LOGO.lockup}
       alt="maro"
       className={cn("maro-text-logo h-[22px] w-auto select-none sm:h-6", className)}
       draggable={false}

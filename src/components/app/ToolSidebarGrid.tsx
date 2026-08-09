@@ -56,7 +56,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             )}
           >
             <span>maro Prompts</span>
-            <MaroIcon name="prompts" className="icon-tone-menu h-6 w-6 shrink-0" />
+            <MaroIcon name="prompts" className="h-6 w-6 shrink-0 text-ink" />
           </button>
           <button
             type="button"
@@ -67,7 +67,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             )}
           >
             <span>Cka ke maru</span>
-            <MaroIcon name="history" className="icon-tone-history h-6 w-6 shrink-0" />
+            <MaroIcon name="history" className="h-6 w-6 shrink-0 text-ink" />
           </button>
         </div>
       </div>

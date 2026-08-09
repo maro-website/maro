@@ -35,7 +35,7 @@ export function HomeSidebar({
                 aria-label="Mbyll sidebar"
                 title="Mbyll sidebar"
               >
-                <MaroIcon name="sidebarFlip" className="icon-tone-menu h-6 w-6" />
+                <MaroIcon name="sidebarFlip" className="h-6 w-6 text-ink" />
               </button>
             )}
             {onNavigate && (

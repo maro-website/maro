@@ -826,7 +826,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     disabled={attachments.length >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="icon-tone-white h-5 w-5" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5 text-white" />
                   </IconBtn>
                 </>
               )}
@@ -881,7 +881,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               <div className="dock-toolbar-actions">
                 {functional && (
                   <span className="maro-pill shrink-0 bg-dock-btn text-[14.5px] font-semibold text-white">
-                    <MaroIcon name="coins" className="icon-tone-white h-5 w-5 shrink-0" />
+                    <MaroIcon name="coins" className="h-5 w-5 shrink-0 text-white" />
                     {cost}
                     <span className="text-ink-3">kredite</span>
                   </span>
@@ -902,7 +902,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
                   ) : (
                     <>
-                      <MaroIcon name="generate" className="icon-tone-white h-5 w-5" />
+                      <MaroIcon name="generate" className="h-5 w-5 text-white" />
                       maro
                     </>
                   )}
@@ -1127,7 +1127,7 @@ function ToolSwitcher({
         onClick={() => setOpen((o) => !o)}
         className="flex h-11 w-auto min-w-[120px] max-w-[148px] items-center gap-2 rounded-xl bg-dock-tool px-3 text-[14px] font-bold text-dock-tool-fg transition-opacity hover:opacity-90 focus:outline-none"
       >
-        <ToolIcon toolId={current.id} fallback={current.icon} className="dock-tool-icon h-5 w-5 shrink-0" />
+        <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0 text-dock-tool-fg" />
         <span className="dock-pill-label min-w-0 flex-1 text-left">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
@@ -1270,7 +1270,7 @@ function SettingSelect({
           optionId={currentId}
           icons={optionIcons}
           fallback={Icon}
-          className="icon-tone-white h-5 w-5 shrink-0"
+          className="h-5 w-5 shrink-0 text-white"
         />
         <span className="dock-pill-label min-w-0">{current?.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-white/60" />

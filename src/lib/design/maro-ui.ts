@@ -1,55 +1,63 @@
-/** Shared Figma sizing — keep buttons, icons, and radii consistent. */
+/**
+ * Figma sizing mirror — values come from maro-design-system/tokens/maro.css.
+ * Prefer CSS variables in components; use these only when JS needs numbers.
+ */
+import { MARO_SHELL, MARO_TRACKING } from "@/lib/design/maro-system";
+
 export const UI = {
   sidebarWidth: 280,
-  btnH: 44,
-  btnHLg: 52,
-  iconSm: 20,
-  iconMd: 22,
-  iconLg: 28,
-  iconXL: 36,
+  btnH: 40,
+  btnHLg: 48,
+  iconSm: 16,
+  iconMd: 20,
+  iconLg: 24,
+  iconXL: 32,
   radiusCard: 16,
-  radiusDock: 28,
-  radiusPill: 9999,
+  radiusDock: 20,
+  radiusPill: 999,
   textSm: 14,
   textBase: 16,
   textLg: 18,
-  textXL: 22,
+  textXL: 20,
+  trackingBrand: MARO_TRACKING.brand,
+  trackingBody: MARO_TRACKING.body,
+  shell: MARO_SHELL,
 } as const;
 
-/** Brand hex palette — authoritative Figma handoff (do not approximate). */
+/** @deprecated Use MARO_COLOR / CSS vars. Kept for gradual migration. */
 export const BRAND_PALETTE = {
   light: {
     canvas: "#f5f5f5",
     surface: "#ffffff",
-    surface2: "#efefef",
+    surface2: "#f5f5f5",
     muted: "#c7c7c7",
     brand: "#253fda",
     ink: "#111111",
-    inkMuted: "#c7c7c7",
+    inkMuted: "#818181",
   },
   dark: {
     canvas: "#111111",
     surface: "#ffffff",
-    surface2: "#efefef",
+    surface2: "#f5f5f5",
     muted: "#c7c7c7",
     brand: "#253fda",
-    inkMuted: "#c7c7c7",
+    inkMuted: "#818181",
     menuHover: "#f5f5f5",
   },
 } as const;
 
+/** @deprecated Use semantic --maro-* tokens. */
 export const BRAND = {
   primary: "#253fda",
   ink: "#111111",
   canvas: "#f5f5f5",
   muted: "#c7c7c7",
+  secondary: "#818181",
   white: "#ffffff",
-  red: "#ff0000",
-  /** @deprecated use primary */
+  red: "#da2525",
   teal: "#253fda",
-  /** @deprecated use ink */
   forest: "#111111",
   canvasDark: "#111111",
   surfaceDark: "#ffffff",
-  surface2Dark: "#efefef",
+  surface2Dark: "#f5f5f5",
 } as const;

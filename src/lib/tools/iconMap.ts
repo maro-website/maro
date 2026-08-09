@@ -1,30 +1,32 @@
 import { optionKey } from "@/lib/tools/registry";
+import { MARO_ICONS } from "@/lib/design/maro-system";
 
-/** Public SVG assets shipped with the app (Figma export). */
-export const ICONS_BASE = "/icons";
+/** Public SVG assets — canonical maro-design-system/icons (synced to public/icons). */
+export const ICONS_BASE = MARO_ICONS.base;
 
 /** Tool cards in sidebar grid — keyed by registry tool id. */
 export const TOOL_ICON_FILES: Partial<Record<string, string>> = {
-  reklama: "maroImazh.svg",
-  logo: "maroLogo.svg",
-  website: "maroImazh.svg",
-  filma: "maroFilma.svg",
-  zo: "maroZo.svg",
-  prompte: "bulb (1).svg",
+  reklama: "maro-imazh.svg",
+  logo: "maro-brand.svg",
+  website: "maro-web.svg",
+  filma: "maro-filma.svg",
+  zo: "maro-zo.svg",
+  prompte: "idea.svg",
+  plan: "idea.svg",
 };
 
 /** Per-option icons — keyed by optionKey (`tool.setting.option`). */
 export const OPTION_ICON_FILES: Record<string, string> = {
   "reklama.model.gpt-image-2": "chatgpt.svg",
-  "reklama.text.off": "teksti.svg",
-  "reklama.text.on": "teksti.svg",
+  "reklama.text.off": "text.svg",
+  "reklama.text.on": "text.svg",
   "logo.model.gpt-image-2": "chatgpt.svg",
   "website.model.opus-4-8": "chatgpt.svg",
   "website.model.opus-5": "chatgpt.svg",
-  "reklama.format.ig-post": "formati or size.svg",
-  "reklama.format.ig-story": "formati or size.svg",
-  "reklama.format.fb-post": "formati or size.svg",
-  "reklama.format.yt-thumb": "formati or size.svg",
+  "reklama.format.ig-post": "aspect-ratio.svg",
+  "reklama.format.ig-story": "aspect-ratio.svg",
+  "reklama.format.fb-post": "aspect-ratio.svg",
+  "reklama.format.yt-thumb": "aspect-ratio.svg",
   "reklama.speed.kadale": "speed.svg",
   "reklama.speed.normal": "speed.svg",
   "reklama.speed.fast": "speed.svg",
@@ -40,25 +42,25 @@ export const OPTION_ICON_FILES: Record<string, string> = {
 export const UI_ICON_FILES = {
   attach: "attach.svg",
   fullscreen: "fullscreen.svg",
-  coins: "coins (1).svg",
+  coins: "credits.svg",
   wallet: "wallet.svg",
   notification: "notification.svg",
-  generate: "maro-generate.svg",
-  dropdown: "dropdown.svg",
-  dropdownSelect: "dropdown-select.svg",
-  lock: "lock (1).svg",
-  maroFort: "maroFort.svg",
-  history: "time-past.svg",
-  prompts: "bulb (1).svg",
+  generate: "generate.svg",
+  dropdown: "dropdown-control.svg",
+  dropdownSelect: "select.svg",
+  lock: "lock.svg",
+  maroFort: "maro-fort.svg",
+  history: "history.svg",
+  prompts: "idea.svg",
   admin: "admin.svg",
-  user: "user (3).svg",
-  settings: "cilesimet.svg",
-  logout: "dil.svg",
+  user: "user.svg",
+  settings: "settings.svg",
+  logout: "logout.svg",
   save: "save.svg",
-  creator: "maroKreator.svg",
-  sidebarFlip: "sidebar-flip.svg",
-  tekst: "teksti.svg",
-  toolActive: "maroImazh (2).svg",
+  creator: "maro-kreator.svg",
+  sidebarFlip: "sidebar-toggle.svg",
+  tekst: "text.svg",
+  toolActive: "maro-imazh.svg",
 } as const;
 
 export type UiIconKey = keyof typeof UI_ICON_FILES;

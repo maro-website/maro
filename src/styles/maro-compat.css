@@ -1,0 +1,131 @@
+/*
+ * App compatibility layer — maps legacy Tailwind/component tokens to maro semantic tokens.
+ * New code should prefer --maro-* aliases directly. See maro-design-system/MARO-DESIGN-SYSTEM.md
+ */
+
+:root {
+  /* Typography bridge */
+  --font-app: var(--maro-font-family);
+
+  /* Layout — product shell (MARO-DESIGN-SYSTEM §6) */
+  --sidebar-width: var(--maro-shell-sidebar-width);
+  --ui-btn-h: var(--maro-control-height-md);
+  --ui-radius-card: var(--maro-radius-16);
+  --ui-radius-dock: var(--maro-radius-20);
+
+  /* Core surfaces & text */
+  --canvas: var(--maro-color-bg-canvas);
+  --surface: var(--maro-color-bg-surface);
+  --surface-2: color-mix(in srgb, var(--maro-color-bg-canvas) 65%, var(--maro-color-bg-surface));
+  --line: var(--maro-color-border-default);
+  --line-strong: var(--maro-gray-600);
+
+  --ink: var(--maro-color-text-primary);
+  --ink-2: var(--maro-color-text-secondary);
+  --ink-3: var(--maro-color-text-tertiary);
+  --ink-inv: var(--maro-color-text-inverse);
+
+  /* Brand & accents */
+  --brand: var(--maro-blue);
+  --brand-hover: color-mix(in srgb, var(--maro-blue) 88%, var(--maro-black));
+  --brand-soft: color-mix(in srgb, var(--maro-blue) 10%, transparent);
+  --brand-fg: var(--maro-color-text-inverse);
+  --accent: var(--maro-blue);
+  --accent-teal: var(--maro-blue);
+  --accent-soft: var(--brand-soft);
+  --accent-teal-soft: var(--brand-soft);
+  --accent-teal-border: color-mix(in srgb, var(--maro-blue) 35%, transparent);
+  --brand-forest: var(--maro-ink);
+  --brand-muted: var(--maro-gray-300);
+
+  /* Status */
+  --success: var(--maro-blue);
+  --warning: var(--maro-ink);
+  --danger: var(--maro-red);
+  --info: var(--maro-gray-600);
+
+  /* Overlays */
+  --overlay: var(--maro-color-bg-overlay);
+  --scrim: rgb(0 0 0 / 72%);
+  --dim: rgb(0 0 0 / 40%);
+  --on-scrim: var(--maro-color-text-inverse);
+
+  /* Logo loader monochrome */
+  --c-blue: var(--maro-blue);
+  --c-teal: var(--maro-blue);
+  --c-red: var(--maro-blue);
+  --c-pale: var(--maro-blue);
+  --c-yellow: var(--maro-blue);
+
+  /* Switch */
+  --switch-track: var(--maro-gray-300);
+  --switch-knob: var(--maro-white);
+  --switch-off: var(--maro-ink);
+  --skeleton-shine: rgb(17 17 17 / 6%);
+
+  /* Sidebar */
+  --sidebar-card: var(--maro-color-bg-surface);
+  --sidebar-nav-bg: var(--maro-color-bg-surface);
+  --sidebar-nav-prompts-fg: var(--maro-color-text-primary);
+  --sidebar-nav-history-fg: var(--maro-color-text-primary);
+
+  /* Composer dock */
+  --prompt-dock: var(--maro-color-bg-surface);
+  --dock-btn: var(--maro-color-bg-inverse);
+  --fort-pill: var(--maro-red);
+  --dock-tool-btn: var(--maro-color-bg-selected);
+  --dock-tool-fg: var(--maro-color-text-inverse);
+  --dock-muted: var(--maro-gray-300);
+  --generate-bg: var(--maro-color-bg-selected);
+  --generate-fg: var(--maro-color-text-inverse);
+
+  /* Menus */
+  --menu-bg: var(--maro-color-bg-surface);
+  --menu-fg: var(--maro-color-text-primary);
+  --menu-muted: var(--maro-gray-300);
+  --menu-divider: var(--maro-color-border-subtle);
+  --menu-row-hover: var(--maro-color-bg-canvas);
+  --menu-chip-bg: var(--maro-color-bg-canvas);
+  --menu-border: var(--maro-color-border-default);
+  --menu-logout-bg: var(--maro-color-bg-danger);
+  --menu-logout-fg: var(--maro-color-text-inverse);
+
+  /* Top bar */
+  --topbar-credits-bg: var(--maro-color-bg-surface);
+  --topbar-credits-fg: var(--maro-color-text-brand);
+  --topbar-credits-muted: var(--maro-gray-300);
+  --topbar-wallet-bg: var(--maro-color-bg-surface);
+  --topbar-wallet-fg: var(--maro-color-text-primary);
+
+  /* Product rail cards — active uses Ink, not blue (§6) */
+  --card-active-bg: var(--maro-color-bg-inverse);
+  --card-active-fg: var(--maro-color-text-inverse);
+  --card-idle-bg: var(--maro-color-bg-surface);
+  --card-idle-fg: var(--maro-color-text-primary);
+  --card-idle-border: var(--maro-color-border-default);
+  --card-hover-bg: var(--maro-color-bg-canvas);
+  --card-locked-bg: color-mix(in srgb, var(--maro-color-bg-canvas) 80%, var(--maro-color-bg-surface));
+  --card-locked-fg: var(--maro-color-text-tertiary);
+  --card-active-ring: var(--maro-color-border-focus);
+
+  /* Hub / chat / footer */
+  --hub-tool: var(--maro-color-text-primary);
+  --hub-tool-sub: var(--maro-gray-300);
+  --hub-page-bg: var(--maro-color-bg-canvas);
+  --chat-user-bg: var(--maro-color-bg-surface);
+  --chat-user-fg: var(--maro-color-text-primary);
+  --chat-user-border: var(--maro-color-border-default);
+  --chat-maro-bg: var(--maro-color-bg-surface);
+  --chat-maro-border: var(--maro-color-border-default);
+  --footer-bg: var(--maro-color-bg-inverse);
+  --footer-fg: var(--maro-color-text-inverse);
+  --footer-muted: var(--maro-gray-300);
+
+  /* Z-index scale (§14) */
+  --maro-z-base: 0;
+  --maro-z-sticky: 10;
+  --maro-z-dropdown: 20;
+  --maro-z-overlay: 30;
+  --maro-z-dialog: 40;
+  --maro-z-toast: 50;
+}

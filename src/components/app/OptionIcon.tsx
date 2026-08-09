@@ -5,15 +5,17 @@ import { resolveOptionIconUrl, type ToolOptionIcons } from "@/lib/tools/optionIc
 import { staticOptionIconSrc, toolIconSrc, type UiIconKey, uiIconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 
-type ImgProps = {
-  src: string;
-  className?: string;
-};
-
-function IconImg({ src, className }: ImgProps) {
+/** Renders a solid SVG via CSS mask so the icon inherits `currentColor`. */
+function IconMask({ src, className }: { src: string; className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className={cn("shrink-0 object-contain", className)} />
+    <span
+      aria-hidden
+      className={cn("maro-icon inline-block shrink-0", className)}
+      style={{
+        WebkitMaskImage: `url("${src}")`,
+        maskImage: `url("${src}")`,
+      }}
+    />
   );
 }
 
@@ -30,7 +32,7 @@ export function MaroIcon({
   className?: string;
 }) {
   const url = src ?? (name ? uiIconSrc(name) : undefined);
-  if (url) return <IconImg src={url} className={className} />;
+  if (url) return <IconMask src={url} className={className} />;
   if (Fallback) return <Fallback className={cn("shrink-0 text-ink-3", className)} />;
   return null;
 }
@@ -54,7 +56,7 @@ export function OptionIcon({
   const adminUrl = resolveOptionIconUrl(icons, toolId, settingId, optionId);
   const staticUrl = staticOptionIconSrc(toolId, settingId, optionId);
   const url = adminUrl ?? staticUrl;
-  if (url) return <IconImg src={url} className={cn("h-3.5 w-3.5", className)} />;
+  if (url) return <IconMask src={url} className={cn("h-3.5 w-3.5", className)} />;
   return <Fallback className={cn("h-3.5 w-3.5 shrink-0 text-ink-3", className)} />;
 }
 
@@ -69,6 +71,6 @@ export function ToolIcon({
   className?: string;
 }) {
   const url = toolIconSrc(toolId);
-  if (url) return <IconImg src={url} className={className} />;
+  if (url) return <IconMask src={url} className={className} />;
   return <Fallback className={cn("shrink-0 text-ink-3", className)} />;
 }

@@ -7,7 +7,8 @@
     "dev": "next dev -p 3006",
     "build": "next build",
     "start": "node start.mjs",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync:design-system": "node scripts/sync-design-system.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
