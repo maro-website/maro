@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils/cn";
 export function MaroSymbol({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/symbol.svg"
+      src="/brand/maro-symbol.svg"
       alt="maro"
       className={cn("h-[30px] w-[30px] select-none", className)}
       draggable={false}
@@ -14,22 +14,13 @@ export function MaroSymbol({ className }: { className?: string }) {
 
 function MaroLockup({ wordClassName }: { wordClassName?: string }) {
   return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/logo-black.svg"
-        alt="maro"
-        className={cn("logo-lockup-light h-7 w-auto select-none", wordClassName)}
-        draggable={false}
-      />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/logo-white.svg"
-        alt="maro"
-        className={cn("logo-lockup-dark h-7 w-auto select-none", wordClassName)}
-        draggable={false}
-      />
-    </>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/maro-logo.svg"
+      alt="maro"
+      className={cn("logo-lockup-light h-7 w-auto select-none", wordClassName)}
+      draggable={false}
+    />
   );
 }
 
@@ -37,7 +28,7 @@ function MaroTextLogo({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/maro-logo-textonly.svg"
+      src="/brand/maro-logo.svg"
       alt="maro"
       className={cn("maro-text-logo h-[22px] w-auto select-none sm:h-6", className)}
       draggable={false}

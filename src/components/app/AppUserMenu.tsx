@@ -11,16 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, Shield, Star, User as UserIcon } from "lucide-react";
-
-const FOOTER_LINKS = [
-  { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
-  { href: "/legal/terms", label: "Kushtet" },
-  { href: "/legal/privacy", label: "Privatësia" },
-  { href: "/legal/refund", label: "Rimbursimi" },
-  { href: "/legal/cookies", label: "Cookies" },
-  { href: "/pricing", label: "Çmimet" },
-] as const;
+import { Bookmark, Camera, Settings, Shield, Star, User as UserIcon } from "lucide-react";
 
 function Avatar({
   user,
@@ -94,7 +85,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <Link
         href="/sign-in"
         onClick={onNavigate}
-        className="inline-flex h-12 min-w-[48px] items-center justify-center rounded-2xl bg-surface-2 px-5 text-[16px] font-semibold text-ink"
+        className="inline-flex h-12 min-w-[48px] items-center justify-center rounded-2xl border border-line bg-surface px-5 text-[16px] font-semibold text-ink"
       >
         Hyr
       </Link>
@@ -121,7 +112,6 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             transition={{ duration: 0.16 }}
             className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-menu bg-menu px-[20px] py-[20px] shadow-xl"
           >
-            {/* User header */}
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
                 <Avatar user={user} className="h-11 w-11 text-[15px]" />
@@ -139,17 +129,16 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             </div>
 
-            {/* Group 1 */}
             <div className="mt-[20px] flex flex-col">
               <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
+              <MenuRow icon="settings" fallback={Settings} label="Cilesimet" onClick={() => go("/account")} />
             </div>
 
             <div className="my-[16px] h-px bg-menu-divider" />
 
-            {/* Group 2 */}
             <div className="flex flex-col">
               <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
               <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
@@ -165,26 +154,8 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             >
               <MaroIcon name="logout" className="icon-tone-white h-5 w-5" />
               Dil
+              <span className="text-[12px] font-normal opacity-80">(mos t&apos;ruaj qeke)</span>
             </button>
-
-            {/* Footer / legal — always reachable here */}
-            <div className="mt-[16px] pt-[14px]">
-              <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-                {FOOTER_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="text-[12px] font-medium text-menu-muted transition-colors hover:text-menu-fg"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-              <p className="mt-[10px] text-[11px] text-menu-muted">
-                © {new Date().getFullYear()} — maro.al — Powered by NICE.al
-              </p>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

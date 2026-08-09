@@ -26,103 +26,109 @@
 
 :root {
   /* Logo shape colors (loader / symbol only). */
-  --c-blue: #3b17ff;
-  --c-teal: #00fdba;
-  --c-red: #ff0000;
-  --c-pale: #d0e6fd;
-  --c-yellow: #ffff00;
+  --c-blue: #253fda;
+  --c-teal: #253fda;
+  --c-red: #253fda;
+  --c-pale: #253fda;
+  --c-yellow: #253fda;
 
   --font-app: "Manrope", system-ui, -apple-system, sans-serif;
 
   /* Brand palette — see BRAND_PALETTE in lib/design/maro-ui.ts */
-  --accent-teal: #00fdba;
-  --accent-teal-soft: rgba(0, 253, 186, 0.12);
-  --accent-teal-border: rgba(0, 253, 186, 0.55);
-  --brand-forest: #00392a;
-  --brand-muted: #d7d7d7;
+  --accent: #253fda;
+  --accent-teal: #253fda;
+  --accent-soft: rgba(37, 63, 218, 0.1);
+  --accent-teal-soft: rgba(37, 63, 218, 0.1);
+  --accent-teal-border: rgba(37, 63, 218, 0.35);
+  --brand-forest: #111111;
+  --brand-muted: #c7c7c7;
 
   --sidebar-width: 316px;
   --ui-btn-h: 44px;
   --ui-radius-card: 11px;
   --ui-radius-dock: 28px;
 
-  /* App surfaces — dark only */
-  --brand: #ffffff;
-  --brand-hover: #d7d7d7;
-  --brand-soft: #262626;
-  --brand-fg: #00392a;
+  /* App surfaces — light UI */
+  --brand: #253fda;
+  --brand-hover: #1e33b8;
+  --brand-soft: rgba(37, 63, 218, 0.1);
+  --brand-fg: #ffffff;
 
-  --canvas: #111111;
-  --surface: #0a0a0a;
-  --surface-2: #262626;
-  --line: #262626;
-  --line-strong: #262626;
+  --canvas: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #efefef;
+  --line: #c7c7c7;
+  --line-strong: #c7c7c7;
 
-  --ink: #ffffff;
-  --ink-2: #d7d7d7;
-  --ink-3: #d7d7d7;
-  --ink-inv: #00392a;
+  --ink: #111111;
+  --ink-2: #c7c7c7;
+  --ink-3: #c7c7c7;
+  --ink-inv: #ffffff;
 
-  --success: #00fdba;
+  --success: #253fda;
   --warning: #f59e0b;
   --danger: #ff0000;
-  --info: #d7d7d7;
+  --info: #c7c7c7;
 
-  --switch-track: #d7d7d7;
-  --switch-knob: #262626;
-  --switch-off: #262626;
-  --skeleton-shine: rgba(255, 255, 255, 0.08);
+  --switch-track: #c7c7c7;
+  --switch-knob: #ffffff;
+  --switch-off: #111111;
+  --skeleton-shine: rgba(0, 0, 0, 0.06);
 
-  --overlay: rgba(0, 0, 0, 0.72);
-  --scrim: rgba(0, 0, 0, 0.85);
-  --dim: rgba(0, 0, 0, 0.6);
+  --overlay: rgba(0, 0, 0, 0.45);
+  --scrim: rgba(0, 0, 0, 0.72);
+  --dim: rgba(0, 0, 0, 0.4);
   --on-scrim: #ffffff;
 
-  --sidebar-card: #0a0a0a;
-  --sidebar-nav-bg: #262626;
-  --sidebar-nav-prompts-fg: #00fdba;
-  --sidebar-nav-history-fg: #ffffff;
-  --prompt-dock: #0a0a0a;
-  --dock-btn: #262626;
-  --dock-tool-btn: #00392a;
+  --sidebar-card: #ffffff;
+  --sidebar-nav-bg: #ffffff;
+  --sidebar-nav-prompts-fg: #111111;
+  --sidebar-nav-history-fg: #111111;
+  --prompt-dock: #ffffff;
+  --dock-btn: #111111;
+  --dock-tool-btn: #253fda;
   --dock-tool-fg: #ffffff;
-  --dock-muted: #818181;
-  --generate-bg: #00fdba;
-  --generate-fg: #00392a;
-  --menu-bg: #262626;
-  --menu-fg: #ffffff;
-  --menu-muted: #818181;
-  --menu-divider: #323232;
-  --menu-row-hover: #323232;
-  --menu-chip-bg: #323232;
-  --menu-border: #323232;
-  --menu-logout-bg: #ff0000;
+  --dock-muted: #c7c7c7;
+  --generate-bg: #253fda;
+  --generate-fg: #ffffff;
+  --menu-bg: #ffffff;
+  --menu-fg: #111111;
+  --menu-muted: #c7c7c7;
+  --menu-divider: #efefef;
+  --menu-row-hover: #f5f5f5;
+  --menu-chip-bg: #f5f5f5;
+  --menu-border: #c7c7c7;
+  --menu-logout-bg: #253fda;
   --menu-logout-fg: #ffffff;
-  --topbar-credits-bg: #262626;
-  --topbar-credits-fg: #ffffff;
-  --topbar-credits-muted: #818181;
-  --topbar-wallet-bg: #00fdba;
+  --topbar-credits-bg: #ffffff;
+  --topbar-credits-fg: #253fda;
+  --topbar-credits-muted: #c7c7c7;
+  --topbar-wallet-bg: #ffffff;
   --topbar-wallet-fg: #111111;
 
-  --card-active-bg: #00392a;
+  --card-active-bg: #253fda;
   --card-active-fg: #ffffff;
-  --card-idle-bg: #00392a;
-  --card-idle-fg: #ffffff;
-  --card-idle-border: transparent;
-  --card-hover-bg: #004532;
-  --card-locked-bg: #262626;
-  --card-locked-fg: #818181;
-  --card-active-ring: #00fdba;
+  --card-idle-bg: #ffffff;
+  --card-idle-fg: #111111;
+  --card-idle-border: #c7c7c7;
+  --card-hover-bg: #f5f5f5;
+  --card-locked-bg: #efefef;
+  --card-locked-fg: #c7c7c7;
+  --card-active-ring: #253fda;
 
-  --hub-tool: #ffffff;
-  --hub-tool-sub: #d7d7d7;
-  --hub-page-bg: #111111;
+  --hub-tool: #111111;
+  --hub-tool-sub: #c7c7c7;
+  --hub-page-bg: #f5f5f5;
 
-  --chat-user-bg: #00392a;
-  --chat-user-fg: #ffffff;
-  --chat-user-border: transparent;
-  --chat-maro-bg: #262626;
-  --chat-maro-border: transparent;
+  --chat-user-bg: #ffffff;
+  --chat-user-fg: #111111;
+  --chat-user-border: #c7c7c7;
+  --chat-maro-bg: #ffffff;
+  --chat-maro-border: #c7c7c7;
+
+  --footer-bg: #111111;
+  --footer-fg: #ffffff;
+  --footer-muted: #c7c7c7;
 }
 
 html {
@@ -179,6 +185,12 @@ body {
   background-size: 22px 22px;
 }
 
+.bg-sketch-dots {
+  background-color: var(--canvas);
+  background-image: radial-gradient(circle, color-mix(in srgb, #c7c7c7 35%, transparent) 0.55px, transparent 0.55px);
+  background-size: 18px 18px;
+}
+
 .bg-aurora {
   background-image:
     radial-gradient(42% 55% at 82% 6%, color-mix(in srgb, var(--ink) 4%, transparent), transparent 72%),
@@ -190,11 +202,11 @@ body {
 }
 
 .text-accent-teal {
-  color: var(--accent-teal);
+  color: var(--accent);
 }
 
 .bg-accent-teal {
-  background-color: var(--accent-teal);
+  background-color: var(--accent);
 }
 
 .bg-accent-teal-soft {
@@ -326,12 +338,16 @@ body {
   color: var(--generate-fg);
 }
 
-/* Tool card / menu icon tones — dark UI */
-.icon-tone-active,
+/* Tool card / menu icon tones — light UI */
+.icon-tone-active {
+  filter: brightness(0) invert(1);
+}
 .icon-tone-idle,
 .icon-tone-menu,
 .icon-tone-history,
-.hub-tool-icon,
+.hub-tool-icon {
+  filter: brightness(0) saturate(100%);
+}
 .dock-tool-icon {
   filter: brightness(0) invert(1);
 }
@@ -339,7 +355,7 @@ body {
   filter: brightness(0) saturate(100%) invert(84%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
 }
 .icon-tone-teal {
-  filter: brightness(0) saturate(100%) invert(86%) sepia(22%) saturate(7462%) hue-rotate(112deg) brightness(101%) contrast(101%);
+  filter: brightness(0) saturate(100%) invert(22%) sepia(95%) saturate(3500%) hue-rotate(224deg) brightness(95%) contrast(95%);
 }
 
 .maro-pill {
@@ -418,19 +434,48 @@ body {
 
 /* Prompt dock — Tekst switch */
 .dock-control {
-  --switch-track: #d7d7d7;
-  --switch-knob: #262626;
+  --switch-track: #c7c7c7;
+  --switch-knob: #ffffff;
 }
 
 .logo-lockup-light {
-  display: none;
+  display: inline-block;
 }
 .logo-lockup-dark {
-  display: inline-block;
+  display: none;
 }
 
 .maro-text-logo {
-  filter: brightness(0) invert(1);
+  filter: none;
+}
+
+.bg-footer {
+  background-color: var(--footer-bg);
+}
+.text-footer {
+  color: var(--footer-fg);
+}
+.text-footer-muted {
+  color: var(--footer-muted);
+}
+
+@keyframes maro-build-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes maro-build-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.06); opacity: 0.55; }
+}
+@keyframes image-reveal {
+  from { filter: blur(16px); opacity: 0.6; }
+  to { filter: blur(0); opacity: 1; }
+}
+.image-reveal {
+  animation: image-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dock-toolbar-dark .text-dock-muted {
+  color: #c7c7c7;
 }
 
 @keyframes float-slow {

@@ -41,7 +41,7 @@ export function createProjectFromComposer(input: {
     style: "auto",
     language: "sq",
     status: "generating",
-    primaryColor: input.primaryColor || "#5a28e5",
+    primaryColor: input.primaryColor || "#253FDA",
   });
   p.prompt = input.prompt;
   p.websiteType = input.websiteType;
@@ -110,7 +110,7 @@ export const emptyDraft = (): WizardDraft => ({
   language: "sq",
   hasLogo: true,
   images: [],
-  primaryColor: "#5a28e5",
+  primaryColor: "#253FDA",
   secondaryColor: "#111114",
   style: "auto",
   generationMode: "smart",

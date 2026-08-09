@@ -59,7 +59,7 @@ export function AppHeader() {
                 ) : (
                   <span
                     className="grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold text-white"
-                    style={{ background: user?.avatarColor ?? "#5a28e5" }}
+                    style={{ background: user?.avatarColor ?? "#253FDA" }}
                   >
                     {initials(user?.name ?? "U")}
                   </span>

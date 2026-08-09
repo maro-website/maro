@@ -34,7 +34,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-const TEAL = "#00fdba";
+const BRAND = "#253FDA";
 const REVEAL_NO_CONFIRM_KEY = "maro:promptRevealNoConfirm";
 
 export default function PromptsPage() {
@@ -106,7 +106,7 @@ export default function PromptsPage() {
           <div className="flex flex-col items-center py-8 text-center sm:py-12">
             <span
               className="grid h-14 w-14 place-items-center rounded-2xl"
-              style={{ background: "rgba(0,253,186,0.12)", color: TEAL }}
+              style={{ background: "rgba(37,63,218,0.12)", color: BRAND }}
             >
               <Lightbulb className="h-7 w-7" />
             </span>
@@ -140,7 +140,7 @@ export default function PromptsPage() {
                 active={onlyOwned}
                 onClick={() => setOnlyOwned((v) => !v)}
                 title="Të blera"
-                color={TEAL}
+                color={BRAND}
               >
                 <DollarSign className="h-4 w-4" />
               </FilterToggle>
@@ -337,7 +337,7 @@ function PromptCard({
           {owned && (
             <span
               className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-[#04231b]"
-              style={{ background: TEAL }}
+              style={{ background: BRAND }}
               title="E blere"
             >
               <Check className="h-4 w-4" />
@@ -518,7 +518,7 @@ function PromptLightbox({
             <button
               onClick={onAttach}
               className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[15px] font-bold text-[#04231b] transition-transform active:scale-[0.98]"
-              style={{ background: TEAL }}
+              style={{ background: BRAND }}
             >
               <Plus className="h-5 w-5" /> maro
             </button>
@@ -594,7 +594,7 @@ function PromptLightbox({
                 "grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-colors",
                 dontAsk ? "border-transparent text-[#04231b]" : "border-line-strong text-transparent"
               )}
-              style={dontAsk ? { background: TEAL } : undefined}
+              style={dontAsk ? { background: BRAND } : undefined}
             >
               <Check className="h-3.5 w-3.5" />
             </span>
@@ -611,7 +611,7 @@ function PromptLightbox({
             <button
               onClick={confirmReveal}
               className="flex-1 rounded-xl px-4 py-3 text-[14px] font-bold text-[#04231b] transition-transform active:scale-[0.98]"
-              style={{ background: TEAL }}
+              style={{ background: BRAND }}
             >
               Po, analizoje · {DEFAULT_PROMPT_REVEAL_COST}
             </button>

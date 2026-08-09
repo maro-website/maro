@@ -9,8 +9,9 @@ import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
-import { GenerationLoader } from "@/components/app/GenerationLoader";
+import { GenerationCard, type GenerationCardMessage } from "@/components/app/GenerationCard";
 import { CreationLightbox } from "@/components/app/cards";
+import { resolveImageFormatMeta } from "@/lib/design/aspectRatio";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
 import { FortToggle } from "@/components/fort/FortToggle";
@@ -100,25 +101,7 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   fast: "2x",
 };
 
-const PROMPT_TEAL = "#00fdba";
-
-// A single message in the image tool's ChatGPT-style conversation.
-type ChatMessage =
-  | {
-      id: string;
-      role: "user";
-      text: string;
-      attachments?: string[];
-      fort?: boolean;
-      promptCode?: string;
-    }
-  | {
-      id: string;
-      role: "maro";
-      status: "thinking" | "done" | "error";
-      creation?: ImageCreation;
-      error?: string;
-    };
+type ChatMessage = GenerationCardMessage & { role: "generation" };
 
 export function ToolComposer({ toolId }: { toolId: string }) {
   const tool = getTool(toolId)!;
@@ -214,8 +197,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       const c = creationsRef.current.find((x) => x.id === openId && x.toolId === tool.id);
       if (c) {
         seeded = [
-          { id: uid("u"), role: "user", text: c.prompt || "" },
-          { id: uid("m"), role: "maro", status: "done", creation: c },
+          {
+            id: uid("g"),
+            role: "generation",
+            text: c.prompt || "",
+            format: c.format,
+            size: c.size,
+            fort: c.fort,
+            promptCode: c.promptCode,
+            createdAt: c.createdAt,
+            status: "done",
+            creation: c,
+            mediaType: c.mediaType ?? "image",
+          },
         ];
       }
     }
@@ -368,11 +362,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     const label = modeOpt?.label ?? tool.name;
     const userText = needsPrompt ? text : `[${label}]`;
     const sentAudio = audioInput?.url;
-    const maroId = uid("m");
+    const maroId = uid("g");
+    const now = new Date().toISOString();
+    const isTextMode = mode === "stt";
     setMessages((m) => [
       ...m,
-      { id: uid("u"), role: "user", text: userText },
-      { id: maroId, role: "maro", status: "thinking" },
+      {
+        id: maroId,
+        role: "generation",
+        text: userText,
+        createdAt: now,
+        status: "thinking",
+        mediaType: isTextMode ? "text" : "audio",
+      },
     ]);
     setPrompt("");
     setAudioInput(null);
@@ -395,12 +397,19 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         mediaType: isText ? "text" : "audio",
         text: isText ? res.text : undefined,
         title: isText ? (res.text || "").slice(0, 60) : text.slice(0, 60) || label,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
       };
       addCreation(creation);
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === maroId ? { ...msg, role: "maro", status: "done", creation } : msg
+          msg.id === maroId
+            ? {
+                ...msg,
+                status: "done",
+                creation,
+                mediaType: creation.mediaType,
+              }
+            : msg
         )
       );
     } catch (err) {
@@ -416,7 +425,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       }
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === maroId ? { ...msg, role: "maro", status: "error", error: errMsg } : msg
+          msg.id === maroId ? { ...msg, status: "error", error: errMsg } : msg
         )
       );
     } finally {
@@ -454,21 +463,25 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       return;
     }
 
-    // Image tools — ChatGPT-style: append the prompt as a user message and a
-    // "thinking" maro message, then swap in the result (or an error) in place.
     const sentAttachments = attachments.length ? [...attachments] : undefined;
-    const maroId = uid("m");
+    const maroId = uid("g");
+    const now = new Date().toISOString();
+    const { format, size } = resolveImageFormatMeta(tool, selections);
     setMessages((m) => [
       ...m,
       {
-        id: uid("u"),
-        role: "user",
+        id: maroId,
+        role: "generation",
         text,
         attachments: sentAttachments,
         fort: Boolean(fortPayload),
         promptCode: promptAttach?.code,
+        format,
+        size,
+        createdAt: now,
+        status: "thinking",
+        mediaType: "image",
       },
-      { id: maroId, role: "maro", status: "thinking" },
     ]);
     setPrompt("");
     setAttachments([]);
@@ -491,12 +504,16 @@ export function ToolComposer({ toolId }: { toolId: string }) {
         toolId: tool.id,
         prompt: text,
         urls: res.images,
-        createdAt: new Date().toISOString(),
+        format,
+        size,
+        fort: Boolean(fortPayload),
+        promptCode: promptAttach?.code,
+        createdAt: now,
       };
       addCreation(creation);
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === maroId ? { ...msg, role: "maro", status: "done", creation } : msg
+          msg.id === maroId ? { ...msg, status: "done", creation } : msg
         )
       );
     } catch (err) {
@@ -512,7 +529,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
       }
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === maroId ? { ...msg, role: "maro", status: "error", error: errMsg } : msg
+          msg.id === maroId ? { ...msg, status: "error", error: errMsg } : msg
         )
       );
     } finally {
@@ -637,25 +654,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           )}
 
           {functional && (isImage || isAudio) && messages.length > 0 && (
-            <div className="mb-4 flex flex-col gap-4">
-              {messages.map((m) =>
-                m.role === "user" ? (
-                  <UserBubble
-                    key={m.id}
-                    text={m.text}
-                    attachments={m.attachments}
-                    fort={m.fort}
-                    promptCode={m.promptCode}
-                  />
-                ) : (
-                  <MaroBubble
-                    key={m.id}
-                    message={m}
-                    toolName={tool.name}
-                    onOpen={(c) => setLightbox(c)}
-                  />
-                )
-              )}
+            <div className="mb-4 flex flex-col gap-8">
+              {messages.map((m) => (
+                <GenerationCard key={m.id} message={m} onOpen={(c) => setLightbox(c)} />
+              ))}
             </div>
           )}
 
@@ -710,12 +712,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                       setFortDirty(false);
                       setFortModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-bold transition-colors"
-                    style={{
-                      color: "#ff0000",
-                      borderColor: "rgba(255,0,0,0.45)",
-                      background: "rgba(255,0,0,0.08)",
-                    }}
+                    className="inline-flex items-center gap-2 rounded-full border border-brand/35 bg-brand-soft px-3 py-1.5 text-[13px] font-bold text-brand transition-colors"
                   >
                     <Sparkles className="h-4 w-4" />
                     {fortResolved.label}
@@ -745,12 +742,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           {promptAttach && !loading && (
             <div className="mb-2 flex items-center gap-2 px-1">
               <span
-                className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-bold"
-                style={{
-                  color: PROMPT_TEAL,
-                  borderColor: "rgba(0,253,186,0.5)",
-                  background: "rgba(0,253,186,0.1)",
-                }}
+                className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-ink/5 px-3 py-1.5 text-[13px] font-bold text-ink"
               >
                 <Lightbulb className="h-4 w-4" />
                 maro Prompt
@@ -768,7 +760,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="w-full rounded-[28px] border border-line bg-prompt-dock shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+          <div className="w-full rounded-[28px] border border-line bg-prompt-dock shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
             {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
@@ -800,8 +792,9 @@ export function ToolComposer({ toolId }: { toolId: string }) {
               )}
             </div>
 
-            {/* Toolbar — grid keeps credits+maro on the same row (right column) */}
-            <div className="dock-toolbar pb-[24px] pl-[30px] pr-[30px] pt-2">
+            {/* Toolbar — black pill */}
+            <div className="mx-3 mb-3 rounded-full bg-dock-btn px-3 py-2 text-white sm:mx-4 dock-toolbar-dark">
+            <div className="dock-toolbar pb-0 pl-0 pr-0 pt-0">
               <div className="dock-toolbar-controls">
               {isImage && (
                 <>
@@ -821,7 +814,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     disabled={attachments.length >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="icon-tone-menu h-5 w-5" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="icon-tone-white h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -875,8 +868,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
 
               <div className="dock-toolbar-actions">
                 {functional && (
-                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-dock-btn px-4 text-[14.5px] font-semibold text-topbar-credits">
-                    <MaroIcon name="coins" className="icon-tone-menu h-5 w-5 shrink-0" />
+                  <span className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl bg-white/10 px-4 text-[14.5px] font-semibold text-white">
+                    <MaroIcon name="coins" className="icon-tone-white h-5 w-5 shrink-0" />
                     {cost}
                     <span className="text-dock-muted">kredite</span>
                   </span>
@@ -897,12 +890,13 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
                   ) : (
                     <>
-                      <MaroIcon name="generate" className="h-5 w-5" />
+                      <MaroIcon name="generate" className="icon-tone-white h-5 w-5" />
                       maro
                     </>
                   )}
                 </motion.button>
               </div>
+            </div>
             </div>
           </div>
           {maintenance ? (
@@ -1065,7 +1059,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn bg-dock-btn text-ink-2 transition-colors hover:opacity-80 focus:outline-none disabled:opacity-50"
+      className="maro-icon-btn bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -1190,7 +1184,7 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="dock-control flex h-11 shrink-0 items-center gap-2 rounded-xl bg-dock-btn px-3">
+    <div className="dock-control flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white/10 px-3 text-white">
       <Icon className="h-5 w-5 shrink-0 text-ink-3" />
       <Switch
         size="sm"
@@ -1255,7 +1249,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill dock-pill shrink-0 bg-dock-btn text-ink hover:opacity-80 focus:outline-none"
+        className="maro-pill dock-pill shrink-0 bg-white/10 text-white hover:bg-white/15 focus:outline-none"
         title={setting.label}
       >
         <OptionIcon
@@ -1267,7 +1261,7 @@ function SettingSelect({
           className="h-5 w-5 shrink-0"
         />
         <span className="dock-pill-label min-w-0">{current?.label}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-white/60" />
       </button>
       {typeof document !== "undefined" &&
         createPortal(
@@ -1400,136 +1394,6 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
       <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-ink-2">
         Së shpejti
       </span>
-    </motion.div>
-  );
-}
-
-// ---- Chat bubbles (image tools) ----
-function UserBubble({
-  text,
-  attachments,
-  fort,
-  promptCode,
-}: {
-  text: string;
-  attachments?: string[];
-  fort?: boolean;
-  promptCode?: string;
-}) {
-  const hasText = Boolean(text?.trim());
-  const hasAttachments = Boolean(attachments?.length);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="flex flex-col items-end gap-1.5"
-    >
-      {(promptCode || fort) && (
-        <div className="flex items-center gap-1.5">
-          {promptCode && (
-            <span className="text-chat-prompt-badge inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide">
-              <Lightbulb className="h-3 w-3" /> maro Prompt
-            </span>
-          )}
-          {fort && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#ff0000] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide text-white">
-              <Sparkles className="h-3 w-3" /> maroFort
-            </span>
-          )}
-        </div>
-      )}
-      <div
-        className={cn(
-          "w-fit max-w-[min(100%,340px)] rounded-3xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed",
-          "bg-chat-user shadow-none"
-        )}
-      >
-        {hasAttachments && (
-          <div className={cn("flex flex-wrap gap-2", hasText && "mb-2.5")}>
-            {attachments!.map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={src}
-                alt=""
-                className="max-h-44 max-w-full rounded-xl object-cover"
-              />
-            ))}
-          </div>
-        )}
-        {hasText && <p className="whitespace-pre-wrap">{text}</p>}
-      </div>
-    </motion.div>
-  );
-}
-
-function MaroBubble({
-  message,
-  toolName,
-  onOpen,
-}: {
-  message: Extract<ChatMessage, { role: "maro" }>;
-  toolName: string;
-  onOpen: (c: ImageCreation) => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="flex items-start gap-2.5"
-    >
-      <span className="mt-0.5 shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/symbol.svg" alt="maro" className="h-8 w-8 rounded-lg" draggable={false} />
-      </span>
-      <div className="min-w-0 max-w-[80%]">
-        {message.status === "thinking" && (
-          <div className="rounded-3xl rounded-tl-lg bg-chat-maro px-4 py-4">
-            <GenerationLoader variant="image" title={toolName} />
-          </div>
-        )}
-        {message.status === "error" && (
-          <div className="rounded-3xl rounded-tl-lg bg-chat-maro px-4 py-3 text-[14px] leading-relaxed text-danger">
-            {message.error || "Gabim gjenerimi."}
-          </div>
-        )}
-        {message.status === "done" && message.creation && (
-          message.creation.mediaType === "audio" ? (
-            <div className="rounded-3xl rounded-tl-lg bg-surface px-4 py-3">
-              <audio controls src={message.creation.urls[0]} className="w-full max-w-sm" />
-            </div>
-          ) : message.creation.mediaType === "text" ? (
-            <div className="rounded-3xl rounded-tl-lg bg-surface px-4 py-3">
-              <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
-                {message.creation.text}
-              </p>
-              <button
-                onClick={() => onOpen(message.creation!)}
-                className="mt-2 text-[12.5px] font-semibold text-brand hover:underline"
-              >
-                Hap & kopjo
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => onOpen(message.creation!)}
-              className="group block overflow-hidden rounded-3xl rounded-tl-lg bg-surface transition-colors"
-            >
-              <span className="grid grid-cols-1 gap-0.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={message.creation.urls[0]}
-                  alt=""
-                  className="w-full max-w-sm object-cover transition-transform group-hover:scale-[1.01]"
-                />
-              </span>
-            </button>
-          )
-        )}
-      </div>
     </motion.div>
   );
 }

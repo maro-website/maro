@@ -242,7 +242,7 @@ function AssistantBubble({
     <div className="flex items-start gap-2.5">
       <span className="mt-0.5 shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/symbol.svg" alt="maro" className="h-7 w-7 rounded-lg" draggable={false} />
+        <img src="/brand/maro-symbol.svg" alt="maro" className="h-7 w-7 rounded-lg" draggable={false} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="rounded-3xl rounded-tl-lg bg-surface px-4 py-3">

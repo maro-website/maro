@@ -22,18 +22,18 @@ export function WorkspaceTopBar() {
     <div className="flex shrink-0 items-center justify-end gap-2.5 px-6 py-4">
       <Link
         href="/pricing"
-        className="inline-flex h-11 items-center gap-2 rounded-full bg-topbar-credits px-4 text-[15px] font-semibold text-topbar-credits transition-opacity hover:opacity-90"
+        className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-topbar-credits px-4 text-[15px] font-semibold shadow-[0_1px_0_rgba(0,0,0,0.03)] transition-opacity hover:opacity-90"
       >
-        <MaroIcon name="coins" fallback={Coins} className="icon-tone-menu h-5 w-5" />
-        <span>{credits}</span>
+        <MaroIcon name="coins" fallback={Coins} className="icon-tone-teal h-5 w-5" />
+        <span className="text-topbar-credits">{credits}</span>
         <span className="text-topbar-credits-muted">kredite</span>
       </Link>
       <Link
         href="/pricing"
-        className="grid h-11 w-11 place-items-center rounded-xl bg-topbar-wallet transition-opacity hover:opacity-90"
+        className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-topbar-wallet transition-opacity hover:opacity-90"
         aria-label="Shto kredite"
       >
-        <MaroIcon name="wallet" className="icon-tone-wallet h-5 w-5" />
+        <MaroIcon name="wallet" className="icon-tone-menu h-5 w-5" />
       </Link>
       <AppUserMenu />
     </div>

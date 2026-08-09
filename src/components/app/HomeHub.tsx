@@ -46,19 +46,19 @@ export function HomeHub({ firstName }: { firstName?: string }) {
             type="button"
             onClick={() => go("/prompts")}
             className={cn(
-              "flex h-[60px] items-center justify-between rounded-[11px] px-5 text-[16px] font-bold tracking-[-0.03em] transition-opacity focus:outline-none",
-              "bg-sidebar-nav text-sidebar-nav-prompts hover:opacity-90"
+              "flex h-[60px] items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
+              "text-sidebar-nav-prompts"
             )}
           >
             <span>maro Prompts</span>
-            <MaroIcon name="prompts" className="icon-tone-teal h-6 w-6 shrink-0" />
+            <MaroIcon name="prompts" className="icon-tone-menu h-6 w-6 shrink-0" />
           </button>
           <button
             type="button"
             onClick={() => go("/krijimet")}
             className={cn(
-              "flex h-[60px] items-center justify-between rounded-[11px] px-5 text-[16px] font-bold tracking-[-0.03em] transition-opacity focus:outline-none",
-              "bg-sidebar-nav text-sidebar-nav-history hover:opacity-90"
+              "flex h-[60px] items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
+              "text-sidebar-nav-history"
             )}
           >
             <span>Cka ke maru</span>

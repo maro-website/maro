@@ -2,10 +2,10 @@
 
 import * as React from "react";
 
-/** App UI is dark-only; kept for icon resolution hooks that read theme. */
+/** App UI is light-only; kept for icon resolution hooks that read theme. */
 export type Theme = "mshelt";
 
-const THEME_COLOR = "#191919";
+const THEME_COLOR = "#F5F5F5";
 
 interface ThemeCtx {
   theme: Theme;
@@ -13,7 +13,7 @@ interface ThemeCtx {
 
 const Ctx = React.createContext<ThemeCtx | null>(null);
 
-function applyDarkTheme() {
+function applyLightTheme() {
   document.documentElement.removeAttribute("data-theme");
   try {
     localStorage.setItem("maro.theme", "mshelt");
@@ -31,7 +31,7 @@ function applyDarkTheme() {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
-    applyDarkTheme();
+    applyLightTheme();
   }, []);
 
   return <Ctx.Provider value={{ theme: "mshelt" }}>{children}</Ctx.Provider>;

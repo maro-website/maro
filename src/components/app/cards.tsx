@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMaro } from "@/context/store";
+import { resolveAspectBox } from "@/lib/design/aspectRatio";
 import { getTool } from "@/lib/tools/registry";
 import { initials, timeAgo } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -314,13 +315,14 @@ export function CreationCard({
   const [lightbox, setLightbox] = React.useState(false);
   const tool = getTool(creation.toolId);
   const title = creation.title || creation.prompt || tool?.name || "Imazh";
+  const { ratio } = resolveAspectBox(creation.format, creation.size);
   return (
-    <div className="group relative rounded-2xl bg-surface transition-colors">
+    <div className="group relative rounded-2xl border border-line bg-surface transition-colors">
       <button
         onClick={() => (onOpen ? onOpen(creation) : setLightbox(true))}
         className="block w-full"
       >
-        <div className="aspect-square w-full overflow-hidden rounded-t-2xl bg-surface-2">
+        <div className="w-full overflow-hidden rounded-t-2xl bg-surface-2" style={{ aspectRatio: ratio }}>
           <CreationThumb creation={creation} />
         </div>
       </button>

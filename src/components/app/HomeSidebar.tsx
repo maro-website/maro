@@ -19,7 +19,7 @@ export function HomeSidebar({
   showHeader?: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-[10px] bg-surface">
+    <div className="flex h-full flex-col rounded-[10px] border border-line bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       {showHeader && (
         <div className="flex items-center justify-between px-[26px] pb-3 pt-[26px]">
           <Link href="/" className="flex items-center" onClick={onNavigate}>
@@ -74,7 +74,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] bg-surface"
+            className="absolute inset-y-0 left-0 w-full max-w-[min(100vw,320px)] border-r border-line bg-surface"
           >
             <HomeSidebar onNavigate={onClose} showHeader />
           </motion.div>

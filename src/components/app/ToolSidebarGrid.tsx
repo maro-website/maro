@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { ToolGridCard } from "@/components/app/ToolGridCard";
 import { MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
@@ -52,19 +51,19 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
             type="button"
             onClick={() => go("/prompts")}
             className={cn(
-              "flex h-[60px] w-full items-center justify-between rounded-[11px] px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors focus:outline-none",
-              "bg-sidebar-nav text-sidebar-nav-prompts hover:opacity-90"
+              "flex h-[60px] w-full items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
+              "text-sidebar-nav-prompts"
             )}
           >
             <span>maro Prompts</span>
-            <MaroIcon name="prompts" className="icon-tone-teal h-6 w-6 shrink-0" />
+            <MaroIcon name="prompts" className="icon-tone-menu h-6 w-6 shrink-0" />
           </button>
           <button
             type="button"
             onClick={() => go("/krijimet")}
             className={cn(
-              "flex h-[60px] w-full items-center justify-between rounded-[11px] px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors focus:outline-none",
-              "bg-sidebar-nav text-sidebar-nav-history hover:opacity-90"
+              "flex h-[60px] w-full items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
+              "text-sidebar-nav-history"
             )}
           >
             <span>Cka ke maru</span>
@@ -72,35 +71,6 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
           </button>
         </div>
       </div>
-
-      <MaroFortBanner onNavigate={onNavigate} />
     </div>
-  );
-}
-
-function MaroFortBanner({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <Link
-      href="/pricing"
-      onClick={onNavigate}
-      className="relative mt-[20px] block h-[120px] w-full overflow-hidden rounded-[11px]"
-    >
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at 15% 25%, #3b17ff 0%, transparent 45%), radial-gradient(circle at 85% 30%, #00fdba 0%, transparent 40%), radial-gradient(circle at 60% 85%, #ff0000 0%, transparent 45%), #0a0a0a",
-        }}
-      />
-      <div className="absolute inset-0 grid place-items-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-white py-1 pl-3.5 pr-1.5">
-          <span className="text-[15px] font-extrabold tracking-tight text-black">maroFort</span>
-          <span className="relative h-6 w-11 rounded-full bg-[#ff0000]">
-            <span className="absolute right-0.5 top-0.5 h-5 w-5 rounded-full bg-white" />
-          </span>
-          <span className="pr-1 text-[13px] font-bold text-black">Falas</span>
-        </div>
-      </div>
-    </Link>
   );
 }

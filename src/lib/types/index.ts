@@ -61,6 +61,9 @@ export interface ImageCreation {
   favourite?: boolean;
   /** User's reaction to their own creation. */
   reaction?: "like" | "dislike";
+  fort?: boolean;
+  promptCode?: string;
+  format?: string;
   createdAt: string;
 }
 

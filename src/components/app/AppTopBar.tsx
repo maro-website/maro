@@ -9,7 +9,7 @@ import { Menu } from "lucide-react";
 /** Mobile-only top bar. Desktop uses sidebar logo + WorkspaceTopBar. */
 export function AppTopBar({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
   return (
-    <header className="z-30 flex shrink-0 items-center justify-between gap-3 bg-canvas px-4 py-3 lg:hidden">
+    <header className="z-30 flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 lg:hidden">
       <div className="flex min-w-0 items-center gap-2">
         {onOpenDrawer && (
           <button

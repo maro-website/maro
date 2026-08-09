@@ -29,7 +29,7 @@ export function AppShell({
   const [collapsed, setCollapsed] = React.useState(false);
 
   const isToolPage = TOOL_ROUTES.has(pathname);
-  const footerVisible = showFooter === true;
+  const footerVisible = hideFooter !== true && (showFooter === true || isToolPage);
 
   React.useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
@@ -44,7 +44,7 @@ export function AppShell({
   };
 
   return (
-    <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-canvas">
+    <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-sketch-dots">
       <AppTopBar onOpenDrawer={() => setDrawer(true)} />
 
       <div
@@ -54,19 +54,19 @@ export function AppShell({
         )}
       >
         {!collapsed && (
-          <aside className="hidden min-h-0 overflow-hidden lg:block">
+          <aside className="hidden min-h-0 overflow-hidden p-3 lg:block">
             <HomeSidebar onCollapse={toggleCollapse} showHeader />
           </aside>
         )}
 
         <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
 
-        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-canvas">
+        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden">
           {collapsed && (
             <button
               type="button"
               onClick={toggleCollapse}
-              className="absolute left-5 top-5 z-40 hidden maro-icon-btn bg-surface text-ink-2 hover:text-ink lg:grid"
+              className="absolute left-5 top-5 z-40 hidden maro-icon-btn border border-line bg-surface text-ink-2 hover:text-ink lg:grid"
               aria-label="Hap sidebar"
               title="Hap sidebar"
             >
@@ -89,7 +89,7 @@ export function AppShell({
             {footerVisible ? (
               <div className="flex min-h-full flex-col">
                 {children}
-                <AppFooter className="mt-auto hidden shrink-0 flex-col gap-3 px-6 py-4 lg:flex lg:flex-row lg:items-center lg:justify-between" />
+                <AppFooter className="mt-auto hidden shrink-0 lg:flex" />
               </div>
             ) : (
               children

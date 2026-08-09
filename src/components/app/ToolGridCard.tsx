@@ -35,10 +35,9 @@ export function ToolGridCard({
         "relative flex aspect-square w-full flex-col rounded-[11px] p-5 text-left tracking-[-0.03em] transition-colors focus:outline-none",
         locked
           ? "cursor-default bg-card-locked"
-          : cn(
-              "bg-card-active bg-card-hover",
-              active && "ring-card-active"
-            )
+          : active
+          ? "bg-card-active ring-card-active"
+          : "border border-line bg-card-idle bg-card-hover"
       )}
     >
       {locked ? (
@@ -48,9 +47,13 @@ export function ToolGridCard({
       ) : (
         <span className="flex w-full items-start">
           {tool.id === "plan" ? (
-            <Lightbulb className="icon-tone-active h-7 w-7" />
+            <Lightbulb className={cn("h-7 w-7", active ? "icon-tone-active" : "icon-tone-idle")} />
           ) : (
-            <ToolIcon toolId={tool.id} fallback={Icon} className="icon-tone-active h-7 w-7" />
+            <ToolIcon
+              toolId={tool.id}
+              fallback={Icon}
+              className={cn("h-7 w-7", active ? "icon-tone-active" : "icon-tone-idle")}
+            />
           )}
         </span>
       )}
@@ -59,7 +62,7 @@ export function ToolGridCard({
         <span
           className={cn(
             "block truncate text-[16px] font-normal",
-            locked ? "text-card-locked-fg" : "text-card-active-fg"
+            locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
           )}
         >
           {first}
@@ -68,7 +71,7 @@ export function ToolGridCard({
           <span
             className={cn(
               "block truncate text-[16px] font-bold",
-              locked ? "text-card-locked-fg" : "text-card-active-fg"
+              locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
             )}
           >
             {restLabel}

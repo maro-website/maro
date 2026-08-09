@@ -18,14 +18,14 @@ export function AppFooter({ className }: { className?: string }) {
     <footer
       className={
         className ??
-        "flex shrink-0 flex-col gap-3 bg-canvas px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+        "flex shrink-0 flex-col gap-3 bg-footer px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
       }
     >
       <div className="min-w-0">
-        <p className="text-[13px] text-ink-3">
-          © {new Date().getFullYear()} — {LEGAL_ENTITY.product} — {LEGAL_ENTITY.name}
+        <p className="text-[13px] text-footer">
+          © {new Date().getFullYear()} — {LEGAL_ENTITY.product} — Powered by NICE.al
         </p>
-        <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">
+        <p className="mt-0.5 text-[12px] leading-relaxed text-footer-muted">
           NRB {LEGAL_ENTITY.nrb} · {LEGAL_ADDRESS} · {LEGAL_ENTITY.phone}
         </p>
       </div>
@@ -34,7 +34,7 @@ export function AppFooter({ className }: { className?: string }) {
           <Link
             key={link.href}
             href={link.href}
-            className="text-[13px] font-medium text-ink-3 transition-colors hover:text-ink"
+            className="text-[13px] font-medium text-footer-muted transition-colors hover:text-footer"
           >
             {link.label}
           </Link>

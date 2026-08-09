@@ -14,7 +14,7 @@ Pagesat përmes **Raiffeisen Bank Kosova** (hosted checkout).
 - Plus Jakarta Sans (self-hosted via `@fontsource`)
 - pnpm
 
-Brand primary color: `#5a28e5`.
+Brand primary color: `#253FDA`. Canvas: `#F5F5F5`.
 
 ## Getting started
 

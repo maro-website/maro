@@ -86,7 +86,7 @@ function profileToUser(profile: Profile | null): User | null {
     id: profile.id,
     name: profile.full_name || profile.email.split("@")[0] || "Ti",
     email: profile.email,
-    avatarColor: "#5a28e5",
+    avatarColor: "#253FDA",
     plan: profile.plan === "fort" ? "fort" : "free",
     credits: profile.credits,
     createdAt: profile.created_at,
