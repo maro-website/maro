@@ -8,7 +8,7 @@ import { PROMPT_ATTACH_KEY, type PromptItem } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils/cn";
 import { Megaphone, Sparkles } from "lucide-react";
 
-export const MARKETING_TEMPLATE_CATEGORIES = [
+const MARKETING_TEMPLATE_CATEGORIES = [
   { id: "all", label: "Të gjitha" },
   { id: "product", label: "Product shot" },
   { id: "ads", label: "Ads" },
@@ -35,7 +35,7 @@ export default function MarketingStudioPage() {
     return (p.category ?? "").toLowerCase().includes(category);
   });
 
-  const useTemplate = (item: PromptItem) => {
+  const applyTemplate = (item: PromptItem) => {
     sessionStorage.setItem(
       PROMPT_ATTACH_KEY,
       JSON.stringify({ id: item.id, code: item.code, targetTool: "reklama" })
@@ -97,7 +97,7 @@ export default function MarketingStudioPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => useTemplate(item)}
+                  onClick={() => applyTemplate(item)}
                   className="group overflow-hidden rounded-maro16 border border-line bg-surface text-left transition-colors hover:border-ink"
                 >
                   <div className="aspect-[3/4] bg-canvas">
