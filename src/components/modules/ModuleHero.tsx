@@ -18,7 +18,7 @@ export function ModuleHero({
       <h1 className="mt-8 max-w-xl text-[clamp(28px,4vw,40px)] font-bold leading-[1.12] tracking-brand text-ink">
         {title}
       </h1>
-      <p className="mt-4 max-w-[522px] text-[16px] leading-relaxed text-ink-2">{subtitle}</p>
+      <p className="mt-4 max-w-[var(--layout-hero-subtitle-max)] text-[16px] leading-relaxed text-ink-2">{subtitle}</p>
     </div>
   );
 }

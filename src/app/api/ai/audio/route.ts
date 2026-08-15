@@ -12,6 +12,7 @@ import type { AiAudioRequest } from "@/lib/ai/audioTypes";
 import {
   getAppSettings,
   logGeneration,
+  resolveWorkspaceId,
   supabaseServerConfigured,
   uploadGeneratedAudio,
 } from "@/lib/supabase/server";
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
 
   let userId: string | null = null;
   let userEmail = "";
+  let workspaceId: string | null = null;
   let cost = 0;
   let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
@@ -111,6 +113,7 @@ export async function POST(req: Request) {
       });
       userId = prep.userId;
       userEmail = prep.userEmail;
+      workspaceId = await resolveWorkspaceId(prep.userId, body.workspaceId);
     } catch (e) {
       return guardErrorResponse(e);
     }
@@ -154,6 +157,7 @@ export async function POST(req: Request) {
           tool_id: tool.id,
           kind: "audio",
           selections: Object.keys(selections).length ? selections : undefined,
+          workspace_id: workspaceId ?? undefined,
         });
         await finishOk();
       }
@@ -207,6 +211,7 @@ export async function POST(req: Request) {
         kind: "audio",
         output_urls: audioUrl.startsWith("data:") ? [] : [audioUrl],
         selections: Object.keys(selections).length ? selections : undefined,
+        workspace_id: workspaceId ?? undefined,
       });
       await finishOk();
     }

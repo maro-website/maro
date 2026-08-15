@@ -28,6 +28,7 @@ import {
   Flag,
   AudioLines,
   FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 
 /** Tool page URL to reopen a creation as a read-only conversation. */
@@ -68,12 +69,14 @@ export function ItemMenu({
   onRename,
   onToggleFav,
   onDelete,
+  extraActions,
   className,
 }: {
   favourite?: boolean;
   onRename: () => void;
   onToggleFav: () => void;
   onDelete: () => void;
+  extraActions?: { label: string; onClick: () => void }[];
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -154,6 +157,11 @@ export function ItemMenu({
                 >
                   {favourite ? "Hiq të preferuarën" : "Shto te të preferuarat"}
                 </MenuRow>
+                {extraActions?.map((action) => (
+                  <MenuRow key={action.label} icon={<ImageIcon className="h-4 w-4" />} onClick={() => run(action.onClick)}>
+                    {action.label}
+                  </MenuRow>
+                ))}
                 <div className="my-1 h-px bg-line" />
                 <MenuRow icon={<Trash2 className="h-4 w-4" />} danger onClick={() => run(onDelete)}>
                   Fshi

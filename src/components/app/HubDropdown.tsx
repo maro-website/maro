@@ -94,7 +94,7 @@ export function HubDropdown() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                style={{ position: "fixed", top: pos.top, left: pos.left, width: 272, zIndex: 130 }}
+                style={{ position: "fixed", top: pos.top, left: pos.left, width: "var(--hub-dropdown-w)", zIndex: 130 }}
                 className="overflow-hidden rounded-maro16 border border-line bg-surface shadow-float"
                 role="menu"
               >

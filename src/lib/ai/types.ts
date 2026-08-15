@@ -71,6 +71,8 @@ export interface AiGenerateRequest {
   fort?: FortPayload;
   /** maro Prompts: id of an attached curated prompt (hidden template). */
   maroPrompt?: { id: string };
+  /** Workspace that owns this generation (frozen at insert time). */
+  workspaceId?: string;
   /** Client idempotency key to prevent duplicate charges on retry. */
   idempotencyKey?: string;
 }

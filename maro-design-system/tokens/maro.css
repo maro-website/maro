@@ -126,6 +126,22 @@
   --maro-shell-sidebar-width: 17.5rem;
   --maro-shell-content-max: 70rem;
   --maro-shell-gutter: clamp(1rem, 2.5vw, 2.5rem);
+
+  /* Final UI layout (Figma g1IVQZrFllhytyBsbVa09G) */
+  --maro-layout-module-max: 70rem; /* 1120 */
+  --maro-layout-composer-max: 49.875rem; /* 798 */
+  --maro-layout-hero-subtitle-max: 32.625rem; /* 522 */
+  --maro-carousel-card-width: 14.4375rem; /* 231 */
+  --maro-carousel-card-height: 25.9375rem; /* 415 */
+  --maro-carousel-gap: 1.5625rem; /* 25 */
+  --maro-hub-tile-size: 11.125rem; /* 178 */
+  --maro-hub-tile-gap: 1.8125rem; /* 29 */
+  --maro-hub-banner-max: 62.75rem; /* 1004 */
+  --maro-hub-banner-min-height: 22.3125rem; /* 357 */
+  --maro-hub-promo-width: 30.4375rem; /* 487 */
+  --maro-hub-promo-height: 11.125rem; /* 178 */
+  --maro-hub-promo-gap: 1.875rem; /* 30 */
+  --maro-hub-dropdown-width: 17rem; /* 272 */
 }
 
 *,

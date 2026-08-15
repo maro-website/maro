@@ -6,6 +6,7 @@ import {
   getUserFromToken,
   hasFort,
   logGeneration,
+  resolveWorkspaceId,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
 import { getTool, visibleSettings, defaultSelections } from "@/lib/tools/registry";
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
 
   let userId: string | null = null;
   let userEmail = "";
+  let workspaceId: string | null = null;
   let cost = 0;
   let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
@@ -98,6 +100,7 @@ export async function POST(req: Request) {
       });
       userId = prep.userId;
       userEmail = prep.userEmail;
+      workspaceId = await resolveWorkspaceId(prep.userId, body.workspaceId);
     } catch (e) {
       return guardErrorResponse(e);
     }
@@ -124,6 +127,7 @@ export async function POST(req: Request) {
             credits_spent: cost,
             tool_id: body.toolId ?? "chat",
             kind: "chat",
+            workspace_id: workspaceId ?? undefined,
           });
           await completeGeneration({
             jobId: prep.job.id,

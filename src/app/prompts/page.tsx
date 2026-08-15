@@ -71,17 +71,43 @@ export default function PromptsPage() {
 
   const filtered = React.useMemo(() => {
     const kw = keyword.trim().toLowerCase();
-    return items.filter((p) => {
-      if (category && p.category !== category) return false;
-      if (onlyLiked && !liked.has(p.id)) return false;
-      if (onlyOwned && !owned.has(p.id)) return false;
-      if (kw) {
-        const hay = [p.code, p.category, ...(p.keywords ?? [])].join(" ").toLowerCase();
-        if (!hay.includes(kw)) return false;
-      }
-      return true;
-    });
+    return items
+      .filter((p) => {
+        if (category && p.category !== category) return false;
+        if (onlyLiked && !liked.has(p.id)) return false;
+        if (onlyOwned && !owned.has(p.id)) return false;
+        if (kw) {
+          const hay = [p.code, p.category, ...(p.keywords ?? [])].join(" ").toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   }, [items, category, keyword, onlyLiked, onlyOwned, liked, owned]);
+
+  const recentPresets = filtered.slice(0, 6);
+
+  const attachPrompt = (p: PromptItem) => {
+    const tool = getTool(p.target_tool);
+    if (!tool) {
+      toast("Ky tool nuk është i disponueshëm.");
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        PROMPT_ATTACH_KEY,
+        JSON.stringify({
+          id: p.id,
+          code: p.code,
+          targetTool: p.target_tool,
+          thumbnailUrl: p.featured_url,
+        })
+      );
+    } catch {
+      /* ignore */
+    }
+    router.push(tool.route);
+  };
 
   const onToggleLike = (p: PromptItem) => {
     if (!user) {
@@ -172,19 +198,43 @@ export default function PromptsPage() {
                 <p className="mt-1 text-[13.5px] text-ink-3">Provo një kategori ose fjalëkyç tjetër.</p>
               </div>
             ) : (
-              <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 [column-fill:_balance]">
-                {filtered.map((p) => (
-                  <div key={p.id} className="mb-3 break-inside-avoid">
+              <>
+                {recentPresets.length > 0 && (
+                  <div className="mb-8">
+                    <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-3">
+                      Presetat e fundit
+                    </h2>
+                    <div className="scroll-thin mt-3 flex gap-3 overflow-x-auto pb-2">
+                      {recentPresets.map((p) => (
+                        <div key={`recent-${p.id}`} className="w-[200px] shrink-0 sm:w-[220px]">
+                          <PromptCard
+                            item={p}
+                            liked={liked.has(p.id)}
+                            owned={owned.has(p.id)}
+                            onOpen={() => setActive(p)}
+                            onLike={() => onToggleLike(p)}
+                            onAttach={() => attachPrompt(p)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {filtered.map((p) => (
                     <PromptCard
+                      key={p.id}
                       item={p}
                       liked={liked.has(p.id)}
                       owned={owned.has(p.id)}
                       onOpen={() => setActive(p)}
                       onLike={() => onToggleLike(p)}
+                      onAttach={() => attachPrompt(p)}
                     />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -198,26 +248,8 @@ export default function PromptsPage() {
           onClose={() => setActive(null)}
           onLike={() => onToggleLike(active)}
           onAttach={() => {
-            const tool = getTool(active.target_tool);
-            if (!tool) {
-              toast("Ky tool nuk është i disponueshëm.");
-              return;
-            }
-            try {
-              sessionStorage.setItem(
-                PROMPT_ATTACH_KEY,
-                JSON.stringify({
-                  id: active.id,
-                  code: active.code,
-                  targetTool: active.target_tool,
-                  thumbnailUrl: active.featured_url,
-                })
-              );
-            } catch {
-              /* ignore */
-            }
             setActive(null);
-            router.push(tool.route);
+            attachPrompt(active);
           }}
           onReveal={async () => {
             if (!user) {
@@ -311,12 +343,14 @@ function PromptCard({
   owned,
   onOpen,
   onLike,
+  onAttach,
 }: {
   item: PromptItem;
   liked: boolean;
   owned: boolean;
   onOpen: () => void;
   onLike: () => void;
+  onAttach: () => void;
 }) {
   const toolName = getTool(item.target_tool)?.name ?? item.target_tool;
   return (
@@ -341,8 +375,7 @@ function PromptCard({
           </span>
           {owned && (
             <span
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-[#04231b]"
-              style={{ background: BRAND }}
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-brand text-brand-fg"
               title="E blere"
             >
               <Check className="h-4 w-4" />
@@ -357,14 +390,32 @@ function PromptCard({
           </div>
         </div>
       </button>
-      <button
-        onClick={onLike}
-        className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
-        style={liked ? { color: "#ff5a7a" } : undefined}
-        aria-label="Pëlqe"
-      >
-        <Heart className={cn("h-4 w-4", liked && "fill-current")} />
-      </button>
+      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAttach();
+          }}
+          className="grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
+          aria-label="maro me këtë preset"
+          title="maro me këtë preset"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onLike();
+          }}
+          className="grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
+          style={liked ? { color: "#ff5a7a" } : undefined}
+          aria-label="Pëlqe"
+        >
+          <Heart className={cn("h-4 w-4", liked && "fill-current")} />
+        </button>
+      </div>
     </div>
   );
 }

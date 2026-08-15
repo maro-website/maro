@@ -14,7 +14,7 @@ export function PromoCard({
   href: string;
 }) {
   return (
-    <div className="flex h-[178px] w-full max-w-[487px] flex-col justify-between rounded-maro16 border border-line bg-surface p-6 sm:flex-row sm:items-end">
+    <div className="flex h-[var(--hub-promo-h)] w-full max-w-[var(--hub-promo-w)] flex-col justify-between rounded-maro16 border border-line bg-surface p-6 sm:flex-row sm:items-end">
       <div>
         <div className="text-[clamp(28px,4vw,36px)] font-bold leading-[1.1] tracking-brand text-ink">
           {title}

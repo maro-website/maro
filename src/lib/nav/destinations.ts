@@ -43,14 +43,14 @@ export const TOP_BAR_DESTINATIONS: NavDestination[] = [
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
   { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma", comingSoon: true },
   { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo", comingSoon: true },
-  { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea" },
+  { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea", comingSoon: true },
   { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
 ];
 
 export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
   { id: "hub", label: "Hub", route: "/", iconName: "maro-imazh" },
   { id: "krijimet", label: "Cka ke maru", route: "/krijimet", iconName: "history" },
-  { id: "brain", label: "maro Brain", route: "#", iconName: "maro-web", disabled: true, badge: "së shpejti" },
+  { id: "brain", label: "maro Brain", route: "/brain", iconName: "maro-web" },
   { id: "workspaces", label: "Cilesimet", route: "/account/workspaces", iconName: "settings" },
 ];
 
@@ -78,6 +78,7 @@ export const STUDIO_ROUTES = new Set([
   "/prompts",
   "/contests",
   "/krijimet",
+  "/brain",
 ]);
 
 export function isNavActive(pathname: string, dest: NavDestination | HubMenuDestination): boolean {

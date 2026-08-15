@@ -1145,7 +1145,7 @@ const FORT_SUBS: { key: FortSub; label: string }[] = [
   { key: "general", label: "General" },
   { key: "web", label: "maro Web" },
   { key: "imazh", label: "maro Imazh" },
-  { key: "logo", label: "maro Logo" },
+  { key: "logo", label: "maro Brand" },
   { key: "layers", label: "Prompt Layers" },
   { key: "access", label: "Subscription" },
 ];
@@ -1226,7 +1226,7 @@ function FortGeneral({
   const moduleLabels: Record<FortModuleId, string> = {
     web: "maro Web",
     imazh: "maro Imazh",
-    logo: "maro Logo",
+    logo: "maro Brand",
   };
   const setModuleEnabled = (m: FortModuleId, on: boolean) =>
     patch({ modules: { ...config.modules, [m]: { ...config.modules?.[m], enabled: on } } });
@@ -1424,7 +1424,7 @@ function FortLayers({
               <option value="universal">Universal</option>
               <option value="web">maro Web</option>
               <option value="imazh">maro Imazh</option>
-              <option value="logo">maro Logo</option>
+              <option value="logo">maro Brand</option>
             </select>
             <Input
               type="number"

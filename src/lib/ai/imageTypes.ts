@@ -18,6 +18,10 @@ export interface AiImageRequest {
   /** maro Prompts: id of an attached curated prompt. The hidden template text
    * is fetched server-side and never sent from the client. */
   maroPrompt?: { id: string };
+  /** Workspace that owns this generation (frozen at insert time). */
+  workspaceId?: string;
+  /** Inject active workspace brand colors/logo into the prompt. */
+  useWorkspaceBrand?: boolean;
   idempotencyKey?: string;
 }
 

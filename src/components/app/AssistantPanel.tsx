@@ -53,7 +53,7 @@ export function AssistantPanel({
     const text = input.trim();
     if (!text || busy) return;
     if (!user) {
-      toast("Hyr për të përdorur maro Fjalë.");
+      toast("Hyr për të përdorur maro Brain.");
       return;
     }
 
@@ -111,7 +111,7 @@ export function AssistantPanel({
             <MessageSquare className="h-5 w-5" />
           </span>
           <div>
-            <div className="text-[15px] font-extrabold text-ink">maro Fjalë</div>
+            <div className="text-[15px] font-extrabold text-ink">maro Brain</div>
             <div className="text-[12px] text-ink-3">Asistent shkrimi &amp; planifikimi</div>
           </div>
         </div>
@@ -160,7 +160,7 @@ export function AssistantPanel({
               }
             }}
             rows={1}
-            placeholder="Pyet maro Fjalë…"
+            placeholder="Pyet maro Brain…"
             className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
           />
           <button

@@ -1,5 +1,6 @@
-import type { Workspace } from "@/lib/workspaces/types";
+import type { Workspace, WorkspaceBrand } from "@/lib/workspaces/types";
 import { DEFAULT_WORKSPACE_NAME, MAX_WORKSPACES } from "@/lib/workspaces/types";
+import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
 
@@ -20,6 +21,42 @@ function writeLocal(userId: string, items: Workspace[]) {
   localStorage.setItem(`${LOCAL_KEY}:${userId}`, JSON.stringify(items));
 }
 
+function mapBrandRow(r: Record<string, unknown>): WorkspaceBrand {
+  return normalizeWorkspaceBrand({
+    name: (r.brand_name as string | undefined) ?? undefined,
+    logoUrl: (r.brand_logo_url as string | undefined) ?? null,
+    primaryColor: (r.brand_primary_color as string | undefined) ?? undefined,
+    secondaryColor: (r.brand_secondary_color as string | undefined) ?? undefined,
+    backgroundColor: (r.brand_background_color as string | undefined) ?? undefined,
+    textColor: (r.brand_text_color as string | undefined) ?? undefined,
+  });
+}
+
+function mapWorkspaceRow(r: Record<string, unknown>): Workspace {
+  return {
+    id: r.id as string,
+    ownerId: r.owner_id as string,
+    name: r.name as string,
+    iconUrl: (r.icon_url as string | null) ?? null,
+    sortOrder: (r.sort_order as number) ?? 0,
+    createdAt: r.created_at as string,
+    brand: mapBrandRow(r),
+  };
+}
+
+function brandToDb(brand?: Partial<WorkspaceBrand>) {
+  if (!brand) return {};
+  const normalized = normalizeWorkspaceBrand(brand);
+  return {
+    brand_name: normalized.name ?? null,
+    brand_logo_url: normalized.logoUrl ?? null,
+    brand_primary_color: normalized.primaryColor,
+    brand_secondary_color: normalized.secondaryColor,
+    brand_background_color: normalized.backgroundColor,
+    brand_text_color: normalized.textColor,
+  };
+}
+
 function defaultWorkspace(userId: string): Workspace {
   return {
     id: uid("ws"),
@@ -28,6 +65,7 @@ function defaultWorkspace(userId: string): Workspace {
     iconUrl: null,
     sortOrder: 0,
     createdAt: new Date().toISOString(),
+    brand: normalizeWorkspaceBrand({}),
   };
 }
 
@@ -36,19 +74,14 @@ export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
     const supabase = getSupabaseBrowser();
     const { data, error } = await supabase
       .from("workspaces")
-      .select("id, owner_id, name, icon_url, sort_order, created_at")
+      .select(
+        "id, owner_id, name, icon_url, sort_order, created_at, brand_name, brand_logo_url, brand_primary_color, brand_secondary_color, brand_background_color, brand_text_color"
+      )
       .eq("owner_id", userId)
       .order("sort_order", { ascending: true });
 
     if (!error && data?.length) {
-      return data.map((r) => ({
-        id: r.id,
-        ownerId: r.owner_id,
-        name: r.name,
-        iconUrl: r.icon_url,
-        sortOrder: r.sort_order ?? 0,
-        createdAt: r.created_at,
-      }));
+      return data.map((r) => mapWorkspaceRow(r as Record<string, unknown>));
     }
   }
 
@@ -109,14 +142,7 @@ export async function createWorkspace(userId: string, name: string): Promise<Wor
       .select()
       .single();
     if (!error && data) {
-      return {
-        id: data.id,
-        ownerId: data.owner_id,
-        name: data.name,
-        iconUrl: data.icon_url,
-        sortOrder: data.sort_order ?? 0,
-        createdAt: data.created_at,
-      };
+      return mapWorkspaceRow(data as Record<string, unknown>);
     }
   }
 
@@ -128,29 +154,23 @@ export async function createWorkspace(userId: string, name: string): Promise<Wor
 export async function updateWorkspace(
   userId: string,
   workspaceId: string,
-  patch: Partial<Pick<Workspace, "name" | "iconUrl">>
+  patch: Partial<Pick<Workspace, "name" | "iconUrl" | "brand">>
 ): Promise<Workspace | null> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { data, error } = await supabase
       .from("workspaces")
       .update({
-        name: patch.name,
-        icon_url: patch.iconUrl,
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.iconUrl !== undefined ? { icon_url: patch.iconUrl } : {}),
+        ...brandToDb(patch.brand),
       })
       .eq("id", workspaceId)
       .eq("owner_id", userId)
       .select()
       .single();
     if (!error && data) {
-      return {
-        id: data.id,
-        ownerId: data.owner_id,
-        name: data.name,
-        iconUrl: data.icon_url,
-        sortOrder: data.sort_order ?? 0,
-        createdAt: data.created_at,
-      };
+      return mapWorkspaceRow(data as Record<string, unknown>);
     }
   }
 

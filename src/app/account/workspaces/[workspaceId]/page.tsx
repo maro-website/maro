@@ -7,6 +7,8 @@ import { AppShell } from "@/components/app/AppShell";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { useToast } from "@/components/ui/Toast";
 import { useWorkspace } from "@/context/workspace";
+import { DEFAULT_WORKSPACE_BRAND, type WorkspaceBrand } from "@/lib/workspaces/types";
+import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { Check, Trash2 } from "lucide-react";
 
 function WorkspaceSettingsInner() {
@@ -18,13 +20,23 @@ function WorkspaceSettingsInner() {
   const ws = workspaces.find((w) => w.id === workspaceId);
 
   const [name, setName] = React.useState(ws?.name ?? "");
+  const [brand, setBrand] = React.useState<WorkspaceBrand>(
+    normalizeWorkspaceBrand(ws?.brand ?? DEFAULT_WORKSPACE_BRAND)
+  );
   const [saving, setSaving] = React.useState(false);
+  const [savingBrand, setSavingBrand] = React.useState(false);
   const [uploadingIcon, setUploadingIcon] = React.useState(false);
+  const [uploadingLogo, setUploadingLogo] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
+  const [logoCropSrc, setLogoCropSrc] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const logoRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (ws) setName(ws.name);
+    if (ws) {
+      setName(ws.name);
+      setBrand(normalizeWorkspaceBrand(ws.brand ?? DEFAULT_WORKSPACE_BRAND));
+    }
   }, [ws]);
 
   if (!ws) {
@@ -50,6 +62,26 @@ function WorkspaceSettingsInner() {
       toast("Ikona u ndryshua.");
     } finally {
       setUploadingIcon(false);
+    }
+  };
+
+  const saveBrand = async () => {
+    setSavingBrand(true);
+    await updateWorkspace(workspaceId, { brand });
+    setSavingBrand(false);
+    toast("Brand u ruajt.");
+  };
+
+  const saveLogo = async (dataUrl: string) => {
+    setUploadingLogo(true);
+    try {
+      const next = { ...brand, logoUrl: dataUrl };
+      setBrand(next);
+      await updateWorkspace(workspaceId, { brand: next });
+      setLogoCropSrc(null);
+      toast("Logo u vendos.");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -128,6 +160,114 @@ function WorkspaceSettingsInner() {
           </div>
 
           <div className="border-t border-line pt-6">
+            <h2 className="text-[16px] font-bold tracking-brand text-ink">Brand i workspace</h2>
+            <p className="mt-1 text-[13px] text-ink-3">
+              Përdoret automatikisht në maro Brand dhe maro Imazh kur aktivizohet.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-4">
+              <div>
+                <label className="mb-2 block text-[13px] font-semibold text-ink-2">Logo</label>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => logoRef.current?.click()}
+                    className="relative overflow-hidden rounded-xl border border-line bg-canvas"
+                  >
+                    {brand.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={brand.logoUrl} alt="" className="h-16 w-16 object-contain p-1" />
+                    ) : (
+                      <span className="grid h-16 w-16 place-items-center text-[12px] font-semibold text-ink-3">
+                        Logo
+                      </span>
+                    )}
+                  </button>
+                  <input
+                    ref={logoRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => setLogoCropSrc(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  {brand.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const next = { ...brand, logoUrl: null };
+                        setBrand(next);
+                        await updateWorkspace(workspaceId, { brand: next });
+                        toast("Logo u hoq.");
+                      }}
+                      className="text-[13px] font-semibold text-ink-3 hover:text-ink"
+                    >
+                      Hiq logo
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="brand-name" className="mb-2 block text-[13px] font-semibold text-ink-2">
+                  Emri i brandit
+                </label>
+                <input
+                  id="brand-name"
+                  value={brand.name ?? ""}
+                  onChange={(e) => setBrand((b) => ({ ...b, name: e.target.value }))}
+                  placeholder="p.sh. Kafe Luna"
+                  className="h-12 w-full rounded-xl border border-line bg-canvas px-4 text-[15px] text-ink outline-none focus:border-brand"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["primaryColor", "Ngjyra kryesore"],
+                    ["secondaryColor", "Ngjyra dytësore"],
+                    ["backgroundColor", "Sfondi"],
+                    ["textColor", "Teksti"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key}>
+                    <label className="mb-2 block text-[13px] font-semibold text-ink-2">{label}</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={brand[key]}
+                        onChange={(e) => setBrand((b) => ({ ...b, [key]: e.target.value }))}
+                        className="h-10 w-10 cursor-pointer rounded-lg border border-line bg-transparent p-0.5"
+                        aria-label={label}
+                      />
+                      <input
+                        value={brand[key]}
+                        onChange={(e) => setBrand((b) => ({ ...b, [key]: e.target.value }))}
+                        className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 font-mono text-[13px] text-ink outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={saveBrand}
+                disabled={savingBrand}
+                className="inline-flex h-11 items-center gap-1.5 self-start rounded-xl bg-ink px-4 text-[14px] font-semibold text-white disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                Ruaj brandin
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-line pt-6">
             <button
               type="button"
               onClick={async () => {
@@ -156,6 +296,13 @@ function WorkspaceSettingsInner() {
         saving={uploadingIcon}
         onCancel={() => setCropSrc(null)}
         onConfirm={saveIcon}
+      />
+      <AvatarCropper
+        src={logoCropSrc}
+        open={logoCropSrc !== null}
+        saving={uploadingLogo}
+        onCancel={() => setLogoCropSrc(null)}
+        onConfirm={saveLogo}
       />
     </AppShell>
   );

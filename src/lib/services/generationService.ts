@@ -115,7 +115,12 @@ type GenerateStreamPayload =
       detail?: string;
       fallback?: boolean;
       refunded?: boolean;
-    };
+    }
+  | { stage: number };
+
+export interface GeneratedSiteResult extends GeneratedSite {
+  creditsSpent: number;
+}
 
 function pagesToSite(pages: AiGenerateHtmlResponse["pages"]): GeneratedSite {
   const htmlPages: HtmlPage[] = (pages ?? [])
@@ -130,7 +135,10 @@ function pagesToSite(pages: AiGenerateHtmlResponse["pages"]): GeneratedSite {
   return { htmlPages, activeHtmlPageId: htmlPages[0].id };
 }
 
-async function readGenerateStream(res: Response): Promise<GeneratedSite> {
+async function readGenerateStream(
+  res: Response,
+  onStage?: (index: number) => void
+): Promise<GeneratedSiteResult> {
   if (!res.body) throw new GenerationError("ai-failed", 502, false, "empty stream");
 
   const reader = res.body.getReader();
@@ -150,14 +158,23 @@ async function readGenerateStream(res: Response): Promise<GeneratedSite> {
       for (const line of chunk.split("\n")) {
         if (!line.startsWith("data: ")) continue;
         const payload = JSON.parse(line.slice(6)) as GenerateStreamPayload;
-        if (payload.ok) return pagesToSite(payload.pages);
-        lastError = new GenerationError(
-          payload.error || "ai-failed",
-          502,
-          payload.error === "no-key",
-          payload.detail,
-          payload.refunded ?? false
-        );
+        if ("stage" in payload && typeof payload.stage === "number") {
+          onStage?.(payload.stage);
+          continue;
+        }
+        if ("ok" in payload && payload.ok) {
+          const site = pagesToSite(payload.pages);
+          return { ...site, creditsSpent: payload.creditsSpent ?? 0 };
+        }
+        if ("ok" in payload && !payload.ok) {
+          lastError = new GenerationError(
+            payload.error || "ai-failed",
+            502,
+            payload.error === "no-key",
+            payload.detail,
+            payload.refunded ?? false
+          );
+        }
       }
       sep = buf.indexOf("\n\n");
     }
@@ -169,7 +186,10 @@ async function readGenerateStream(res: Response): Promise<GeneratedSite> {
 
 // Real site generation via Claude Opus 5 (/api/ai/generate). Returns full,
 // Claude-authored HTML pages. Throws on any real failure.
-export async function generateSite(project: Project): Promise<GeneratedSite> {
+export async function generateSite(
+  project: Project,
+  opts?: { onStage?: (index: number) => void }
+): Promise<GeneratedSiteResult> {
   const req: AiGenerateRequest = {
     businessName: project.businessName,
     goal: project.goal,
@@ -186,6 +206,7 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     selections: project.toolSelections,
     fort: project.fort,
     maroPrompt: project.maroPromptId ? { id: project.maroPromptId } : undefined,
+    workspaceId: project.workspaceId,
   };
 
   const token = await getAccessToken();
@@ -205,7 +226,7 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     if (!res.ok) {
       throw new GenerationError(`http-${res.status}`, res.status, false);
     }
-    return readGenerateStream(res);
+    return readGenerateStream(res, opts?.onStage);
   }
 
   if (!res.ok) {
@@ -220,6 +241,6 @@ export async function generateSite(project: Project): Promise<GeneratedSite> {
     throw new GenerationError(code, res.status, code === "no-key", j.detail, j.refunded ?? false);
   }
 
-  const data = (await res.json()) as AiGenerateHtmlResponse;
-  return pagesToSite(data.pages);
+  const data = (await res.json()) as AiGenerateHtmlResponse & { creditsSpent?: number };
+  return { ...pagesToSite(data.pages), creditsSpent: data.creditsSpent ?? 0 };
 }

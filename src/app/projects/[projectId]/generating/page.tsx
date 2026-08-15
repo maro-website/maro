@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import {
   GENERATION_STAGES,
-  runGeneration,
   generateSite,
   InsufficientCreditsError,
   GenerationError,
@@ -38,8 +37,8 @@ function GeneratingInner() {
   const [genError, setGenError] = React.useState<string | null>(null);
   const [genDetail, setGenDetail] = React.useState<string | null>(null);
   const [genRefunded, setGenRefunded] = React.useState(false);
+  const [creditsSpent, setCreditsSpent] = React.useState(0);
   const startedRef = React.useRef(false);
-  const animDoneRef = React.useRef(false);
   const aiSettledRef = React.useRef(false);
   const aiResultRef = React.useRef<GeneratedSite | null>(null);
   const finalizedRef = React.useRef(false);
@@ -63,7 +62,7 @@ function GeneratingInner() {
   }, [projectId, updateProject]);
 
   const maybeFinalize = React.useCallback(() => {
-    if (animDoneRef.current && aiSettledRef.current) finalize();
+    if (aiSettledRef.current) finalize();
   }, [finalize]);
 
   React.useEffect(() => {
@@ -75,27 +74,18 @@ function GeneratingInner() {
       return;
     }
     startedRef.current = true;
+    setActive(0);
 
-    const handle = runGeneration({
-      onStage: (i) => setActive(i),
-      onDone: () => {
-        animDoneRef.current = true;
-        maybeFinalize();
-      },
-      totalMs: 78000,
-    });
-
-    generateSite(project)
+    generateSite(project, { onStage: setActive })
       .then((r) => {
         aiResultRef.current = r;
+        setCreditsSpent(r.creditsSpent ?? 0);
       })
       .catch((err) => {
         aiResultRef.current = null;
         if (err instanceof InsufficientCreditsError) {
-          handle.cancel();
           setCreditError(err.needed);
         } else if (err instanceof GenerationError && !err.fallbackOk) {
-          handle.cancel();
           setGenError(err.code);
           setGenDetail(err.detail ?? null);
           setGenRefunded(err.refunded);
@@ -105,10 +95,7 @@ function GeneratingInner() {
         aiSettledRef.current = true;
         maybeFinalize();
       });
-
-    return () => handle.cancel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, project?.id]);
+  }, [ready, project, maybeFinalize]);
 
   if (ready && !project) {
     return (
@@ -169,6 +156,7 @@ function GeneratingInner() {
                           name={project.businessName}
                           color={project.theme?.primaryColor ?? "#0f1419"}
                           pages={pageCount}
+                          creditsSpent={creditsSpent}
                           onOpen={() => router.push(`/projects/${projectId}/editor`)}
                           onPreview={() => router.push(`/projects/${projectId}/preview`)}
                         />
@@ -253,12 +241,14 @@ function ResultCard({
   name,
   color,
   pages,
+  creditsSpent,
   onOpen,
   onPreview,
 }: {
   name: string;
   color: string;
   pages: number;
+  creditsSpent?: number;
   onOpen: () => void;
   onPreview: () => void;
 }) {
@@ -289,6 +279,7 @@ function ResultCard({
           <div className="text-[14.5px] font-semibold text-ink">{name}</div>
           <div className="text-[12.5px] text-ink-3">
             {pages} {pages === 1 ? "faqe" : "faqe"} · gati për editim
+            {creditsSpent ? ` · ${creditsSpent} kredite` : ""}
           </div>
         </div>
         <div className="flex items-center gap-2">

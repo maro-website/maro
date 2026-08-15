@@ -28,7 +28,7 @@ export function HubToolTile({
       whileHover={locked ? undefined : { scale: 1.04 }}
       transition={{ duration: 0.2, ease: EASE }}
       className={cn(
-        "flex h-[178px] w-[178px] flex-col items-center justify-center gap-4 rounded-maro16 border border-line bg-surface transition-shadow",
+        "flex h-[var(--hub-tile-size)] w-[var(--hub-tile-size)] flex-col items-center justify-center gap-4 rounded-maro16 border border-line bg-surface transition-shadow",
         locked ? "cursor-default opacity-70" : "hover:shadow-float motion-reduce:transform-none"
       )}
     >

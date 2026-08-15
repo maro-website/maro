@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { AudioStudio } from "@/components/app/AudioStudio";
+import { AudioWorkspace } from "@/components/modules/AudioWorkspace";
 
 export default function AudioToolPage() {
   return (
     <AppShell>
-      <AudioStudio toolId="zo" />
+      <React.Suspense fallback={null}>
+        <AudioWorkspace toolId="zo" />
+      </React.Suspense>
     </AppShell>
   );
 }

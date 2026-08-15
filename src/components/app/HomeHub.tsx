@@ -13,7 +13,7 @@ const HUB_TOOLS = [
   { id: "web", label: "maroWeb", toolId: "website", href: "/web" },
   { id: "filma", label: "maroFilma", toolId: "filma", href: "/filma", locked: true },
   { id: "audio", label: "maroAudio", toolId: "zo", href: "/audio", locked: true },
-  { id: "marketing", label: "maroMarketing", href: "/marketing", icon: Megaphone },
+  { id: "marketing", label: "maroMarketing", href: "/marketing", icon: Megaphone, locked: true },
 ] as const;
 
 /** Hub home — greeting, 5 tool tiles, marketing banner, promo cards. */
@@ -24,7 +24,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: EASE }}
-        className="flex w-full max-w-[1120px] flex-col items-center gap-8"
+        className="flex w-full max-w-[var(--layout-module-max)] flex-col items-center gap-8"
       >
         <header className="text-center">
           <h1 className="text-[clamp(32px,5vw,48px)] font-bold leading-[1.12] tracking-brand text-ink">
@@ -33,7 +33,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
           <p className="mt-4 text-[16px] text-ink-2">Krejt tools-at me ni vend, nisja maro.</p>
         </header>
 
-        <div className="flex w-full flex-wrap justify-center gap-[29px]">
+        <div className="flex w-full flex-wrap justify-center gap-[var(--hub-tile-gap)]">
           {HUB_TOOLS.map((t) => (
             <HubToolTile
               key={t.id}
@@ -48,7 +48,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
 
         <MarketingBanner />
 
-        <div className="flex w-full flex-col items-center justify-center gap-[30px] sm:flex-row sm:flex-wrap">
+        <div className="flex w-full flex-col items-center justify-center gap-[var(--hub-promo-gap)] sm:flex-row sm:flex-wrap">
           <PromoCard
             title="1000+"
             subtitle="presets te gatshme"

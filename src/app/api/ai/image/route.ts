@@ -4,11 +4,14 @@ import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
   getPromptTemplate,
+  getWorkspaceBrand,
   incrementPromptUse,
   logGeneration,
+  resolveWorkspaceId,
   supabaseServerConfigured,
   uploadGeneratedImage,
 } from "@/lib/supabase/server";
+import { buildWorkspaceBrandBrief } from "@/lib/workspaces/brand";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
@@ -96,6 +99,7 @@ export async function POST(req: Request) {
 
   let userId: string | null = null;
   let userEmail = "";
+  let workspaceId: string | null = null;
   let cost = 0;
   let entitled = !supabaseServerConfigured();
   let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
@@ -114,6 +118,7 @@ export async function POST(req: Request) {
       });
       userId = prep.userId;
       userEmail = prep.userEmail;
+      workspaceId = await resolveWorkspaceId(prep.userId, body.workspaceId);
       entitled = prep.isFort;
     } catch (e) {
       return guardErrorResponse(e);
@@ -149,6 +154,30 @@ export async function POST(req: Request) {
   const refs = (body.attachments ?? []).filter(
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
+
+  if (body.useWorkspaceBrand && userId && workspaceId) {
+    const brand = await getWorkspaceBrand(userId, workspaceId);
+    if (brand) {
+      finalPrompt = `${finalPrompt}\n\n${buildWorkspaceBrandBrief(brand)}`;
+      const logo = brand.logoUrl?.trim();
+      if (logo) {
+        if (logo.startsWith("data:image/")) {
+          if (!refs.includes(logo)) refs.push(logo);
+        } else if (logo.startsWith("http")) {
+          try {
+            const res = await fetch(logo);
+            if (res.ok) {
+              const mime = res.headers.get("content-type") || "image/png";
+              const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
+              refs.push(`data:${mime};base64,${b64}`);
+            }
+          } catch {
+            finalPrompt = `${finalPrompt}\n\nReference brand logo URL: ${logo}`;
+          }
+        }
+      }
+    }
+  }
 
   // Stream heartbeats while OpenAI generates so Cloudflare (~100s proxy timeout)
   // keeps the connection open until images are ready (maro Imazh + maro Logo).
@@ -214,6 +243,7 @@ export async function POST(req: Request) {
             output_urls: urls.filter((u) => !u.startsWith("data:")),
             selections: Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
+            workspace_id: workspaceId ?? undefined,
           });
           if (prep) {
             await completeGeneration({

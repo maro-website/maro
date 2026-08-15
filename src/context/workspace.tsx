@@ -12,6 +12,7 @@ import {
   setActiveWorkspaceId,
   updateWorkspace,
 } from "@/lib/workspaces/service";
+import { DEFAULT_WORKSPACE_NAME } from "@/lib/workspaces/types";
 
 interface WorkspaceContextValue {
   ready: boolean;
@@ -20,7 +21,7 @@ interface WorkspaceContextValue {
   setActiveWorkspace: (id: string) => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
   createWorkspace: (name: string) => Promise<Workspace>;
-  updateWorkspace: (id: string, patch: Partial<Pick<Workspace, "name" | "iconUrl">>) => Promise<Workspace | null>;
+  updateWorkspace: (id: string, patch: Partial<Pick<Workspace, "name" | "iconUrl" | "brand">>) => Promise<Workspace | null>;
   deleteWorkspace: (id: string) => Promise<boolean>;
 }
 
@@ -43,8 +44,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       fetchWorkspaces(user.id),
       fetchActiveWorkspaceId(user.id),
     ]);
-    setWorkspaces(list);
-    const resolved = active && list.some((w) => w.id === active) ? active : list[0]?.id ?? null;
+    let resolvedList = list;
+    if (!list.length) {
+      const ws = await createWorkspace(user.id, DEFAULT_WORKSPACE_NAME);
+      resolvedList = [ws];
+    }
+    setWorkspaces(resolvedList);
+    const resolved =
+      active && resolvedList.some((w) => w.id === active)
+        ? active
+        : resolvedList[0]?.id ?? null;
     setActiveId(resolved);
     if (resolved && resolved !== active) {
       await setActiveWorkspaceId(user.id, resolved);

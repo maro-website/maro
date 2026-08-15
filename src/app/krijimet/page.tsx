@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
+import { useWorkspace } from "@/context/workspace";
+import { useToast } from "@/components/ui/Toast";
+import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { getTool } from "@/lib/tools/registry";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -417,6 +420,8 @@ function RowMenu({ row }: { row: Row }) {
     deleteCreation,
     toggleFavouriteCreation,
   } = useMaro();
+  const { activeWorkspace, updateWorkspace } = useWorkspace();
+  const { toast } = useToast();
 
   if (row.kind === "project") {
     return (
@@ -431,6 +436,9 @@ function RowMenu({ row }: { row: Row }) {
       />
     );
   }
+  const logoUrl = row.creation.urls[0];
+  const canPromoteLogo = row.media === "image" && Boolean(logoUrl) && Boolean(activeWorkspace);
+
   return (
     <ItemMenu
       favourite={row.creation.favourite}
@@ -440,6 +448,25 @@ function RowMenu({ row }: { row: Row }) {
       }}
       onToggleFav={() => toggleFavouriteCreation(row.id)}
       onDelete={() => deleteCreation(row.id)}
+      extraActions={
+        canPromoteLogo
+          ? [
+              {
+                label: "Vendos si logo e workspace",
+                onClick: async () => {
+                  if (!activeWorkspace || !logoUrl) return;
+                  await updateWorkspace(activeWorkspace.id, {
+                    brand: normalizeWorkspaceBrand({
+                      ...activeWorkspace.brand,
+                      logoUrl,
+                    }),
+                  });
+                  toast("Logo u vendos si brand i workspace.");
+                },
+              },
+            ]
+          : undefined
+      }
     />
   );
 }

@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
+import { isWorkspaceBrandConfigured } from "@/lib/workspaces/brand";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { toolToFortModule, type FortValue } from "@/lib/fort/types";
 import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
@@ -161,6 +162,8 @@ export function ToolComposer({
 
   const isImage = tool.kind === "image";
   const isAudio = tool.kind === "audio";
+  const brandConfigured = isWorkspaceBrandConfigured(activeWorkspace?.brand);
+  const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(brandConfigured);
   // Temporarily down for technical reasons (distinct from "coming soon").
   const maintenance = Boolean(tool.maintenance);
   const functional = tool.functional && !maintenance;
@@ -173,6 +176,10 @@ export function ToolComposer({
   const needsAudioInput = Boolean(modeOpt?.inputAudio);
   const needsPrompt = isAudio ? !modeOpt?.noPrompt : true;
   const shownSettings = visibleSettings(tool, selections);
+
+  React.useEffect(() => {
+    setUseWorkspaceBrand(brandConfigured);
+  }, [brandConfigured, workspaceId]);
 
   React.useEffect(() => {
     // Reload when the tool changes (e.g. client-side nav between tools).
@@ -449,6 +456,7 @@ export function ToolComposer({
         prompt: needsPrompt ? text : undefined,
         audio: sentAudio,
         selections,
+        workspaceId,
       });
       spendCredits(res.creditsSpent || cost);
       const isText = typeof res.text === "string";
@@ -565,6 +573,8 @@ export function ToolComposer({
         attachments: sentAttachments,
         fort: fortPayload,
         maroPrompt: maroPromptPayload,
+        workspaceId,
+        useWorkspaceBrand: brandConfigured && useWorkspaceBrand,
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
@@ -607,7 +617,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brandConfigured, useWorkspaceBrand]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
@@ -735,15 +745,15 @@ export function ToolComposer({
         <div
           className={cn(
             "mx-auto w-full px-4 pb-6 pt-6 sm:px-5",
-            isGallery ? "max-w-[1120px] sm:pt-8" : "max-w-3xl sm:max-w-[798px] sm:pt-12"
+            isGallery ? "max-w-[var(--layout-module-max)] sm:pt-8" : "max-w-[var(--layout-composer-max)] sm:max-w-[var(--layout-composer-max)] sm:pt-12"
           )}
         >
           {headerSlot}
 
-          {maintenance ? (
+          {!headerSlot && maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
-            !functional && <ComingSoonHero tool={tool} />
+            !headerSlot && !functional && <ComingSoonHero tool={tool} />
           )}
 
           {functional && isGallery && (isImage || isAudio) && messages.length > 0 && (
@@ -799,8 +809,18 @@ export function ToolComposer({
             </div>
           )}
 
-          {(fortAvailable || promptAttach) && !loading && (
+          {(fortAvailable || promptAttach || (isImage && brandConfigured)) && !loading && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1">
+              {isImage && brandConfigured && (
+                <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2">
+                  <Switch
+                    checked={useWorkspaceBrand}
+                    onChange={setUseWorkspaceBrand}
+                    aria-label="Përdor brand-in e workspace"
+                  />
+                  Brand workspace
+                </label>
+              )}
               {fortAvailable && (
                 <FortPill
                   active={fortActive && hasFort}

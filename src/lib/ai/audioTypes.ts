@@ -10,6 +10,8 @@ export interface AiAudioRequest {
   audio?: string;
   /** Selected options per setting id (drives cost + model/voice/length). */
   selections?: Record<string, string>;
+  /** Workspace that owns this generation (frozen at insert time). */
+  workspaceId?: string;
   idempotencyKey?: string;
 }
 

@@ -13,6 +13,7 @@ import {
   getPromptTemplate,
   incrementPromptUse,
   logGeneration,
+  resolveWorkspaceId,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
@@ -100,6 +101,7 @@ export async function POST(req: Request) {
   // ---- Auth + credits (reserve before AI via job ledger) ----
   let userId: string | null = null;
   let userEmail = "";
+  let workspaceId: string | null = null;
   let cost = 0;
   let effort: string | undefined;
   let entitled = !supabaseServerConfigured();
@@ -127,6 +129,7 @@ export async function POST(req: Request) {
       });
       userId = prep.userId;
       userEmail = prep.userEmail;
+      workspaceId = await resolveWorkspaceId(prep.userId, body.workspaceId);
       entitled = prep.isFort;
     } catch (e) {
       return guardErrorResponse(e);
@@ -183,8 +186,12 @@ export async function POST(req: Request) {
       }, 15000);
 
       try {
+        send({ stage: 0 });
+        send({ stage: 1 });
         const { text } = await callClaudeText({ system, user, effort, model: claudeModel });
+        send({ stage: 4 });
         const pages = parseHtmlPages(text);
+        send({ stage: 5 });
         if (!pages.length) {
           let refunded = false;
           if (prep && cost) {
@@ -216,6 +223,7 @@ export async function POST(req: Request) {
             credits_spent: cost,
             selections: selections && Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
+            workspace_id: workspaceId ?? undefined,
           });
           if (prep) {
             await completeGeneration({

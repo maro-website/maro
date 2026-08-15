@@ -64,7 +64,7 @@ export function AppTopNav({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[14px] font-semibold tracking-brand transition-colors",
                   active
-                    ? "bg-surface text-brand shadow-[0_0_0_1px_var(--line)]"
+                    ? "bg-surface text-ink shadow-[0_0_0_1px_var(--line)]"
                     : disabled
                     ? "text-ink-3"
                     : "text-ink hover:bg-surface/80"

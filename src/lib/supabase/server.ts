@@ -4,6 +4,8 @@ import type { FortConfig } from "@/lib/fort/types";
 import type { AppSettings, PricingConfig } from "./types";
 import { DEFAULT_PRICING } from "./types";
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
+import type { WorkspaceBrand } from "@/lib/workspaces/types";
+import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import {
   refundCredits as refundCreditsLedger,
   refundCreditsAtomic,
@@ -273,6 +275,54 @@ export async function getActiveWorkspaceId(userId: string): Promise<string | nul
       .eq("id", userId)
       .maybeSingle();
     return (data?.active_workspace_id as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve workspace for a generation: validate client id or fall back to active. */
+export async function resolveWorkspaceId(
+  userId: string,
+  requested?: string | null
+): Promise<string | null> {
+  if (requested?.trim()) {
+    try {
+      const { data } = await getSupabaseAdmin()
+        .from("workspaces")
+        .select("id")
+        .eq("id", requested.trim())
+        .eq("owner_id", userId)
+        .maybeSingle();
+      if (data?.id) return data.id as string;
+    } catch {
+      /* fall through */
+    }
+  }
+  return getActiveWorkspaceId(userId);
+}
+
+export async function getWorkspaceBrand(
+  userId: string,
+  workspaceId: string
+): Promise<WorkspaceBrand | null> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("workspaces")
+      .select(
+        "brand_name, brand_logo_url, brand_primary_color, brand_secondary_color, brand_background_color, brand_text_color"
+      )
+      .eq("id", workspaceId)
+      .eq("owner_id", userId)
+      .maybeSingle();
+    if (!data) return null;
+    return normalizeWorkspaceBrand({
+      name: (data.brand_name as string | undefined) ?? undefined,
+      logoUrl: (data.brand_logo_url as string | undefined) ?? null,
+      primaryColor: (data.brand_primary_color as string | undefined) ?? undefined,
+      secondaryColor: (data.brand_secondary_color as string | undefined) ?? undefined,
+      backgroundColor: (data.brand_background_color as string | undefined) ?? undefined,
+      textColor: (data.brand_text_color as string | undefined) ?? undefined,
+    });
   } catch {
     return null;
   }

@@ -119,6 +119,22 @@
   --hub-tool: var(--maro-color-text-primary);
   --hub-tool-sub: var(--maro-gray-300);
   --hub-page-bg: var(--maro-color-bg-canvas);
+
+  /* Final UI layout (Figma) */
+  --layout-module-max: var(--maro-layout-module-max);
+  --layout-composer-max: var(--maro-layout-composer-max);
+  --layout-hero-subtitle-max: var(--maro-layout-hero-subtitle-max);
+  --carousel-card-w: var(--maro-carousel-card-width);
+  --carousel-card-h: var(--maro-carousel-card-height);
+  --carousel-gap: var(--maro-carousel-gap);
+  --hub-tile-size: var(--maro-hub-tile-size);
+  --hub-tile-gap: var(--maro-hub-tile-gap);
+  --hub-banner-max: var(--maro-hub-banner-max);
+  --hub-banner-min-h: var(--maro-hub-banner-min-height);
+  --hub-promo-w: var(--maro-hub-promo-width);
+  --hub-promo-h: var(--maro-hub-promo-height);
+  --hub-promo-gap: var(--maro-hub-promo-gap);
+  --hub-dropdown-w: var(--maro-hub-dropdown-width);
   --chat-user-bg: var(--maro-color-bg-surface);
   --chat-user-fg: var(--maro-color-text-primary);
   --chat-user-border: var(--maro-color-border-default);

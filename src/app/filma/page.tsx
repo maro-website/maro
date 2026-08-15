@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { VideoStudio } from "@/components/app/VideoStudio";
+import { FilmaWorkspace } from "@/components/modules/FilmaWorkspace";
 
 export default function FilmaToolPage() {
   return (
     <AppShell>
-      <VideoStudio toolId="filma" />
+      <React.Suspense fallback={null}>
+        <FilmaWorkspace toolId="filma" />
+      </React.Suspense>
     </AppShell>
   );
 }

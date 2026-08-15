@@ -24,7 +24,7 @@ export function InspirationCarousel({ items }: { items: InspirationItem[] }) {
     >
       <div
         className={cn(
-          "flex w-max gap-[25px] px-4 motion-reduce:animate-none",
+          "flex w-max gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none",
           !paused && "animate-hub-carousel"
         )}
       >
@@ -33,7 +33,7 @@ export function InspirationCarousel({ items }: { items: InspirationItem[] }) {
             key={`${item.id}-${i}`}
             draggable
             onDragStart={(e) => onDragStart(e, item.imageUrl)}
-            className="group relative h-[314px] w-[231px] shrink-0 cursor-grab overflow-hidden rounded-maro16 border border-line bg-surface active:cursor-grabbing"
+            className="group relative h-[var(--carousel-card-h)] w-[var(--carousel-card-w)] shrink-0 cursor-grab overflow-hidden rounded-maro16 border border-line bg-surface active:cursor-grabbing"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

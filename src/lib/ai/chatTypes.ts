@@ -14,6 +14,8 @@ export interface AiChatRequest {
   toolId?: string;
   /** Conversation so far (server caps the history to keep tokens low). */
   messages: ChatMsg[];
+  /** Workspace that owns this chat generation (frozen at insert time). */
+  workspaceId?: string;
   idempotencyKey?: string;
 }
 
