@@ -38,7 +38,12 @@ export default function MarketingStudioPage() {
   const applyTemplate = (item: PromptItem) => {
     sessionStorage.setItem(
       PROMPT_ATTACH_KEY,
-      JSON.stringify({ id: item.id, code: item.code, targetTool: "reklama" })
+      JSON.stringify({
+        id: item.id,
+        code: item.code,
+        targetTool: "reklama",
+        thumbnailUrl: item.featured_url,
+      })
     );
     router.push("/imazh");
   };

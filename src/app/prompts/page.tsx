@@ -206,7 +206,12 @@ export default function PromptsPage() {
             try {
               sessionStorage.setItem(
                 PROMPT_ATTACH_KEY,
-                JSON.stringify({ id: active.id, code: active.code, targetTool: active.target_tool })
+                JSON.stringify({
+                  id: active.id,
+                  code: active.code,
+                  targetTool: active.target_tool,
+                  thumbnailUrl: active.featured_url,
+                })
               );
             } catch {
               /* ignore */
