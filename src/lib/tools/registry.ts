@@ -177,12 +177,12 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "logo",
-    name: "maro Logo",
+    name: "maro Brand",
     tagline: "Logo & ikona me AI",
     description: "Gjenero logo dhe simbole marke unike nga një përshkrim.",
     icon: Sparkles,
     kind: "image",
-    route: "/logo",
+    route: "/brand",
     functional: true,
     baseCost: 0,
     defaultPrompt:
@@ -334,13 +334,13 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "zo",
-    name: "maro Zo",
+    name: "maro Audio",
     tagline: "Zë, muzikë & efekte me AI",
     description:
       "Kthe tekstin në zë natyral, gjenero muzikë e efekte zanore, ose transkripto dhe pastro audio, me AI (ElevenLabs).",
     icon: AudioLines,
     kind: "audio",
-    route: "/zo",
+    route: "/audio",
     functional: false,
     comingSoon: true,
     baseCost: 0,

@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils/cn";
 
 const WORKSPACE_ROUTES = new Set([
   "/imazh",
-  "/logo",
+  "/brand",
   "/web",
   "/filma",
-  "/zo",
+  "/audio",
   "/marketing",
 ]);
 

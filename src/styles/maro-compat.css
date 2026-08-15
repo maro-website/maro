@@ -136,3 +136,40 @@
   --maro-z-dialog: 40;
   --maro-z-toast: 50;
 }
+
+/*
+ * Final UI exceptions (Figma g1IVQZrFllhytyBsbVa09G — nodes 67:328, 69:801):
+ * gradient fort/preset pills and CTA buttons only.
+ */
+.fort-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--maro-gradient-fort);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+.preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--maro-gradient-preset);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+.cta-gradient {
+  background: var(--maro-gradient-cta);
+  color: #fff;
+}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { MaroProvider } from "@/context/store";
+import { WorkspaceProvider } from "@/context/workspace";
 import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CookieBanner } from "@/components/legal/CookieBanner";
@@ -38,10 +39,12 @@ export default function RootLayout({
       <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
         <ThemeProvider>
           <MaroProvider>
-            <ToastProvider>
-              {children}
-              <CookieBanner />
-            </ToastProvider>
+            <WorkspaceProvider>
+              <ToastProvider>
+                {children}
+                <CookieBanner />
+              </ToastProvider>
+            </WorkspaceProvider>
           </MaroProvider>
         </ThemeProvider>
       </body>

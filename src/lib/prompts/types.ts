@@ -31,7 +31,7 @@ export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 // Tools a curated prompt can target (single tool per prompt). Mirrors the
 // functional generation tools; audio/video are excluded.
 export const PROMPT_TARGET_TOOLS: { id: string; label: string }[] = [
-  { id: "logo", label: "maro Logo" },
+  { id: "logo", label: "maro Brand" },
   { id: "reklama", label: "maro Imazh" },
   { id: "website", label: "maro Web" },
 ];
@@ -79,4 +79,5 @@ export interface PromptAttach {
   id: string;
   code: string;
   targetTool: string;
+  thumbnailUrl?: string | null;
 }

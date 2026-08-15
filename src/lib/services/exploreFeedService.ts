@@ -70,7 +70,7 @@ export async function remixCreation(item: ExploreItemExtended): Promise<void> {
   );
   const route =
     item.tool_id === "logo"
-      ? "/logo"
+      ? "/brand"
       : item.tool_id === "website"
       ? "/web"
       : "/imazh";

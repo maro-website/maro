@@ -435,6 +435,19 @@ body {
   transform: translateY(0);
 }
 
+@keyframes hub-carousel-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-hub-carousel {
+  animation: hub-carousel-scroll 40s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -4,8 +4,15 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Logo } from "@/components/ui/Logo";
-import { NAV_GROUP_LABELS, navDestinationsByGroup, isNavActive } from "@/lib/nav/destinations";
+import { MaroSymbol } from "@/components/ui/Logo";
+import { HubDropdown } from "@/components/app/HubDropdown";
+import {
+  NAV_GROUP_LABELS,
+  TOP_BAR_DESTINATIONS,
+  HUB_MENU_DESTINATIONS,
+  navDestinationsByGroup,
+  isNavActive,
+} from "@/lib/nav/destinations";
 import { cn } from "@/lib/utils/cn";
 import { X } from "lucide-react";
 import type { NavGroup } from "@/lib/nav/destinations";
@@ -35,8 +42,8 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
             className="absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,320px)] flex-col border-r border-line bg-canvas"
           >
             <div className="flex shrink-0 items-center justify-between px-5 py-4">
-              <Link href="/" onClick={onClose}>
-                <Logo showWord wordClassName="h-7 w-auto" />
+              <Link href="/" onClick={onClose} className="flex items-center gap-2">
+                <MaroSymbol className="h-8 w-8" />
               </Link>
               <button
                 type="button"
@@ -49,8 +56,64 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
 
             <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-              {GROUP_ORDER.map((group) => {
-                const items = grouped[group];
+              <div className="mb-4 px-1">
+                <HubDropdown />
+              </div>
+
+              <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Tools</p>
+              <div className="mb-5 flex flex-col gap-1">
+                {TOP_BAR_DESTINATIONS.map((dest) => {
+                  const active = isNavActive(pathname, dest);
+                  return (
+                    <Link
+                      key={dest.id}
+                      href={dest.route}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
+                        active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
+                      )}
+                    >
+                      {dest.label}
+                      {dest.comingSoon && (
+                        <span className="text-[11px] font-medium text-ink-3">së shpejti</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Hub</p>
+              <div className="mb-5 flex flex-col gap-1">
+                {HUB_MENU_DESTINATIONS.filter((d) => d.id !== "hub").map((dest) =>
+                  dest.disabled ? (
+                    <span
+                      key={dest.id}
+                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold text-ink-3"
+                    >
+                      {dest.label}
+                      {dest.badge && <span className="text-[11px]">{dest.badge}</span>}
+                    </span>
+                  ) : (
+                    <Link
+                      key={dest.id}
+                      href={dest.route}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
+                        isNavActive(pathname, dest) ? "bg-surface text-brand" : "text-ink hover:bg-surface"
+                      )}
+                    >
+                      {dest.label}
+                    </Link>
+                  )
+                )}
+              </div>
+
+              {GROUP_ORDER.filter((g) => g !== "tools" && g !== "home").map((group) => {
+                const items = grouped[group].filter(
+                  (d) => !TOP_BAR_DESTINATIONS.some((t) => t.id === d.id)
+                );
                 if (!items.length) return null;
                 return (
                   <div key={group} className="mb-5">
@@ -67,7 +130,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                             onClick={onClose}
                             className={cn(
                               "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
-                              active ? "bg-ink text-white" : "text-ink hover:bg-surface"
+                              active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                             )}
                           >
                             {dest.label}

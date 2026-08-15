@@ -66,13 +66,13 @@ export function NotificationBell() {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-10 w-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface-2 focus:outline-none"
+        className="relative grid h-[38px] w-10 place-items-center rounded-xl border border-line bg-surface text-ink transition-colors hover:bg-canvas focus:outline-none"
         aria-label="Njoftime"
         title="Njoftime"
       >
-        <MaroIcon name="notification" className="h-6 w-6 text-ink" />
+        <MaroIcon name="notification" className="h-5 w-5 text-ink" />
         {unread > 0 && (
-          <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-c-red px-1 text-[10px] font-bold leading-none text-white">
+          <span className="absolute bottom-0.5 right-0.5 grid h-[14px] min-w-[14px] place-items-center rounded-full bg-brand px-0.5 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

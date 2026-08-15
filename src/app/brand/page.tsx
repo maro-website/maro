@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { ImazhWorkspace } from "@/components/modules/ImazhWorkspace";
+import { ImageStudio } from "@/components/app/ImageStudio";
 
-export default function ImazhToolPage() {
+export default function BrandToolPage() {
   return (
     <AppShell>
       <React.Suspense fallback={null}>
-        <ImazhWorkspace toolId="reklama" />
+        <ImageStudio toolId="logo" />
       </React.Suspense>
     </AppShell>
   );

@@ -15,8 +15,8 @@ import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
-import { FortToggle } from "@/components/fort/FortToggle";
 import { FortPanel } from "@/components/fort/FortPanel";
+import { FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -37,6 +37,7 @@ import {
   toolSelectionCost,
   visibleSettings,
   MAIN_TOOLS,
+  IMAGE_TOOLS,
   type ToolDef,
   type ToolSelections,
   type ToolSetting,
@@ -44,6 +45,7 @@ import {
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
+import { MARO_IMAGE_URL_MIME } from "@/lib/modules/imazh/inspiration";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -57,7 +59,6 @@ import {
   Lock,
   AudioLines,
   Mic,
-  Lightbulb,
   Eraser,
   Wrench,
   ImagePlus,
@@ -107,9 +108,11 @@ type ChatMessage = GenerationCardMessage & { role: "generation" };
 export function ToolComposer({
   toolId,
   layout = "conversation",
+  headerSlot,
 }: {
   toolId: string;
   layout?: "conversation" | "gallery";
+  headerSlot?: React.ReactNode;
 }) {
   const tool = getTool(toolId)!;
   const router = useRouter();
@@ -317,6 +320,37 @@ export function ToolComposer({
       return next;
     });
   };
+
+  const addImageUrl = React.useCallback(
+    async (url: string) => {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        if (!blob.type.startsWith("image/")) {
+          toast("Format i pavlefshëm.");
+          return;
+        }
+        if (blob.size > 8 * 1024 * 1024) {
+          toast("Imazhi është shumë i madh (max 8MB).");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          setAttachments((a) => {
+            if (a.length >= MAX_ATTACHMENTS) {
+              toast(`Maksimumi ${MAX_ATTACHMENTS} imazhe.`);
+              return a;
+            }
+            return [...a, reader.result as string];
+          });
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        toast("S'munda ta ngarkoj imazhin.");
+      }
+    },
+    [toast]
+  );
 
   const addImageFiles = React.useCallback(
     (files: File[]) => {
@@ -617,17 +651,21 @@ export function ToolComposer({
       ? audioPlaceholder
       : `Menoje edhe shkruje cka po don, ${tool.name} ta bon.`;
 
-  // Whole-page drag & drop for image tools: dropping anywhere attaches images.
   const dndEnabled = isImage && functional;
+  const hasFileDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer?.types ?? []).includes("Files");
+  const hasUrlDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer?.types ?? []).includes(MARO_IMAGE_URL_MIME);
+
   const onDragEnter = (e: React.DragEvent) => {
     if (!dndEnabled) return;
-    if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+    if (!hasFileDrag(e) && !hasUrlDrag(e)) return;
     dragDepth.current += 1;
     setDragOver(true);
   };
   const onDragOver = (e: React.DragEvent) => {
     if (!dndEnabled) return;
-    if (Array.from(e.dataTransfer?.types ?? []).includes("Files")) e.preventDefault();
+    if (hasFileDrag(e) || hasUrlDrag(e)) e.preventDefault();
   };
   const onDragLeave = () => {
     if (!dndEnabled) return;
@@ -639,6 +677,11 @@ export function ToolComposer({
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
+    const url = e.dataTransfer?.getData(MARO_IMAGE_URL_MIME);
+    if (url) {
+      void addImageUrl(url);
+      return;
+    }
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) addImageFiles(files);
   };
@@ -688,6 +731,8 @@ export function ToolComposer({
             isGallery ? "max-w-[1120px] sm:pt-8" : "max-w-3xl sm:max-w-[798px] sm:pt-12"
           )}
         >
+          {headerSlot}
+
           {maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
@@ -747,61 +792,32 @@ export function ToolComposer({
             </div>
           )}
 
-          {fortAvailable && !loading && (
-            <div className="mb-2 flex items-center gap-2 px-1">
-              {fortActive && hasFort ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFortDirty(false);
-                      setFortModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-full border border-brand/35 bg-brand-soft px-3 py-1.5 text-[13px] font-bold text-brand transition-colors"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {fortResolved.label}
-                    <span className="text-[11px] font-semibold opacity-80">aktiv</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearFort}
-                    className="text-[12px] font-semibold text-ink-3 transition-colors hover:text-ink"
-                  >
-                    Fshije
-                  </button>
-                </>
-              ) : (
-                <FortToggle
-                  enabled={false}
+          {(fortAvailable || promptAttach) && !loading && (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1">
+              {fortAvailable && (
+                <FortPill
+                  active={fortActive && hasFort}
                   locked={!hasFort}
                   label={fortResolved.label}
                   badgeText={fortResolved.badgeText}
-                  onToggle={() => openFortModal()}
+                  onToggle={(next) => {
+                    if (next) openFortModal();
+                    else clearFort();
+                  }}
+                  onOpen={() => {
+                    setFortDirty(false);
+                    setFortModalOpen(true);
+                  }}
                   onUpgrade={() => router.push("/pricing")}
                 />
               )}
-            </div>
-          )}
-
-          {promptAttach && !loading && (
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <span
-                className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-ink/5 px-3 py-1.5 text-[13px] font-bold text-ink"
-              >
-                <Lightbulb className="h-4 w-4" />
-                maro Prompt
-                <span className="font-mono text-[11px] font-semibold opacity-80">
-                  {promptAttach.code}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setPromptAttach(null)}
-                className="text-[12px] font-semibold text-ink-3 transition-colors hover:text-ink"
-              >
-                Hiq
-              </button>
+              {promptAttach && (
+                <PresetPill
+                  code={promptAttach.code}
+                  thumbnailUrl={promptAttach.thumbnailUrl}
+                  onRemove={() => setPromptAttach(null)}
+                />
+              )}
             </div>
           )}
 
@@ -880,7 +896,11 @@ export function ToolComposer({
                 </>
               )}
 
-              <ToolSwitcher currentId={tool.id} onNavigate={(route) => router.push(route)} />
+              <ToolSwitcher
+                currentId={tool.id}
+                tools={isImage ? IMAGE_TOOLS : MAIN_TOOLS}
+                onNavigate={(route) => router.push(route)}
+              />
 
               {shownSettings.map((s) =>
                 s.toggle ? (
@@ -1113,9 +1133,11 @@ function IconBtn({
 // ---- Tool switcher pill (135px, green) — navigates between tools ----
 function ToolSwitcher({
   currentId,
+  tools,
   onNavigate,
 }: {
   currentId: string;
+  tools: ToolDef[];
   onNavigate: (route: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -1177,7 +1199,7 @@ function ToolSwitcher({
                 className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
-                {MAIN_TOOLS.map((t) => {
+                {tools.map((t) => {
                   const locked = !t.functional;
                   const active = t.id === currentId;
                   return (

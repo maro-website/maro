@@ -15,6 +15,8 @@
   --maro-red: #da2525;
   --maro-white-38: rgb(255 255 255 / 38%);
   --maro-gradient-fort: linear-gradient(90deg, #da2525 0%, #e65b5b 48%, rgb(255 255 255 / 38%) 100%);
+  --maro-gradient-preset: linear-gradient(90deg, #253fda 0%, #5b6fe8 48%, rgb(255 255 255 / 38%) 100%);
+  --maro-gradient-cta: linear-gradient(90deg, #253fda 0%, #5b6fe8 100%);
 
   /* Semantic color roles */
   --maro-color-bg-canvas: var(--maro-gray-050);

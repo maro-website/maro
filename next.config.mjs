@@ -9,6 +9,11 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
@@ -16,9 +21,11 @@ const nextConfig = {
     return [
       { source: "/credits", destination: "/pricing", permanent: true },
       { source: "/tools/website", destination: "/web", permanent: true },
-      { source: "/tools/logo", destination: "/logo", permanent: true },
+      { source: "/tools/logo", destination: "/brand", permanent: true },
       { source: "/tools/reklama", destination: "/imazh", permanent: true },
-      { source: "/tools/zo", destination: "/zo", permanent: true },
+      { source: "/tools/zo", destination: "/audio", permanent: true },
+      { source: "/logo", destination: "/brand", permanent: true },
+      { source: "/zo", destination: "/audio", permanent: true },
       { source: "/tools/filma", destination: "/filma", permanent: true },
       { source: "/tools/prompte", destination: "/prompts", permanent: true },
       { source: "/tools", destination: "/", permanent: true },
