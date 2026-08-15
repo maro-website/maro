@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMaro } from "@/context/store";
 import type { Workspace } from "@/lib/workspaces/types";
+import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import {
   createWorkspace,
   deleteWorkspace,
@@ -26,7 +27,7 @@ interface WorkspaceContextValue {
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const { user, ready: maroReady } = useMaro();
+  const { user, ready: maroReady, setWorkspaceScope } = useMaro();
   const [ready, setReady] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -53,8 +54,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!maroReady) return;
+    if (!user) {
+      setWorkspaceScope(LOCAL_WORKSPACE_SCOPE);
+      return;
+    }
     refreshWorkspaces();
-  }, [maroReady, refreshWorkspaces]);
+  }, [maroReady, refreshWorkspaces, user, setWorkspaceScope]);
+
+  useEffect(() => {
+    if (!maroReady || !user || !activeId) return;
+    setWorkspaceScope(activeId);
+  }, [maroReady, user, activeId, setWorkspaceScope]);
 
   const setActiveWorkspace = useCallback(
     async (id: string) => {

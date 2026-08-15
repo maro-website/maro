@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getSupabaseAdmin,
   getUserFromToken,
+  getActiveWorkspaceId,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
 
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
   // Try the full select (with favourite/title); fall back if the columns don't
   // exist yet (before migration 0007).
   const admin = getSupabaseAdmin();
+  const workspaceId = await getActiveWorkspaceId(user.id);
   const map = (data: Record<string, unknown>[]) =>
     data
       .filter((r) => Array.isArray(r.output_urls) && (r.output_urls as unknown[]).length > 0)
@@ -35,30 +37,35 @@ export async function GET(req: Request) {
         urls: (r.output_urls as string[]) ?? [],
         favourite: Boolean(r.favourite),
         title: (r.title as string) ?? undefined,
+        workspaceId: (r.workspace_id as string | undefined) ?? workspaceId ?? undefined,
         createdAt: (r.created_at as string) ?? new Date().toISOString(),
       }));
 
   try {
-    const { data, error } = await admin
+    let query = admin
       .from("generations")
-      .select("id, tool_id, prompt, output_urls, favourite, title, created_at")
+      .select("id, tool_id, prompt, output_urls, favourite, title, workspace_id, created_at")
       .eq("user_id", user.id)
       .eq("kind", "image")
       .order("created_at", { ascending: false })
       .limit(200);
+    if (workspaceId) query = query.eq("workspace_id", workspaceId);
+    const { data, error } = await query;
     if (!error) return NextResponse.json({ items: map(data ?? []) });
   } catch {
     /* fall through */
   }
 
   try {
-    const { data } = await admin
+    let query = admin
       .from("generations")
       .select("id, tool_id, prompt, output_urls, created_at")
       .eq("user_id", user.id)
       .eq("kind", "image")
       .order("created_at", { ascending: false })
       .limit(200);
+    if (workspaceId) query = query.eq("workspace_id", workspaceId);
+    const { data } = await query;
     return NextResponse.json({ items: map(data ?? []) });
   } catch {
     return NextResponse.json({ items: [] });

@@ -12,7 +12,7 @@ import React, {
 import type { Session } from "@supabase/supabase-js";
 import type { ImageCreation, Project, User } from "@/lib/types";
 import type { Profile } from "@/lib/supabase/types";
-import { StorageKeys, readJSON, writeJSON } from "@/lib/storage/local";
+import { StorageKeys, readJSON, writeJSON, projectsKey, creationsKey, LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import {
   fetchMyCreations,
@@ -28,6 +28,7 @@ interface MaroState {
   profile: Profile | null;
   projects: Project[];
   creations: ImageCreation[];
+  activeWorkspaceScope: string | null;
 }
 
 interface MaroContextValue {
@@ -73,6 +74,9 @@ interface MaroContextValue {
   renameCreation: (id: string, title: string) => void;
   toggleFavouriteCreation: (id: string) => void;
   setCreationReaction: (id: string, reaction: "like" | "dislike" | undefined) => void;
+  /** Load/switch the active workspace slice for projects + creations. */
+  setWorkspaceScope: (workspaceId: string | null) => void;
+  activeWorkspaceScope: string | null;
 }
 
 const MaroContext = createContext<MaroContextValue | null>(null);
@@ -100,23 +104,100 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     profile: null,
     projects: [],
     creations: [],
+    activeWorkspaceScope: null,
   });
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workspaceScopeRef = useRef<string | null>(null);
+  const legacyMigratedRef = useRef(false);
 
-  // ---- projects (localStorage) ----
-  useEffect(() => {
-    const stored = readJSON<Project[]>(StorageKeys.projects, []);
-    // One-time cleanup: drop the old seeded demo projects from Phase 1 so the
-    // Beta starts empty. Real user-created projects are kept.
-    const projects = stored.filter((p) => !LEGACY_SEED_IDS.has(p.id));
-    if (projects.length !== stored.length) writeJSON(StorageKeys.projects, projects);
-    const creations = readJSON<ImageCreation[]>(StorageKeys.creations, []);
-    setState((s) => ({ ...s, projects, creations }));
+  const loadScopedData = useCallback((workspaceId: string) => {
+    let projects = readJSON<Project[]>(projectsKey(workspaceId), []);
+    let creations = readJSON<ImageCreation[]>(creationsKey(workspaceId), []);
+
+    if (!legacyMigratedRef.current) {
+      const legacyProjects = readJSON<Project[]>(StorageKeys.projects, []);
+      const legacyCreations = readJSON<ImageCreation[]>(StorageKeys.creations, []);
+      if (projects.length === 0 && legacyProjects.length > 0) {
+        projects = legacyProjects
+          .filter((p) => !LEGACY_SEED_IDS.has(p.id))
+          .map((p) => ({ ...p, workspaceId: p.workspaceId ?? workspaceId }));
+        writeJSON(projectsKey(workspaceId), projects);
+      }
+      if (creations.length === 0 && legacyCreations.length > 0) {
+        creations = legacyCreations.map((c) => ({
+          ...c,
+          workspaceId: c.workspaceId ?? workspaceId,
+        }));
+        writeJSON(creationsKey(workspaceId), creations);
+      }
+      legacyMigratedRef.current = true;
+    } else {
+      projects = projects.filter((p) => !LEGACY_SEED_IDS.has(p.id));
+    }
+
+    return { projects, creations };
   }, []);
 
+  const syncServerCreations = useCallback(
+    (scopeId: string) => {
+      void fetchMyCreations().then((server) => {
+        if (server.length === 0) return;
+        setState((s) => {
+          if (workspaceScopeRef.current !== scopeId) return s;
+          const byUrl = new Map<string, ImageCreation>();
+          for (const c of s.creations) {
+            const u = c.urls?.[0];
+            if (u) byUrl.set(u, c);
+          }
+          const merged = s.creations.map((c) => {
+            const u = c.urls?.[0];
+            const srv = u ? server.find((x) => x.urls?.[0] === u) : undefined;
+            return srv ? { ...c, favourite: srv.favourite, title: srv.title ?? c.title } : c;
+          });
+          const additions = server
+            .filter((srv) => {
+              const u = srv.urls?.[0];
+              return u && !byUrl.has(u);
+            })
+            .map((srv) => ({ ...srv, workspaceId: srv.workspaceId ?? scopeId }));
+          const next = [...additions, ...merged].sort((a, b) =>
+            (b.createdAt || "").localeCompare(a.createdAt || "")
+          );
+          writeJSON(creationsKey(scopeId), next);
+          return { ...s, creations: next };
+        });
+      });
+    },
+    []
+  );
+
+  const setWorkspaceScope = useCallback(
+    (workspaceId: string | null) => {
+      const nextScope = workspaceId ?? LOCAL_WORKSPACE_SCOPE;
+      const prevScope = workspaceScopeRef.current;
+      if (prevScope === nextScope) return;
+
+      setState((s) => {
+        if (prevScope) {
+          writeJSON(projectsKey(prevScope), s.projects);
+          writeJSON(creationsKey(prevScope), s.creations);
+        }
+        workspaceScopeRef.current = nextScope;
+        const { projects, creations } = loadScopedData(nextScope);
+        return { ...s, projects, creations, activeWorkspaceScope: nextScope };
+      });
+
+      if (supabaseConfigured) syncServerCreations(nextScope);
+    },
+    [loadScopedData, syncServerCreations]
+  );
+
+  // ---- projects (workspace-scoped localStorage) ----
   const persistProjects = useCallback((projects: Project[]) => {
+    const scopeId = workspaceScopeRef.current;
+    if (!scopeId) return;
     if (persistTimer.current) clearTimeout(persistTimer.current);
-    persistTimer.current = setTimeout(() => writeJSON(StorageKeys.projects, projects), 150);
+    persistTimer.current = setTimeout(() => writeJSON(projectsKey(scopeId), projects), 150);
   }, []);
 
   const setProjects = useCallback(
@@ -331,6 +412,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
         name: `${src.name} (kopje)`,
         status: "draft",
         publishedUrl: undefined,
+        workspaceId: src.workspaceId ?? workspaceScopeRef.current ?? undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -351,47 +433,18 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [updateProject]
   );
 
-  // ---- image creations (localStorage + server sync) ----
+  // ---- image creations (workspace-scoped localStorage + server sync) ----
   const persistCreations = useCallback((creations: ImageCreation[]) => {
-    writeJSON(StorageKeys.creations, creations);
+    const scopeId = workspaceScopeRef.current;
+    if (!scopeId) return;
+    writeJSON(creationsKey(scopeId), creations);
   }, []);
 
-  // Cross-device sync: the server (generations table) is the source of truth for
-  // image creations (existence + favourite + title). On login we reconcile the
-  // local cache with the server so all devices show the same content.
   const userId = state.session?.user?.id ?? null;
   useEffect(() => {
-    if (!supabaseConfigured || !userId) return;
-    let active = true;
-    void fetchMyCreations().then((server) => {
-      if (!active || server.length === 0) return;
-      setState((s) => {
-        const byUrl = new Map<string, ImageCreation>();
-        for (const c of s.creations) {
-          const u = c.urls?.[0];
-          if (u) byUrl.set(u, c);
-        }
-        // Update existing (favourite/title) and collect new server items.
-        const merged = s.creations.map((c) => {
-          const u = c.urls?.[0];
-          const srv = u ? server.find((x) => x.urls?.[0] === u) : undefined;
-          return srv ? { ...c, favourite: srv.favourite, title: srv.title ?? c.title } : c;
-        });
-        const additions = server.filter((srv) => {
-          const u = srv.urls?.[0];
-          return u && !byUrl.has(u);
-        });
-        const next = [...additions, ...merged].sort((a, b) =>
-          (b.createdAt || "").localeCompare(a.createdAt || "")
-        );
-        persistCreations(next);
-        return { ...s, creations: next };
-      });
-    });
-    return () => {
-      active = false;
-    };
-  }, [userId, persistCreations]);
+    if (!supabaseConfigured || !userId || !workspaceScopeRef.current) return;
+    syncServerCreations(workspaceScopeRef.current);
+  }, [userId, syncServerCreations]);
 
   const addCreation = useCallback(
     (c: ImageCreation) => {
@@ -499,6 +552,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       renameCreation,
       toggleFavouriteCreation,
       setCreationReaction,
+      setWorkspaceScope,
+      activeWorkspaceScope: state.activeWorkspaceScope,
     }),
     [
       state.ready,
@@ -507,6 +562,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       user,
       state.projects,
       state.creations,
+      state.activeWorkspaceScope,
       signIn,
       signUp,
       signOut,
@@ -527,6 +583,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       renameCreation,
       toggleFavouriteCreation,
       setCreationReaction,
+      setWorkspaceScope,
     ]
   );
 

@@ -19,6 +19,8 @@ import { FortPanel } from "@/components/fort/FortPanel";
 import { FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
+import { useWorkspace } from "@/context/workspace";
+import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { toolToFortModule, type FortValue } from "@/lib/fort/types";
 import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
@@ -120,7 +122,9 @@ export function ToolComposer({
   const openId = searchParams.get("open");
   const isReadOnlyView = Boolean(openId);
   const { toast } = useToast();
-  const { user, credits, hasFort, creations, addProject, addCreation, spendCredits } = useMaro();
+  const { user, credits, hasFort, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
+  const { activeWorkspace } = useWorkspace();
+  const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
   const { pricing, fortConfig, toolOptionIcons } = useSettings(Boolean(user));
 
   const fortModule = toolToFortModule(tool.id);
@@ -450,6 +454,7 @@ export function ToolComposer({
       const isText = typeof res.text === "string";
       const creation: ImageCreation = {
         id: uid("aud"),
+        workspaceId,
         toolId: tool.id,
         prompt: userText,
         urls: res.audioUrl ? [res.audioUrl] : [],
@@ -490,7 +495,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast]);
+  }, [prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast, workspaceId]);
 
   const doGenerate = React.useCallback(async () => {
     if (tool.kind === "audio") {
@@ -516,6 +521,7 @@ export function ToolComposer({
         selections,
         fort: fortPayload,
         maroPromptId: promptAttach?.id,
+        workspaceId,
       });
       addProject(project);
       router.push(`/projects/${project.id}/generating`);
@@ -563,6 +569,7 @@ export function ToolComposer({
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: uid("img"),
+        workspaceId,
         toolId: tool.id,
         prompt: text,
         urls: res.images,
@@ -600,7 +607,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio

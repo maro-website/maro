@@ -265,6 +265,19 @@ export async function incrementPromptUse(id: string): Promise<void> {
   }
 }
 
+export async function getActiveWorkspaceId(userId: string): Promise<string | null> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("profiles")
+      .select("active_workspace_id")
+      .eq("id", userId)
+      .maybeSingle();
+    return (data?.active_workspace_id as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function logGeneration(entry: {
   user_id: string;
   user_email: string;
@@ -279,16 +292,20 @@ export async function logGeneration(entry: {
   output_urls?: string[];
   selections?: Record<string, unknown>;
   fort?: Record<string, unknown>;
+  workspace_id?: string;
 }): Promise<void> {
   try {
-    await getSupabaseAdmin().from("generations").insert(entry);
+    const workspace_id =
+      entry.workspace_id ?? (await getActiveWorkspaceId(entry.user_id)) ?? undefined;
+    await getSupabaseAdmin().from("generations").insert({ ...entry, workspace_id });
   } catch {
-    // Retry without the newer columns (selections/fort) in case the 0009
+    // Retry without the newer columns (selections/fort/workspace) in case a
     // migration has not been applied yet — logging is best-effort.
     try {
-      const { selections: _s, fort: _f, ...rest } = entry;
+      const { selections: _s, fort: _f, workspace_id: _w, ...rest } = entry;
       void _s;
       void _f;
+      void _w;
       await getSupabaseAdmin().from("generations").insert(rest);
     } catch {
       /* give up */

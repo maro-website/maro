@@ -5,12 +5,25 @@ const NS = "maro:v1";
 
 export const StorageKeys = {
   session: `${NS}:session`,
+  /** @deprecated Use projectsKey(workspaceId) — kept for one-time migration. */
   projects: `${NS}:projects`,
+  /** @deprecated Use creationsKey(workspaceId) — kept for one-time migration. */
   creations: `${NS}:creations`,
   seeded: `${NS}:seeded`,
   toolSelections: `${NS}:tool-selections`,
   fortValues: `${NS}:fort-values`,
 } as const;
+
+/** Anonymous / pre-workspace fallback scope. */
+export const LOCAL_WORKSPACE_SCOPE = "local";
+
+export function projectsKey(workspaceId: string): string {
+  return `${NS}:projects:${workspaceId}`;
+}
+
+export function creationsKey(workspaceId: string): string {
+  return `${NS}:creations:${workspaceId}`;
+}
 
 export function readJSON<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;

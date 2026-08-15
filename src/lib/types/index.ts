@@ -48,6 +48,8 @@ export interface User {
 // (transcription) the result lives in `text`.
 export interface ImageCreation {
   id: string;
+  /** Active workspace when the creation was saved locally. */
+  workspaceId?: string;
   toolId: string;
   title?: string;
   prompt: string;
@@ -200,6 +202,8 @@ export interface CreditTransaction {
 
 export interface Project {
   id: string;
+  /** Active workspace when the project was created. */
+  workspaceId?: string;
   name: string;
   favourite?: boolean;
   businessName: string;

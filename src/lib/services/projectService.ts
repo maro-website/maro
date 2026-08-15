@@ -31,6 +31,7 @@ export function createProjectFromComposer(input: {
   selections?: Record<string, string>;
   fort?: FortPayload;
   maroPromptId?: string;
+  workspaceId?: string;
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -49,6 +50,7 @@ export function createProjectFromComposer(input: {
   p.toolSelections = input.selections;
   if (input.fort?.enabled) p.fort = input.fort;
   if (input.maroPromptId) p.maroPromptId = input.maroPromptId;
+  if (input.workspaceId) p.workspaceId = input.workspaceId;
   return p;
 }
 
