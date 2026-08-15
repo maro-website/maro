@@ -21,7 +21,11 @@ import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
-import { isWorkspaceBrandConfigured } from "@/lib/workspaces/brand";
+import { isBrainConfigured } from "@/lib/workspaces/brainProfile";
+import {
+  fetchBrainProfile,
+  fetchWorkspaceSources,
+} from "@/lib/workspaces/brainService";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { toolToFortModule, type FortValue } from "@/lib/fort/types";
 import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
@@ -162,8 +166,8 @@ export function ToolComposer({
 
   const isImage = tool.kind === "image";
   const isAudio = tool.kind === "audio";
-  const brandConfigured = isWorkspaceBrandConfigured(activeWorkspace?.brand);
-  const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(brandConfigured);
+  const [brainReady, setBrainReady] = React.useState(false);
+  const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(false);
   // Temporarily down for technical reasons (distinct from "coming soon").
   const maintenance = Boolean(tool.maintenance);
   const functional = tool.functional && !maintenance;
@@ -178,8 +182,25 @@ export function ToolComposer({
   const shownSettings = visibleSettings(tool, selections);
 
   React.useEffect(() => {
-    setUseWorkspaceBrand(brandConfigured);
-  }, [brandConfigured, workspaceId]);
+    if (!user || !workspaceId) {
+      setBrainReady(false);
+      setUseWorkspaceBrand(false);
+      return;
+    }
+    let alive = true;
+    void Promise.all([
+      fetchBrainProfile(user.id, workspaceId),
+      fetchWorkspaceSources(user.id, workspaceId),
+    ]).then(([profile, sources]) => {
+      if (!alive) return;
+      const ready = isBrainConfigured(profile, sources.length);
+      setBrainReady(ready);
+      setUseWorkspaceBrand(ready);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user, workspaceId]);
 
   React.useEffect(() => {
     // Reload when the tool changes (e.g. client-side nav between tools).
@@ -574,7 +595,7 @@ export function ToolComposer({
         fort: fortPayload,
         maroPrompt: maroPromptPayload,
         workspaceId,
-        useWorkspaceBrand: brandConfigured && useWorkspaceBrand,
+        useWorkspaceBrand: brainReady && useWorkspaceBrand,
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
@@ -617,7 +638,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brandConfigured, useWorkspaceBrand]);
+  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
@@ -809,16 +830,16 @@ export function ToolComposer({
             </div>
           )}
 
-          {(fortAvailable || promptAttach || (isImage && brandConfigured)) && !loading && (
+          {(fortAvailable || promptAttach || (isImage && brainReady)) && !loading && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1">
-              {isImage && brandConfigured && (
+              {isImage && brainReady && (
                 <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2">
                   <Switch
                     checked={useWorkspaceBrand}
                     onChange={setUseWorkspaceBrand}
-                    aria-label="Përdor brand-in e workspace"
+                    aria-label="Përdor maroBrain"
                   />
-                  Brand workspace
+                  maroBrain
                 </label>
               )}
               {fortAvailable && (

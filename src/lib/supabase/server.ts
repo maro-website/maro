@@ -6,6 +6,8 @@ import { DEFAULT_PRICING } from "./types";
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import type { WorkspaceBrand } from "@/lib/workspaces/types";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
+import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/brainTypes";
+import { normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
 import {
   refundCredits as refundCreditsLedger,
   refundCreditsAtomic,
@@ -325,6 +327,56 @@ export async function getWorkspaceBrand(
     });
   } catch {
     return null;
+  }
+}
+
+export async function getWorkspaceBrainProfile(
+  userId: string,
+  workspaceId: string
+): Promise<WorkspaceBrainProfile | null> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("workspaces")
+      .select("brain_profile, brand_name, brand_logo_url")
+      .eq("id", workspaceId)
+      .eq("owner_id", userId)
+      .maybeSingle();
+    if (!data) return null;
+    const profile = normalizeBrainProfile(
+      (data.brain_profile as WorkspaceBrainProfile | null) ?? null
+    );
+    if (!profile.brand.name && data.brand_name) profile.brand.name = data.brand_name as string;
+    if (!profile.brand.logoUrl && data.brand_logo_url) {
+      profile.brand.logoUrl = data.brand_logo_url as string;
+    }
+    return profile;
+  } catch {
+    return null;
+  }
+}
+
+export async function getWorkspaceSources(
+  userId: string,
+  workspaceId: string
+): Promise<WorkspaceSource[]> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("workspace_sources")
+      .select("id, workspace_id, name, keywords, file_url, mime_type, created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      workspaceId: r.workspace_id as string,
+      name: r.name as string,
+      keywords: (r.keywords as string) ?? "",
+      fileUrl: r.file_url as string,
+      mimeType: (r.mime_type as string | null) ?? null,
+      createdAt: r.created_at as string,
+    }));
+  } catch {
+    return [];
   }
 }
 

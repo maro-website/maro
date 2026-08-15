@@ -5,6 +5,8 @@ import {
   getAppSettings,
   getPromptTemplate,
   getWorkspaceBrand,
+  getWorkspaceBrainProfile,
+  getWorkspaceSources,
   incrementPromptUse,
   logGeneration,
   resolveWorkspaceId,
@@ -12,6 +14,11 @@ import {
   uploadGeneratedImage,
 } from "@/lib/supabase/server";
 import { buildWorkspaceBrandBrief } from "@/lib/workspaces/brand";
+import {
+  buildBrainBrief,
+  buildMatchedSourcesBrief,
+  matchSourcesByPrompt,
+} from "@/lib/workspaces/brainProfile";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
@@ -155,27 +162,40 @@ export async function POST(req: Request) {
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
 
+  async function pushRefFromUrl(url: string) {
+    const u = url.trim();
+    if (!u) return;
+    if (u.startsWith("data:image/")) {
+      if (!refs.includes(u)) refs.push(u);
+      return;
+    }
+    if (!u.startsWith("http")) return;
+    try {
+      const res = await fetch(u);
+      if (!res.ok) return;
+      const mime = res.headers.get("content-type") || "image/png";
+      const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
+      refs.push(`data:${mime};base64,${b64}`);
+    } catch {
+      /* skip */
+    }
+  }
+
   if (body.useWorkspaceBrand && userId && workspaceId) {
+    const brain = await getWorkspaceBrainProfile(userId, workspaceId);
     const brand = await getWorkspaceBrand(userId, workspaceId);
-    if (brand) {
-      finalPrompt = `${finalPrompt}\n\n${buildWorkspaceBrandBrief(brand)}`;
-      const logo = brand.logoUrl?.trim();
-      if (logo) {
-        if (logo.startsWith("data:image/")) {
-          if (!refs.includes(logo)) refs.push(logo);
-        } else if (logo.startsWith("http")) {
-          try {
-            const res = await fetch(logo);
-            if (res.ok) {
-              const mime = res.headers.get("content-type") || "image/png";
-              const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
-              refs.push(`data:${mime};base64,${b64}`);
-            }
-          } catch {
-            finalPrompt = `${finalPrompt}\n\nReference brand logo URL: ${logo}`;
-          }
-        }
+    if (brain) {
+      finalPrompt = `${finalPrompt}\n\n${buildBrainBrief(brain)}`;
+      const sources = await getWorkspaceSources(userId, workspaceId);
+      const matched = matchSourcesByPrompt(body.prompt, sources);
+      if (matched.length) {
+        finalPrompt = `${finalPrompt}\n\n${buildMatchedSourcesBrief(matched)}`;
+        for (const s of matched) await pushRefFromUrl(s.fileUrl);
       }
+      if (brain.brand.logoUrl) await pushRefFromUrl(brain.brand.logoUrl);
+    } else if (brand) {
+      finalPrompt = `${finalPrompt}\n\n${buildWorkspaceBrandBrief(brand)}`;
+      if (brand.logoUrl) await pushRefFromUrl(brand.logoUrl);
     }
   }
 

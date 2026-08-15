@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { AssistantPanel } from "@/components/app/AssistantPanel";
+import { BrainWorkspace } from "@/components/modules/BrainWorkspace";
 
+/** maroBrain — workspace identity & Burimet (not chat). */
 export default function BrainPage() {
   return (
     <AppShell>
-      <AssistantPanel variant="page" />
+      <BrainWorkspace />
     </AppShell>
   );
 }
