@@ -110,11 +110,11 @@ export default function PromptsPage() {
             >
               <Lightbulb className="h-7 w-7" />
             </span>
-            <h1 className="mt-5 text-[clamp(28px,5vw,44px)] font-light tracking-[-0.03em] text-ink">
-              maro Prompts
+            <h1 className="mt-5 text-[clamp(28px,5vw,44px)] font-light tracking-brand text-ink">
+              maro Presets
             </h1>
             <p className="mt-3 text-[clamp(16px,2.2vw,20px)] font-medium text-ink-2">
-              Lype, kliko &amp; maro
+              Template gati — zgjidh, remix &amp; maro
             </p>
           </div>
 

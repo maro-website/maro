@@ -2,16 +2,20 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { HomeSidebar, MobileSidebar } from "@/components/app/HomeSidebar";
-import { AppTopBar } from "@/components/app/AppTopBar";
-import { WorkspaceTopBar } from "@/components/app/WorkspaceTopBar";
+import { AppTopNav } from "@/components/app/AppTopNav";
+import { NavDrawer } from "@/components/app/NavDrawer";
 import { AppFooter } from "@/components/app/AppFooter";
-import { MaroIcon } from "@/components/app/OptionIcon";
-import { MAIN_TOOLS } from "@/lib/tools/registry";
+import { STUDIO_ROUTES } from "@/lib/nav/destinations";
 import { cn } from "@/lib/utils/cn";
 
-const COLLAPSE_KEY = "maro.sidebar.collapsed";
-const TOOL_ROUTES = new Set(MAIN_TOOLS.map((t) => t.route));
+const WORKSPACE_ROUTES = new Set([
+  "/imazh",
+  "/logo",
+  "/web",
+  "/filma",
+  "/zo",
+  "/marketing",
+]);
 
 export function AppShell({
   children,
@@ -19,84 +23,40 @@ export function AppShell({
   showFooter,
 }: {
   children: React.ReactNode;
-  /** Force-hide footer (tool workspace, etc.). */
   hideFooter?: boolean;
-  /** Force-show footer at scroll end (desktop only). */
   showFooter?: boolean;
+  /** @deprecated Left rail removed; kept for API compat. */
+  hideSidebar?: boolean;
 }) {
   const pathname = usePathname();
   const [drawer, setDrawer] = React.useState(false);
-  const [collapsed, setCollapsed] = React.useState(false);
 
-  const isToolPage = TOOL_ROUTES.has(pathname);
-  const footerVisible = hideFooter !== true && (showFooter === true || isToolPage);
-
-  React.useEffect(() => {
-    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
-  }, []);
-
-  const toggleCollapse = () => {
-    setCollapsed((c) => {
-      const next = !c;
-      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      return next;
-    });
-  };
+  const isWorkspace = WORKSPACE_ROUTES.has(pathname);
+  const footerVisible =
+    hideFooter !== true && (showFooter === true || STUDIO_ROUTES.has(pathname));
 
   return (
     <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-canvas">
-      <AppTopBar onOpenDrawer={() => setDrawer(true)} />
+      <AppTopNav onOpenDrawer={() => setDrawer(true)} />
+      <NavDrawer open={drawer} onClose={() => setDrawer(false)} />
 
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 overflow-hidden",
-          collapsed ? "grid-cols-1" : "lg:grid-cols-[280px_1fr]"
-        )}
-      >
-        {!collapsed && (
-          <aside className="hidden min-h-0 w-[280px] shrink-0 overflow-hidden lg:block">
-            <HomeSidebar onCollapse={toggleCollapse} showHeader />
-          </aside>
-        )}
-
-        <MobileSidebar open={drawer} onClose={() => setDrawer(false)} />
-
-        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden">
-          {collapsed && (
-            <button
-              type="button"
-              onClick={toggleCollapse}
-              className="absolute left-5 top-5 z-40 hidden maro-icon-btn border border-line bg-surface text-ink-2 hover:text-ink lg:grid"
-              aria-label="Hap sidebar"
-              title="Hap sidebar"
-            >
-              <MaroIcon name="sidebarFlip" className="h-6 w-6 text-ink" />
-            </button>
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1",
+            isWorkspace ? "flex flex-col overflow-hidden" : "overflow-x-clip overflow-y-auto"
           )}
-
-          <div className="hidden lg:block">
-            <WorkspaceTopBar />
-          </div>
-
-          <div
-            className={cn(
-              "min-h-0 min-w-0 flex-1",
-              isToolPage
-                ? "flex flex-col overflow-hidden"
-                : "overflow-x-clip overflow-y-auto"
-            )}
-          >
-            {footerVisible ? (
-              <div className="flex min-h-full flex-col">
-                {children}
-                <AppFooter className="mt-auto hidden shrink-0 lg:flex" />
-              </div>
-            ) : (
-              children
-            )}
-          </div>
-        </main>
-      </div>
+        >
+          {footerVisible ? (
+            <div className="flex min-h-full flex-col">
+              {children}
+              <AppFooter className="mt-auto hidden shrink-0 lg:flex" />
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+      </main>
     </div>
   );
 }

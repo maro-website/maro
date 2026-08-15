@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
 import { MaroBuildingLoader, MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
+import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
 import { fallbackFormatLabel } from "@/lib/design/generationMeta";
@@ -244,6 +245,15 @@ export function GenerationCard({
             error={message.error}
             onOpen={message.creation && onOpen ? () => onOpen(message.creation!) : undefined}
           />
+          {message.status === "done" && message.creation?.urls[0] && (
+            <div className="flex flex-wrap gap-2 px-1">
+              <PublishToExploreButton
+                toolId={message.creation.toolId}
+                prompt={message.text}
+                url={message.creation.urls[0]}
+              />
+            </div>
+          )}
         </>
       )}
 

@@ -10,6 +10,7 @@ import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
 import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { GenerationCard, type GenerationCardMessage } from "@/components/app/GenerationCard";
+import { GalleryMasonry } from "@/components/app/GalleryMasonry";
 import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { PromptExpand } from "@/components/app/PromptExpand";
@@ -103,7 +104,13 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
 
 type ChatMessage = GenerationCardMessage & { role: "generation" };
 
-export function ToolComposer({ toolId }: { toolId: string }) {
+export function ToolComposer({
+  toolId,
+  layout = "conversation",
+}: {
+  toolId: string;
+  layout?: "conversation" | "gallery";
+}) {
   const tool = getTool(toolId)!;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -191,6 +198,20 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     }
     setPromptAttach(attach);
     saveLastTool(tool.id);
+
+    // Remix from Explore — pre-fill prompt
+    try {
+      const remixRaw = sessionStorage.getItem("maro:remix");
+      if (remixRaw) {
+        const remix = JSON.parse(remixRaw) as { prompt?: string; toolId?: string; remixOf?: string };
+        if (!remix.toolId || remix.toolId === tool.id) {
+          if (remix.prompt) setPrompt(remix.prompt);
+        }
+        sessionStorage.removeItem("maro:remix");
+      }
+    } catch {
+      /* ignore */
+    }
 
     // Open a specific past creation as a conversation (clicked from sidebar).
     let seeded: ChatMessage[] = [];
@@ -622,6 +643,8 @@ export function ToolComposer({ toolId }: { toolId: string }) {
     if (files.length) addImageFiles(files);
   };
 
+  const isGallery = layout === "gallery" && isImage;
+
   return (
     <div
       className="relative flex h-full max-lg:h-auto flex-col overflow-x-clip"
@@ -659,14 +682,23 @@ export function ToolComposer({ toolId }: { toolId: string }) {
           isReadOnlyView && "pb-10"
         )}
       >
-        <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:max-w-[798px] sm:px-5 sm:pt-12">
+        <div
+          className={cn(
+            "mx-auto w-full px-4 pb-6 pt-6 sm:px-5",
+            isGallery ? "max-w-[1120px] sm:pt-8" : "max-w-3xl sm:max-w-[798px] sm:pt-12"
+          )}
+        >
           {maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
             !functional && <ComingSoonHero tool={tool} />
           )}
 
-          {functional && (isImage || isAudio) && messages.length > 0 && (
+          {functional && isGallery && (isImage || isAudio) && messages.length > 0 && (
+            <GalleryMasonry messages={messages} onOpen={(c) => setLightbox(c)} />
+          )}
+
+          {functional && !isGallery && (isImage || isAudio) && messages.length > 0 && (
             <div className="mb-4 flex flex-col gap-8">
               {messages.map((m) => (
                 <GenerationCard key={m.id} message={m} onOpen={(c) => setLightbox(c)} />

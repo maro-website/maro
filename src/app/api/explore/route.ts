@@ -15,33 +15,83 @@ function bearer(req: Request): string | null {
   return h.startsWith("Bearer ") ? h.slice(7) : h;
 }
 
-// Public feed of shared image generations.
-export async function GET() {
+function slugify(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+const SELECT_FULL =
+  "id, user_id, tool_id, prompt, url, author, author_avatar, created_at, slug, like_count, remix_count, featured, remix_of";
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const sort = url.searchParams.get("sort") ?? "recent";
+  const slug = url.searchParams.get("slug");
+
   if (!supabaseServerConfigured()) return NextResponse.json({ items: [] });
+
   const admin = getSupabaseAdmin();
+  const user = await getUserFromToken(bearer(req));
+
+  if (slug) {
+    try {
+      const { data } = await admin.from("public_creations").select(SELECT_FULL).eq("slug", slug).maybeSingle();
+      return NextResponse.json({ item: data ?? null });
+    } catch {
+      const { data } = await admin
+        .from("public_creations")
+        .select("id, tool_id, prompt, url, author, author_avatar, created_at")
+        .eq("slug", slug)
+        .maybeSingle();
+      return NextResponse.json({ item: data ?? null });
+    }
+  }
+
+  let query = admin.from("public_creations").select(SELECT_FULL);
+
+  if (sort === "trending") {
+    query = query.order("like_count", { ascending: false }).order("created_at", { ascending: false });
+  } else if (sort === "featured") {
+    query = query.eq("featured", true).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
   try {
-    const { data, error } = await admin
+    const { data, error } = await query.limit(90);
+    if (error) throw error;
+
+    let likedSet = new Set<string>();
+    if (user && data?.length) {
+      try {
+        const { data: likes } = await admin
+          .from("creation_likes")
+          .select("creation_id")
+          .eq("user_id", user.id)
+          .in(
+            "creation_id",
+            data.map((d) => d.id)
+          );
+        likedSet = new Set((likes ?? []).map((l) => l.creation_id as string));
+      } catch {
+        /* likes table may not exist yet */
+      }
+    }
+
+    const items = (data ?? []).map((row) => ({
+      ...row,
+      liked: likedSet.has(row.id as string),
+    }));
+    return NextResponse.json({ items });
+  } catch {
+    const { data } = await admin
       .from("public_creations")
       .select("id, tool_id, prompt, url, author, author_avatar, created_at")
       .order("created_at", { ascending: false })
       .limit(90);
-    if (!error) return NextResponse.json({ items: data ?? [] });
-  } catch {
-    /* fall through (author_avatar column may be missing) */
-  }
-  try {
-    const { data } = await admin
-      .from("public_creations")
-      .select("id, tool_id, prompt, url, author, created_at")
-      .order("created_at", { ascending: false })
-      .limit(90);
     return NextResponse.json({ items: data ?? [] });
-  } catch {
-    return NextResponse.json({ items: [] });
   }
 }
 
-// Publish a generation to the public feed (auth required).
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
@@ -49,7 +99,14 @@ export async function POST(req: Request) {
   const user = await getUserFromToken(bearer(req));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { toolId?: string; prompt?: string; url?: string };
+  let body: {
+    toolId?: string;
+    prompt?: string;
+    url?: string;
+    selections?: Record<string, string>;
+    presetId?: string;
+    remixOf?: string;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -72,27 +129,56 @@ export async function POST(req: Request) {
     (profile?.full_name as string) ||
     (profile?.email as string | undefined)?.split("@")[0] ||
     "Anonim";
-  const authorAvatar =
-    (user.user_metadata?.avatar_url as string | undefined) || null;
+  const authorAvatar = (user.user_metadata?.avatar_url as string | undefined) || null;
 
-  const base = {
+  const row: Record<string, unknown> = {
     user_id: user.id,
     tool_id: tool.id,
     prompt: (body.prompt ?? "").slice(0, 2000),
     url: body.url,
     author,
+    slug: slugify(),
   };
 
+  if (body.selections) row.selections = body.selections;
+  if (body.presetId) row.preset_id = body.presetId;
+  if (body.remixOf) row.remix_of = body.remixOf;
+
   try {
-    // Try with author_avatar; fall back if the column doesn't exist yet.
-    const { error } = await admin
+    const { data, error } = await admin
       .from("public_creations")
-      .insert({ ...base, author_avatar: authorAvatar });
-    if (!error) return NextResponse.json({ ok: true });
-    const { error: e2 } = await admin.from("public_creations").insert(base);
-    if (e2) return NextResponse.json({ error: "insert-failed" }, { status: 500 });
-    return NextResponse.json({ ok: true });
+      .insert({ ...row, author_avatar: authorAvatar })
+      .select("slug")
+      .single();
+    if (error) throw error;
+
+    if (body.remixOf) {
+      try {
+        const { data: row } = await admin
+          .from("public_creations")
+          .select("remix_count")
+          .eq("id", body.remixOf)
+          .single();
+        await admin
+          .from("public_creations")
+          .update({ remix_count: (row?.remix_count ?? 0) + 1 })
+          .eq("id", body.remixOf);
+      } catch {
+        /* column may not exist yet */
+      }
+    }
+
+    return NextResponse.json({ ok: true, slug: data?.slug });
   } catch {
-    return NextResponse.json({ error: "insert-failed" }, { status: 500 });
+    try {
+      const { data } = await admin
+        .from("public_creations")
+        .insert(row)
+        .select("slug")
+        .single();
+      return NextResponse.json({ ok: true, slug: data?.slug ?? slugify() });
+    } catch {
+      return NextResponse.json({ error: "insert-failed" }, { status: 500 });
+    }
   }
 }

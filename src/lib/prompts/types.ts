@@ -16,6 +16,16 @@ export const PROMPT_CATEGORIES = [
   "Accessories",
 ] as const;
 
+/** Preset library groupings (marketing + general). */
+export const PRESET_CATEGORIES = [
+  { id: "all", label: "Të gjitha" },
+  { id: "product", label: "Product shot" },
+  { id: "ads", label: "Ads" },
+  { id: "posters", label: "Posters" },
+  { id: "brand", label: "Brand" },
+  ...PROMPT_CATEGORIES.map((c) => ({ id: c.toLowerCase(), label: c })),
+] as const;
+
 export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
 // Tools a curated prompt can target (single tool per prompt). Mirrors the

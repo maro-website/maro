@@ -2,14 +2,12 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { ToolComposer } from "@/components/app/ToolComposer";
+import { AudioStudio } from "@/components/app/AudioStudio";
 
 export default function ZoToolPage() {
   return (
     <AppShell>
-      <React.Suspense fallback={null}>
-        <ToolComposer toolId="zo" />
-      </React.Suspense>
+      <AudioStudio toolId="zo" />
     </AppShell>
   );
 }
