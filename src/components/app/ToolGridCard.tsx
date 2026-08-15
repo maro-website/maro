@@ -11,6 +11,9 @@ export type GridToolLike = {
   icon: LucideIcon;
 };
 
+const cardShell =
+  "relative flex aspect-square w-full min-h-[128px] flex-col rounded-maro16 border border-line p-5 text-left tracking-brand transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-maro-border-focus";
+
 export function ToolGridCard({
   tool,
   active,
@@ -25,6 +28,7 @@ export function ToolGridCard({
   const Icon = tool.icon;
   const [first, ...rest] = tool.name.split(" ");
   const restLabel = rest.join(" ");
+  const filled = active && !locked;
 
   return (
     <button
@@ -32,59 +36,47 @@ export function ToolGridCard({
       onClick={onClick}
       disabled={locked}
       className={cn(
-        "relative flex aspect-square w-full min-h-[128px] flex-col rounded-maro16 p-5 text-left tracking-brand transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-maro-border-focus",
+        "group",
+        cardShell,
         locked
-          ? "cursor-default bg-card-locked"
-          : active
-          ? "bg-card-active"
-          : "border border-line bg-card-idle bg-card-hover"
+          ? "cursor-default bg-card-locked text-card-locked-fg"
+          : filled
+          ? "bg-ink text-white"
+          : "bg-surface text-ink hover:bg-ink hover:text-white"
       )}
     >
       {locked ? (
         <span className="flex flex-1 items-start justify-center pt-1">
-          <MaroIcon name="lock" fallback={Lock} className="h-5 w-5 text-card-locked-fg" />
+          <MaroIcon name="lock" fallback={Lock} className="h-5 w-5" />
         </span>
       ) : (
         <span className="flex w-full items-start">
           {tool.id === "plan" ? (
-            <Lightbulb className={cn("h-7 w-7", active ? "text-card-active-fg" : "text-card-idle-fg")} />
+            <Lightbulb
+              className={cn(
+                "h-7 w-7",
+                filled ? "text-white" : "text-ink group-hover:text-white"
+              )}
+            />
           ) : (
             <ToolIcon
               toolId={tool.id}
               fallback={Icon}
-              className={cn("h-7 w-7", active ? "text-card-active-fg" : "text-card-idle-fg")}
+              className={cn(
+                "h-7 w-7",
+                filled ? "text-white" : "text-ink group-hover:text-white"
+              )}
             />
           )}
         </span>
       )}
 
       <span className="min-w-0 leading-[1.12]">
-        <span
-          className={cn(
-            "block truncate text-[16px] font-normal",
-            locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
-          )}
-        >
-          {first}
-        </span>
-        {restLabel && (
-          <span
-            className={cn(
-              "block truncate text-[16px] font-bold",
-              locked ? "text-card-locked-fg" : active ? "text-card-active-fg" : "text-card-idle-fg"
-            )}
-          >
-            {restLabel}
-          </span>
+        <span className="block truncate text-[16px] font-normal">{first}</span>
+        {restLabel && <span className="block truncate text-[16px] font-bold">{restLabel}</span>}
+        {locked && (
+          <span className="mt-0.5 block text-[10px] font-bold tracking-brand">se shpejti</span>
         )}
-        <span
-          className={cn(
-            "mt-0.5 block text-[10px] font-bold tracking-[-0.03em]",
-            locked ? "text-card-locked-fg" : "invisible"
-          )}
-        >
-          se shpejti
-        </span>
       </span>
     </button>
   );

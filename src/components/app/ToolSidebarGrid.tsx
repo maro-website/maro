@@ -4,9 +4,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { ToolGridCard } from "@/components/app/ToolGridCard";
 import { ACTIVE_MAIN_TOOLS, COMING_SOON_MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
-import { cn } from "@/lib/utils/cn";
 
 const LOCKED_PLAN = { id: "plan", name: "maro Plan" };
+
+const utilityBtn =
+  "group flex h-[60px] w-full items-center justify-between rounded-maro16 border border-line bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none";
 
 function SidebarLockedRow({ name }: { name: string }) {
   return (
@@ -34,7 +36,6 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col px-[26px] pb-[26px] pt-10">
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-        {/* Active product rail — 2-column square cards */}
         <div className="grid grid-cols-2 gap-[11px]">
           {ACTIVE_MAIN_TOOLS.map((tool) => {
             const active = pathname === tool.route;
@@ -50,36 +51,26 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
           })}
         </div>
 
-        {/* Coming soon — slim horizontal rows */}
         <div className="mt-[11px] flex flex-col gap-[9px]">
           {lockedTools.map((tool) => (
             <SidebarLockedRow key={tool.id} name={tool.name} />
           ))}
         </div>
 
-        {/* Utility navigation */}
         <div className="mt-[20px] flex flex-col gap-[9px]">
-          <button
-            type="button"
-            onClick={() => go("/prompts")}
-            className={cn(
-              "flex h-[60px] w-full items-center justify-between rounded-maro16 border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-brand transition-colors hover:bg-surface-2 focus:outline-none",
-              "text-sidebar-nav-prompts"
-            )}
-          >
+          <button type="button" onClick={() => go("/prompts")} className={utilityBtn}>
             <span>maro Ide</span>
-            <MaroIcon name="prompts" className="h-6 w-6 shrink-0 text-ink" />
+            <MaroIcon
+              name="prompts"
+              className="h-6 w-6 shrink-0 text-ink transition-colors group-hover:text-white"
+            />
           </button>
-          <button
-            type="button"
-            onClick={() => go("/krijimet")}
-            className={cn(
-              "flex h-[60px] w-full items-center justify-between rounded-maro16 border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-brand transition-colors hover:bg-surface-2 focus:outline-none",
-              "text-sidebar-nav-history"
-            )}
-          >
+          <button type="button" onClick={() => go("/krijimet")} className={utilityBtn}>
             <span>Cka ke maru</span>
-            <MaroIcon name="history" className="h-6 w-6 shrink-0 text-ink" />
+            <MaroIcon
+              name="history"
+              className="h-6 w-6 shrink-0 text-ink transition-colors group-hover:text-white"
+            />
           </button>
         </div>
       </div>

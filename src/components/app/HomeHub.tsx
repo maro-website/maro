@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { ToolGridCard } from "@/components/app/ToolGridCard";
 import { MAIN_TOOLS } from "@/lib/tools/registry";
-import { cn } from "@/lib/utils/cn";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -45,24 +44,24 @@ export function HomeHub({ firstName }: { firstName?: string }) {
           <button
             type="button"
             onClick={() => go("/prompts")}
-            className={cn(
-              "flex h-[60px] items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
-              "text-sidebar-nav-prompts"
-            )}
+            className="group flex h-[60px] items-center justify-between rounded-maro16 border border-line bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none"
           >
             <span>maro Ide</span>
-            <MaroIcon name="prompts" className="h-6 w-6 shrink-0 text-ink" />
+            <MaroIcon
+              name="prompts"
+              className="h-6 w-6 shrink-0 text-ink transition-colors group-hover:text-white"
+            />
           </button>
           <button
             type="button"
             onClick={() => go("/krijimet")}
-            className={cn(
-              "flex h-[60px] items-center justify-between rounded-[11px] border border-line bg-sidebar-nav px-5 text-[16px] font-bold tracking-[-0.03em] transition-colors hover:bg-surface-2 focus:outline-none",
-              "text-sidebar-nav-history"
-            )}
+            className="group flex h-[60px] items-center justify-between rounded-maro16 border border-line bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none"
           >
             <span>Cka ke maru</span>
-            <MaroIcon name="history" className="h-6 w-6 shrink-0 text-ink" />
+            <MaroIcon
+              name="history"
+              className="h-6 w-6 shrink-0 text-ink transition-colors group-hover:text-white"
+            />
           </button>
         </div>
       </motion.div>
