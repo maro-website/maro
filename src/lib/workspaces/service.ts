@@ -32,7 +32,7 @@ function defaultWorkspace(userId: string): Workspace {
 }
 
 export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { data, error } = await supabase
       .from("workspaces")
@@ -61,7 +61,7 @@ export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
 }
 
 export async function fetchActiveWorkspaceId(userId: string): Promise<string | null> {
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { data } = await supabase
       .from("profiles")
@@ -75,7 +75,7 @@ export async function fetchActiveWorkspaceId(userId: string): Promise<string | n
 
 export async function setActiveWorkspaceId(userId: string, workspaceId: string): Promise<void> {
   localStorage.setItem(`${LOCAL_ACTIVE_KEY}:${userId}`, workspaceId);
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     await supabase.from("profiles").update({ active_workspace_id: workspaceId }).eq("id", userId);
   }
@@ -95,7 +95,7 @@ export async function createWorkspace(userId: string, name: string): Promise<Wor
     createdAt: new Date().toISOString(),
   };
 
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { data, error } = await supabase
       .from("workspaces")
@@ -130,7 +130,7 @@ export async function updateWorkspace(
   workspaceId: string,
   patch: Partial<Pick<Workspace, "name" | "iconUrl">>
 ): Promise<Workspace | null> {
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { data, error } = await supabase
       .from("workspaces")
@@ -166,7 +166,7 @@ export async function deleteWorkspace(userId: string, workspaceId: string): Prom
   const items = await fetchWorkspaces(userId);
   if (items.length <= 1) return false;
 
-  if (supabaseConfigured()) {
+  if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { error } = await supabase
       .from("workspaces")

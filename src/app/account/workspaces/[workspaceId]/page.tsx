@@ -19,6 +19,7 @@ function WorkspaceSettingsInner() {
 
   const [name, setName] = React.useState(ws?.name ?? "");
   const [saving, setSaving] = React.useState(false);
+  const [uploadingIcon, setUploadingIcon] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -42,9 +43,14 @@ function WorkspaceSettingsInner() {
   };
 
   const saveIcon = async (dataUrl: string) => {
-    await updateWorkspace(workspaceId, { iconUrl: dataUrl });
-    setCropSrc(null);
-    toast("Ikona u ndryshua.");
+    setUploadingIcon(true);
+    try {
+      await updateWorkspace(workspaceId, { iconUrl: dataUrl });
+      setCropSrc(null);
+      toast("Ikona u ndryshua.");
+    } finally {
+      setUploadingIcon(false);
+    }
   };
 
   const onDelete = async () => {
@@ -144,9 +150,13 @@ function WorkspaceSettingsInner() {
         </div>
       </div>
 
-      {cropSrc && (
-        <AvatarCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={saveIcon} />
-      )}
+      <AvatarCropper
+        src={cropSrc}
+        open={cropSrc !== null}
+        saving={uploadingIcon}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={saveIcon}
+      />
     </AppShell>
   );
 }
