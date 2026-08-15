@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, Settings, Shield, Star, User as UserIcon } from "lucide-react";
+import { Bookmark, Camera, Shield, Star, User as UserIcon } from "lucide-react";
 
 function Avatar({
   user,
@@ -110,7 +110,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-menu bg-menu px-[20px] py-[20px] shadow-xl"
+            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-maro16 border border-menu bg-menu px-5 py-5 shadow-float"
           >
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
@@ -134,7 +134,6 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
-              <MenuRow icon="settings" fallback={Settings} label="Cilesimet" onClick={() => go("/account")} />
             </div>
 
             <div className="my-[16px] h-px bg-menu-divider" />
@@ -154,7 +153,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             >
               <MaroIcon name="logout" className="h-5 w-5 text-white" />
               Dil
-              <span className="text-[12px] font-normal opacity-80">(mos t&apos;ruaj qeke)</span>
+              <span className="text-[12px] font-normal opacity-80">(mos thuj qe ke)</span>
             </button>
           </motion.div>
         )}
@@ -188,7 +187,7 @@ function MenuRow({
   label,
   onClick,
 }: {
-  icon: "user" | "save" | "creator" | "admin" | "settings";
+  icon: "user" | "save" | "creator" | "admin";
   fallback: LucideIcon;
   label: string;
   onClick: () => void;

@@ -50,7 +50,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
               "text-sidebar-nav-prompts"
             )}
           >
-            <span>maro Prompts</span>
+            <span>maro Ide</span>
             <MaroIcon name="prompts" className="h-6 w-6 shrink-0 text-ink" />
           </button>
           <button

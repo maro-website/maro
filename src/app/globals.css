@@ -112,8 +112,22 @@ body {
   background-color: var(--generate-bg);
 }
 
+.bg-generate-idle {
+  background-color: var(--generate-bg-idle);
+}
+
 .text-generate-fg {
   color: var(--generate-fg);
+}
+
+.text-generate-fg-idle {
+  color: var(--generate-fg-idle);
+}
+
+.bg-meta-pill {
+  background-color: var(--meta-pill-bg);
+  border: 1px solid var(--meta-pill-border);
+  color: var(--meta-pill-fg);
 }
 
 .bg-card-idle {

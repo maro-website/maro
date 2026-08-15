@@ -773,7 +773,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
             </div>
           )}
 
-          <div className="w-full rounded-[28px] border border-line bg-prompt-dock shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <div className="w-full rounded-maro20 border border-line bg-prompt-dock">
             {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
@@ -891,10 +891,10 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-11 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-xl bg-generate px-5 text-[16px] font-bold text-generate-fg transition-all focus:outline-none",
+                    "inline-flex h-11 min-w-[72px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all focus:outline-none",
                     functional && canGenerate && !loading
-                      ? "hover:opacity-90"
-                      : "cursor-not-allowed opacity-60"
+                      ? "bg-generate text-generate-fg hover:opacity-90"
+                      : "cursor-not-allowed bg-generate-idle text-generate-fg-idle"
                   )}
                   aria-label="Gjenero"
                 >
@@ -902,7 +902,7 @@ export function ToolComposer({ toolId }: { toolId: string }) {
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
                   ) : (
                     <>
-                      <MaroIcon name="generate" className="h-5 w-5 text-white" />
+                      <MaroIcon name="generate" className={cn("h-5 w-5", functional && canGenerate ? "text-white" : "text-ink-3")} />
                       maro
                     </>
                   )}
@@ -1198,6 +1198,7 @@ function ToggleSetting({
   return (
     <div className="maro-pill shrink-0 bg-dock-btn text-white">
       <Icon className="h-5 w-5 shrink-0 text-white/70" />
+      <span className="text-[14px] font-semibold">{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}

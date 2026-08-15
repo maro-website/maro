@@ -29,7 +29,7 @@ export function MaroBuildingLoader({
   );
 }
 
-/** Tiny spinning symbol for "maro po maron" status line. */
+/** Tiny spinning symbol for "maro pe maron" status line. */
 export function MaroBuildingSpinner({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element

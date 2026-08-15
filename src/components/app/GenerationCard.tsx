@@ -49,8 +49,10 @@ function MetaPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold text-white",
-        variant === "fort" ? "bg-fort-pill" : "bg-ink"
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold",
+        variant === "fort"
+          ? "bg-fort-pill text-white"
+          : "bg-meta-pill text-ink"
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
@@ -94,7 +96,7 @@ function GenerationImageBox({
 
   return (
     <div
-      className="relative mx-auto w-full overflow-hidden rounded-2xl border border-line bg-surface"
+      className="relative mx-auto w-full overflow-hidden rounded-maro16 border border-line bg-surface"
       style={{ aspectRatio: ratio, maxWidth: maxW }}
     >
       {/* Watermark */}
@@ -213,7 +215,7 @@ export function GenerationCard({
       </div>
 
       {/* Prompt */}
-      <div className="rounded-2xl border border-line bg-surface px-5 py-4 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+      <div className="rounded-maro16 border border-line bg-surface px-5 py-4">
         {message.attachments && message.attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {message.attachments.map((src, i) => (
@@ -231,7 +233,7 @@ export function GenerationCard({
           {message.status === "thinking" && (
             <div className="flex items-center gap-2 px-1 text-[13px] font-semibold text-ink-3">
               <MaroBuildingSpinner />
-              maro po maron
+              maro pe maron
             </div>
           )}
           <GenerationImageBox
@@ -249,7 +251,7 @@ export function GenerationCard({
       {(isAudio || isText) && message.status === "thinking" && (
         <div className="flex items-center gap-2 px-1 text-[13px] font-semibold text-ink-3">
           <MaroBuildingSpinner />
-          maro po maron
+          maro pe maron
         </div>
       )}
 

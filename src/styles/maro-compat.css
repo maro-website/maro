@@ -76,8 +76,15 @@
   --dock-tool-btn: var(--maro-color-bg-selected);
   --dock-tool-fg: var(--maro-color-text-inverse);
   --dock-muted: var(--maro-gray-300);
-  --generate-bg: var(--maro-color-bg-selected);
+  --generate-bg: var(--maro-color-bg-inverse);
+  --generate-bg-idle: color-mix(in srgb, var(--maro-color-bg-canvas) 55%, var(--maro-color-bg-surface));
   --generate-fg: var(--maro-color-text-inverse);
+  --generate-fg-idle: var(--maro-gray-300);
+
+  /* Read-only metadata chips (conversation header) */
+  --meta-pill-bg: var(--maro-color-bg-surface);
+  --meta-pill-fg: var(--maro-color-text-primary);
+  --meta-pill-border: var(--maro-color-border-default);
 
   /* Menus */
   --menu-bg: var(--maro-color-bg-surface);
@@ -117,9 +124,9 @@
   --chat-user-border: var(--maro-color-border-default);
   --chat-maro-bg: var(--maro-color-bg-surface);
   --chat-maro-border: var(--maro-color-border-default);
-  --footer-bg: var(--maro-color-bg-inverse);
-  --footer-fg: var(--maro-color-text-inverse);
-  --footer-muted: var(--maro-gray-300);
+  --footer-bg: var(--maro-color-bg-canvas);
+  --footer-fg: var(--maro-color-text-primary);
+  --footer-muted: var(--maro-color-text-secondary);
 
   /* Z-index scale (§14) */
   --maro-z-base: 0;

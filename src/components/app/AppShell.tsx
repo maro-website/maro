@@ -50,11 +50,11 @@ export function AppShell({
       <div
         className={cn(
           "grid min-h-0 flex-1 overflow-hidden",
-          collapsed ? "grid-cols-1" : "lg:grid-cols-[var(--sidebar-width)_1fr]"
+          collapsed ? "grid-cols-1" : "lg:grid-cols-[280px_1fr]"
         )}
       >
         {!collapsed && (
-          <aside className="hidden min-h-0 overflow-hidden p-3 lg:block">
+          <aside className="hidden min-h-0 w-[280px] shrink-0 overflow-hidden lg:block">
             <HomeSidebar onCollapse={toggleCollapse} showHeader />
           </aside>
         )}
