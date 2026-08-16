@@ -17,6 +17,8 @@ export interface Profile {
   full_name: string;
   credits: number;
   is_admin: boolean;
+  /** Administrative RBAC role (Phase 1). Null = normal user. */
+  access_role?: "super_admin" | "administrator" | "developer" | "editor" | null;
   is_creator?: boolean;
   /** Subscription plan. "fort" unlocks maroFort mode. */
   plan?: PlanKey;

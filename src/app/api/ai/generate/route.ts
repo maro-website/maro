@@ -28,6 +28,7 @@ import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
 import { getTool, toolSelectionCost } from "@/lib/tools/registry";
 import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
+import { maybeScheduleWebShadow } from "@/lib/engine/productionShadow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -212,7 +213,7 @@ export async function POST(req: Request) {
           return;
         }
         if (userId) {
-          await logGeneration({
+          const generationId = await logGeneration({
             user_id: userId,
             user_email: userEmail,
             prompt: body.userPrompt || body.goal || "",
@@ -224,6 +225,22 @@ export async function POST(req: Request) {
             selections: selections && Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
             workspace_id: workspaceId ?? undefined,
+          });
+          void maybeScheduleWebShadow({
+            body,
+            masterPlusOptions,
+            fortBriefBlock,
+            legacySystem: system,
+            legacyUser: user,
+            model: claudeModel,
+            userId,
+            workspaceId,
+            selections: selections ?? undefined,
+            fort: body.fort,
+            estimatedCredits: cost,
+            generationId,
+            jobId: prep?.job.id,
+            providerRequestCount: 1,
           });
           if (prep) {
             await completeGeneration({

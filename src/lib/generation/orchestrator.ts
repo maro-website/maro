@@ -16,6 +16,9 @@ import {
   type GenerationJob,
 } from "@/lib/generation/jobs";
 import { assertCircuitAllows, getPlatformLimits, recordJobSpend } from "@/lib/security/circuitBreaker";
+import { assertBudgetGuards } from "@/lib/operations/budgetGuards";
+import { recordProviderCostEstimate } from "@/lib/cost/recordEstimate";
+import { recordGenerationPricingSnapshot } from "@/lib/pricing/snapshots";
 import { checkRateLimit, detectPromptInjection, logAbuseEvent } from "@/lib/security/rateLimit";
 import { bumpRiskScore } from "@/lib/security/riskScore";
 import {
@@ -112,6 +115,11 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     const circuit = await assertCircuitAllows(module);
     if (!circuit.ok) {
       throw new GenerationGuardError(503, circuit.reason);
+    }
+
+    const budget = await assertBudgetGuards({ module, toolId: module, provider: inferProviderFromModule(module) });
+    if (!budget.ok) {
+      throw new GenerationGuardError(503, budget.reason);
     }
 
     const limits = await getPlatformLimits();
@@ -276,6 +284,9 @@ export async function completeGeneration(opts: {
   inputTokens?: number;
   outputTokens?: number;
   imageCount?: number;
+  generationId?: string | null;
+  providerReportedUsd?: number | null;
+  pricingBreakdown?: Record<string, unknown>;
 }): Promise<void> {
   const costUsd = estimateProviderCostUsd({
     model: opts.model,
@@ -295,13 +306,43 @@ export async function completeGeneration(opts: {
   }
 
   await updateJob(opts.jobId, {
-    provider_cost_usd: costUsd,
+    provider_cost_usd: opts.providerReportedUsd ?? costUsd,
     ...(opts.inputTokens != null ? { input_tokens: opts.inputTokens } : {}),
     ...(opts.outputTokens != null ? { output_tokens: opts.outputTokens } : {}),
     credits_charged: opts.skipBilling ? 0 : opts.cost,
   });
 
-  await recordJobSpend(opts.userId, opts.module, costUsd, opts.skipBilling ? 0 : opts.cost);
+  await recordJobSpend(opts.userId, opts.module, opts.providerReportedUsd ?? costUsd, opts.skipBilling ? 0 : opts.cost);
+
+  await recordProviderCostEstimate({
+    generationId: opts.generationId,
+    jobId: opts.jobId,
+    toolId: opts.module,
+    modelId: opts.model,
+    provider: inferProviderFromModule(opts.module),
+    inputTokens: opts.inputTokens,
+    outputTokens: opts.outputTokens,
+    imageCount: opts.imageCount,
+    providerReportedUsd: opts.providerReportedUsd,
+    configuredFixedUsd: costUsd,
+    fallbackMaximumUsd: costUsd,
+  });
+
+  await recordGenerationPricingSnapshot({
+    generationId: opts.generationId,
+    jobId: opts.jobId,
+    userId: opts.userId,
+    module: opts.module,
+    creditsCharged: opts.skipBilling ? 0 : opts.cost,
+    model: opts.model,
+    pricingBreakdown: opts.pricingBreakdown,
+  });
+}
+
+function inferProviderFromModule(module: string): string {
+  if (module.includes("image") || module.includes("logo")) return "openai";
+  if (module.includes("audio")) return "elevenlabs";
+  return "anthropic";
 }
 
 export async function failGeneration(opts: {

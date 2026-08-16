@@ -28,6 +28,7 @@ function CheckoutPageInner() {
   const { user, ready, getAccessToken } = useMaro();
 
   const itemId = searchParams.get("item") ?? "";
+  const promoFromUrl = searchParams.get("promo")?.trim() ?? "";
   const item = getCheckoutItem(itemId);
 
   const [fullName, setFullName] = React.useState("");
@@ -40,6 +41,11 @@ function CheckoutPageInner() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [orderId, setOrderId] = React.useState<string | null>(null);
+  const [promoCode, setPromoCode] = React.useState("");
+
+  React.useEffect(() => {
+    if (promoFromUrl) setPromoCode(promoFromUrl);
+  }, [promoFromUrl]);
 
   React.useEffect(() => {
     if (!ready) return;
@@ -80,6 +86,7 @@ function CheckoutPageInner() {
       },
       body: JSON.stringify({
         itemId,
+        promoCode: promoCode.trim() || undefined,
         fullName: fullName.trim(),
         email: email.trim(),
         country: country.trim(),
@@ -94,6 +101,8 @@ function CheckoutPageInner() {
     if (!res.ok) {
       if (data.error === "topup_requires_plan") {
         setError("Top-up kërkon plan aktiv. Bli një plan fillimisht.");
+      } else if (data.error === "invalid_promo") {
+        setError("Promo kodi nuk është i vlefshëm.");
       } else {
         setError("Porosia nuk u krijua. Provo përsëri.");
       }
@@ -164,6 +173,14 @@ function CheckoutPageInner() {
           </Field>
           <Field label="NUI (opsional)">
             <Input value={nui} onChange={(e) => setNui(e.target.value)} />
+          </Field>
+
+          <Field label="Promo kod (opsional)">
+            <Input
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              placeholder="Kodi i zbritjes / kreatorit"
+            />
           </Field>
 
           {error && (

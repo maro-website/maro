@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   getSupabaseAdmin,
-  getUserFromToken,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/admin/auth";
+import { writeAuditEvent } from "@/lib/admin/audit";
 import {
   getCircuitState,
   setAiPaused,
@@ -15,27 +16,16 @@ import type { PlatformLimits } from "@/lib/security/platformLimits";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function bearer(req: Request): string | null {
-  const h = req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!h) return null;
-  return h.startsWith("Bearer ") ? h.slice(7) : h;
-}
-
-async function requireAdmin(req: Request) {
-  const user = await getUserFromToken(bearer(req));
-  if (!user) return null;
-  const admin = getSupabaseAdmin();
-  const { data: prof } = await admin.from("profiles").select("is_admin").eq("id", user.id).single();
-  if (!prof?.is_admin) return null;
-  return user;
+async function requireSecurityAdmin(req: Request) {
+  return requirePermission(req, "security.manage");
 }
 
 export async function GET(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requireSecurityAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const admin = getSupabaseAdmin();
   const circuit = await getCircuitState();
@@ -125,8 +115,8 @@ export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requireSecurityAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: {
     action?: "pause_ai" | "resume_ai" | "pause_module" | "resume_module" | "update_limits";
@@ -145,16 +135,28 @@ export async function POST(req: Request) {
   if (body.action === "pause_ai") {
     await setAiPaused(true);
     await admin.from("abuse_events").insert({
-      user_id: adminUser.id,
+      user_id: auth.admin.userId,
       event_type: "admin_pause_ai",
       severity: "critical",
       metadata: {},
+    });
+    await writeAuditEvent({
+      actorId: auth.admin.userId,
+      action: "security.pause_ai",
+      targetType: "platform",
+      requestId: auth.requestId,
     });
     return NextResponse.json({ ok: true, aiPaused: true });
   }
 
   if (body.action === "resume_ai") {
     await setAiPaused(false);
+    await writeAuditEvent({
+      actorId: auth.admin.userId,
+      action: "security.resume_ai",
+      targetType: "platform",
+      requestId: auth.requestId,
+    });
     return NextResponse.json({ ok: true, aiPaused: false });
   }
 
@@ -169,6 +171,13 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
+    await writeAuditEvent({
+      actorId: auth.admin.userId,
+      action: "security.pause_module",
+      targetType: "module",
+      targetId: body.module,
+      requestId: auth.requestId,
+    });
     return NextResponse.json({ ok: true, pausedModules: [...paused] });
   }
 
@@ -182,18 +191,34 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
+    await writeAuditEvent({
+      actorId: auth.admin.userId,
+      action: "security.resume_module",
+      targetType: "module",
+      targetId: body.module,
+      requestId: auth.requestId,
+    });
     return NextResponse.json({ ok: true, pausedModules: paused });
   }
 
   if (body.action === "update_limits" && body.limits) {
     const limits = await getPlatformLimits();
+    const next = { ...limits, ...body.limits };
     await admin
       .from("app_settings")
       .update({
-        platform_limits: { ...limits, ...body.limits },
+        platform_limits: next,
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
+    await writeAuditEvent({
+      actorId: auth.admin.userId,
+      action: "security.update_limits",
+      targetType: "platform_limits",
+      before: limits as unknown as Record<string, unknown>,
+      after: next as unknown as Record<string, unknown>,
+      requestId: auth.requestId,
+    });
     return NextResponse.json({ ok: true });
   }
 

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/payments/auth";
 import { createCreditOrder, type BillingSnapshot } from "@/lib/payments/orders";
+import { validatePromoCode } from "@/lib/payments/promo";
+import { emitProductEvent } from "@/lib/events/productEvents";
 import { getCheckoutItem } from "@/lib/credits/money";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
@@ -49,13 +51,33 @@ export async function POST(req: Request) {
     .eq("id", user.id)
     .single();
 
+  let promoCode: string | null = null;
+  const rawPromo = String(body.promoCode ?? "").trim();
+  if (rawPromo) {
+    const validated = await validatePromoCode(rawPromo);
+    if (!validated) {
+      return NextResponse.json({ error: "invalid_promo" }, { status: 400 });
+    }
+    promoCode = validated.code;
+  }
+
   const result = await createCreditOrder({
     userId: user.id,
     userEmail: (profile?.email as string) || user.email || billing.email,
     itemId,
     billing,
     maroPlan: (profile?.maro_plan as string | null) ?? null,
+    promoCode,
   });
+
+  if (result.ok && promoCode) {
+    await emitProductEvent({
+      eventName: "promo_used",
+      userId: user.id,
+      metadata: { promo_code: promoCode, order_id: result.orderId, stage: "checkout_created" },
+      dedupeKey: `promo-checkout-${result.orderId}`,
+    });
+  }
 
   if (!result.ok) {
     const status =

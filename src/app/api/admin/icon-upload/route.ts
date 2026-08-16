@@ -1,19 +1,9 @@
 import { NextResponse } from "next/server";
-import {
-  getProfileCredits,
-  getUserFromToken,
-  supabaseServerConfigured,
-  uploadAdminSvg,
-} from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/admin/auth";
+import { supabaseServerConfigured, uploadAdminSvg } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function bearer(req: Request): string | null {
-  const h = req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!h) return null;
-  return h.startsWith("Bearer ") ? h.slice(7) : h;
-}
 
 function decodeSvg(dataUrl: string): string | null {
   const b64 = dataUrl.match(/^data:image\/svg\+xml;base64,(.+)$/i);
@@ -41,13 +31,8 @@ export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  const user = await getUserFromToken(bearer(req));
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  const profile = await getProfileCredits(user.id);
-  if (!profile?.is_admin) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const auth = await requirePermission(req, "engine.manage");
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: { dataUrl?: string; key?: string; variant?: string };
   try {
@@ -62,7 +47,7 @@ export async function POST(req: Request) {
   if (!svg || !key) return NextResponse.json({ error: "bad-svg" }, { status: 400 });
   if (!svg.includes("<svg")) return NextResponse.json({ error: "bad-svg" }, { status: 400 });
 
-  const url = await uploadAdminSvg(user.id, svg, `${key}-${variant}`);
+  const url = await uploadAdminSvg(auth.admin.userId, svg, `${key}-${variant}`);
   if (!url) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
   return NextResponse.json({ url, variant });
 }

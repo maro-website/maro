@@ -21,6 +21,7 @@ import {
 } from "@/lib/services/creationsService";
 import { uid } from "@/lib/utils/format";
 import { prefetchPublicSettings } from "@/lib/settings/publicSettings";
+import { resolveAccessRole, type AccessRole } from "@/lib/admin/permissions";
 
 interface MaroState {
   ready: boolean;
@@ -37,6 +38,7 @@ interface MaroContextValue {
   profile: Profile | null;
   user: User | null;
   isAdmin: boolean;
+  accessRole: AccessRole | null;
   isCreator: boolean;
   /** True when the user's plan unlocks maroFort mode. */
   hasFort: boolean;
@@ -522,7 +524,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       session: state.session,
       profile,
       user,
-      isAdmin: Boolean(profile?.is_admin),
+      isAdmin: Boolean(profile?.is_admin) || Boolean(resolveAccessRole(profile ?? {})),
+      accessRole: resolveAccessRole(profile ?? {}),
       isCreator: Boolean(profile?.is_creator),
       hasFort:
         profile?.plan === "fort" &&

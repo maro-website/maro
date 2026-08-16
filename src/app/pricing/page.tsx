@@ -46,12 +46,15 @@ function PricingPageInner() {
     router.replace(next === "topup" ? "/pricing?tab=topup" : "/pricing", { scroll: false });
   };
 
+  const promoParam = searchParams.get("promo")?.trim() ?? "";
+
   const goCheckout = (itemId: CheckoutItemId) => {
+    const promoQs = promoParam ? `&promo=${encodeURIComponent(promoParam)}` : "";
     if (!user) {
-      router.push(`/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}`)}`);
+      router.push(`/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}${promoParam ? `&promo=${encodeURIComponent(promoParam)}` : ""}`)}`);
       return;
     }
-    router.push(`/checkout?item=${itemId}`);
+    router.push(`/checkout?item=${itemId}${promoQs}`);
   };
 
   return (

@@ -36,6 +36,7 @@ import {
 import { toolToFortModule } from "@/lib/fort/types";
 import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
+import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -251,7 +252,7 @@ export async function POST(req: Request) {
         }
 
         if (userId) {
-          await logGeneration({
+          const generationId = await logGeneration({
             user_id: userId,
             user_email: userEmail,
             prompt: body.prompt,
@@ -264,6 +265,23 @@ export async function POST(req: Request) {
             selections: Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
             workspace_id: workspaceId ?? undefined,
+          });
+          void maybeScheduleImageShadow({
+            registryToolId: tool.id,
+            finalPrompt,
+            model: IMAGE_MODEL,
+            userId,
+            workspaceId,
+            userPrompt: body.prompt,
+            selections,
+            fort: body.fort,
+            attachments: (body.attachments ?? []).map((a) => ({
+              type: typeof a === "string" ? "image" : "unknown",
+            })),
+            useBrain: Boolean(body.useWorkspaceBrand && workspaceId),
+            estimatedCredits: cost,
+            generationId,
+            jobId: prep?.job.id,
           });
           if (prep) {
             await completeGeneration({

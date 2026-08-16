@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { AppHeader } from "@/components/dashboard/AppHeader";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -62,6 +61,9 @@ import {
 import type { FortConfig, FortModuleId, FortPromptLayer } from "@/lib/fort/types";
 import { getFortModuleSchema } from "@/lib/fort/schema";
 import { resolveFortConfig } from "@/lib/fort/config";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { CommandCenterDashboard } from "@/components/admin/CommandCenterDashboard";
+import { getAccessToken } from "@/lib/supabase/client";
 
 type Tab =
   | "overview"
@@ -93,18 +95,27 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function AdminPage() {
+  return (
+    <React.Suspense fallback={<div className="grid place-items-center py-20"><Spinner className="h-6 w-6" /></div>}>
+      <AdminPageInner />
+    </React.Suspense>
+  );
+}
+
+function AdminPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { ready, user, isAdmin } = useMaro();
 
   React.useEffect(() => {
     if (!ready) return;
-    if (!user) router.replace("/sign-in");
+    if (!user) router.replace("/sign-in?next=/admin");
     else if (!isAdmin) router.replace("/");
   }, [ready, user, isAdmin, router]);
 
   if (!ready || !user || !isAdmin) {
     return (
-      <div className="grid min-h-screen place-items-center">
+      <div className="grid place-items-center py-20">
         <Spinner className="h-6 w-6" />
       </div>
     );
@@ -115,21 +126,29 @@ export default function AdminPage() {
 
 function AdminInner() {
   const router = useRouter();
-  const [tab, setTab] = React.useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab = TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : "overview";
+  const [tab, setTab] = React.useState<Tab>(initialTab);
+
+  React.useEffect(() => {
+    if (tabParam && TABS.some((t) => t.key === tabParam)) {
+      setTab(tabParam as Tab);
+    }
+  }, [tabParam]);
+
+  const selectTab = (key: Tab) => {
+    setTab(key);
+    const qs = key === "overview" ? "" : `?tab=${key}`;
+    router.replace(`/admin${qs}`, { scroll: false });
+  };
+
   return (
-    <div className="min-h-screen">
-      <AppHeader />
-      <main className="mx-auto max-w-6xl px-5 py-10">
-        <div className="flex items-center justify-between gap-3.5">
-          <div className="flex items-center gap-3.5">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink text-ink-inv">
-              <Shield className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="text-[32px] font-extrabold tracking-[-0.035em] text-ink">Admin</h1>
-              <p className="text-[14px] text-ink-2">Menaxho përdoruesit, kreditet, promptet, reklamat dhe çmimet.</p>
-            </div>
-          </div>
+    <div>
+      <AdminPageHeader
+        title="Dashboard"
+        description="Menaxho përdoruesit, kreditet, promptet, reklamat dhe çmimet."
+        actions={
           <Button
             variant="outline"
             icon={<Lightbulb className="h-4 w-4" />}
@@ -137,31 +156,31 @@ function AdminInner() {
           >
             Prompts Admin
           </Button>
+        }
+      />
+
+      {!supabaseConfigured && (
+        <div className="mb-4 rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
+          Supabase nuk është konfiguruar. Shto çelësat te .env.local për të aktivizuar panelin.
         </div>
+      )}
 
-        {!supabaseConfigured && (
-          <div className="mt-6 rounded-xl bg-surface-2 px-4 py-3 text-[13.5px] text-ink-2">
-            Supabase nuk është konfiguruar. Shto çelësat te .env.local për të aktivizuar panelin.
-          </div>
-        )}
+      <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+        <nav className="flex flex-wrap gap-1 rounded-xl bg-surface p-1 lg:sticky lg:top-24 lg:h-fit lg:flex-col">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => selectTab(t.key)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-semibold transition-colors lg:w-full ${
+                tab === t.key ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
+              }`}
+            >
+              <t.icon className="h-3.5 w-3.5" /> {t.label}
+            </button>
+          ))}
+        </nav>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[220px_1fr]">
-          {/* Vertical nav */}
-          <nav className="flex flex-wrap gap-1 rounded-2xl bg-surface p-1.5 lg:sticky lg:top-24 lg:h-fit lg:flex-col">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`inline-flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-left text-[14px] font-semibold transition-colors lg:w-full ${
-                  tab === t.key ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
-                }`}
-              >
-                <t.icon className="h-4 w-4" /> {t.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="min-w-0">
+        <div className="min-w-0">
             {tab === "overview" && <OverviewTab />}
             {tab === "users" && <UsersTab />}
             {tab === "creators" && <CreatorsTab />}
@@ -174,86 +193,15 @@ function AdminInner() {
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "orders" && <OrdersTab />}
             {tab === "log" && <LogTab />}
-          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
 
-// ---- Overview / Dashboard ----
+// ---- Overview / Command Center ----
 function OverviewTab() {
-  const [stats, setStats] = React.useState<{
-    users: number;
-    admins: number;
-    credits: number;
-    gens: number;
-    images: number;
-    websites: number;
-  } | null>(null);
-
-  React.useEffect(() => {
-    (async () => {
-      if (!supabaseConfigured) return;
-      const sb = getSupabaseBrowser();
-      const [{ data: profiles }, { data: gens }] = await Promise.all([
-        sb.from("profiles").select("credits, is_admin"),
-        sb.from("generations").select("kind").limit(5000),
-      ]);
-      const rows = (profiles as { credits: number; is_admin: boolean }[]) ?? [];
-      const g = (gens as { kind: string | null }[]) ?? [];
-      setStats({
-        users: rows.length,
-        admins: rows.filter((r) => r.is_admin).length,
-        credits: rows.reduce((a, r) => a + (r.credits ?? 0), 0),
-        gens: g.length,
-        images: g.filter((x) => x.kind === "image").length,
-        websites: g.filter((x) => x.kind !== "image").length,
-      });
-    })();
-  }, []);
-
-  if (!stats) return <Spinner className="h-6 w-6" />;
-
-  const cards = [
-    { label: "Përdorues", value: stats.users, icon: Users },
-    { label: "Adminë", value: stats.admins, icon: Shield },
-    { label: "Kredite në qarkullim", value: stats.credits, icon: Coins },
-    { label: "Gjenerime gjithsej", value: stats.gens, icon: Wand2 },
-    { label: "Imazhe", value: stats.images, icon: Megaphone },
-    { label: "Website", value: stats.websites, icon: FileText },
-  ];
-
-  return (
-    <div className="flex flex-col gap-6">
-      <a
-        href="/admin/security"
-        className="flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4 transition-colors hover:bg-surface-2"
-      >
-        <div className="flex items-center gap-3">
-          <Shield className="h-5 w-5 text-brand" />
-          <div>
-            <div className="text-[15px] font-semibold text-ink">Siguria & Kostot</div>
-            <div className="text-[13px] text-ink-3">Shpenzime, radhë, kill switch, abuzim</div>
-          </div>
-        </div>
-        <span className="text-[13px] font-semibold text-brand">Hap →</span>
-      </a>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl bg-surface p-5">
-            <div className="flex items-center gap-2 text-[13px] font-medium text-ink-3">
-              <c.icon className="h-4 w-4" /> {c.label}
-            </div>
-            <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
-              {c.value.toLocaleString()}
-            </div>
-          </div>
-        ))}
-      </div>
-      <NotificationsTestCard />
-    </div>
-  );
+  return <CommandCenterDashboard />;
 }
 
 // Dev/QA helper: drop one of each in-app notification type into your own bell so
@@ -330,6 +278,7 @@ function UsersTab() {
   const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState("");
   const [edits, setEdits] = React.useState<Record<string, string>>({});
+  const [reasons, setReasons] = React.useState<Record<string, string>>({});
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
@@ -378,23 +327,45 @@ function UsersTab() {
   const saveCredits = async (p: Profile) => {
     const raw = edits[p.id];
     const value = raw === undefined ? p.credits : parseInt(raw, 10);
+    const reason = (reasons[p.id] ?? "").trim();
     if (Number.isNaN(value) || value < 0) {
       toast("Vlerë e pavlefshme");
       return;
     }
-    setSavingId(p.id);
-    const { error } = await getSupabaseBrowser()
-      .from("profiles")
-      .update({ credits: value })
-      .eq("id", p.id);
-    setSavingId(null);
-    if (error) {
-      toast("Gabim: " + error.message);
+    if (!reason || reason.length < 3) {
+      toast("Shkruaj arsyen e ndryshimit (min. 3 karaktere)");
       return;
     }
-    toast(`Kreditet u caktuan: ${value}`);
+    setSavingId(p.id);
+    const token = await getAccessToken();
+    const res = await fetch("/api/admin/credits/adjust", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        userId: p.id,
+        mode: "set",
+        newBalance: value,
+        reason,
+        idempotencyKey: `admin-set-${p.id}-${value}-${Date.now()}`,
+      }),
+    });
+    setSavingId(null);
+    const data = (await res.json()) as { error?: string; balance?: number };
+    if (!res.ok) {
+      toast("Gabim: " + (data.error ?? "adjust_failed"));
+      return;
+    }
+    toast(`Kreditet u caktuan: ${data.balance ?? value}`);
     setEdits((e) => {
       const n = { ...e };
+      delete n[p.id];
+      return n;
+    });
+    setReasons((r) => {
+      const n = { ...r };
       delete n[p.id];
       return n;
     });
@@ -469,12 +440,18 @@ function UsersTab() {
                 </td>
                 <td className="px-4 py-3 font-bold text-ink">{p.credits}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
                       type="number"
                       value={edits[p.id] ?? String(p.credits)}
                       onChange={(e) => setEdits((x) => ({ ...x, [p.id]: e.target.value }))}
                       className="h-9 w-24"
+                    />
+                    <Input
+                      placeholder="Arsye (e detyrueshme)"
+                      value={reasons[p.id] ?? ""}
+                      onChange={(e) => setReasons((x) => ({ ...x, [p.id]: e.target.value }))}
+                      className="h-9 min-w-[160px] flex-1"
                     />
                     <div className="hidden gap-1 sm:flex">
                       {[50, 100, 500].map((n) => (
@@ -758,60 +735,43 @@ function CreatorsTab() {
   }, [load]);
 
   const reject = async (id: string) => {
-    const { error } = await getSupabaseBrowser()
-      .from("creator_applications")
-      .update({ status: "rejected" })
-      .eq("id", id);
-    if (error) return toast("Gabim: " + error.message);
+    const token = await getAccessToken();
+    const res = await fetch("/api/admin/creators", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ applicationId: id, action: "reject" }),
+    });
+    if (!res.ok) {
+      const data = (await res.json()) as { error?: string };
+      return toast("Gabim: " + (data.error ?? "reject_failed"));
+    }
     toast("U refuzua");
     void load();
   };
 
-  // Approving must actually make the person a creator + give them a promo code,
-  // otherwise "nothing happens". Do all three steps here.
   const approve = async (a: CreatorApp) => {
-    const sb = getSupabaseBrowser();
-    const { error: e1 } = await sb
-      .from("creator_applications")
-      .update({ status: "approved" })
-      .eq("id", a.id);
-    if (e1) return toast("Gabim: " + e1.message);
-
-    const { data: prof } = await sb
-      .from("profiles")
-      .select("id")
-      .ilike("email", a.email)
-      .maybeSingle();
-    if (!prof?.id) {
-      toast("U aprovua, por s'u gjet përdoruesi me këtë email. Kërko t'i regjistrohet me këtë email.");
-      void load();
+    const token = await getAccessToken();
+    const res = await fetch("/api/admin/creators", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ applicationId: a.id, action: "approve" }),
+    });
+    const data = (await res.json()) as { error?: string; profileId?: string | null; already?: boolean };
+    if (!res.ok) {
+      toast("Gabim: " + (data.error ?? "approve_failed"));
       return;
     }
-    await sb.from("profiles").update({ is_creator: true }).eq("id", prof.id);
-
-    // Auto-create a promo code if the creator doesn't have one yet.
-    const { data: existing } = await sb
-      .from("promo_codes")
-      .select("id")
-      .eq("creator_id", prof.id)
-      .maybeSingle();
-    if (!existing) {
-      const base =
-        (a.name || a.email.split("@")[0] || "kreator")
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[^a-z0-9]+/g, "")
-          .slice(0, 16) || "kreator";
-      const rnd = Math.floor(100 + Math.random() * 900);
-      await sb.from("promo_codes").insert({
-        code: `${base.toUpperCase()}-10`,
-        slug: `${base}${rnd}`,
-        discount_percent: 10,
-        creator_id: prof.id,
-        active: true,
-      });
+    if (!data.profileId && !data.already) {
+      toast("U aprovua, por s'u gjet përdoruesi me këtë email.");
+    } else {
+      toast(data.already ? "Ky kreator është tashmë i aprovuar." : "U aprovua dhe u aktivizua si Kreator");
     }
-    toast("U aprovua dhe u aktivizua si Kreator");
     void load();
   };
 
@@ -882,12 +842,24 @@ function CreatorsTab() {
                   <div className="mt-1 text-[11.5px] text-ink-3">{timeAgo(a.created_at)}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void approve(a)}>
-                    Aprovo
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => void reject(a.id)}>
-                    Refuzo
-                  </Button>
+                  {a.status === "pending" && (
+                    <>
+                      <Button size="sm" onClick={() => void approve(a)}>
+                        Aprovo
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => void reject(a.id)}>
+                        Refuzo
+                      </Button>
+                    </>
+                  )}
+                  {a.status === "approved" && (
+                    <span className="text-[12px] font-semibold text-brand">I aprovuar</span>
+                  )}
+                  {a.status === "rejected" && (
+                    <Button size="sm" variant="outline" onClick={() => void approve(a)}>
+                      Rishiko / Aprovo
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1944,17 +1916,17 @@ function AnalyticsTab() {
   React.useEffect(() => {
     (async () => {
       if (!supabaseConfigured) return setEvents([]);
-      const { data, error } = await getSupabaseBrowser()
-        .from("prompt_events")
-        .select("kind, tool_id, prompt")
-        .order("created_at", { ascending: false })
-        .limit(8000);
-      if (error) {
+      const token = await getAccessToken();
+      const res = await fetch("/api/admin/analytics/prompt-events?limit=8000", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
         setMissing(true);
         setEvents([]);
         return;
       }
-      setEvents((data as PromptEvent[]) ?? []);
+      const data = (await res.json()) as { events?: PromptEvent[] };
+      setEvents((data.events as PromptEvent[]) ?? []);
     })();
   }, []);
 

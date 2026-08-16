@@ -186,6 +186,7 @@ export async function getProfileCredits(
 ): Promise<{
   credits: number;
   is_admin: boolean;
+  access_role?: string | null;
   email: string;
   plan: string;
   generation_paused?: boolean;
@@ -195,7 +196,7 @@ export async function getProfileCredits(
   let data: Record<string, unknown> | null = null;
   const withPlan = await admin
     .from("profiles")
-    .select("credits, is_admin, email, plan, generation_paused, created_at")
+    .select("credits, is_admin, access_role, email, plan, generation_paused, created_at")
     .eq("id", userId)
     .single();
   if (!withPlan.error) {
@@ -212,6 +213,7 @@ export async function getProfileCredits(
   return {
     credits: (data.credits as number) ?? 0,
     is_admin: Boolean(data.is_admin),
+    access_role: (data.access_role as string | null | undefined) ?? null,
     email: (data.email as string) ?? "",
     plan: (data.plan as string) ?? "free",
     generation_paused: Boolean(data.generation_paused),
@@ -395,11 +397,16 @@ export async function logGeneration(entry: {
   selections?: Record<string, unknown>;
   fort?: Record<string, unknown>;
   workspace_id?: string;
-}): Promise<void> {
+}): Promise<string | null> {
   try {
     const workspace_id =
       entry.workspace_id ?? (await getActiveWorkspaceId(entry.user_id)) ?? undefined;
-    await getSupabaseAdmin().from("generations").insert({ ...entry, workspace_id });
+    const { data } = await getSupabaseAdmin()
+      .from("generations")
+      .insert({ ...entry, workspace_id })
+      .select("id")
+      .single();
+    return (data?.id as string) ?? null;
   } catch {
     // Retry without the newer columns (selections/fort/workspace) in case a
     // migration has not been applied yet — logging is best-effort.
@@ -408,9 +415,14 @@ export async function logGeneration(entry: {
       void _s;
       void _f;
       void _w;
-      await getSupabaseAdmin().from("generations").insert(rest);
+      const { data } = await getSupabaseAdmin()
+        .from("generations")
+        .insert(rest)
+        .select("id")
+        .single();
+      return (data?.id as string) ?? null;
     } catch {
-      /* give up */
+      return null;
     }
   }
 }

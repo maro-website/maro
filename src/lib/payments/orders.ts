@@ -1,6 +1,7 @@
 import "server-only";
 import { getCheckoutItem } from "@/lib/credits/money";
 import { paymentMode } from "@/lib/config/features";
+import { recordOrderPricingSnapshot } from "@/lib/pricing/snapshots";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export interface BillingSnapshot {
@@ -22,6 +23,7 @@ export interface CreditOrderRow {
   currency: string;
   status: string;
   provider: string | null;
+  promo_code?: string | null;
   item_type: string | null;
   item_id: string | null;
   billing_snapshot: BillingSnapshot | null;
@@ -36,6 +38,8 @@ export async function createCreditOrder(opts: {
   itemId: string;
   billing: BillingSnapshot;
   maroPlan?: string | null;
+  /** Validated promo code text stored for creator attribution (Phase 0). */
+  promoCode?: string | null;
 }): Promise<{ ok: boolean; orderId?: string; error?: string }> {
   const item = getCheckoutItem(opts.itemId);
   if (!item) return { ok: false, error: "invalid_item" };
@@ -54,6 +58,7 @@ export async function createCreditOrder(opts: {
       currency: "EUR",
       status: "pending",
       provider: paymentMode() === "test" ? "test" : "raiffeisen",
+      promo_code: opts.promoCode ?? null,
       item_type: item.itemType,
       item_id: item.itemId,
       billing_snapshot: opts.billing,
@@ -62,7 +67,14 @@ export async function createCreditOrder(opts: {
     .single();
 
   if (error) return { ok: false, error: error.message };
-  return { ok: true, orderId: data.id as string };
+  const orderId = data.id as string;
+  await recordOrderPricingSnapshot({
+    orderId,
+    userId: opts.userId,
+    itemId: opts.itemId,
+    promoCode: opts.promoCode,
+  });
+  return { ok: true, orderId };
 }
 
 export async function getOrderForUser(

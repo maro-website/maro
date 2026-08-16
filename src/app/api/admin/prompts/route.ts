@@ -1,27 +1,16 @@
 import { NextResponse } from "next/server";
 import {
-  getProfileCredits,
   getSupabaseAdmin,
-  getUserFromToken,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/admin/auth";
 import type { AdminPromptItem, PromptAnalytics } from "@/lib/prompts/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function bearer(req: Request): string | null {
-  const h = req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!h) return null;
-  return h.startsWith("Bearer ") ? h.slice(7) : h;
-}
-
-async function requireAdmin(req: Request): Promise<string | null> {
-  const user = await getUserFromToken(bearer(req));
-  if (!user) return null;
-  const profile = await getProfileCredits(user.id);
-  if (!profile?.is_admin) return null;
-  return user.id;
+async function requirePromptsAdmin(req: Request) {
+  return requirePermission(req, "presets.manage");
 }
 
 function genCode(): string {
@@ -76,7 +65,8 @@ function buildAnalytics(rows: AdminPromptItem[]): PromptAnalytics {
 // List all prompts (with full data) + analytics.
 export async function GET(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requirePromptsAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const admin = getSupabaseAdmin();
   const { data } = await admin
@@ -105,7 +95,8 @@ export async function GET(req: Request) {
 // Create a prompt.
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requirePromptsAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: Record<string, unknown>;
   try {
@@ -143,7 +134,8 @@ export async function POST(req: Request) {
 // Update a prompt.
 export async function PUT(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requirePromptsAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: Record<string, unknown>;
   try {
@@ -176,7 +168,8 @@ export async function PUT(req: Request) {
 // Delete a prompt.
 export async function DELETE(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  if (!(await requireAdmin(req))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requirePromptsAdmin(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: { id?: string };
   try {

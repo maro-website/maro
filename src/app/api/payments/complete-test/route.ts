@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { paymentMode } from "@/lib/config/features";
 import { requireUser } from "@/lib/payments/auth";
 import { fulfillCreditOrder } from "@/lib/payments/fulfill";
 import { getOrderForUser } from "@/lib/payments/orders";
+import { isTestPaymentAllowed, testPaymentBlockReason } from "@/lib/payments/testMode";
 
 export async function POST(req: Request) {
-  if (paymentMode() !== "test") {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!isTestPaymentAllowed()) {
+    return NextResponse.json({ error: "forbidden", reason: testPaymentBlockReason() }, { status: 403 });
   }
 
   const user = await requireUser(req);
