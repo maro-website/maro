@@ -1,0 +1,46 @@
+.marologo-page {
+  min-height: 100%;
+  background: var(--maro-color-canvas, var(--canvas));
+}
+
+.marologo-shell {
+  margin-inline: auto;
+  max-width: 640px;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+@media (min-width: 640px) {
+  .marologo-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+.marologo-card {
+  border-radius: var(--maro-radius-xl, 1rem);
+  background: var(--maro-color-surface, var(--surface));
+}
+
+.marologo-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--maro-color-ink-muted, var(--ink-3));
+  letter-spacing: -0.02em;
+}
+
+.marologo-step-title {
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: var(--maro-tracking-brand, -0.03em);
+  color: var(--maro-color-ink, var(--ink));
+  text-align: center;
+}
+
+.marologo-intro-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--maro-color-brand, var(--brand)) 0%, color-mix(in srgb, var(--maro-color-brand, var(--brand)) 40%, white) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

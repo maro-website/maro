@@ -393,6 +393,16 @@
                                   ]
                   },
                   {
+                      "name":  "maroLogo",
+                      "file":  "maroLogo.svg",
+                      "category":  "product",
+                      "source":  "supplied",
+                      "aliases":  [
+                                      "logo",
+                                      "maro-logo"
+                                  ]
+                  },
+                  {
                       "name":  "maro-filma",
                       "file":  "maro-filma.svg",
                       "category":  "product",

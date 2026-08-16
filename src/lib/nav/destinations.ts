@@ -45,6 +45,7 @@ export const TOP_BAR_DESTINATIONS: NavDestination[] = [
   { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo", comingSoon: true },
   { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea", comingSoon: true },
   { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
+  { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
 ];
 
 export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
@@ -57,7 +58,6 @@ export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
 export const NAV_DESTINATIONS: NavDestination[] = [
   { id: "home", label: "Hub", route: "/", group: "home" },
   ...TOP_BAR_DESTINATIONS,
-  { id: "brand", label: "maro Brand", route: "/brand", group: "tools", toolId: "logo", iconName: "maro-brand" },
   { id: "explore", label: "Explore", route: "/explore", group: "discover" },
   { id: "krijimet", label: "Cka ke maru", route: "/krijimet", group: "discover", iconName: "history" },
   { id: "contests", label: "Kontestet", route: "/contests", group: "community" },
@@ -69,7 +69,7 @@ export const NAV_DESTINATIONS: NavDestination[] = [
 export const STUDIO_ROUTES = new Set([
   "/",
   "/imazh",
-  "/brand",
+  "/marologo",
   "/web",
   "/filma",
   "/audio",

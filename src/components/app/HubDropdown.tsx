@@ -16,7 +16,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
   if (hub) {
     return <Home className={cn("shrink-0", className)} />;
   }
-  const known = ["history", "settings", "maro-imazh", "maro-web", "maro-brand", "idea"];
+  const known = ["history", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "idea"];
   if (known.includes(name)) {
     return <MaroIcon src={iconSrc(`${name}.svg`)} className={className} />;
   }

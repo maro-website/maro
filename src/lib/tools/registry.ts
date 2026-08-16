@@ -177,12 +177,12 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "logo",
-    name: "maro Brand",
+    name: "maroLogo",
     tagline: "Logo & ikona me AI",
-    description: "Gjenero logo dhe simbole marke unike nga një përshkrim.",
+    description: "Gjenero logo profesionale me wizard të drejtuar.",
     icon: Sparkles,
     kind: "image",
-    route: "/brand",
+    route: "/marologo",
     functional: true,
     baseCost: 0,
     defaultPrompt:

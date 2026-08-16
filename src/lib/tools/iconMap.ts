@@ -7,7 +7,7 @@ export const ICONS_BASE = MARO_ICONS.base;
 /** Tool cards in sidebar grid — keyed by registry tool id. */
 export const TOOL_ICON_FILES: Partial<Record<string, string>> = {
   reklama: "maro-imazh.svg",
-  logo: "maro-brand.svg",
+  logo: "maroLogo.svg",
   website: "maro-web.svg",
   filma: "maro-filma.svg",
   zo: "maro-zo.svg",
