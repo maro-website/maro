@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <AdminShellClient role={session.role} email={session.email}>
+    <AdminShellClient role={session.role} email={session.email} minimal={onMfaPage}>
       {children}
     </AdminShellClient>
   );

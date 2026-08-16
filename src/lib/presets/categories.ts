@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { PROMPT_CATEGORIES } from "@/lib/prompts/types";
 
 export interface PresetCategoryRow {
   id: string;
@@ -54,4 +55,23 @@ export async function upsertPresetCategory(input: {
   const { data, error } = await getSupabaseAdmin().from("preset_categories").insert(row).select("*").single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Backfill preset_categories from legacy fixed list when table is empty. */
+export async function ensurePresetCategoriesSeeded(): Promise<number> {
+  const existing = await listPresetCategories(true);
+  if (existing.length > 0) return 0;
+
+  let created = 0;
+  for (let i = 0; i < PROMPT_CATEGORIES.length; i += 1) {
+    const label = PROMPT_CATEGORIES[i];
+    await upsertPresetCategory({
+      slug: label.toLowerCase().replace(/\s+/g, "-"),
+      label,
+      sortOrder: i,
+      active: true,
+    });
+    created += 1;
+  }
+  return created;
 }

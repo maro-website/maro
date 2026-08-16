@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
-import { listPresetCategories, upsertPresetCategory } from "@/lib/presets/categories";
+import { listPresetCategories, upsertPresetCategory, ensurePresetCategoriesSeeded } from "@/lib/presets/categories";
 import { supabaseServerConfigured } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -15,7 +15,11 @@ export async function GET(req: Request) {
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const categories = await listPresetCategories(true);
-  return NextResponse.json({ categories });
+  if (categories.length === 0) {
+    await ensurePresetCategoriesSeeded();
+  }
+  const refreshed = categories.length === 0 ? await listPresetCategories(true) : categories;
+  return NextResponse.json({ categories: refreshed });
 }
 
 export async function POST(req: Request) {

@@ -46,6 +46,43 @@ export interface SeedResult {
   skipped: string[];
 }
 
+export async function getEngineSeedStatus(): Promise<{
+  seeded: boolean;
+  toolCount: number;
+  livePromptCount: number;
+  duplicateLiveTools: string[];
+  canReseedSafely: boolean;
+}> {
+  const admin = getSupabaseAdmin();
+  const { count: toolCount } = await admin
+    .from("tool_engine_config")
+    .select("*", { count: "exact", head: true });
+
+  const { data: livePrompts } = await admin
+    .from("system_prompt_versions")
+    .select("tool_id")
+    .eq("status", "live");
+
+  const byTool = new Map<string, number>();
+  for (const row of livePrompts ?? []) {
+    const toolId = row.tool_id as string;
+    byTool.set(toolId, (byTool.get(toolId) ?? 0) + 1);
+  }
+
+  const duplicateLiveTools = [...byTool.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([toolId]) => toolId);
+
+  const seeded = (toolCount ?? 0) > 0;
+  return {
+    seeded,
+    toolCount: toolCount ?? 0,
+    livePromptCount: livePrompts?.length ?? 0,
+    duplicateLiveTools,
+    canReseedSafely: duplicateLiveTools.length === 0,
+  };
+}
+
 /** Idempotent seed from legacy app_settings + fort_config. Preserves prompt text verbatim. */
 export async function seedEngineFromLegacy(actorId?: string): Promise<SeedResult> {
   const admin = getSupabaseAdmin();

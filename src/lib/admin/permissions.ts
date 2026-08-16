@@ -121,5 +121,16 @@ export function permissionsForRole(role: AccessRole): readonly PermissionKey[] {
   return ROLE_PERMISSIONS[role];
 }
 
+export const ADMIN_ACCESS_ROLES: AccessRole[] = [
+  "super_admin",
+  "administrator",
+  "developer",
+  "editor",
+];
+
+export function listAllPermissionKeys(): PermissionKey[] {
+  return [...ALL_PERMISSIONS];
+}
+
 /** Minimum permission to enter /admin at all. */
 export const ADMIN_ENTRY_PERMISSION: PermissionKey = "admin.access";

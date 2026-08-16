@@ -47,8 +47,8 @@ export function CommandCenterDashboard() {
   return (
     <div>
       <AdminPageHeader
-        title="Command Center"
-        description="Operational snapshot — real data only; unavailable metrics show as —"
+        title="Dashboard"
+        description="Pamje operative e Control Center — të dhëna reale; metrikat e padisponueshme shfaqen si —"
       />
 
       {loading ? (

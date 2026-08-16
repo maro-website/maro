@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { getAccessToken } from "@/lib/supabase/client";
 import { AdminPageHeader, AdminStatusBadge } from "@/components/admin/AdminPageHeader";
 import { EngineDryRunPanel } from "@/components/admin/engine/EngineDryRunPanel";
@@ -289,9 +290,12 @@ export function EngineToolWorkspace({ toolId }: { toolId: string }) {
       {tab === "maroFort" && (
         <Panel title="maroFort CMS representation">
           <p className="text-[12px] text-ink-2">
-            Fort schema merges <code className="text-[11px]">src/lib/fort/schema.ts</code> with DB{' '}
-            <code className="text-[11px]">tool_input_fields</code>. Legacy{' '}
-            <Link href="/admin?tab=fort" className="text-brand">maroFort admin</Link> remains active.
+            Legacy Fort configuration is managed per tool in the Engine workspace (maroFort tab).
+            Open a tool from{" "}
+            <Link href={ADMIN_ROUTES.engine} className="text-brand hover:underline">
+              Maro Engine
+            </Link>
+            .
           </p>
         </Panel>
       )}

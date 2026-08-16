@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { adminAuthHeaders } from "@/lib/admin/clientFetch";
 
@@ -50,8 +51,8 @@ export default function AdminAnalyticsPage() {
         title="Analytics"
         description="Real aggregates from profiles, generations, and credit_orders"
         actions={
-          <Link href="/admin?tab=analytics" className="text-[13px] font-semibold text-brand hover:underline">
-            maroPresets analytics →
+          <Link href={ADMIN_ROUTES.analytics.presets} className="text-[13px] font-semibold text-brand hover:underline">
+            Analitika maroPresets →
           </Link>
         }
       />

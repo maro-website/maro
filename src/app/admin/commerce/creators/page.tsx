@@ -104,9 +104,6 @@ export default function CommerceCreatorsPage() {
         </table>
       </div>
 
-      <Link href="/admin/commerce/earnings" className="mt-3 inline-block text-[12px] text-ink-3">
-        Legacy earnings summary →
-      </Link>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { adminAuthHeaders } from "@/lib/admin/clientFetch";
 import { PLAN_PACKAGES, TOPUP_TIERS } from "@/lib/credits/money";
@@ -61,7 +62,7 @@ export default function CommercePlansPage() {
         <pre className="mt-3 max-h-[320px] overflow-auto rounded-lg bg-surface-2 p-3 text-[10px] text-ink-2">
           {generationPricing ? JSON.stringify(generationPricing, null, 2) : "Loading…"}
         </pre>
-        <Link href="/admin?tab=pricing" className="mt-3 inline-block text-[12px] font-semibold text-brand hover:underline">
+        <Link href={ADMIN_ROUTES.commerce.plans} className="mt-3 inline-block text-[12px] font-semibold text-brand hover:underline">
           Open legacy pricing editor →
         </Link>
       </section>

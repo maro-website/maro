@@ -7,13 +7,15 @@ export function AdminShellClient({
   role,
   email,
   children,
+  minimal = false,
 }: {
   role: AccessRole;
   email: string;
   children: React.ReactNode;
+  minimal?: boolean;
 }) {
   return (
-    <AdminShell role={role} email={email}>
+    <AdminShell role={role} email={email} minimal={minimal}>
       {children}
     </AdminShell>
   );

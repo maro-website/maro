@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
-import { ensureEngineSeeded } from "@/lib/engine/seed";
+import { getEngineSeedStatus, ensureEngineSeeded } from "@/lib/engine/seed";
 import { listEngineToolsWithMeta } from "@/lib/engine/storage";
 import { isFeatureEnabled, FEATURE_PROMPT_COMPILER_V2 } from "@/lib/features/flags";
 import { supabaseServerConfigured } from "@/lib/supabase/server";
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
   await ensureEngineSeeded(auth.admin.userId);
   const tools = await listEngineToolsWithMeta();
   const promptCompilerV2 = await isFeatureEnabled(FEATURE_PROMPT_COMPILER_V2);
+  const seedStatus = await getEngineSeedStatus();
 
-  return NextResponse.json({ tools, promptCompilerV2 });
+  return NextResponse.json({ tools, promptCompilerV2, seedStatus });
 }

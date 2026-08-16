@@ -71,6 +71,7 @@ export default function AdminMfaPage() {
       if (verErr) throw verErr;
       router.replace(next);
       router.refresh();
+      window.location.assign(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Verification failed");
     } finally {
@@ -95,6 +96,7 @@ export default function AdminMfaPage() {
       if (verErr) throw verErr;
       router.replace(next);
       router.refresh();
+      window.location.assign(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Challenge failed");
     } finally {

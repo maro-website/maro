@@ -1,16 +1,16 @@
-import { AdminEmptyState, AdminPageHeader } from "@/components/admin/AdminPageHeader";
+"use client";
+
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AccessRolesPanel } from "@/components/admin/access/AccessRolesPanel";
 
 export default function AdminAccessPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Roles & Permissions"
-        description="Menaxho rolet administrative të ekipit. Creator dhe plani komercial mbeten të ndara."
+        title="Rolet & Lejet"
+        description="Menaxho rolet administrative RBAC. Kreatorët dhe planet komerciale mbeten të ndara nga qasja në Control Center."
       />
-      <AdminEmptyState
-        title="UI e plotë vjen në fazën e ardhshme"
-        description="API për ndryshimin e roleve është aktiv në /api/admin/users/role. Përdoruesit ekzistues me is_admin janë migruar në Super Admin."
-      />
+      <AccessRolesPanel />
     </div>
   );
 }
