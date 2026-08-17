@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/dashboard/AuthGate";
-import { AppHeader } from "@/components/dashboard/AppHeader";
+import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Misc";
@@ -12,7 +12,7 @@ import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
 import { PublishModal } from "@/components/editor/PublishModal";
 import { useMaro } from "@/context/store";
 import { timeAgo } from "@/lib/utils/format";
-import { Pencil, Eye, Rocket, Settings, Globe, History, ImageIcon, ArrowLeft } from "lucide-react";
+import { Pencil, Eye, Download, Settings, Globe, History, ImageIcon, ArrowLeft } from "lucide-react";
 
 function OverviewInner() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -21,26 +21,37 @@ function OverviewInner() {
   const project = getProject(projectId);
   const [publishOpen, setPublishOpen] = React.useState(false);
 
-  if (!ready) return <div className="grid min-h-screen place-items-center"><Spinner className="h-6 w-6" /></div>;
+  if (!ready) {
+    return (
+      <AppShell>
+        <div className="grid min-h-[50vh] place-items-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      </AppShell>
+    );
+  }
 
   if (!project) {
     return (
-      <div>
-        <AppHeader />
-        <div className="grid place-items-center py-32 text-center">
+      <AppShell>
+        <div className="grid place-items-center px-5 py-32 text-center">
           <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
-          <Button className="mt-4" onClick={() => router.push("/dashboard")}>Kthehu te dashboard</Button>
+          <Button className="mt-4" onClick={() => router.push("/krijimet")}>
+            Kthehu te krijimet
+          </Button>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <AppHeader />
+    <AppShell>
       <main className="mx-auto max-w-6xl px-5 py-8">
-        <button onClick={() => router.push("/dashboard")} className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink">
-          <ArrowLeft className="h-4 w-4" /> Të gjitha projektet
+        <button
+          onClick={() => router.push("/krijimet")}
+          className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> Të gjitha krijimet
         </button>
 
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -60,9 +71,9 @@ function OverviewInner() {
             <div className="mt-5 space-y-2.5 rounded-2xl bg-surface p-4">
               <InfoRow icon={<Globe className="h-4 w-4" />} label="Preview URL" value={project.previewUrl} />
               <InfoRow
-                icon={<Globe className="h-4 w-4 text-success" />}
-                label="Published URL"
-                value={project.publishedUrl ?? "Ende i papublikuar"}
+                icon={<Download className="h-4 w-4 text-brand" />}
+                label="Eksporti"
+                value="Shkarko HTML nga preview"
               />
               <InfoRow icon={<History className="h-4 w-4" />} label="Përditësuar" value={timeAgo(project.updatedAt)} />
             </div>
@@ -71,20 +82,27 @@ function OverviewInner() {
               <Button icon={<Pencil className="h-4 w-4" />} onClick={() => router.push(`/projects/${projectId}/editor`)}>
                 Hape editorin
               </Button>
-              <Button variant="outline" icon={<Eye className="h-4 w-4" />} onClick={() => window.open(`/projects/${projectId}/preview`, "_blank")}>
+              <Button
+                variant="outline"
+                icon={<Eye className="h-4 w-4" />}
+                onClick={() => window.open(`/projects/${projectId}/preview`, "_blank")}
+              >
                 Preview
               </Button>
-              <Button variant="outline" icon={<Rocket className="h-4 w-4" />} onClick={() => setPublishOpen(true)}>
-                Publiko
+              <Button variant="outline" icon={<Download className="h-4 w-4" />} onClick={() => setPublishOpen(true)}>
+                Shkarko
               </Button>
-              <Button variant="outline" icon={<Settings className="h-4 w-4" />} onClick={() => router.push(`/projects/${projectId}/settings`)}>
+              <Button
+                variant="outline"
+                icon={<Settings className="h-4 w-4" />}
+                onClick={() => router.push(`/projects/${projectId}/settings`)}
+              >
                 Cilësimet
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Activity + assets */}
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl bg-surface p-5">
             <div className="mb-4 flex items-center gap-2 text-[14px] font-bold text-ink">
@@ -114,14 +132,16 @@ function OverviewInner() {
       </main>
 
       <PublishModal open={publishOpen} onClose={() => setPublishOpen(false)} project={project} />
-    </div>
+    </AppShell>
   );
 }
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="flex items-center gap-2 text-[13px] text-ink-3">{icon} {label}</span>
+      <span className="flex items-center gap-2 text-[13px] text-ink-3">
+        {icon} {label}
+      </span>
       <span className="truncate text-[13px] font-semibold text-ink">{value}</span>
     </div>
   );

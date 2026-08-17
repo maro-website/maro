@@ -1,30 +1,25 @@
 "use client";
 
 import { getAccessToken } from "@/lib/supabase/client";
-import { InsufficientCreditsError } from "@/lib/services/generationService";
 import type { AdminPromptItem, PromptAnalytics, PromptItem } from "@/lib/prompts/types";
-
-export { InsufficientCreditsError };
 
 // ---- User-facing ----
 
 export async function fetchPrompts(): Promise<{
   items: PromptItem[];
   liked: string[];
-  owned: string[];
 }> {
   const token = await getAccessToken();
   const res = await fetch("/api/prompts", {
     cache: "no-store",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!res.ok) return { items: [], liked: [], owned: [] };
+  if (!res.ok) return { items: [], liked: [] };
   const j = (await res.json().catch(() => ({}))) as {
     items?: PromptItem[];
     liked?: string[];
-    owned?: string[];
   };
-  return { items: j.items ?? [], liked: j.liked ?? [], owned: j.owned ?? [] };
+  return { items: j.items ?? [], liked: j.liked ?? [] };
 }
 
 export async function toggleLike(promptId: string, liked: boolean): Promise<void> {
@@ -37,28 +32,6 @@ export async function toggleLike(promptId: string, liked: boolean): Promise<void
     },
     body: JSON.stringify({ promptId, liked }),
   });
-}
-
-// Reveal-and-copy: costs credits once, then unlocked forever. Throws
-// InsufficientCreditsError (402) so the UI can open the buy-credits modal.
-export async function revealPrompt(
-  promptId: string
-): Promise<{ fullPrompt: string; alreadyOwned: boolean; creditsSpent: number }> {
-  const token = await getAccessToken();
-  const res = await fetch("/api/prompts/reveal", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ promptId }),
-  });
-  if (res.status === 402) {
-    const j = await res.json().catch(() => ({}));
-    throw new InsufficientCreditsError(j.needed ?? 0, j.have ?? 0);
-  }
-  if (!res.ok) throw new Error(`reveal-failed-${res.status}`);
-  return (await res.json()) as { fullPrompt: string; alreadyOwned: boolean; creditsSpent: number };
 }
 
 // ---- Admin ----

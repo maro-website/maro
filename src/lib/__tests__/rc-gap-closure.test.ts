@@ -36,7 +36,11 @@ describe("RC gap closure — production freeze", () => {
   });
 
   it("engine provider execution remains blocked without live flag", () => {
-    expect(canExecuteEngineProvider({ pipeline: "engine", promptCompilerV2: false })).toBe(false);
-    expect(canExecuteEngineProvider({ pipeline: "shadow", promptCompilerV2: false })).toBe(false);
+    expect(
+      canExecuteEngineProvider({ toolId: "maro_web", pipeline: "engine", promptCompilerV2: false })
+    ).toBe(false);
+    expect(
+      canExecuteEngineProvider({ toolId: "maro_web", pipeline: "shadow", promptCompilerV2: false })
+    ).toBe(false);
   });
 });

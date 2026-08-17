@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   hasPermission,
   resolveAccessRole,
@@ -39,35 +39,27 @@ describe("RBAC permissions", () => {
 });
 
 describe("test payment isolation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("blocks test payment when PAYMENT_MODE is live", () => {
-    const prev = process.env.PAYMENT_MODE;
-    process.env.PAYMENT_MODE = "live";
+    vi.stubEnv("PAYMENT_MODE", "live");
     expect(isTestPaymentAllowed()).toBe(false);
     expect(testPaymentBlockReason()).toBe("live_mode");
-    process.env.PAYMENT_MODE = prev;
   });
 
   it("allows test payment in non-production test mode", () => {
-    const prevMode = process.env.PAYMENT_MODE;
-    const prevNode = process.env.NODE_ENV;
-    process.env.PAYMENT_MODE = "test";
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("PAYMENT_MODE", "test");
+    vi.stubEnv("NODE_ENV", "development");
     expect(isTestPaymentAllowed()).toBe(true);
-    process.env.PAYMENT_MODE = prevMode;
-    process.env.NODE_ENV = prevNode;
   });
 
   it("blocks test payment in production unless ALLOW_TEST_PAYMENTS=true", () => {
-    const prevMode = process.env.PAYMENT_MODE;
-    const prevNode = process.env.NODE_ENV;
-    const prevAllow = process.env.ALLOW_TEST_PAYMENTS;
-    process.env.PAYMENT_MODE = "test";
-    process.env.NODE_ENV = "production";
-    delete process.env.ALLOW_TEST_PAYMENTS;
+    vi.stubEnv("PAYMENT_MODE", "test");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ALLOW_TEST_PAYMENTS", "");
     expect(isTestPaymentAllowed()).toBe(false);
     expect(testPaymentBlockReason()).toBe("production_requires_allow_test_payments");
-    process.env.PAYMENT_MODE = prevMode;
-    process.env.NODE_ENV = prevNode;
-    process.env.ALLOW_TEST_PAYMENTS = prevAllow;
   });
 });

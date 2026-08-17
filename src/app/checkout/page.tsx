@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 import { useMaro } from "@/context/store";
 import { getCheckoutItem, formatEur } from "@/lib/credits/money";
+import { paymentMode } from "@/lib/config/features";
 import {
   LegalConsentCheckbox,
   LEGAL_CONSENT_REQUIRED,
@@ -127,6 +128,11 @@ function CheckoutPageInner() {
     router.push(orderId ? `/order/cancel?order=${orderId}` : "/pricing");
   };
 
+  const isTestPayment = paymentMode() === "test";
+  const payButtonLabel = isTestPayment
+    ? `Vazhdo me pagesën e testit · ${formatEur(item.priceEur)}`
+    : `Vazhdo te pagesa · ${formatEur(item.priceEur)}`;
+
   return (
     <AppShell showFooter>
       <div className="mx-auto w-full max-w-xl px-5 py-12 sm:px-8">
@@ -147,6 +153,12 @@ function CheckoutPageInner() {
           <p className="mt-1 text-[14px] text-ink-2">
             {item.credits.toLocaleString("de-DE")} kredite · {formatEur(item.priceEur)}
           </p>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+          {isTestPayment
+            ? "Pagesa live me Raiffeisen është ende e çaktivizuar. Porosia krijohet dhe përfundon në modalitet test — nuk merren të dhëna kartë në maro."
+            : "Do të ridrejtoheni te pagesa e sigurt e bankës partner. maro nuk mbledh të dhëna kartë."}
         </div>
 
         <form
@@ -196,7 +208,7 @@ function CheckoutPageInner() {
           />
 
           <Button type="submit" className="mt-2 w-full" loading={loading} disabled={!legalAccepted}>
-            Paguaj me Raiffeisen · {formatEur(item.priceEur)}
+            {payButtonLabel}
           </Button>
 
           <button

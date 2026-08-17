@@ -21,10 +21,8 @@ import { cn } from "@/lib/utils/cn";
 import {
   Search,
   Heart,
-  DollarSign,
   Lightbulb,
   Plus,
-  Check,
   Loader2,
 } from "lucide-react";
 
@@ -37,13 +35,11 @@ export default function PromptsPage() {
 
   const [items, setItems] = React.useState<PromptItem[]>([]);
   const [liked, setLiked] = React.useState<Set<string>>(new Set());
-  const [owned, setOwned] = React.useState<Set<string>>(new Set());
   const [loading, setLoading] = React.useState(true);
 
   const [category, setCategory] = React.useState<string | null>(null);
   const [keyword, setKeyword] = React.useState("");
   const [onlyLiked, setOnlyLiked] = React.useState(false);
-  const [onlyOwned, setOnlyOwned] = React.useState(false);
 
   const [active, setActive] = React.useState<PromptItem | null>(null);
 
@@ -53,7 +49,6 @@ export default function PromptsPage() {
       if (!alive) return;
       setItems(r.items);
       setLiked(new Set(r.liked));
-      setOwned(new Set(r.owned));
       setLoading(false);
     });
     return () => {
@@ -67,7 +62,6 @@ export default function PromptsPage() {
       .filter((p) => {
         if (category && p.category !== category) return false;
         if (onlyLiked && !liked.has(p.id)) return false;
-        if (onlyOwned && !owned.has(p.id)) return false;
         if (kw) {
           const hay = [p.code, p.category, ...(p.keywords ?? [])].join(" ").toLowerCase();
           if (!hay.includes(kw)) return false;
@@ -75,7 +69,7 @@ export default function PromptsPage() {
         return true;
       })
       .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-  }, [items, category, keyword, onlyLiked, onlyOwned, liked, owned]);
+  }, [items, category, keyword, onlyLiked, liked]);
 
   const recentPresets = filtered.slice(0, 6);
 
@@ -154,14 +148,6 @@ export default function PromptsPage() {
               >
                 <Heart className={cn("h-4 w-4", onlyLiked && "fill-current")} />
               </FilterToggle>
-              <FilterToggle
-                active={onlyOwned}
-                onClick={() => setOnlyOwned((v) => !v)}
-                title="Të blera"
-                color={BRAND}
-              >
-                <DollarSign className="h-4 w-4" />
-              </FilterToggle>
             </div>
 
             {/* Category chips */}
@@ -186,7 +172,7 @@ export default function PromptsPage() {
             ) : filtered.length === 0 ? (
               <div className="grid place-items-center rounded-2xl bg-surface py-20 text-center">
                 <Lightbulb className="h-8 w-8 text-ink-3" />
-                <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë prompt për këtë kërkim</p>
+                <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë preset për këtë kërkim</p>
                 <p className="mt-1 text-[13.5px] text-ink-3">Provo një kategori ose fjalëkyç tjetër.</p>
               </div>
             ) : (
@@ -202,7 +188,6 @@ export default function PromptsPage() {
                           <PromptCard
                             item={p}
                             liked={liked.has(p.id)}
-                            owned={owned.has(p.id)}
                             onOpen={() => setActive(p)}
                             onLike={() => onToggleLike(p)}
                             onAttach={() => attachPrompt(p)}
@@ -219,7 +204,6 @@ export default function PromptsPage() {
                       key={p.id}
                       item={p}
                       liked={liked.has(p.id)}
-                      owned={owned.has(p.id)}
                       onOpen={() => setActive(p)}
                       onLike={() => onToggleLike(p)}
                       onAttach={() => attachPrompt(p)}
@@ -309,14 +293,12 @@ function Chip({
 function PromptCard({
   item,
   liked,
-  owned,
   onOpen,
   onLike,
   onAttach,
 }: {
   item: PromptItem;
   liked: boolean;
-  owned: boolean;
   onOpen: () => void;
   onLike: () => void;
   onAttach: () => void;
@@ -342,14 +324,6 @@ function PromptCard({
           <span className="absolute left-2 top-2 rounded-full bg-scrim px-2.5 py-1 text-[12px] font-semibold text-on-scrim backdrop-blur">
             {item.category}
           </span>
-          {owned && (
-            <span
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-brand text-brand-fg"
-              title="E blere"
-            >
-              <Check className="h-4 w-4" />
-            </span>
-          )}
           {/* Bottom overlay: code + tool + like */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-3 pb-2.5 pt-10">
             <span className="min-w-0">

@@ -6,6 +6,7 @@ import {
   reserveCredits,
 } from "@/lib/credits/ledger";
 import { estimateProviderCostUsd } from "@/lib/cost/providerCost";
+import { getProviderCostFallbackMaximumUsd } from "@/lib/cost/fallbackMaximums";
 import { getPromptMaxChars, MAX_REFERENCE_IMAGES } from "@/lib/generation/limits";
 import {
   countActiveJobs,
@@ -288,12 +289,16 @@ export async function completeGeneration(opts: {
   providerReportedUsd?: number | null;
   pricingBreakdown?: Record<string, unknown>;
 }): Promise<void> {
-  const costUsd = estimateProviderCostUsd({
+  const usageUsd = estimateProviderCostUsd({
     model: opts.model,
     inputTokens: opts.inputTokens,
     outputTokens: opts.outputTokens,
     imageCount: opts.imageCount,
   });
+  const fallbackMaxUsd = getProviderCostFallbackMaximumUsd(opts.module);
+  const costUsd =
+    opts.providerReportedUsd ??
+    (usageUsd > 0 ? Math.max(usageUsd, fallbackMaxUsd) : fallbackMaxUsd || usageUsd);
 
   if (!opts.skipBilling && opts.cost > 0) {
     await finalizeCreditCharge(opts.jobId);
@@ -324,8 +329,8 @@ export async function completeGeneration(opts: {
     outputTokens: opts.outputTokens,
     imageCount: opts.imageCount,
     providerReportedUsd: opts.providerReportedUsd,
-    configuredFixedUsd: costUsd,
-    fallbackMaximumUsd: costUsd,
+    configuredFixedUsd: usageUsd > 0 ? usageUsd : null,
+    fallbackMaximumUsd: fallbackMaxUsd,
   });
 
   await recordGenerationPricingSnapshot({

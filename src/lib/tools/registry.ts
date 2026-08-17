@@ -271,10 +271,10 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "prompte",
-    name: "maro Prompts",
-    tagline: "Prompte gati për t'u përdorur",
+    name: "maroPresets",
+    tagline: "Preset gati për t'u përdorur",
     description:
-      "Prompte profesionale gati për t'u përdorur. Zgjidh një, shtoje te tooli dhe gjenero me produktin tënd.",
+      "Preset profesionale gati për t'u përdorur. Zgjidh një, shtoje te tooli dhe gjenero me produktin tënd.",
     icon: Lightbulb,
     kind: "prompts",
     route: "/prompts",
@@ -416,9 +416,8 @@ export function getTool(id: string): ToolDef | undefined {
   return TOOLS.find((t) => t.id === id);
 }
 
-// Generation tools shown in the Hub selector + main sidebar list. maro Prompts
-// is intentionally excluded — it's not a generator, it lives below the sidebar
-// separator as a "coming soon" entry.
+// Generation tools shown in the Hub selector + main sidebar list. maroPresets
+// is intentionally excluded — it's not a generator; it lives in studio navigation.
 const MAIN_TOOL_ORDER = ["reklama", "logo", "website", "filma", "zo"] as const;
 
 export const MAIN_TOOLS = MAIN_TOOL_ORDER.map((id) => TOOLS.find((t) => t.id === id)).filter(

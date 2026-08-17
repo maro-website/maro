@@ -44,7 +44,7 @@ export const PLAN_PACKAGES: PlanPackage[] = [
     checkoutId: "standard",
     features: [
       { text: "100 kredite maro" },
-      { text: "Akses në maroPrompts" },
+      { text: "Akses në maroPresets" },
       { text: "~12–14 imazhe ose logo" },
       { text: "~2 faqe web" },
       { text: "Kreditet nuk skadojnë" },
@@ -60,7 +60,7 @@ export const PLAN_PACKAGES: PlanPackage[] = [
     badge: "Më i popullarizuari",
     features: [
       { text: "500 kredite maro" },
-      { text: "Akses në maroPrompts" },
+      { text: "Akses në maroPresets" },
       { text: "~62–83 imazhe ose logo" },
       { text: "~12 faqe web" },
       { text: "maroFort falas për 14 ditë" },
@@ -79,7 +79,7 @@ export const PLAN_PACKAGES: PlanPackage[] = [
     contactOnly: true,
     features: [
       { text: "Kredite sipas nevojës tuaj" },
-      { text: "maroPrompts të personalizuara" },
+      { text: "maroPresets të personalizuara" },
       { text: "Prompt Engineering nga ekipi i maro" },
       { text: "maroFort aktiv 24/7" },
       { text: "Deri në 10 gjenerime njëkohësisht" },

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import type { AiGenerateRequest } from "@/lib/ai/types";
 import { hasPermission } from "@/lib/admin/permissions";
 import {
   canSetPipeline,
@@ -85,16 +86,27 @@ describe("Phase 2B.1 pipeline policy", () => {
   });
 });
 
+function testWebGenerateBody(overrides: Partial<AiGenerateRequest> = {}): AiGenerateRequest {
+  return {
+    businessName: "X",
+    goal: "Website",
+    category: "generic",
+    language: "sq",
+    primaryColor: "#253FDA",
+    ...overrides,
+  };
+}
+
 describe("maroWeb shadow context parity", () => {
   it("preserves legacy system/user separation in snapshot", () => {
     const legacy = buildWebLegacySnapshot({
-      body: {
+      body: testWebGenerateBody({
         businessName: "Acme",
         userPrompt: "Modern landing page",
         websiteType: "business",
         speed: "fast",
         fort: { enabled: true, values: { tone: "warm" } },
-      },
+      }),
       masterPlusOptions: "master prompt",
       fortBriefBlock: "Fort brief text",
       model: "claude-opus",
@@ -127,7 +139,7 @@ describe("maroWeb shadow context parity", () => {
 
   it("flags critical mismatch when engine system missing", () => {
     const legacy = buildWebLegacySnapshot({
-      body: { businessName: "X", userPrompt: "Hello world website please" },
+      body: testWebGenerateBody({ businessName: "X", userPrompt: "Hello world website please" }),
       masterPlusOptions: "",
       model: "m1",
       legacySystem: "sys",
@@ -150,7 +162,7 @@ describe("shadow failure isolation", () => {
     vi.mocked(loadCompileContext).mockRejectedValueOnce(new Error("db down"));
 
     const legacy = buildWebLegacySnapshot({
-      body: { businessName: "X", userPrompt: "test" },
+      body: testWebGenerateBody({ businessName: "X", userPrompt: "test" }),
       masterPlusOptions: "",
       model: "m1",
       legacySystem: "sys",
@@ -181,7 +193,7 @@ describe("provider instrumentation contract", () => {
   it("accepts providerRequestCount=1 without throwing", async () => {
     const { runShadowCompilation } = await import("@/lib/engine/shadowCompile");
     const legacy = buildWebLegacySnapshot({
-      body: { businessName: "X", userPrompt: "site" },
+      body: testWebGenerateBody({ businessName: "X", userPrompt: "site" }),
       masterPlusOptions: "",
       model: "m1",
       legacySystem: "sys",

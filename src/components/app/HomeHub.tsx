@@ -1,23 +1,28 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { HubToolTile } from "@/components/hub/HubToolTile";
 import { MarketingBanner } from "@/components/hub/MarketingBanner";
 import { PromoCard } from "@/components/hub/PromoCard";
-import { Megaphone } from "lucide-react";
+import { useMaro } from "@/context/store";
+import { Megaphone, Lightbulb } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const HUB_TOOLS = [
   { id: "imazh", label: "maroImazh", toolId: "reklama", href: "/imazh" },
+  { id: "marologo", label: "maroLogo", toolId: "logo", href: "/marologo" },
   { id: "web", label: "maroWeb", toolId: "website", href: "/web" },
   { id: "filma", label: "maroFilma", toolId: "filma", href: "/filma", locked: true },
-  { id: "audio", label: "maroAudio", toolId: "zo", href: "/audio", locked: true },
+  { id: "audio", label: "maroZo", toolId: "zo", href: "/audio", locked: true },
   { id: "marketing", label: "maroMarketing", href: "/marketing", icon: Megaphone, locked: true },
 ] as const;
 
-/** Hub home — greeting, 5 tool tiles, marketing banner, promo cards. */
+/** Hub home — greeting, credits, tool tiles, marketing banner, promo cards. */
 export function HomeHub({ firstName }: { firstName?: string }) {
+  const { user, credits } = useMaro();
+
   return (
     <div className="flex min-h-full w-full flex-col items-center bg-hub-page px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
       <motion.div
@@ -31,6 +36,16 @@ export function HomeHub({ firstName }: { firstName?: string }) {
             Cka po marojna sot{firstName ? `, ${firstName}` : ""}.
           </h1>
           <p className="mt-4 text-[16px] text-ink-2">Krejt tools-at me ni vend, nisja maro.</p>
+          {user && (
+            <p className="mt-3 text-[15px] text-ink-2">
+              Ke{" "}
+              <span className="font-bold tabular-nums text-brand">{credits.toLocaleString("de-DE")}</span>{" "}
+              kredite ·{" "}
+              <Link href="/pricing" className="font-semibold text-brand hover:underline">
+                Planet &amp; rimbushje
+              </Link>
+            </p>
+          )}
         </header>
 
         <div className="flex w-full flex-wrap justify-center gap-[var(--hub-tile-gap)]">
@@ -44,6 +59,11 @@ export function HomeHub({ firstName }: { firstName?: string }) {
               locked={"locked" in t ? t.locked : false}
             />
           ))}
+          <HubToolTile
+            label="maroPresets"
+            href="/prompts"
+            icon={Lightbulb}
+          />
         </div>
 
         <MarketingBanner />
@@ -56,9 +76,9 @@ export function HomeHub({ firstName }: { firstName?: string }) {
             href="/prompts"
           />
           <PromoCard
-            title="Seedance 2.5"
-            subtitle="30 sekonda / 1080p kualitet"
-            ctaLabel="maro tash"
+            title="maroFilma"
+            subtitle="Video AI — vjen së shpejti"
+            ctaLabel="Mëso më shumë"
             href="/filma"
           />
         </div>

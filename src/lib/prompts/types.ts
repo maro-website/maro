@@ -1,4 +1,4 @@
-// Shared, client-safe types for maro Prompts (curated prompt catalog).
+// Shared, client-safe types for maroPresets (curated preset catalog).
 // No server-only imports here.
 
 // Fixed category list shown as chips in the search bar + admin dropdown.
@@ -49,8 +49,6 @@ export interface PromptItem {
   created_at: string;
   /** Set per-request for the signed-in user. */
   liked?: boolean;
-  /** Set per-request for the signed-in user (already paid to reveal). */
-  owned?: boolean;
 }
 
 // Admin-only shape (includes the hidden prompt + active flag).

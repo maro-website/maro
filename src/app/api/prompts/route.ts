@@ -15,11 +15,11 @@ function bearer(req: Request): string | null {
   return h.startsWith("Bearer ") ? h.slice(7) : h;
 }
 
-// Public catalog of curated prompts. Returns metadata only (no full_prompt).
-// If the request is authenticated, also returns the user's liked + owned ids.
+// Public catalog of curated presets. Returns metadata only (no full_prompt).
+// If the request is authenticated, also returns the user's liked ids.
 export async function GET(req: Request) {
   if (!supabaseServerConfigured()) {
-    return NextResponse.json({ items: [], liked: [], owned: [] });
+    return NextResponse.json({ items: [], liked: [] });
   }
   const admin = getSupabaseAdmin();
 
@@ -35,24 +35,19 @@ export async function GET(req: Request) {
       .limit(500);
     items = (data ?? []) as PromptItem[];
   } catch {
-    return NextResponse.json({ items: [], liked: [], owned: [] });
+    return NextResponse.json({ items: [], liked: [] });
   }
 
   let liked: string[] = [];
-  let owned: string[] = [];
   const user = await getUserFromToken(bearer(req));
   if (user) {
     try {
-      const [{ data: likes }, { data: reveals }] = await Promise.all([
-        admin.from("prompt_likes").select("prompt_id").eq("user_id", user.id),
-        admin.from("prompt_reveals").select("prompt_id").eq("user_id", user.id),
-      ]);
+      const { data: likes } = await admin.from("prompt_likes").select("prompt_id").eq("user_id", user.id);
       liked = (likes ?? []).map((r) => r.prompt_id as string);
-      owned = (reveals ?? []).map((r) => r.prompt_id as string);
     } catch {
       /* ignore — anonymous view */
     }
   }
 
-  return NextResponse.json({ items, liked, owned });
+  return NextResponse.json({ items, liked });
 }

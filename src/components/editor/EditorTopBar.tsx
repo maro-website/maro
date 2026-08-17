@@ -15,7 +15,7 @@ import {
   Tablet,
   Smartphone,
   Eye,
-  Rocket,
+  Download,
   Check,
   Loader2,
 } from "lucide-react";
@@ -34,7 +34,7 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
     <header className="flex h-14 shrink-0 items-center justify-between bg-canvas px-3">
       <div className="flex items-center gap-1">
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/krijimet")}
           className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -100,8 +100,8 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
         <Button variant="ghost" size="sm" icon={<Eye className="h-4 w-4" />} onClick={onPreview}>
           Preview
         </Button>
-        <Button size="sm" icon={<Rocket className="h-4 w-4" />} onClick={onPublish}>
-          Publiko
+        <Button size="sm" icon={<Download className="h-4 w-4" />} onClick={onPublish}>
+          Shkarko
         </Button>
       </div>
     </header>

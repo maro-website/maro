@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/dashboard/AuthGate";
-import { AppHeader } from "@/components/dashboard/AppHeader";
+import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Field } from "@/components/ui/Input";
 import { ColorInput, Spinner } from "@/components/ui/Misc";
@@ -30,15 +30,26 @@ function SettingsInner() {
   const [active, setActive] = React.useState<(typeof SECTIONS)[number]["key"]>("general");
   const [confirm, setConfirm] = React.useState(false);
 
-  if (!ready) return <div className="grid min-h-screen place-items-center"><Spinner className="h-6 w-6" /></div>;
+  if (!ready) {
+    return (
+      <AppShell>
+        <div className="grid min-h-[50vh] place-items-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      </AppShell>
+    );
+  }
+
   if (!project) {
     return (
-      <div><AppHeader />
-        <div className="grid place-items-center py-32 text-center">
+      <AppShell>
+        <div className="grid place-items-center px-5 py-32 text-center">
           <div className="text-[18px] font-bold text-ink">Projekti nuk u gjet</div>
-          <Button className="mt-4" onClick={() => router.push("/dashboard")}>Kthehu te dashboard</Button>
+          <Button className="mt-4" onClick={() => router.push("/krijimet")}>
+            Kthehu te krijimet
+          </Button>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -48,10 +59,12 @@ function SettingsInner() {
   };
 
   return (
-    <div className="min-h-screen">
-      <AppHeader />
+    <AppShell>
       <main className="mx-auto max-w-5xl px-5 py-8">
-        <button onClick={() => router.push(`/projects/${projectId}`)} className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink">
+        <button
+          onClick={() => router.push(`/projects/${projectId}`)}
+          className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink"
+        >
           <ArrowLeft className="h-4 w-4" /> {project.name}
         </button>
         <h1 className="text-[26px] font-extrabold tracking-[-0.03em] text-ink">Cilësimet e projektit</h1>
@@ -82,7 +95,10 @@ function SettingsInner() {
                     <Input defaultValue={project.businessName} onBlur={(e) => save({ businessName: e.target.value })} />
                   </Field>
                   <Field label="Gjuha">
-                    <Select defaultValue={project.language} onChange={(e) => save({ language: e.target.value as LanguageCode })}>
+                    <Select
+                      defaultValue={project.language}
+                      onChange={(e) => save({ language: e.target.value as LanguageCode })}
+                    >
                       <option value="sq">Shqip</option>
                       <option value="en">English</option>
                       <option value="de">Deutsch</option>
@@ -96,19 +112,16 @@ function SettingsInner() {
               <Card title="Domain">
                 <div className="rounded-xl bg-surface p-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[13px] font-bold text-ink">maro Domain</span>
-                    <Badge tone="success"><Check className="h-3 w-3" /> Aktiv</Badge>
+                    <span className="text-[13px] font-bold text-ink">Preview URL</span>
+                    <Badge tone="neutral">Vetëm brenda maro</Badge>
                   </div>
                   <div className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2.5">
                     <Globe className="h-4 w-4 text-brand" />
                     <span className="text-[14px] font-semibold text-ink">{project.previewUrl}</span>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <Field label="Custom Domain" optional>
-                    <Input placeholder="www.business.com" />
-                  </Field>
-                  <p className="mt-2 text-[12px] text-ink-3">Verifikimi i DNS simulohet në Phase 1.</p>
+                  <p className="mt-2 text-[12px] text-ink-3">
+                    maro nuk hoston website-et. Përdor preview dhe shkarko HTML për publikim jashtë platformës.
+                  </p>
                 </div>
               </Card>
             )}
@@ -132,11 +145,29 @@ function SettingsInner() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="mb-2 text-[13px] font-semibold text-ink">Ngjyra kryesore</div>
-                      <ColorInput value={project.theme.primaryColor} onChange={(v) => updateProject(project.id, (p) => ({ ...p, theme: { ...p.theme, primaryColor: v }, brand: { ...p.brand, primaryColor: v } }))} />
+                      <ColorInput
+                        value={project.theme.primaryColor}
+                        onChange={(v) =>
+                          updateProject(project.id, (p) => ({
+                            ...p,
+                            theme: { ...p.theme, primaryColor: v },
+                            brand: { ...p.brand, primaryColor: v },
+                          }))
+                        }
+                      />
                     </div>
                     <div>
                       <div className="mb-2 text-[13px] font-semibold text-ink">Ngjyra dytësore</div>
-                      <ColorInput value={project.theme.secondaryColor} onChange={(v) => updateProject(project.id, (p) => ({ ...p, theme: { ...p.theme, secondaryColor: v }, brand: { ...p.brand, secondaryColor: v } }))} />
+                      <ColorInput
+                        value={project.theme.secondaryColor}
+                        onChange={(v) =>
+                          updateProject(project.id, (p) => ({
+                            ...p,
+                            theme: { ...p.theme, secondaryColor: v },
+                            brand: { ...p.brand, secondaryColor: v },
+                          }))
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -157,13 +188,27 @@ function SettingsInner() {
       </main>
 
       <Modal open={confirm} onClose={() => setConfirm(false)} size="sm">
-        <ModalHeader icon={<Trash2 className="h-5 w-5 text-danger" />} title="Fshij projektin?" description={`"${project.name}" do të fshihet përgjithmonë.`} />
+        <ModalHeader
+          icon={<Trash2 className="h-5 w-5 text-danger" />}
+          title="Fshij projektin?"
+          description={`"${project.name}" do të fshihet përgjithmonë.`}
+        />
         <ModalFooter>
-          <Button variant="ghost" onClick={() => setConfirm(false)}>Anulo</Button>
-          <Button variant="danger" onClick={() => { deleteProject(project.id); router.push("/dashboard"); }}>Fshij</Button>
+          <Button variant="ghost" onClick={() => setConfirm(false)}>
+            Anulo
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => {
+              deleteProject(project.id);
+              router.push("/krijimet");
+            }}
+          >
+            Fshij
+          </Button>
         </ModalFooter>
       </Modal>
-    </div>
+    </AppShell>
   );
 }
 

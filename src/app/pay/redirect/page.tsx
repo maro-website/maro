@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { paymentMode } from "@/lib/config/features";
 import { Loader2 } from "lucide-react";
 
 export default function PayRedirectPage() {
@@ -35,9 +36,13 @@ function PayRedirectPageInner() {
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#FFCC00]">
           <Loader2 className="h-7 w-7 animate-spin text-neutral-900" />
         </div>
-        <h1 className="text-[20px] font-semibold text-neutral-900">Ridrejtim te Raiffeisen…</h1>
+        <h1 className="mt-2 text-[20px] font-semibold text-neutral-900">
+          {paymentMode() === "test" ? "Ridrejtim te pagesa e testit…" : "Ridrejtim te pagesa…"}
+        </h1>
         <p className="mt-2 text-[14px] text-neutral-600">
-          Po ju ridrejtojmë te pagesa e sigurt e Raiffeisen Bank Kosova.
+          {paymentMode() === "test"
+            ? "Po vazhdoni me modalitetin e testit të porosisë — pagesa live me bankë është ende e çaktivizuar."
+            : "Po ju ridrejtojmë te pagesa e sigurt e bankës partner."}
         </p>
         {orderId && (
           <Link

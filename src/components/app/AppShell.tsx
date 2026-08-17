@@ -17,6 +17,9 @@ const WORKSPACE_ROUTES = new Set([
   "/marketing",
 ]);
 
+/** Full-height project surfaces (editor, preview) — no page scroll chrome. */
+const PROJECT_IMMERSIVE = /^\/projects\/[^/]+\/(editor|preview)$/;
+
 export function AppShell({
   children,
   hideFooter,
@@ -32,6 +35,7 @@ export function AppShell({
   const [drawer, setDrawer] = React.useState(false);
 
   const isWorkspace = WORKSPACE_ROUTES.has(pathname);
+  const isProjectImmersive = PROJECT_IMMERSIVE.test(pathname);
   const footerVisible =
     hideFooter !== true && (showFooter === true || STUDIO_ROUTES.has(pathname));
 
@@ -44,7 +48,9 @@ export function AppShell({
         <div
           className={cn(
             "min-h-0 min-w-0 flex-1",
-            isWorkspace ? "flex flex-col overflow-hidden" : "overflow-x-clip overflow-y-auto"
+            isWorkspace || isProjectImmersive
+              ? "flex flex-col overflow-hidden"
+              : "overflow-x-clip overflow-y-auto"
           )}
         >
           {footerVisible ? (
