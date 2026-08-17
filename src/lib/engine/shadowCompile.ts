@@ -300,6 +300,29 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
   }
 }
 
+function logShadowStoreFailure(
+  row: {
+    toolId: EngineToolId | string;
+    registryToolId: string;
+    generationId?: string;
+    jobId?: string;
+  },
+  error: unknown,
+  phase: "insert" | "exception"
+): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(
+    `[shadow] store failed (${phase}):`,
+    JSON.stringify({
+      toolId: row.toolId,
+      registryToolId: row.registryToolId,
+      generationId: row.generationId ?? null,
+      jobId: row.jobId ?? null,
+      error: message,
+    })
+  );
+}
+
 async function storeShadowComparison(row: {
   generationId?: string;
   jobId?: string;
@@ -341,12 +364,12 @@ async function storeShadowComparison(row: {
       .select("id")
       .single();
     if (error) {
-      console.error("[shadow] store failed:", error.message);
+      logShadowStoreFailure(row, error, "insert");
       return undefined;
     }
     return data?.id as string;
   } catch (e) {
-    console.error("[shadow] store exception:", e);
+    logShadowStoreFailure(row, e, "exception");
     return undefined;
   }
 }
