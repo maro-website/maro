@@ -4,19 +4,24 @@
 
 import { buildHtmlGenerateSystem, buildHtmlGenerateUser, buildWebHtmlOutputContract } from "@/lib/ai/prompts";
 import type { AiGenerateRequest } from "@/lib/ai/types";
+import type { NormalizedOpenAIImageRequest } from "./imageCompile";
 import type { ShadowComparisonSnapshot } from "./types";
 
 export function buildImageLegacySnapshot(input: {
   finalPrompt: string;
   model: string;
+  imageProvider?: NormalizedOpenAIImageRequest;
   brainSections?: string[];
   fortValues?: Record<string, unknown>;
   appliedLayerNames?: string[];
   estimatedCredits?: number;
+  presetId?: string;
+  restrictions?: string;
 }): ShadowComparisonSnapshot {
+  const provider = input.imageProvider;
   return {
     systemInstructions: "",
-    userContent: input.finalPrompt,
+    userContent: provider?.prompt ?? input.finalPrompt,
     brainSections: input.brainSections,
     fortValues: input.fortValues,
     appliedLayers: input.appliedLayerNames?.map((name, i) => ({
@@ -27,7 +32,10 @@ export function buildImageLegacySnapshot(input: {
     })),
     model: input.model,
     estimatedCredits: input.estimatedCredits,
-    renderedPreview: input.finalPrompt,
+    renderedPreview: provider?.prompt ?? input.finalPrompt,
+    restrictions: input.restrictions,
+    imageProvider: provider,
+    metadata: input.presetId ? { presetId: input.presetId } : undefined,
   };
 }
 

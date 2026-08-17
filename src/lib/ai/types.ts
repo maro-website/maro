@@ -60,7 +60,8 @@ export interface AiGenerateRequest {
   email?: string;
   phone?: string;
   location?: string;
-  primaryColor: string;
+  /** Explicit customer brand hex — omit when the user has not supplied a color. */
+  primaryColor?: string;
   // Beta composer fields
   userPrompt?: string;
   websiteType?: WebsiteKind;

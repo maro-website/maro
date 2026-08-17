@@ -3,6 +3,8 @@
  */
 
 import { buildImageLegacySnapshot, buildWebLegacySnapshot } from "./legacySnapshot";
+import type { ImageShadowSchedulePayload } from "./imageShadowRuntime";
+import { buildImageShadowContextMetadata } from "./imageShadowRuntime";
 import { shouldRunShadowCompilation } from "./engineIntegrationPolicy";
 import { getToolProductionPipeline } from "./pipeline";
 import { runShadowCompilation, type ShadowCompileInput } from "./shadowCompile";
@@ -10,22 +12,7 @@ import { scheduleShadowCompilationReliable } from "./shadowSchedule";
 import { getShadowFeatureFlags } from "@/lib/features/flags";
 import type { AiGenerateRequest } from "@/lib/ai/types";
 
-export async function maybeScheduleImageShadow(input: {
-  registryToolId: string;
-  finalPrompt: string;
-  model: string;
-  userId?: string | null;
-  workspaceId?: string | null;
-  userPrompt: string;
-  selections?: Record<string, string>;
-  fort?: { enabled: boolean; values: Record<string, unknown> };
-  attachments?: Array<{ type: string; name?: string }>;
-  useBrain?: boolean;
-  estimatedCredits?: number;
-  generationId?: string | null;
-  jobId?: string | null;
-  providerRequestCount?: number;
-}): Promise<void> {
+export async function maybeScheduleImageShadow(input: ImageShadowSchedulePayload): Promise<void> {
   try {
     const { pipeline, engineId } = await getToolProductionPipeline(input.registryToolId);
     const shadowFlags = await getShadowFeatureFlags();
@@ -44,25 +31,51 @@ export async function maybeScheduleImageShadow(input: {
     const legacySnapshot = buildImageLegacySnapshot({
       finalPrompt: input.finalPrompt,
       model: input.model,
+      imageProvider: input.legacyImageProvider,
       fortValues: input.fort?.enabled ? input.fort.values : undefined,
       estimatedCredits: input.estimatedCredits,
+      presetId: input.presetId,
+      restrictions: input.fortExpertBrief,
+      brainSections: input.brainBrief
+        ? ["full"]
+        : input.brandOnly
+          ? ["workspace_brand"]
+          : undefined,
     });
 
     const shadowInput: ShadowCompileInput = {
       toolId: input.registryToolId,
       registryToolId: input.registryToolId,
       model: input.model,
-      userId: input.userId ?? undefined,
+      userId: input.userId,
       workspaceId: input.workspaceId ?? undefined,
       userPrompt: input.userPrompt,
       selections: input.selections,
       fort: input.fort,
       attachments: input.attachments,
       useBrain: input.useBrain,
+      brandOnly: input.brandOnly,
+      presetId: input.presetId,
+      presetPrompt: input.presetPrompt,
+      quality: input.quality,
+      n: input.n,
+      explicitSize: input.size,
+      workspaceBrandBrief: input.workspaceBrandBrief,
+      brainBrief: input.brainBrief,
+      matchedSourcesBrief: input.matchedSourcesBrief,
+      brainLogoUrl: input.brainLogoUrl,
+      matchedSourceUrls: input.matchedSourceUrls,
+      fetchedUrls: input.fetchedUrls,
+      toolPrompts: input.toolPrompts,
+      fortLayerText: input.fortLayerText,
+      fortExpertBrief: input.fortExpertBrief,
+      textMode: input.textMode,
+      font: input.font,
       legacySnapshot,
-      generationId: input.generationId ?? undefined,
-      jobId: input.jobId ?? undefined,
-      providerRequestCount: input.providerRequestCount ?? 1,
+      imageContextMetadata: buildImageShadowContextMetadata({ payload: input }),
+      generationId: input.generationId,
+      jobId: input.jobId,
+      providerRequestCount: 1,
     };
 
     await scheduleShadowCompilationReliable(runShadowCompilation, shadowInput);
@@ -129,3 +142,5 @@ export async function maybeScheduleWebShadow(input: {
     console.error("[shadow/web] schedule failed:", e);
   }
 }
+
+export type { ImageShadowSchedulePayload };

@@ -199,7 +199,7 @@ export async function generateSite(
     email: project.email,
     phone: project.phone,
     location: project.location,
-    primaryColor: project.theme.primaryColor,
+    ...(project.explicitBrandColor ? { primaryColor: project.explicitBrandColor } : {}),
     userPrompt: project.prompt ?? project.goal,
     websiteType: project.websiteType,
     speed: project.speed,

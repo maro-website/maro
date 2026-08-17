@@ -1,11 +1,25 @@
-import type { CompiledGenerationBrief, EngineToolId } from "../types";
+import type { CompiledGenerationBrief, EngineCompileContext, EngineToolId } from "../types";
 import { mapWebBriefToClaude } from "./claudeWeb";
 import { mapImageBriefToOpenAI } from "./openaiImage";
 import type { MappedEngineProviderRequest } from "./types";
+import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
+import type { CompileGenerationBriefInput } from "../types";
+
+export interface MapEngineBriefOptions {
+  effort?: string;
+  imageSize?: ImageSize;
+  imageQuality?: ImageQuality;
+  imageN?: number;
+  compileInput?: CompileGenerationBriefInput;
+  compileContext?: Pick<EngineCompileContext, "toolPrompts">;
+  brainLogoUrl?: string;
+  matchedSourceUrls?: string[];
+  fetchedUrls?: Set<string>;
+}
 
 export function mapEngineBriefToProviderRequest(
   brief: CompiledGenerationBrief,
-  opts?: { effort?: string; imageSize?: string }
+  opts?: MapEngineBriefOptions
 ): MappedEngineProviderRequest | null {
   const tool = brief.tool;
   const messages = brief.providerMessages;
@@ -24,7 +38,16 @@ export function mapEngineBriefToProviderRequest(
   }
 
   if (tool === "maro_imazh" || tool === "maro_logo") {
-    const mapped = mapImageBriefToOpenAI(brief, { size: opts?.imageSize });
+    const mapped = mapImageBriefToOpenAI(brief, {
+      size: opts?.imageSize,
+      quality: opts?.imageQuality,
+      n: opts?.imageN,
+      compileInput: opts?.compileInput,
+      compileContext: opts?.compileContext,
+      brainLogoUrl: opts?.brainLogoUrl,
+      matchedSourceUrls: opts?.matchedSourceUrls,
+      fetchedUrls: opts?.fetchedUrls,
+    });
     if (!mapped.ok || !mapped.request) return null;
     return {
       tool: tool as "maro_imazh" | "maro_logo",

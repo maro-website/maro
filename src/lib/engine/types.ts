@@ -1,6 +1,7 @@
 /** Maro Engine — canonical types for Phase 2A compiler + CMS. */
 
 import type { AiGenerateRequest } from "@/lib/ai/types";
+import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
 
 export type EngineToolId =
   | "maro_imazh"
@@ -184,6 +185,8 @@ export interface ShadowComparisonSnapshot {
   outputRequirements?: string;
   restrictions?: string;
   attachmentsMeta?: CompileAttachmentMeta[];
+  /** maroImazh shadow — normalized provider intent (no raw reference bytes). */
+  imageProvider?: import("./imageCompile").NormalizedOpenAIImageRequest;
   metadata?: Record<string, unknown>;
 }
 
@@ -219,6 +222,19 @@ export interface ShadowContextMetadata {
   timestamp?: string;
   providerRequestCount?: number;
   engineProviderRequestCount?: number;
+  /** maroImazh runtime shadow review fields */
+  imageOperation?: "generate" | "edit";
+  imageSize?: string;
+  imageQuality?: string | null;
+  imageN?: number;
+  referenceCountReceived?: number;
+  referenceCountUsable?: number;
+  referenceCountUsed?: number;
+  fallbackFromEditToGenerate?: boolean;
+  textMode?: "on" | "off";
+  font?: string | null;
+  brandOnly?: boolean;
+  presetPresent?: boolean;
 }
 
 export interface ShadowStructuralDiff {
@@ -264,6 +280,12 @@ export interface CompileGenerationBriefInput {
   generationType?: string;
   /** maroWeb business fields — required for full legacy user-prompt parity. */
   webRequest?: Partial<AiGenerateRequest>;
+  /** maroImazh explicit OpenAI size override (legacy body.size). */
+  explicitSize?: ImageSize;
+  quality?: ImageQuality;
+  n?: number;
+  /** Brand-only workspace brief when brain profile is absent (legacy parity). */
+  workspaceBrandBrief?: string;
 }
 
 export interface AppliedPromptLayer {
@@ -299,6 +321,8 @@ export interface CompiledGenerationBrief {
   creativeDirection?: string;
   technicalDirection?: string;
   fort?: Record<string, unknown>;
+  /** maroImazh: Fort applied layer text prepended before core prompt (legacy order). */
+  fortLayerText?: string;
   preset?: { id: string; label?: string };
   appliedLayers: AppliedPromptLayer[];
   requiredElements?: string;

@@ -1,9 +1,25 @@
 import "server-only";
 import OpenAI, { toFile } from "openai";
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
+import { MODULE_LIMITS } from "@/lib/generation/limits";
 
 // "chatgpt image 2.0" == gpt-image-2 (OpenAI's flagship image model).
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+
+/** Wall-clock budget for a single OpenAI image generate/edit call. */
+export const OPENAI_TIMEOUT_MS =
+  parseInt(process.env.OPENAI_TIMEOUT_MS || "", 10) || MODULE_LIMITS.image.timeoutMs;
+
+export class OpenAIImageError extends Error {
+  code: string;
+  detail: string;
+  constructor(code: string, detail = "") {
+    super(code);
+    this.name = "OpenAIImageError";
+    this.code = code;
+    this.detail = detail;
+  }
+}
 
 export function hasOpenAiKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
@@ -17,6 +33,39 @@ function client(): OpenAI {
   return cached;
 }
 
+function extractB64Images(res: { data?: Array<{ b64_json?: string }> }): string[] {
+  return (res.data ?? [])
+    .map((d) => d.b64_json)
+    .filter((b): b is string => typeof b === "string" && b.length > 0);
+}
+
+async function withOpenAITimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = OPENAI_TIMEOUT_MS
+): Promise<T> {
+  const ac = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ac.abort();
+  }, timeoutMs);
+  try {
+    return await run(ac.signal);
+  } catch (err) {
+    if (timedOut || (err as Error)?.name === "AbortError") {
+      throw new OpenAIImageError(
+        "timeout",
+        `exceeded ${Math.round(timeoutMs / 1000)}s time budget`
+      );
+    }
+    if (err instanceof OpenAIImageError) throw err;
+    const message = (err as Error)?.message ?? "openai_failed";
+    throw new OpenAIImageError("provider_failed", message);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Generate one or more images. Returns base64-encoded PNG strings (gpt-image
 // models return b64_json by default — no expiring URLs).
 export async function generateImages(opts: {
@@ -24,6 +73,7 @@ export async function generateImages(opts: {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
+  timeoutMs?: number;
 }): Promise<string[]> {
   const params = {
     model: IMAGE_MODEL,
@@ -33,16 +83,17 @@ export async function generateImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageGenerateParams;
 
-  // The generate() overload can return a Stream union; we always request the
-  // non-streaming form, so narrow the result to the images response shape.
-  const res = (await client().images.generate(params)) as unknown as {
-    data?: Array<{ b64_json?: string }>;
-  };
+  const res = await withOpenAITimeout(async (signal) => {
+    return (await client().images.generate(params, { signal })) as unknown as {
+      data?: Array<{ b64_json?: string }>;
+    };
+  }, opts.timeoutMs);
 
-  const list = res.data ?? [];
-  return list
-    .map((d) => d.b64_json)
-    .filter((b): b is string => typeof b === "string" && b.length > 0);
+  const images = extractB64Images(res);
+  if (!images.length) {
+    throw new OpenAIImageError("empty", "openai returned no image data");
+  }
+  return images;
 }
 
 // Convert a data URL ("data:image/png;base64,....") into an OpenAI upload File.
@@ -63,6 +114,7 @@ export async function editImages(opts: {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
+  timeoutMs?: number;
 }): Promise<string[]> {
   const files = await Promise.all(
     opts.images.slice(0, 4).map((d, i) => dataUrlToFile(d, i))
@@ -77,12 +129,15 @@ export async function editImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageEditParams;
 
-  const res = (await client().images.edit(params)) as unknown as {
-    data?: Array<{ b64_json?: string }>;
-  };
+  const res = await withOpenAITimeout(async (signal) => {
+    return (await client().images.edit(params, { signal })) as unknown as {
+      data?: Array<{ b64_json?: string }>;
+    };
+  }, opts.timeoutMs);
 
-  const list = res.data ?? [];
-  return list
-    .map((d) => d.b64_json)
-    .filter((b): b is string => typeof b === "string" && b.length > 0);
+  const images = extractB64Images(res);
+  if (!images.length) {
+    throw new OpenAIImageError("empty", "openai returned no image data");
+  }
+  return images;
 }

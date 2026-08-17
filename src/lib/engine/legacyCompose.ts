@@ -4,7 +4,7 @@
  */
 
 import {
-  composeToolPrompt,
+  defaultSelections,
   findOption,
   getTool,
   visibleSettings,
@@ -22,6 +22,7 @@ import {
 import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/brainTypes";
 import { buildHtmlGenerateSystem, buildHtmlGenerateUser } from "@/lib/ai/prompts";
 import type { AiGenerateRequest } from "@/lib/ai/types";
+import { assembleImageFlatPrompt } from "./imageCompile";
 import type { EngineToolId } from "./types";
 import { getRegistryToolId } from "./toolRegistry";
 
@@ -33,19 +34,22 @@ export interface LegacyComposeInput {
   masterPrompt?: string;
   fortConfig?: FortConfig;
   fort?: { enabled: boolean; values: Record<string, unknown> };
-  attachments?: Array<{ type: string }>;
+  attachments?: Array<{ type: string; url?: string }>;
   useBrain?: boolean;
   brainProfile?: WorkspaceBrainProfile | null;
   sources?: WorkspaceSource[];
   /** Web-only generate body fields */
   webBody?: Partial<AiGenerateRequest>;
   presetPrompt?: string;
+  workspaceBrandBrief?: string;
 }
 
 export interface LegacyComposeResult {
   prompt: string;
   system?: string;
   user?: string;
+  fortLayerText?: string;
+  fortExpertBrief?: string;
 }
 
 export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeResult {
@@ -90,7 +94,6 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
       userPrompt: input.userPrompt,
       websiteType: input.webBody?.websiteType ?? "business",
       speed: input.webBody?.speed ?? "fast",
-      primaryColor: input.webBody?.primaryColor ?? "#253FDA",
       ...input.webBody,
     } as AiGenerateRequest;
 
@@ -100,52 +103,72 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
     return { prompt: `${system}\n\n---\n\n${user}`, system, user };
   }
 
-  let finalPrompt = composeToolPrompt(tool, input.selections, input.toolPrompts, input.userPrompt);
-  if (input.presetPrompt?.trim()) {
-    finalPrompt = `${input.presetPrompt.trim()}\n\n${finalPrompt}`;
-  }
-
-  const hasRefs = (input.attachments ?? []).some((a) => a.type.startsWith("image"));
-  if (hasRefs) {
-    finalPrompt = `${finalPrompt}\n\nIMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.`;
-  }
-
-  const textSetting = tool.settings.find((s) => s.id === "text");
-  if (textSetting) {
-    const textOn = (input.selections.text ?? textSetting.default) === "on";
-    if (textOn) {
-      const fontSetting = tool.settings.find((s) => s.id === "font");
-      const fontOpt = fontSetting
-        ? findOption(fontSetting, input.selections.font ?? fontSetting.default)
-        : undefined;
-      const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
-      finalPrompt = `${finalPrompt}\n\nText: render any requested headline/text cleanly and legibly, spelling every word correctly.${fontNote}`;
-    } else {
-      finalPrompt = `${finalPrompt}\n\nDo not include any text, letters, words, numbers or watermarks in the image.`;
-    }
-  }
+  let finalPrompt = assembleImageFlatPrompt({
+    toolId: input.toolId,
+    userPrompt: input.userPrompt,
+    selections: input.selections,
+    toolPrompts: input.toolPrompts ?? {},
+    presetPrompt: input.presetPrompt,
+    attachments: input.attachments,
+    fortLayerText: undefined,
+    fortExpertBrief: undefined,
+    brainBrief: undefined,
+  });
 
   const fortModule = toolToFortModule(registryId);
+  let fortLayerText: string | undefined;
+  let fortExpertBrief: string | undefined;
   if (input.fort?.enabled && fortModule) {
     const brief = buildFortBrief({
       module: fortModule,
       config: input.fortConfig,
       values: (input.fort.values ?? {}) as FortValues,
     });
-    const compiled = compileBrief(brief.briefText);
-    const layerText = brief.appliedLayers.map((l) => l.content.trim()).filter(Boolean).join("\n\n");
-    const parts: string[] = [];
-    if (layerText) parts.push(layerText);
-    parts.push(finalPrompt);
-    if (compiled.text.trim()) parts.push(`## BRIEF EKSPERT (maroFort)\n${compiled.text}`);
-    finalPrompt = parts.join("\n\n");
+    fortExpertBrief = compileBrief(brief.briefText).text.trim();
+    fortLayerText = brief.appliedLayers.map((l) => l.content.trim()).filter(Boolean).join("\n\n");
+    finalPrompt = assembleImageFlatPrompt({
+      toolId: input.toolId,
+      userPrompt: input.userPrompt,
+      selections: input.selections,
+      toolPrompts: input.toolPrompts ?? {},
+      presetPrompt: input.presetPrompt,
+      attachments: input.attachments,
+      fortLayerText,
+      fortExpertBrief,
+    });
   }
 
+  let brainBrief: string | undefined;
+  let matchedSourcesBrief: string | undefined;
   if (input.useBrain && input.brainProfile && registryId === "reklama") {
-    finalPrompt = `${finalPrompt}\n\n${buildBrainBrief(input.brainProfile)}`;
+    brainBrief = buildBrainBrief(input.brainProfile);
     const matched = matchSourcesByPrompt(input.userPrompt, input.sources ?? []);
-    if (matched.length) finalPrompt = `${finalPrompt}\n\n${buildMatchedSourcesBrief(matched)}`;
+    if (matched.length) matchedSourcesBrief = buildMatchedSourcesBrief(matched);
+    finalPrompt = assembleImageFlatPrompt({
+      toolId: input.toolId,
+      userPrompt: input.userPrompt,
+      selections: input.selections,
+      toolPrompts: input.toolPrompts ?? {},
+      presetPrompt: input.presetPrompt,
+      attachments: input.attachments,
+      fortLayerText,
+      fortExpertBrief,
+      brainBrief,
+      matchedSourcesBrief,
+    });
+  } else if (input.useBrain && input.workspaceBrandBrief?.trim() && registryId === "reklama") {
+    finalPrompt = assembleImageFlatPrompt({
+      toolId: input.toolId,
+      userPrompt: input.userPrompt,
+      selections: input.selections,
+      toolPrompts: input.toolPrompts ?? {},
+      presetPrompt: input.presetPrompt,
+      attachments: input.attachments,
+      fortLayerText,
+      fortExpertBrief,
+      workspaceBrandBrief: input.workspaceBrandBrief,
+    });
   }
 
-  return { prompt: finalPrompt };
+  return { prompt: finalPrompt, fortLayerText, fortExpertBrief };
 }

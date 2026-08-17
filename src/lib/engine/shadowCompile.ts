@@ -5,6 +5,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { compileGenerationBrief } from "./compiler";
 import { buildStructuralDiff, snapshotFromEngineBrief } from "./shadowDiff";
 import { buildWebStructuralDiff } from "./shadowWebDiff";
+import { buildImageStructuralDiff } from "./shadowImageDiff";
+import { buildNormalizedFromBrief } from "./adapters/openaiImage";
 import { loadCompileContext } from "./storage";
 import { resolveEngineToolId } from "./toolRegistry";
 import type {
@@ -15,6 +17,7 @@ import type {
   ShadowReviewStatus,
   ShadowStructuralDiff,
 } from "./types";
+import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
 
 export interface ShadowCompileInput {
   toolId: string;
@@ -37,6 +40,22 @@ export interface ShadowCompileInput {
   webRequest?: import("@/lib/ai/types").AiGenerateRequest;
   /** Instrumentation from production route — must stay 1. */
   providerRequestCount?: number;
+  quality?: ImageQuality;
+  n?: number;
+  explicitSize?: ImageSize;
+  workspaceBrandBrief?: string;
+  brainBrief?: string;
+  matchedSourcesBrief?: string;
+  brainLogoUrl?: string;
+  matchedSourceUrls?: string[];
+  fetchedUrls?: string[];
+  toolPrompts?: Record<string, string>;
+  fortLayerText?: string;
+  fortExpertBrief?: string;
+  brandOnly?: boolean;
+  textMode?: "on" | "off";
+  font?: string;
+  imageContextMetadata?: Record<string, unknown>;
 }
 
 export interface ShadowCompileResult {
@@ -68,6 +87,10 @@ function buildContextMetadata(input: {
   engine: ShadowComparisonSnapshot;
   compileError?: string;
 }): ShadowContextMetadata {
+  const legacyProvider = input.legacy.imageProvider;
+  const engineProvider = input.engine.imageProvider;
+  const imageMeta = input.shadowInput.imageContextMetadata ?? {};
+
   return {
     generationId: input.shadowInput.generationId,
     jobId: input.shadowInput.jobId,
@@ -94,6 +117,23 @@ function buildContextMetadata(input: {
     timestamp: new Date().toISOString(),
     providerRequestCount: input.shadowInput.providerRequestCount ?? 1,
     engineProviderRequestCount: 0,
+    imageOperation: legacyProvider?.operation ?? (imageMeta.operation as "generate" | "edit" | undefined),
+    imageSize: legacyProvider?.size ?? (imageMeta.size as string | undefined),
+    imageQuality: legacyProvider?.quality ?? (imageMeta.quality as string | null | undefined),
+    imageN: legacyProvider?.n ?? (imageMeta.n as number | undefined),
+    referenceCountReceived:
+      legacyProvider?.referenceCountReceived ?? (imageMeta.referenceCountReceived as number | undefined),
+    referenceCountUsable:
+      legacyProvider?.referenceCountUsable ?? (imageMeta.referenceCountUsable as number | undefined),
+    referenceCountUsed:
+      legacyProvider?.referenceCountUsed ?? (imageMeta.referenceCountUsed as number | undefined),
+    fallbackFromEditToGenerate:
+      legacyProvider?.fallbackFromEditToGenerate ??
+      (imageMeta.fallbackFromEditToGenerate as boolean | undefined),
+    textMode: input.shadowInput.textMode ?? (imageMeta.textMode as "on" | "off" | undefined),
+    font: input.shadowInput.font ?? (imageMeta.font as string | null | undefined),
+    brandOnly: input.shadowInput.brandOnly ?? (imageMeta.brandOnly as boolean | undefined),
+    presetPresent: Boolean(input.shadowInput.presetId ?? imageMeta.presetPresent),
   };
 }
 
@@ -134,6 +174,10 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
       presetId: input.presetId,
       presetPrompt: input.presetPrompt,
       useBrain: input.useBrain,
+      quality: input.quality,
+      n: input.n,
+      explicitSize: input.explicitSize,
+      workspaceBrandBrief: input.workspaceBrandBrief,
       webRequest: input.webRequest ?? (engineId === "maro_web"
         ? ({
             businessName: "Business",
@@ -154,13 +198,45 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
     const brief = compileGenerationBrief(compileInput, ctx);
     let engineSnapshot = enrichEngineSnapshot(brief, snapshotFromEngineBrief(brief));
 
+    if (engineId === "maro_imazh" || engineId === "maro_logo") {
+      const normalized = buildNormalizedFromBrief(brief, compileInput, {
+        toolPrompts: input.toolPrompts ?? ctx.toolPrompts,
+      }, {
+        size: input.explicitSize,
+        quality: input.quality,
+        n: input.n,
+        brainLogoUrl: input.brainLogoUrl,
+        matchedSourceUrls: input.matchedSourceUrls,
+        fetchedUrls: input.fetchedUrls ? new Set(input.fetchedUrls) : undefined,
+        brainBriefOverride: input.brainBrief,
+        matchedSourcesBrief: input.matchedSourcesBrief,
+        workspaceBrandBrief: input.workspaceBrandBrief,
+      });
+      engineSnapshot = {
+        ...engineSnapshot,
+        userContent: normalized.prompt,
+        renderedPreview: normalized.prompt,
+        imageProvider: normalized,
+        metadata: {
+          ...engineSnapshot.metadata,
+          presetId: input.presetId,
+        },
+      };
+    }
+
     const structuralDiff =
       engineId === "maro_web"
         ? buildWebStructuralDiff(input.legacySnapshot, engineSnapshot, {
             fortEnabled: input.fort?.enabled,
             websiteType: input.websiteType ?? input.legacySnapshot.websiteType,
           })
-        : buildStructuralDiff(input.legacySnapshot, engineSnapshot);
+        : engineId === "maro_imazh" || engineId === "maro_logo"
+          ? buildImageStructuralDiff(input.legacySnapshot, engineSnapshot, {
+              fortEnabled: input.fort?.enabled,
+              brainUsed: Boolean(input.useBrain && (input.brainBrief || input.brandOnly)),
+              presetPresent: Boolean(input.presetId),
+            })
+          : buildStructuralDiff(input.legacySnapshot, engineSnapshot);
 
     const hasCritical =
       "hasCriticalMismatch" in structuralDiff && Boolean(structuralDiff.hasCriticalMismatch);

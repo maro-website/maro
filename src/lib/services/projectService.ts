@@ -42,8 +42,9 @@ export function createProjectFromComposer(input: {
     style: "auto",
     language: "auto",
     status: "generating",
-    primaryColor: input.primaryColor || "#253FDA",
+    ...(input.primaryColor ? { primaryColor: input.primaryColor } : {}),
   });
+  if (input.primaryColor) p.explicitBrandColor = input.primaryColor;
   p.prompt = input.prompt;
   p.websiteType = input.websiteType;
   p.speed = input.speed;
@@ -98,6 +99,7 @@ export function createProjectFromDraft(draft: WizardDraft): Project {
     });
   }
   p.assets = [...uploaded, ...p.assets];
+  if (draft.primaryColor?.trim()) p.explicitBrandColor = draft.primaryColor.trim();
 
   return p;
 }

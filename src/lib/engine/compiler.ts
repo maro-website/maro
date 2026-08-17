@@ -17,6 +17,11 @@ import {
 } from "@/lib/tools/registry";
 import { buildConditionContext, matchesEngineConditions } from "./conditions";
 import { buildToolBrainContext, resolveBrainMapping } from "./brainMapping";
+import {
+  buildBrainBrief,
+  buildMatchedSourcesBrief,
+  matchSourcesByPrompt,
+} from "@/lib/workspaces/brainProfile";
 import { detectBriefConflicts } from "./conflicts";
 import { validateModelForTool } from "./models";
 import { estimateGenerationCredits } from "./pricing";
@@ -74,6 +79,11 @@ function buildOptionFragments(
   return parts.join("\n\n");
 }
 
+import {
+  IMAGE_REFERENCE_PRESERVATION,
+  buildImageTextInstruction,
+} from "./imageCompile";
+
 function buildTechnicalDirection(
   toolId: EngineToolId,
   selections: ToolSelections,
@@ -84,29 +94,12 @@ function buildTechnicalDirection(
   if (!tool) return undefined;
 
   const lines: string[] = [];
-  if ((attachments ?? []).length > 0) {
-    lines.push(
-      "Use provided reference attachment(s) faithfully. Preserve product shape, colors, label and proportions."
-    );
+  if ((attachments ?? []).some((a) => a.type.startsWith("image") || a.url?.startsWith("data:image/"))) {
+    lines.push(IMAGE_REFERENCE_PRESERVATION);
   }
 
-  const textSetting = tool.settings.find((s) => s.id === "text");
-  if (textSetting) {
-    const textOn = (selections.text ?? textSetting.default) === "on";
-    if (textOn) {
-      const fontSetting = tool.settings.find((s) => s.id === "font");
-      const fontOpt = fontSetting
-        ? findOption(fontSetting, selections.font ?? fontSetting.default)
-        : undefined;
-      lines.push(
-        fontOpt
-          ? `Render requested text cleanly with ${fontOpt.label} typography.`
-          : "Render requested text cleanly and legibly."
-      );
-    } else {
-      lines.push("Do not include text, letters, words, numbers or watermarks.");
-    }
-  }
+  const textInstruction = buildImageTextInstruction(toolId, selections);
+  if (textInstruction) lines.push(textInstruction);
 
   for (const s of visibleSettings(tool, selections)) {
     const opt = findOption(s, selections[s.id] ?? s.default);
@@ -144,15 +137,34 @@ export function compileGenerationBrief(
   const optionFragments = buildOptionFragments(engineId, selections, ctx.toolPrompts);
   const brainMapping = resolveBrainMapping(engineId, ctx.tool.brainMapping);
   const useBrain = input.useBrain !== false && brainMapping.usesBrain;
-  const brain = useBrain
-    ? buildToolBrainContext({
-        toolId: engineId,
-        mapping: brainMapping,
-        profile: ctx.brainProfile ?? null,
-        userPrompt: input.userPrompt,
-        sources: ctx.brainSources ?? [],
-      })
-    : { text: "", sectionsUsed: [] as string[] };
+  let brain: { text: string; sectionsUsed: string[] };
+  if (useBrain && ctx.brainProfile && (engineId === "maro_imazh" || engineId === "maro_logo")) {
+    let text = buildBrainBrief(ctx.brainProfile);
+    const matched = matchSourcesByPrompt(input.userPrompt, ctx.brainSources ?? []);
+    const sectionsUsed: string[] = ["full"];
+    if (matched.length) {
+      text = `${text}\n\n${buildMatchedSourcesBrief(matched)}`;
+      sectionsUsed.push("matched_sources");
+    }
+    brain = { text, sectionsUsed };
+  } else if (
+    useBrain &&
+    !ctx.brainProfile &&
+    input.workspaceBrandBrief?.trim() &&
+    (engineId === "maro_imazh" || engineId === "maro_logo")
+  ) {
+    brain = { text: input.workspaceBrandBrief.trim(), sectionsUsed: ["workspace_brand"] };
+  } else if (useBrain) {
+    brain = buildToolBrainContext({
+      toolId: engineId,
+      mapping: brainMapping,
+      profile: ctx.brainProfile ?? null,
+      userPrompt: input.userPrompt,
+      sources: ctx.brainSources ?? [],
+    });
+  } else {
+    brain = { text: "", sectionsUsed: [] };
+  }
 
   let fortBlock: Record<string, unknown> | undefined;
   let fortBriefText = "";
@@ -225,6 +237,7 @@ export function compileGenerationBrief(
     creativeDirection: creativeParts.length ? creativeParts.join("\n\n") : undefined,
     technicalDirection,
     fort: fortBlock,
+    fortLayerText: engineId !== "maro_web" && fortLayerText ? fortLayerText : undefined,
     preset: input.presetId ? { id: input.presetId } : undefined,
     appliedLayers,
     restrictions: engineId === "maro_web" ? undefined : fortBriefText || undefined,

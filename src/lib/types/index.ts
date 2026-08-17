@@ -223,6 +223,8 @@ export interface Project {
   /** maro Prompts: id of an attached curated prompt (hidden template). */
   maroPromptId?: string;
   language: LanguageCode;
+  /** Customer brand color explicitly supplied for generation (never Maro UI fallback). */
+  explicitBrandColor?: string;
   category: WebsiteCategory;
   style: StyleKey;
   generationMode: GenerationMode;

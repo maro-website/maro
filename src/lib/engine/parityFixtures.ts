@@ -19,7 +19,7 @@ export interface ParityFixture {
   context?: Partial<EngineCompileContext>;
 }
 
-const DEFAULT_TOOL_PROMPTS: Record<string, string> = {
+export const DEFAULT_TOOL_PROMPTS: Record<string, string> = {
   "reklama.base":
     "You are maro Imazh, an expert visual art director. Produce a scroll-stopping, high-quality image with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
   "logo.base":

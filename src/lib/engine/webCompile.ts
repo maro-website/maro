@@ -19,6 +19,7 @@ export function buildWebOutputRequirements(input: CompileGenerationBriefInput): 
     language: wr?.language,
     userPrompt: input.userPrompt ?? wr?.userPrompt,
     goal: wr?.goal,
+    primaryColor: wr?.primaryColor,
   });
 }
 
@@ -33,7 +34,7 @@ export function buildWebUserContent(
     goal: input.webRequest?.goal ?? input.userPrompt ?? "",
     userPrompt: input.userPrompt ?? "",
     tagline: input.webRequest?.tagline,
-    primaryColor: input.webRequest?.primaryColor ?? "#253FDA",
+    primaryColor: input.webRequest?.primaryColor,
     email: input.webRequest?.email,
     phone: input.webRequest?.phone,
     location: input.webRequest?.location,

@@ -16,6 +16,8 @@ export const MODULE_LIMITS = {
   image: {
     maxImagesPerRequest: 4,
     regenCostsCredits: true,
+    /** Abort OpenAI image calls before route maxDuration (300s). Override via OPENAI_TIMEOUT_MS. */
+    timeoutMs: 270_000,
   },
   logo: {
     maxResults: 4,

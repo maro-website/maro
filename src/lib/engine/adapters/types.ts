@@ -1,4 +1,5 @@
 import type { CompiledGenerationBrief, ProviderMessagePackage } from "../types";
+import type { SafeImageReferenceMeta } from "../imageCompile";
 
 export interface ClaudeAdapterRequest {
   system: string;
@@ -9,11 +10,19 @@ export interface ClaudeAdapterRequest {
 }
 
 export interface OpenAIImageAdapterRequest {
+  operation: "generate" | "edit";
   prompt: string;
   model: string;
   size?: string;
   quality?: string;
   n?: number;
+  references?: SafeImageReferenceMeta[];
+  referenceCountReceived?: number;
+  referenceCountUsable?: number;
+  referenceCountUsed?: number;
+  referenceLimit?: number;
+  referencesRequested?: boolean;
+  fallbackFromEditToGenerate?: boolean;
 }
 
 export interface EngineAdapterResult<T> {

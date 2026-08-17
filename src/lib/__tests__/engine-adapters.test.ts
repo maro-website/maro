@@ -18,15 +18,15 @@ describe("Engine provider adapters", () => {
     expect(mapped.request?.user).toContain("Dental clinic");
   });
 
-  it("maps maroImazh brief to OpenAI image request", () => {
+  it("maps maroImazh brief to OpenAI image request with generate/edit", () => {
     const ctx = buildTestContext("maro_imazh");
-    const brief = compileGenerationBrief(
-      { toolId: "maro_imazh", userPrompt: "Product photo on marble" },
-      ctx
-    );
-    const mapped = mapImageBriefToOpenAI(brief);
+    const input = { toolId: "maro_imazh" as const, userPrompt: "Product photo on marble" };
+    const brief = compileGenerationBrief(input, ctx);
+    const mapped = mapImageBriefToOpenAI(brief, { compileInput: input, compileContext: ctx });
     expect(mapped.ok).toBe(true);
+    expect(mapped.request?.operation).toBe("generate");
     expect(mapped.request?.prompt).toBeTruthy();
+    expect(mapped.request?.n).toBe(1);
   });
 
   it("mapEngineBriefToProviderRequest selects provider by tool", () => {
@@ -35,8 +35,14 @@ describe("Engine provider adapters", () => {
     expect(mapEngineBriefToProviderRequest(webBrief)?.provider).toBe("anthropic");
 
     const imCtx = buildTestContext("maro_imazh");
-    const imBrief = compileGenerationBrief({ toolId: "maro_imazh", userPrompt: "Photo" }, imCtx);
-    expect(mapEngineBriefToProviderRequest(imBrief)?.provider).toBe("openai");
+    const imInput = { toolId: "maro_imazh" as const, userPrompt: "Photo" };
+    const imBrief = compileGenerationBrief(imInput, imCtx);
+    expect(
+      mapEngineBriefToProviderRequest(imBrief, {
+        compileInput: imInput,
+        compileContext: imCtx,
+      })?.provider
+    ).toBe("openai");
   });
 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { IMAGE_MODEL, generateImages, editImages, hasOpenAiKey } from "@/lib/ai/openai";
+import { IMAGE_MODEL, generateImages, editImages, hasOpenAiKey, OpenAIImageError } from "@/lib/ai/openai";
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
@@ -36,7 +36,17 @@ import {
 import { toolToFortModule } from "@/lib/fort/types";
 import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
+import {
+  buildRuntimeImageLegacyProvider,
+  type ImageShadowSchedulePayload,
+} from "@/lib/engine/imageShadowRuntime";
+import {
+  createImageReferenceTracker,
+  toSafeAttachmentMeta,
+} from "@/lib/engine/imageReferenceTracker";
+import { IMAGE_PROVIDER_REF_LIMIT } from "@/lib/engine/imageCompile";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
+import type { ImageSize } from "@/lib/tools/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,10 +77,12 @@ export async function POST(req: Request) {
   let finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
 
   let maroPromptId: string | undefined;
+  let presetPromptText: string | undefined;
   if (body.maroPrompt?.id) {
     const tpl = await getPromptTemplate(body.maroPrompt.id);
     if (tpl?.full_prompt?.trim()) {
-      finalPrompt = `${tpl.full_prompt.trim()}\n\n${finalPrompt}`;
+      presetPromptText = tpl.full_prompt.trim();
+      finalPrompt = `${presetPromptText}\n\n${finalPrompt}`;
       maroPromptId = body.maroPrompt.id;
     }
   }
@@ -83,13 +95,17 @@ export async function POST(req: Request) {
   }
 
   const textSetting = tool.settings.find((s) => s.id === "text");
+  const textOn = textSetting
+    ? (selections.text ?? textSetting.default) === "on"
+    : false;
+  let fontSelection: string | undefined;
   if (textSetting) {
-    const textOn = (selections.text ?? textSetting.default) === "on";
     if (textOn) {
       const fontSetting = tool.settings.find((s) => s.id === "font");
       const fontOpt = fontSetting
         ? findOption(fontSetting, selections.font ?? fontSetting.default)
         : undefined;
+      fontSelection = fontOpt?.id ?? selections.font;
       const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
       finalPrompt = `${finalPrompt}\n\nText: render any requested headline/text cleanly and legibly, spelling every word correctly.${fontNote}`;
     } else {
@@ -135,6 +151,8 @@ export async function POST(req: Request) {
 
   const fortModule = toolToFortModule(tool.id);
   let fortLog: Record<string, unknown> | undefined;
+  let fortLayerText: string | undefined;
+  let fortExpertBrief: string | undefined;
   if (entitled && body.fort?.enabled && fortModule) {
     const brief = buildFortBrief({
       module: fortModule,
@@ -142,14 +160,15 @@ export async function POST(req: Request) {
       values: body.fort.values ?? {},
     });
     const compiled = compileBrief(brief.briefText);
-    const layerText = brief.appliedLayers
+    fortLayerText = brief.appliedLayers
       .map((l) => l.content.trim())
       .filter(Boolean)
       .join("\n\n");
+    fortExpertBrief = compiled.text.trim();
     const parts: string[] = [];
-    if (layerText) parts.push(layerText);
+    if (fortLayerText) parts.push(fortLayerText);
     parts.push(finalPrompt);
-    if (compiled.text.trim()) parts.push(`## BRIEF EKSPERT (maroFort)\n${compiled.text}`);
+    if (fortExpertBrief) parts.push(`## BRIEF EKSPERT (maroFort)\n${fortExpertBrief}`);
     finalPrompt = parts.join("\n\n");
     fortLog = {
       enabled: true,
@@ -159,44 +178,78 @@ export async function POST(req: Request) {
     };
   }
 
+  const refTracker = createImageReferenceTracker();
+  const fetchedUrls: string[] = [];
+
+  for (const attachment of body.attachments ?? []) {
+    if (typeof attachment !== "string") continue;
+    refTracker.recordAttempt("user", attachment);
+  }
+
   const refs = (body.attachments ?? []).filter(
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
 
-  async function pushRefFromUrl(url: string) {
+  async function pushRefFromUrl(
+    url: string,
+    sourceType: "workspace_brain" | "matched_source" = "workspace_brain"
+  ) {
     const u = url.trim();
     if (!u) return;
     if (u.startsWith("data:image/")) {
+      refTracker.recordAttempt(sourceType, u, true);
       if (!refs.includes(u)) refs.push(u);
       return;
     }
     if (!u.startsWith("http")) return;
+    refTracker.recordAttempt(sourceType, u, false);
     try {
       const res = await fetch(u);
       if (!res.ok) return;
       const mime = res.headers.get("content-type") || "image/png";
       const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
-      refs.push(`data:${mime};base64,${b64}`);
+      const dataUrl = `data:${mime};base64,${b64}`;
+      refTracker.markUsable(u);
+      fetchedUrls.push(u);
+      refs.push(dataUrl);
     } catch {
-      /* skip */
+      /* skip failed reference fetch — legacy falls back when none remain */
     }
   }
+
+  let brainBrief: string | undefined;
+  let workspaceBrandBrief: string | undefined;
+  let matchedSourcesBrief: string | undefined;
+  let brainLogoUrl: string | undefined;
+  let matchedSourceUrls: string[] = [];
+  let brandOnly = false;
 
   if (body.useWorkspaceBrand && userId && workspaceId) {
     const brain = await getWorkspaceBrainProfile(userId, workspaceId);
     const brand = await getWorkspaceBrand(userId, workspaceId);
     if (brain) {
-      finalPrompt = `${finalPrompt}\n\n${buildBrainBrief(brain)}`;
+      brainBrief = buildBrainBrief(brain);
+      finalPrompt = `${finalPrompt}\n\n${brainBrief}`;
       const sources = await getWorkspaceSources(userId, workspaceId);
       const matched = matchSourcesByPrompt(body.prompt, sources);
       if (matched.length) {
-        finalPrompt = `${finalPrompt}\n\n${buildMatchedSourcesBrief(matched)}`;
-        for (const s of matched) await pushRefFromUrl(s.fileUrl);
+        matchedSourcesBrief = buildMatchedSourcesBrief(matched);
+        matchedSourceUrls = matched.map((s) => s.fileUrl).filter(Boolean);
+        finalPrompt = `${finalPrompt}\n\n${matchedSourcesBrief}`;
+        for (const s of matched) await pushRefFromUrl(s.fileUrl, "matched_source");
       }
-      if (brain.brand.logoUrl) await pushRefFromUrl(brain.brand.logoUrl);
+      if (brain.brand.logoUrl) {
+        brainLogoUrl = brain.brand.logoUrl;
+        await pushRefFromUrl(brain.brand.logoUrl, "workspace_brain");
+      }
     } else if (brand) {
-      finalPrompt = `${finalPrompt}\n\n${buildWorkspaceBrandBrief(brand)}`;
-      if (brand.logoUrl) await pushRefFromUrl(brand.logoUrl);
+      workspaceBrandBrief = buildWorkspaceBrandBrief(brand);
+      brandOnly = true;
+      finalPrompt = `${finalPrompt}\n\n${workspaceBrandBrief}`;
+      if (brand.logoUrl) {
+        brainLogoUrl = brand.logoUrl;
+        await pushRefFromUrl(brand.logoUrl, "workspace_brain");
+      }
     }
   }
 
@@ -266,7 +319,21 @@ export async function POST(req: Request) {
             fort: fortLog,
             workspace_id: workspaceId ?? undefined,
           });
-          void maybeScheduleImageShadow({
+
+          const providerRefsUsed = refs.length
+            ? Math.min(refs.length, IMAGE_PROVIDER_REF_LIMIT)
+            : 0;
+          const referenceOutcome = refTracker.finalize(providerRefsUsed);
+          const legacyImageProvider = buildRuntimeImageLegacyProvider({
+            finalPrompt,
+            model: IMAGE_MODEL,
+            size: (size ?? "1024x1024") as ImageSize,
+            quality: body.quality,
+            n,
+            referenceOutcome,
+          });
+
+          const shadowPayload: ImageShadowSchedulePayload = {
             registryToolId: tool.id,
             finalPrompt,
             model: IMAGE_MODEL,
@@ -275,14 +342,32 @@ export async function POST(req: Request) {
             userPrompt: body.prompt,
             selections,
             fort: body.fort,
-            attachments: (body.attachments ?? []).map((a) => ({
-              type: typeof a === "string" ? "image" : "unknown",
-            })),
+            attachments: toSafeAttachmentMeta(body.attachments),
             useBrain: Boolean(body.useWorkspaceBrand && workspaceId),
+            brandOnly,
             estimatedCredits: cost,
-            generationId,
+            generationId: generationId ?? undefined,
             jobId: prep?.job.id,
-          });
+            presetId: maroPromptId,
+            presetPrompt: presetPromptText,
+            quality: body.quality,
+            n,
+            size: (size ?? "1024x1024") as ImageSize,
+            toolPrompts: settings.tool_prompts ?? {},
+            fortLayerText,
+            fortExpertBrief,
+            brainBrief,
+            matchedSourcesBrief,
+            workspaceBrandBrief,
+            brainLogoUrl,
+            matchedSourceUrls,
+            fetchedUrls,
+            legacyImageProvider,
+            textMode: textOn ? "on" : "off",
+            font: fontSelection,
+          };
+
+          void maybeScheduleImageShadow(shadowPayload);
           if (prep) {
             await completeGeneration({
               jobId: prep.job.id,
@@ -306,17 +391,24 @@ export async function POST(req: Request) {
       } catch (err) {
         console.error("[ai/image] failed:", err);
         let refunded = false;
+        const errorCode =
+          err instanceof OpenAIImageError ? err.code : (err as Error)?.message ?? "ai-failed";
+        const clientError =
+          errorCode === "timeout" ? "timeout" : errorCode === "empty" ? "empty" : "ai-failed";
         if (prep && cost) {
           refunded = await failGeneration({
             jobId: prep.job.id,
             idempotencyKey: prep.idempotencyKey,
-            error: (err as Error)?.message ?? "ai-failed",
+            error: errorCode,
           });
         }
         send({
           ok: false,
-          error: "ai-failed",
-          detail: (err as Error)?.message,
+          error: clientError,
+          detail:
+            err instanceof OpenAIImageError
+              ? err.detail || err.code
+              : (err as Error)?.message,
           refunded,
           jobId: prep?.job.id,
         });

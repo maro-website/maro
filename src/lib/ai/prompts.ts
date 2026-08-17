@@ -8,8 +8,15 @@ import {
   langDisplayName,
   resolveWebContentLanguage,
 } from "./webLanguage";
+import {
+  buildWebBrandColorHtmlRule,
+  resolveWebBrandColorFromRequest,
+  webBusinessBrandColorLine,
+  type WebBrandColorResolution,
+} from "./webBrandColor";
 
 export { WEB_LOCALE_NEUTRALITY_POLICY } from "./webLanguage";
+export { CLIENT_BRAND_ISOLATION_INVARIANT, MARO_UI_BRAND_COLOR } from "./webBrandColor";
 
 // Documents the exact `data` shape the renderer expects for each section kind.
 // The model must fill these fields; unknown fields are ignored by the renderer.
@@ -115,6 +122,10 @@ export function buildComposedGenerateSystem(
   const copyLanguage = lang.injectDirective
     ? langDisplayName(lang.code as "sq" | "en" | "de")
     : "the language the user requested, or match the language of their request naturally";
+  const brand = resolveWebBrandColorFromRequest({ primaryColor: req.primaryColor });
+  const themeRule = brand.injectDirective
+    ? `3. Choose a "theme" that matches the brand: keep primaryColor close to ${req.primaryColor}, pick tasteful fonts and buttonStyle for the industry.`
+    : `3. Choose a "theme" that matches the brand and visual direction: pick tasteful fonts, colors, and buttonStyle for the industry.`;
   return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are maro AI. Generate a complete, professional website. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${typeGuide}
@@ -126,7 +137,7 @@ ${THEME_SPEC}
 RULES:
 1. The first page MUST have slug "home". Every page's first section should be a "hero". End pages with "cta" and/or "contact" where appropriate.
 2. Write specific, credible, conversion-focused copy in ${copyLanguage} tailored to THIS business — never generic placeholder text.
-3. Choose a "theme" that matches the brand: keep primaryColor close to ${req.primaryColor}, pick tasteful fonts and buttonStyle for the industry.
+${themeRule}
 4. Each page needs "seo": { title, description (<=155 chars), slug }.
 5. Follow the IMAGE RULES strictly (empty strings / empty arrays).
 
@@ -136,14 +147,14 @@ Respond with ONLY a JSON object (no markdown, no prose):
 
 export function buildComposedGenerateUser(req: AiGenerateRequest): string {
   const languageLine = webBusinessLanguageLine(req);
+  const brandLine = webBusinessBrandColorLineFromRequest(req);
   return `USER REQUEST (what the user typed):
 ${req.userPrompt || req.goal || "(none)"}
 
 BUSINESS DETAILS:
 - Name: ${req.businessName}
 - Tagline: ${req.tagline || "(none)"}
-- Brand color: ${req.primaryColor}
-- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
+${brandLine}- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
 ${languageLine}
 Generate the full website now.`;
 }
@@ -162,7 +173,23 @@ const HTML_PAGE_COUNT: Record<string, string> = {
     "Produce 4-5 pages (home, features, pricing, about, contact). Each page is its own complete document.",
 };
 
-const HTML_RULES = `OUTPUT FORMAT (follow EXACTLY, output nothing else, no markdown fences, no commentary):
+function webBusinessBrandColorLineFromRequest(
+  req: AiGenerateRequest,
+  opts?: { brainBrandColor?: string; presetBrandColor?: string }
+): string {
+  const resolution = resolveWebBrandColorFromRequest({
+    primaryColor: req.primaryColor,
+    brainBrandColor: opts?.brainBrandColor,
+    presetBrandColor: opts?.presetBrandColor,
+  });
+  return webBusinessBrandColorLine(resolution);
+}
+
+function buildHtmlRules(brandColor?: WebBrandColorResolution): string {
+  const brandRule = buildWebBrandColorHtmlRule(
+    brandColor ?? { injectDirective: false }
+  );
+  return `OUTPUT FORMAT (follow EXACTLY, output nothing else, no markdown fences, no commentary):
 For every page output one block:
 ===PAGE===
 SLUG: <url-slug>
@@ -179,8 +206,9 @@ HARD RULES for each HTML document:
 5. IMAGERY: use REAL photographs, never childish vector blobs, cartoon illustrations or emoji. Use <img> tags with high-quality, ON-TOPIC photos from Unsplash via this exact pattern: https://images.unsplash.com/photo-<REAL_ID>?auto=format&fit=crop&w=1600&q=80 where <REAL_ID> is a genuine Unsplash photo id relevant to this business (hero, gallery, team, product, background, etc). ALWAYS include a graceful fallback so an image can never appear broken: onerror="this.onerror=null;this.src='https://picsum.photos/seed/<UNIQUE_SEED>/1600/900'". Use Tailwind object-cover with sensible aspect ratios and loading="lazy". INLINE SVG is allowed ONLY for small icons and the logo, never for photographic/hero/section imagery. Do not use icon-font CDNs.
 6. Include a sticky header with the business name + nav (anchor links to in-page sections) and a footer.
 7. Write specific, credible, conversion-focused copy (never lorem ipsum) in the requested language.
-8. Keep the primary brand color close to the provided hex; build a coherent palette around it.
+${brandRule}
 9. Do NOT use the em-dash character. Use commas or periods.`;
+}
 
 /** Immutable maroWeb designer role — injected by legacy + Engine compiler. */
 export function buildWebSystemRoleAppendix(): string {
@@ -194,6 +222,9 @@ export function buildWebHtmlOutputContract(input: {
   userPrompt?: string;
   goal?: string;
   brandLanguage?: string;
+  primaryColor?: string;
+  brainBrandColor?: string;
+  presetBrandColor?: string;
 }): string {
   const count = HTML_PAGE_COUNT[input.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
   const resolution = resolveWebContentLanguage({
@@ -201,13 +232,18 @@ export function buildWebHtmlOutputContract(input: {
     userPrompt: input.userPrompt ?? input.goal,
     brandLanguage: input.brandLanguage,
   });
+  const brand = resolveWebBrandColorFromRequest({
+    primaryColor: input.primaryColor,
+    brainBrandColor: input.brainBrandColor,
+    presetBrandColor: input.presetBrandColor,
+  });
   return `${count}
 
 ${buildWebLanguageDirective(resolution)}
 
 ${WEB_LOCALE_NEUTRALITY_POLICY}
 
-${HTML_RULES}`;
+${buildHtmlRules(brand)}`;
 }
 
 export function buildHtmlGenerateSystem(
@@ -223,19 +259,20 @@ ${buildWebHtmlOutputContract({
   userPrompt: req.userPrompt,
   goal: req.goal,
   brandLanguage,
+  primaryColor: req.primaryColor,
 })}`;
 }
 
 export function buildHtmlGenerateUser(req: AiGenerateRequest, brandLanguage?: string): string {
   const languageLine = webBusinessLanguageLine(req, brandLanguage);
+  const brandLine = webBusinessBrandColorLineFromRequest(req);
   return `USER REQUEST (what the user typed):
 ${req.userPrompt || req.goal || "(none)"}
 
 BUSINESS DETAILS:
 - Name: ${req.businessName}
 - Tagline: ${req.tagline || "(none)"}
-- Brand color: ${req.primaryColor}
-- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
+${brandLine}- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
 ${languageLine}
 Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
 }
@@ -279,6 +316,10 @@ export function buildGenerateSystem(req: AiGenerateRequest): string {
   const copyLanguage = lang.injectDirective
     ? langDisplayName(lang.code as "sq" | "en" | "de")
     : "the language the user requested, or match the language of their request naturally";
+  const brand = resolveWebBrandColorFromRequest({ primaryColor: req.primaryColor });
+  const themeRule = brand.injectDirective
+    ? `4. Choose a "theme" that matches the brand: keep primaryColor close to the provided brand color, pick tasteful fonts and buttonStyle for the category (e.g. restaurants/agencies can use a serif heading like Playfair Display; clinics/construction read better with Manrope/Space Grotesk).`
+    : `4. Choose a "theme" that matches the brand and visual direction: pick tasteful fonts, colors, and buttonStyle for the category (e.g. restaurants/agencies can use a serif heading like Playfair Display; clinics/construction read better with Manrope/Space Grotesk).`;
   return `You are maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${SECTION_SPEC}
@@ -289,7 +330,7 @@ RULES:
 1. Produce 3-4 pages. The first page MUST have slug "home" and 6-8 well-chosen sections that fit a ${req.category} business. Typical secondary pages: about, services/menu/work, contact.
 2. Every page's first section should be a "hero". Every page should end with a "cta" and/or "contact" where appropriate.
 3. Write specific, credible, conversion-focused copy in ${copyLanguage} tailored to THIS business — never generic placeholder text. Use the business name naturally.
-4. Choose a "theme" that matches the brand: keep primaryColor close to the provided brand color, pick tasteful fonts and buttonStyle for the category (e.g. restaurants/agencies can use a serif heading like Playfair Display; clinics/construction read better with Manrope/Space Grotesk).
+${themeRule}
 5. Each page needs "seo": { title, description (<=155 chars), slug }.
 6. Follow the IMAGE RULES strictly (empty strings / empty arrays).
 
@@ -299,13 +340,13 @@ Respond with ONLY a JSON object (no markdown, no prose):
 
 export function buildGenerateUser(req: AiGenerateRequest): string {
   const languageLine = webBusinessLanguageLine(req);
+  const brandLine = webBusinessBrandColorLineFromRequest(req);
   return `BUSINESS BRIEF:
 - Name: ${req.businessName}
 - What they do / goal: ${req.goal || "(not specified)"}
 - Tagline: ${req.tagline || "(none)"}
 - Category: ${req.category}
-- Brand color: ${req.primaryColor}
-- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
+${brandLine}- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
 ${languageLine}
 Generate the full website now.`;
 }

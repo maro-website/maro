@@ -29,7 +29,6 @@ function webRequest(
     language: overrides.language ?? WEB_LANGUAGE_AUTO,
     goal: userPrompt,
     userPrompt,
-    primaryColor: "#253FDA",
     websiteType: "landing",
     ...overrides,
   };
