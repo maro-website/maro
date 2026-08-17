@@ -39,19 +39,55 @@ function extractB64Images(res: { data?: Array<{ b64_json?: string }> }): string[
     .filter((b): b is string => typeof b === "string" && b.length > 0);
 }
 
+function linkExternalAbort(ac: AbortController, external?: AbortSignal): () => void {
+  if (!external) return () => undefined;
+  if (external.aborted) {
+    ac.abort();
+    return () => undefined;
+  }
+  const onAbort = () => ac.abort();
+  external.addEventListener("abort", onAbort);
+  return () => external.removeEventListener("abort", onAbort);
+}
+
 async function withOpenAITimeout<T>(
   run: (signal: AbortSignal) => Promise<T>,
-  timeoutMs = OPENAI_TIMEOUT_MS
+  timeoutMs = OPENAI_TIMEOUT_MS,
+  externalSignal?: AbortSignal
 ): Promise<T> {
   const ac = new AbortController();
+  const unlinkExternal = linkExternalAbort(ac, externalSignal);
   let timedOut = false;
+  let clientAborted = false;
   const timer = setTimeout(() => {
     timedOut = true;
     ac.abort();
   }, timeoutMs);
+  if (externalSignal?.aborted) clientAborted = true;
+  else if (externalSignal) {
+    externalSignal.addEventListener(
+      "abort",
+      () => {
+        clientAborted = true;
+      },
+      { once: true }
+    );
+  }
   try {
+    if (ac.signal.aborted) {
+      if (clientAborted && !timedOut) {
+        throw new OpenAIImageError("client_disconnect", "client disconnected");
+      }
+      throw new OpenAIImageError(
+        "timeout",
+        `exceeded ${Math.round(timeoutMs / 1000)}s time budget`
+      );
+    }
     return await run(ac.signal);
   } catch (err) {
+    if (clientAborted && !timedOut) {
+      throw new OpenAIImageError("client_disconnect", "client disconnected");
+    }
     if (timedOut || (err as Error)?.name === "AbortError") {
       throw new OpenAIImageError(
         "timeout",
@@ -62,6 +98,7 @@ async function withOpenAITimeout<T>(
     const message = (err as Error)?.message ?? "openai_failed";
     throw new OpenAIImageError("provider_failed", message);
   } finally {
+    unlinkExternal();
     clearTimeout(timer);
   }
 }
@@ -74,6 +111,7 @@ export async function generateImages(opts: {
   quality?: ImageQuality;
   n?: number;
   timeoutMs?: number;
+  abortSignal?: AbortSignal;
 }): Promise<string[]> {
   const params = {
     model: IMAGE_MODEL,
@@ -83,11 +121,15 @@ export async function generateImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageGenerateParams;
 
-  const res = await withOpenAITimeout(async (signal) => {
-    return (await client().images.generate(params, { signal })) as unknown as {
-      data?: Array<{ b64_json?: string }>;
-    };
-  }, opts.timeoutMs);
+  const res = await withOpenAITimeout(
+    async (signal) => {
+      return (await client().images.generate(params, { signal })) as unknown as {
+        data?: Array<{ b64_json?: string }>;
+      };
+    },
+    opts.timeoutMs,
+    opts.abortSignal
+  );
 
   const images = extractB64Images(res);
   if (!images.length) {
@@ -115,6 +157,7 @@ export async function editImages(opts: {
   quality?: ImageQuality;
   n?: number;
   timeoutMs?: number;
+  abortSignal?: AbortSignal;
 }): Promise<string[]> {
   const files = await Promise.all(
     opts.images.slice(0, 4).map((d, i) => dataUrlToFile(d, i))
@@ -129,11 +172,15 @@ export async function editImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageEditParams;
 
-  const res = await withOpenAITimeout(async (signal) => {
-    return (await client().images.edit(params, { signal })) as unknown as {
-      data?: Array<{ b64_json?: string }>;
-    };
-  }, opts.timeoutMs);
+  const res = await withOpenAITimeout(
+    async (signal) => {
+      return (await client().images.edit(params, { signal })) as unknown as {
+        data?: Array<{ b64_json?: string }>;
+      };
+    },
+    opts.timeoutMs,
+    opts.abortSignal
+  );
 
   const images = extractB64Images(res);
   if (!images.length) {

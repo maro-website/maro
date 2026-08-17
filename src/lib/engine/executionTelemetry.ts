@@ -47,6 +47,8 @@ export interface GenerationExecutionTelemetry {
   fort_enabled?: boolean | null;
   brain_used?: boolean | null;
   preset_present?: boolean | null;
+  /** ISO timestamp when execution decision + initial stamp were persisted. */
+  execution_started_at?: string | null;
 }
 
 export function buildInitialExecutionTelemetry(input: {
@@ -57,6 +59,8 @@ export function buildInitialExecutionTelemetry(input: {
   compiler?: GenerationExecutionTelemetry["compiler"];
   provider?: GenerationExecutionTelemetry["provider"];
   module?: string;
+  operation?: GenerationExecutionTelemetry["operation"];
+  executionStartedAt?: string;
 }): GenerationExecutionTelemetry {
   return {
     configured_pipeline: input.configuredPipeline,
@@ -67,6 +71,9 @@ export function buildInitialExecutionTelemetry(input: {
     internal_canary: input.internalCanary,
     provider_request_count: 0,
     module: input.module ?? null,
+    operation: input.operation ?? null,
+    success: false,
+    execution_started_at: input.executionStartedAt ?? new Date().toISOString(),
   };
 }
 

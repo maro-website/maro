@@ -15,6 +15,7 @@ export type ImageEngineGenerateCall = (opts: {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
+  abortSignal?: AbortSignal;
 }) => Promise<string[]>;
 
 export type ImageEngineEditCall = (opts: {
@@ -23,6 +24,7 @@ export type ImageEngineEditCall = (opts: {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
+  abortSignal?: AbortSignal;
 }) => Promise<string[]>;
 
 export interface ImageEngineProviderCalls {
@@ -92,6 +94,12 @@ export async function runImageEngineInternalGeneration(input: {
   n: number;
   size?: ImageSize;
   provider?: ImageEngineProviderCalls;
+  abortSignal?: AbortSignal;
+  /** Persist provider attempt telemetry immediately before the single OpenAI call. */
+  onProviderAttemptStart?: (info: {
+    operation: "generate" | "edit";
+    providerRequestCount: 1;
+  }) => void | Promise<void>;
 }): Promise<ImageEngineRunResult> {
   const started = Date.now();
   let providerRequestCount = 0;
@@ -158,21 +166,26 @@ export async function runImageEngineInternalGeneration(input: {
   }
 
   const req = mapped.openaiImage;
-  const provider = input.provider ?? { generate: generateImages, edit: editImages };
+  const provider = input.provider ?? {
+    generate: (opts) => generateImages(opts),
+    edit: (opts) => editImages(opts),
+  };
   const providerStarted = Date.now();
   let b64s: string[];
 
   try {
-    providerRequestCount = 1;
     if (req.operation === "edit") {
       const images = input.resolvedRefBytes.slice(0, IMAGE_PROVIDER_REF_LIMIT);
       if (!images.length) {
         if (req.fallbackFromEditToGenerate) {
+          providerRequestCount = 1;
+          await input.onProviderAttemptStart?.({ operation: "generate", providerRequestCount: 1 });
           b64s = await provider.generate({
             prompt: req.prompt,
             size: (req.size as ImageSize | undefined) ?? input.size,
             quality: input.quality,
             n: req.n ?? input.n,
+            abortSignal: input.abortSignal,
           });
         } else {
           return {
@@ -185,20 +198,26 @@ export async function runImageEngineInternalGeneration(input: {
           };
         }
       } else {
+        providerRequestCount = 1;
+        await input.onProviderAttemptStart?.({ operation: "edit", providerRequestCount: 1 });
         b64s = await provider.edit({
           prompt: req.prompt,
           images,
           size: (req.size as ImageSize | undefined) ?? input.size,
           quality: input.quality,
           n: req.n ?? input.n,
+          abortSignal: input.abortSignal,
         });
       }
     } else {
+      providerRequestCount = 1;
+      await input.onProviderAttemptStart?.({ operation: "generate", providerRequestCount: 1 });
       b64s = await provider.generate({
         prompt: req.prompt,
         size: (req.size as ImageSize | undefined) ?? input.size,
         quality: input.quality,
         n: req.n ?? input.n,
+        abortSignal: input.abortSignal,
       });
     }
   } catch (e) {

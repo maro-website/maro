@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
+import { cleanupStaleJobs } from "@/lib/generation/jobs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export async function POST(req: Request) {
   const failedCutoff = new Date(Date.now() - 7 * 86400000).toISOString();
   const rateCutoff = new Date(Date.now() - 86400000).toISOString();
 
+  await cleanupStaleJobs();
+
   const { data: staleJobs } = await admin
     .from("generation_jobs")
     .select("id, metadata")
@@ -44,6 +47,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    staleJobsReconciled: true,
     jobsDeleted,
     rateEventsTrimmed: true,
   });

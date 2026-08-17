@@ -13,6 +13,7 @@ import {
   createJob,
   cleanupStaleJobs,
   findJobByIdempotency,
+  getJob,
   isInFlightJobStatus,
   updateJob,
   type GenerationJob,
@@ -79,11 +80,12 @@ export async function settlePreparedGeneration(opts: {
   model?: string;
   outcome: "success" | "failure";
   error?: string;
+  generationId?: string | null;
+  imageCount?: number;
 }): Promise<void> {
   if (opts.financial.terminal !== "pending") return;
 
   if (opts.outcome === "success") {
-    opts.financial.terminal = "success";
     await completeGeneration({
       jobId: opts.prep.job.id,
       userId: opts.userId,
@@ -91,17 +93,20 @@ export async function settlePreparedGeneration(opts: {
       cost: opts.cost,
       skipBilling: opts.cost <= 0,
       model: opts.model,
+      generationId: opts.generationId,
+      imageCount: opts.imageCount,
     });
+    opts.financial.terminal = "success";
     return;
   }
 
-  opts.financial.terminal = "failed";
   await failGeneration({
     jobId: opts.prep.job.id,
     idempotencyKey: opts.prep.idempotencyKey,
     error: opts.error ?? "generation_failed",
     skipBilling: opts.cost <= 0,
   });
+  opts.financial.terminal = "failed";
 }
 
 /** Guarantee a prepared job reaches a financial terminal state (failure if still pending). */
@@ -115,6 +120,13 @@ export async function ensurePreparedGenerationTerminal(opts: {
   incompleteError?: string;
 }): Promise<void> {
   if (opts.financial.terminal !== "pending") return;
+
+  const job = await getJob(opts.prep.job.id);
+  if (job?.status === "completed" || Number(job?.credits_charged ?? 0) > 0) {
+    opts.financial.terminal = "success";
+    return;
+  }
+
   await settlePreparedGeneration({
     financial: opts.financial,
     prep: opts.prep,
@@ -240,6 +252,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       ? (limits.maxConcurrentFort ?? 3)
       : (limits.maxConcurrentFree ?? 1);
 
+    await cleanupStaleJobs();
     await cleanupStaleJobs(user.id);
 
     const active = await countActiveJobs(user.id);

@@ -26,6 +26,7 @@ vi.mock("@/lib/generation/jobs", async (importOriginal) => {
     findJobByIdempotency,
     createJob,
     countActiveJobs,
+    getJob: vi.fn(async () => null),
   };
 });
 

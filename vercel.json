@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/data-retention",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-stale-jobs",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

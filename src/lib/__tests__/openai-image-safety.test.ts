@@ -129,6 +129,16 @@ describe("OpenAI image provider safety", () => {
     expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
 
+  it("F: client abort signal maps to client_disconnect without retry", async () => {
+    const { generateImages } = await loadOpenAI();
+    const ac = new AbortController();
+    ac.abort();
+    await expect(
+      generateImages({ prompt: "x", timeoutMs: 5000, abortSignal: ac.signal })
+    ).rejects.toMatchObject({ code: "client_disconnect" });
+    expect(mockGenerate).not.toHaveBeenCalled();
+  });
+
   it("H: failGeneration on timeout releases credits without charging", async () => {
     const { failGeneration } = await import("@/lib/generation/orchestrator");
     const released = await failGeneration({

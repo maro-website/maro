@@ -22,10 +22,12 @@ import {
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
-  completeGeneration,
-  failGeneration,
   guardErrorResponse,
+  settlePreparedGeneration,
+  ensurePreparedGenerationTerminal,
+  type GenerationFinancialState,
 } from "@/lib/generation/orchestrator";
+import { createImageClientAbortScope } from "@/lib/generation/imageStreamLifecycle";
 import { MODULE_LIMITS } from "@/lib/generation/limits";
 import {
   composeToolPrompt,
@@ -276,6 +278,8 @@ export async function POST(req: Request) {
     registryToolId: tool.id,
   });
 
+  const inferredOperation = refs.length ? ("edit" as const) : ("generate" as const);
+
   if (prep) {
     await stampJobExecutionTelemetry(
       prep.job.id,
@@ -287,9 +291,12 @@ export async function POST(req: Request) {
         module: tool.id,
         provider: "openai",
         compiler: execution.mode === "engine_internal" ? "maro_engine_v1" : "legacy",
+        operation: execution.mode === "engine_internal" ? inferredOperation : null,
       })
     );
   }
+
+  const abortScope = createImageClientAbortScope(req);
 
   // Stream heartbeats while OpenAI generates so Cloudflare (~100s proxy timeout)
   // keeps the connection open until images are ready (maro Imazh + maro Logo).
@@ -302,6 +309,8 @@ export async function POST(req: Request) {
       const heartbeat = setInterval(() => {
         controller.enqueue(enc.encode(": ping\n\n"));
       }, 15000);
+
+      const financial: GenerationFinancialState = { terminal: "pending" };
 
       try {
         const routeStarted = Date.now();
@@ -329,18 +338,32 @@ export async function POST(req: Request) {
             quality: body.quality,
             n,
             size: (size ?? "1024x1024") as ImageSize,
+            abortSignal: abortScope.abortSignal,
+            onProviderAttemptStart: async (info) => {
+              abortScope.markProviderAttemptStarted();
+              if (prep) {
+                await stampJobExecutionTelemetry(prep.job.id, {
+                  provider_request_count: info.providerRequestCount,
+                  operation: info.operation,
+                });
+              }
+            },
           });
 
           if (!engineResult.ok) {
             let refunded = false;
-            if (prep && cost) {
-              refunded = Boolean(
-                await failGeneration({
-                  jobId: prep.job.id,
-                  idempotencyKey: prep.idempotencyKey,
-                  error: engineResult.code ?? engineResult.error,
-                })
-              );
+            if (prep && cost && userId) {
+              await settlePreparedGeneration({
+                financial,
+                prep,
+                userId,
+                module: tool.id,
+                cost,
+                model: IMAGE_MODEL,
+                outcome: "failure",
+                error: engineResult.code ?? engineResult.error,
+              });
+              refunded = financial.terminal === "failed";
             }
             if (prep) {
               await stampJobExecutionTelemetry(prep.job.id, {
@@ -389,6 +412,13 @@ export async function POST(req: Request) {
             });
           }
         } else {
+          if (prep) {
+            abortScope.markProviderAttemptStarted();
+            await stampJobExecutionTelemetry(prep.job.id, {
+              provider_request_count: 1,
+              operation: inferredOperation,
+            });
+          }
           b64s = refs.length
             ? await editImages({
                 prompt: finalPrompt,
@@ -396,23 +426,31 @@ export async function POST(req: Request) {
                 size,
                 quality: body.quality,
                 n: body.n,
+                abortSignal: abortScope.abortSignal,
               })
             : await generateImages({
                 prompt: finalPrompt,
                 size,
                 quality: body.quality,
                 n,
+                abortSignal: abortScope.abortSignal,
               });
         }
 
         if (!b64s.length) {
           let refunded = false;
-          if (prep && cost) {
-            refunded = await failGeneration({
-              jobId: prep.job.id,
-              idempotencyKey: prep.idempotencyKey,
+          if (prep && cost && userId) {
+            await settlePreparedGeneration({
+              financial,
+              prep,
+              userId,
+              module: tool.id,
+              cost,
+              model: IMAGE_MODEL,
+              outcome: "failure",
               error: "empty",
             });
+            refunded = financial.terminal === "failed";
           }
           if (prep && execution.mode === "engine_internal") {
             await stampJobExecutionTelemetry(prep.job.id, {
@@ -502,12 +540,15 @@ export async function POST(req: Request) {
           }
 
           if (prep) {
-            await completeGeneration({
-              jobId: prep.job.id,
+            await settlePreparedGeneration({
+              financial,
+              prep,
               userId,
               module: tool.id,
               cost,
               model: IMAGE_MODEL,
+              outcome: "success",
+              generationId,
               imageCount: b64s.length,
             });
             if (execution.mode === "engine_internal") {
@@ -534,12 +575,31 @@ export async function POST(req: Request) {
         const errorCode =
           err instanceof OpenAIImageError ? err.code : (err as Error)?.message ?? "ai-failed";
         const clientError =
-          errorCode === "timeout" ? "timeout" : errorCode === "empty" ? "empty" : "ai-failed";
-        if (prep && cost) {
-          refunded = await failGeneration({
-            jobId: prep.job.id,
-            idempotencyKey: prep.idempotencyKey,
+          errorCode === "timeout"
+            ? "timeout"
+            : errorCode === "empty"
+              ? "empty"
+              : errorCode === "client_disconnect"
+                ? "ai-failed"
+                : "ai-failed";
+        if (prep && cost && userId) {
+          await settlePreparedGeneration({
+            financial,
+            prep,
+            userId,
+            module: tool.id,
+            cost,
+            model: IMAGE_MODEL,
+            outcome: "failure",
             error: errorCode,
+          });
+          refunded = financial.terminal === "failed";
+        }
+        if (prep && execution.mode === "engine_internal") {
+          await stampJobExecutionTelemetry(prep.job.id, {
+            failure_stage: "provider",
+            error_code: errorCode,
+            success: false,
           });
         }
         send({
@@ -553,6 +613,19 @@ export async function POST(req: Request) {
           jobId: prep?.job.id,
         });
       } finally {
+        if (prep && userId) {
+          await ensurePreparedGenerationTerminal({
+            financial,
+            prep,
+            userId,
+            module: tool.id,
+            cost,
+            model: IMAGE_MODEL,
+            incompleteError: abortScope.clientDisconnected
+              ? "client_disconnect"
+              : "stream_incomplete",
+          });
+        }
         clearInterval(heartbeat);
         controller.close();
       }
