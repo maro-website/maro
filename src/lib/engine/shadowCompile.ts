@@ -7,6 +7,7 @@ import { buildStructuralDiff, snapshotFromEngineBrief } from "./shadowDiff";
 import { buildWebStructuralDiff } from "./shadowWebDiff";
 import { buildImageStructuralDiff } from "./shadowImageDiff";
 import { buildNormalizedFromBrief } from "./adapters/openaiImage";
+import { applyRuntimeReferenceOutcome } from "./imageCompile";
 import { loadCompileContext } from "./storage";
 import { resolveEngineToolId } from "./toolRegistry";
 import type {
@@ -199,7 +200,7 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
     let engineSnapshot = enrichEngineSnapshot(brief, snapshotFromEngineBrief(brief));
 
     if (engineId === "maro_imazh" || engineId === "maro_logo") {
-      const normalized = buildNormalizedFromBrief(brief, compileInput, {
+      const compiled = buildNormalizedFromBrief(brief, compileInput, {
         toolPrompts: input.toolPrompts ?? ctx.toolPrompts,
       }, {
         size: input.explicitSize,
@@ -212,6 +213,11 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
         matchedSourcesBrief: input.matchedSourcesBrief,
         workspaceBrandBrief: input.workspaceBrandBrief,
       });
+      const runtimeProvider = input.legacySnapshot.imageProvider;
+      const normalized =
+        runtimeProvider != null
+          ? applyRuntimeReferenceOutcome(compiled, runtimeProvider)
+          : compiled;
       engineSnapshot = {
         ...engineSnapshot,
         userContent: normalized.prompt,

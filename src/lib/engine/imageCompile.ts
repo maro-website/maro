@@ -333,6 +333,24 @@ export function buildLegacyImageProviderRequest(input: {
   };
 }
 
+/** Overlay actual legacy runtime reference outcome onto Engine-compiled provider metadata. */
+export function applyRuntimeReferenceOutcome(
+  compiled: NormalizedOpenAIImageRequest,
+  runtime: NormalizedOpenAIImageRequest
+): NormalizedOpenAIImageRequest {
+  return {
+    ...compiled,
+    operation: runtime.operation,
+    references: runtime.references.map((r) => ({ ...r })),
+    referenceCountReceived: runtime.referenceCountReceived,
+    referenceCountUsable: runtime.referenceCountUsable,
+    referenceCountUsed: runtime.referenceCountUsed,
+    referenceLimit: runtime.referenceLimit,
+    referencesRequested: runtime.referencesRequested,
+    fallbackFromEditToGenerate: runtime.fallbackFromEditToGenerate,
+  };
+}
+
 export function buildEngineImageProviderRequest(
   brief: CompiledGenerationBrief,
   input: CompileGenerationBriefInput,
