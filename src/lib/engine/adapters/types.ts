@@ -26,6 +26,8 @@ export interface EngineExecutionGateInput {
   toolId: string;
   pipeline: string;
   promptCompilerV2: boolean;
+  userId?: string | null;
+  internalCanaryEligible?: boolean;
 }
 
 export type EngineAdapterTool = "maro_web" | "maro_imazh" | "maro_logo";

@@ -1,4 +1,5 @@
 import "server-only";
+import { releaseCreditReserve } from "@/lib/credits/ledger";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export type JobStatus =
@@ -33,7 +34,12 @@ export interface GenerationJob {
 export type CreateJobErrorCode =
   | "job_create_failed"
   | "jobs_table_missing"
-  | "jobs_db_permission";
+  | "jobs_db_permission"
+  | "job_idempotency_conflict";
+
+export function isInFlightJobStatus(status: JobStatus): boolean {
+  return status === "pending" || status === "reserved" || status === "processing";
+}
 
 export type CreateJobResult =
   | { ok: true; job: GenerationJob }
@@ -46,17 +52,37 @@ export async function cleanupStaleJobs(userId?: string): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_JOB_MS).toISOString();
   let q = getSupabaseAdmin()
     .from("generation_jobs")
-    .update({
-      status: "failed",
-      error: "stale_timeout",
-      finished_at: new Date().toISOString(),
-    })
+    .select("id, status, credits_reserved")
     .in("status", ["pending", "reserved", "processing"])
     .lt("created_at", cutoff);
   if (userId) q = q.eq("user_id", userId);
-  const { error } = await q;
+
+  const { data: staleJobs, error } = await q;
   if (error) {
-    console.error("[generation_jobs] stale cleanup failed:", error.code, error.message);
+    console.error("[generation_jobs] stale cleanup select failed:", error.code, error.message);
+    return;
+  }
+
+  for (const job of staleJobs ?? []) {
+    const jobId = String(job.id);
+    const hasReservation =
+      Number(job.credits_reserved ?? 0) > 0 ||
+      job.status === "reserved" ||
+      job.status === "processing";
+
+    if (hasReservation) {
+      try {
+        await releaseCreditReserve(jobId, `stale-${jobId}`);
+      } catch (e) {
+        console.error("[generation_jobs] stale credit release failed:", jobId, e);
+      }
+    }
+
+    await updateJob(jobId, {
+      status: "failed",
+      error: "stale_timeout",
+      finished_at: new Date().toISOString(),
+    });
   }
 }
 
@@ -115,7 +141,13 @@ export async function createJob(entry: {
   // Race: two parallel requests with the same idempotency key.
   if (error.code === "23505" && entry.idempotency_key) {
     const existing = await findJobByIdempotency(entry.user_id, entry.idempotency_key);
-    if (existing) return { ok: true, job: existing };
+    if (existing) {
+      return {
+        ok: false,
+        code: "job_idempotency_conflict",
+        detail: existing.id,
+      };
+    }
   }
 
   if (error.code === "42P01") {

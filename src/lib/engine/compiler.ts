@@ -20,7 +20,8 @@ import { buildToolBrainContext, resolveBrainMapping } from "./brainMapping";
 import { detectBriefConflicts } from "./conflicts";
 import { validateModelForTool } from "./models";
 import { estimateGenerationCredits } from "./pricing";
-import { buildProviderMessages } from "./providerMessages";
+import { buildWebSystemRoleAppendix, buildWebOutputRequirements, buildWebUserContent } from "./webCompile";
+import { buildProviderMessages, type BuildProviderMessagesOptions } from "./providerMessages";
 import { summarizeCompileWarnings } from "./warnings";
 import { engineIdToFortModule, getEngineToolDefinition, resolveEngineToolId } from "./toolRegistry";
 import type {
@@ -140,8 +141,6 @@ export function compileGenerationBrief(
   const conditionCtx = buildConditionContext({ ...input, toolId: engineId, selections }, model);
   const appliedLayers = selectPromptLayers(ctx.layers, conditionCtx);
 
-  const systemContent = resolveSystemPromptContent(ctx);
-
   const optionFragments = buildOptionFragments(engineId, selections, ctx.toolPrompts);
   const brainMapping = resolveBrainMapping(engineId, ctx.tool.brainMapping);
   const useBrain = input.useBrain !== false && brainMapping.usesBrain;
@@ -157,6 +156,7 @@ export function compileGenerationBrief(
 
   let fortBlock: Record<string, unknown> | undefined;
   let fortBriefText = "";
+  let fortLayerText = "";
   const fortModule = engineIdToFortModule(engineId);
   if (input.fort?.enabled && fortModule && ctx.tool.usesFort) {
     const brief = buildFortBrief({
@@ -165,6 +165,10 @@ export function compileGenerationBrief(
       values: (input.fort.values ?? {}) as FortValues,
     });
     fortBriefText = compileBrief(brief.briefText).text.trim();
+    fortLayerText = brief.appliedLayers
+      .map((l) => l.content.trim())
+      .filter(Boolean)
+      .join("\n\n");
     fortBlock = {
       enabled: true,
       values: input.fort.values ?? {},
@@ -173,7 +177,7 @@ export function compileGenerationBrief(
     };
   }
 
-  const presetPrompt = ctx.presetPrompt ?? undefined;
+  const presetPrompt = input.presetPrompt ?? ctx.presetPrompt ?? undefined;
   const conflicts = detectBriefConflicts({
     userPrompt: input.userPrompt,
     fortValues: input.fort?.values ?? {},
@@ -182,8 +186,28 @@ export function compileGenerationBrief(
   });
 
   const warnings = summarizeCompileWarnings(ctx);
-  const creativeParts = [optionFragments, presetPrompt].filter(Boolean);
+  const creativeParts =
+    engineId === "maro_web"
+      ? [optionFragments, presetPrompt, fortLayerText].filter(Boolean)
+      : [optionFragments, presetPrompt].filter(Boolean);
   const technicalDirection = buildTechnicalDirection(engineId, selections, input.attachments);
+
+  let systemContent = resolveSystemPromptContent(ctx);
+  if (engineId === "maro_web" && !systemContent.includes("elite web designer")) {
+    systemContent = systemContent
+      ? `${systemContent.trim()}\n\n${buildWebSystemRoleAppendix()}`
+      : buildWebSystemRoleAppendix();
+  }
+
+  const webUserContent =
+    engineId === "maro_web" && input.webRequest
+      ? buildWebUserContent(input, input.fort?.enabled ? fortBriefText : undefined)
+      : undefined;
+
+  const providerOpts: BuildProviderMessagesOptions | undefined =
+    engineId === "maro_web" && webUserContent
+      ? { userContentOverride: webUserContent, omitFortFromSystem: true }
+      : undefined;
 
   const brief: CompiledGenerationBrief = {
     tool: engineId,
@@ -203,11 +227,13 @@ export function compileGenerationBrief(
     fort: fortBlock,
     preset: input.presetId ? { id: input.presetId } : undefined,
     appliedLayers,
-    restrictions: fortBriefText ? undefined : undefined,
+    restrictions: engineId === "maro_web" ? undefined : fortBriefText || undefined,
     outputRequirements:
-      getTool(ctx.tool.registryToolId)?.kind === "website"
-        ? "Produce structured HTML output per maro Web spec."
-        : undefined,
+      engineId === "maro_web"
+        ? buildWebOutputRequirements(input)
+        : getTool(ctx.tool.registryToolId)?.kind === "website"
+          ? "Produce structured HTML output per maro Web spec."
+          : undefined,
     metadata: {
       productionPipeline: ctx.tool.productionPipeline,
       promptCompilerV2: ctx.promptCompilerV2,
@@ -216,15 +242,18 @@ export function compileGenerationBrief(
       conflicts,
       warnings,
       selections,
+      ...(engineId === "maro_web"
+        ? { websiteType: input.webRequest?.websiteType ?? selections.type }
+        : {}),
     },
     estimatedCredits: estimateGenerationCredits(engineId, selections, ctx.pricingOverrides),
   };
 
-  if (fortBriefText) {
+  if (fortBriefText && engineId !== "maro_web") {
     brief.restrictions = fortBriefText;
   }
 
-  brief.providerMessages = buildProviderMessages(brief, systemContent, input);
+  brief.providerMessages = buildProviderMessages(brief, systemContent, input, providerOpts);
   brief.renderedProviderPrompt = brief.providerMessages.debugFlatPreview;
   return brief;
 }

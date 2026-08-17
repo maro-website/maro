@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { AiGenerateRequest } from "@/lib/ai/types";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { compileGenerationBrief } from "./compiler";
 import { buildStructuralDiff, snapshotFromEngineBrief } from "./shadowDiff";
@@ -26,12 +27,14 @@ export interface ShadowCompileInput {
   fort?: { enabled: boolean; values: Record<string, unknown> };
   attachments?: Array<{ type: string; name?: string; url?: string }>;
   presetId?: string;
+  presetPrompt?: string;
   useBrain?: boolean;
   legacySnapshot: ShadowComparisonSnapshot;
   generationId?: string;
   jobId?: string;
   websiteType?: string;
   speed?: string;
+  webRequest?: import("@/lib/ai/types").AiGenerateRequest;
   /** Instrumentation from production route — must stay 1. */
   providerRequestCount?: number;
 }
@@ -129,7 +132,18 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
       fort: input.fort,
       attachments: input.attachments,
       presetId: input.presetId,
+      presetPrompt: input.presetPrompt,
       useBrain: input.useBrain,
+      webRequest: input.webRequest ?? (engineId === "maro_web"
+        ? ({
+            businessName: "Business",
+            category: "generic",
+            language: "sq",
+            goal: input.userPrompt,
+            websiteType: input.websiteType as AiGenerateRequest["websiteType"],
+            speed: input.speed as AiGenerateRequest["speed"],
+          } satisfies Partial<AiGenerateRequest>)
+        : undefined),
     };
 
     const ctx = await loadCompileContext(engineId, {

@@ -4,12 +4,17 @@ import type { EngineExecutionGateInput } from "./types";
 
 /**
  * Production Engine provider execution gate.
- * Returns false while prompt_compiler_v2=false OR pipeline!=engine.
- * Adapters may be built and tested; this gate blocks live provider calls.
+ * Requires global LIVE permission, engine pipeline, authenticated user,
+ * and explicit internal-canary allowlist eligibility.
  */
 export function canExecuteEngineProvider(input: EngineExecutionGateInput): boolean {
   const pipeline = input.pipeline as ProductionPipeline;
-  return wouldUseEngineProvider(pipeline, input.promptCompilerV2);
+  if (!wouldUseEngineProvider(pipeline, input.promptCompilerV2)) {
+    return false;
+  }
+  if (!input.userId) return false;
+  if (input.internalCanaryEligible !== true) return false;
+  return true;
 }
 
 export function assertEngineProviderExecutionBlocked(input: EngineExecutionGateInput): void {

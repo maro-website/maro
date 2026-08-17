@@ -19,9 +19,10 @@ import {
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
-  completeGeneration,
   failGeneration,
   guardErrorResponse,
+  settlePreparedGeneration,
+  type GenerationFinancialState,
 } from "@/lib/generation/orchestrator";
 import { creditCost } from "@/lib/supabase/types";
 import type { SpeedKey, WebsiteKind } from "@/lib/supabase/types";
@@ -29,6 +30,12 @@ import { getTool, toolSelectionCost } from "@/lib/tools/registry";
 import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
 import { maybeScheduleWebShadow } from "@/lib/engine/productionShadow";
+import { resolveWebExecutionContext } from "@/lib/engine/webExecution";
+import { runWebEngineInternalGeneration } from "@/lib/engine/webEngineRun";
+import {
+  buildInitialExecutionTelemetry,
+  stampJobExecutionTelemetry,
+} from "@/lib/engine/executionTelemetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,13 +172,32 @@ export async function POST(req: Request) {
     };
   }
 
+  const execution = await resolveWebExecutionContext({ userId });
+  if (prep) {
+    await stampJobExecutionTelemetry(
+      prep.job.id,
+      buildInitialExecutionTelemetry({
+        configuredPipeline: execution.configuredPipeline,
+        effectiveExecution: execution.label,
+        internalCanary: execution.internalCanary,
+        model: claudeModel,
+        compiler: execution.mode === "engine_internal" ? "maro_engine_v1" : "legacy",
+      })
+    );
+  }
+
   const masterPlusOptions = [settings.master_prompt, extraPrompt, fortLayerText]
     .filter(Boolean)
     .join("\n\n");
-  const system = buildHtmlGenerateSystem(body, masterPlusOptions);
-  let user = buildHtmlGenerateUser(body);
-  if (fortBriefBlock) {
-    user = `${user}\n\n## BRIEF EKSPERT (maroFort)\n${fortBriefBlock}`;
+
+  let system = "";
+  let user = "";
+  if (execution.mode === "legacy") {
+    system = buildHtmlGenerateSystem(body, masterPlusOptions);
+    user = buildHtmlGenerateUser(body);
+    if (fortBriefBlock) {
+      user = `${user}\n\n## BRIEF EKSPERT (maroFort)\n${fortBriefBlock}`;
+    }
   }
 
   // Stream heartbeats while Claude generates so Cloudflare (100s proxy timeout)
@@ -186,9 +212,139 @@ export async function POST(req: Request) {
         controller.enqueue(enc.encode(": ping\n\n"));
       }, 15000);
 
+      const financial: GenerationFinancialState = { terminal: "pending" };
+      const routeStarted = Date.now();
+
       try {
         send({ stage: 0 });
         send({ stage: 1 });
+
+        if (execution.mode === "engine_internal" && userId) {
+          const engineResult = await runWebEngineInternalGeneration({
+            body,
+            userId,
+            workspaceId,
+            selections: selections ?? undefined,
+            fort: body.fort,
+            claudeModel,
+            effort,
+          });
+
+          if (!engineResult.ok) {
+            let refunded = false;
+            if (prep && cost) {
+              refunded = Boolean(
+                await failGeneration({
+                  jobId: prep.job.id,
+                  idempotencyKey: prep.idempotencyKey,
+                  error: engineResult.code ?? engineResult.error,
+                })
+              );
+              financial.terminal = "failed";
+            }
+            if (prep) {
+              await stampJobExecutionTelemetry(prep.job.id, {
+                provider_request_count: engineResult.providerRequestCount,
+                failure_stage: engineResult.stage,
+                error_code: engineResult.code ?? engineResult.error,
+                success: false,
+                total_latency_ms: Date.now() - routeStarted,
+                system_prompt_version: engineResult.brief?.systemPromptVersion?.versionLabel ?? null,
+                system_prompt_status: engineResult.brief?.systemPromptVersion?.status ?? null,
+              });
+            }
+            send({
+              ok: false,
+              error: engineResult.code ?? engineResult.error,
+              detail: engineResult.error,
+              fallback: true,
+              refunded,
+              jobId: prep?.job.id,
+            });
+            return;
+          }
+
+          send({ stage: 4 });
+          send({ stage: 5 });
+
+          let generationId: string | null = null;
+          try {
+            generationId = await logGeneration({
+              user_id: userId,
+              user_email: userEmail,
+              prompt: body.userPrompt || body.goal || "",
+              final_prompt: engineResult.finalPrompt,
+              website_type: kind,
+              speed,
+              model: claudeModel,
+              credits_spent: cost,
+              selections: selections && Object.keys(selections).length ? selections : undefined,
+              fort: fortLog,
+              workspace_id: workspaceId ?? undefined,
+            });
+          } catch (persistErr) {
+            console.error("[ai/generate] engine persistence failed:", persistErr);
+            let refunded = false;
+            if (prep && cost) {
+              refunded = Boolean(
+                await failGeneration({
+                  jobId: prep.job.id,
+                  idempotencyKey: prep.idempotencyKey,
+                  error: "persistence_failed",
+                })
+              );
+              financial.terminal = "failed";
+            }
+            if (prep) {
+              await stampJobExecutionTelemetry(prep.job.id, {
+                provider_request_count: engineResult.providerRequestCount,
+                provider_latency_ms: engineResult.providerLatencyMs,
+                failure_stage: "persistence",
+                error_code: "persistence_failed",
+                success: false,
+                total_latency_ms: Date.now() - routeStarted,
+              });
+            }
+            send({
+              ok: false,
+              error: "persistence_failed",
+              fallback: true,
+              refunded,
+              jobId: prep?.job.id,
+            });
+            return;
+          }
+
+          if (prep) {
+            await settlePreparedGeneration({
+              financial,
+              prep,
+              userId,
+              module: "web",
+              cost,
+              model: claudeModel,
+              outcome: "success",
+            });
+            await stampJobExecutionTelemetry(prep.job.id, {
+              provider_request_count: engineResult.providerRequestCount,
+              provider_latency_ms: engineResult.providerLatencyMs,
+              total_latency_ms: engineResult.totalLatencyMs,
+              success: true,
+              generation_id: generationId,
+              system_prompt_version: engineResult.brief.systemPromptVersion?.versionLabel ?? null,
+              system_prompt_status: engineResult.brief.systemPromptVersion?.status ?? null,
+            });
+          }
+          if (maroPromptId) await incrementPromptUse(maroPromptId);
+          send({
+            ok: true,
+            pages: engineResult.pages,
+            creditsSpent: cost,
+            jobId: prep?.job.id,
+          });
+          return;
+        }
+
         const { text } = await callClaudeText({ system, user, effort, model: claudeModel });
         send({ stage: 4 });
         const pages = parseHtmlPages(text);
@@ -200,6 +356,16 @@ export async function POST(req: Request) {
               jobId: prep.job.id,
               idempotencyKey: prep.idempotencyKey,
               error: "empty",
+            });
+            financial.terminal = "failed";
+          }
+          if (prep) {
+            await stampJobExecutionTelemetry(prep.job.id, {
+              provider_request_count: 1,
+              failure_stage: "parse",
+              error_code: "empty",
+              success: false,
+              total_latency_ms: Date.now() - routeStarted,
             });
           }
           send({
@@ -226,29 +392,39 @@ export async function POST(req: Request) {
             fort: fortLog,
             workspace_id: workspaceId ?? undefined,
           });
-          void maybeScheduleWebShadow({
-            body,
-            masterPlusOptions,
-            fortBriefBlock,
-            legacySystem: system,
-            legacyUser: user,
-            model: claudeModel,
-            userId,
-            workspaceId,
-            selections: selections ?? undefined,
-            fort: body.fort,
-            estimatedCredits: cost,
-            generationId,
-            jobId: prep?.job.id,
-            providerRequestCount: 1,
-          });
+          if (execution.scheduleShadowAfterSuccess) {
+            void maybeScheduleWebShadow({
+              body,
+              masterPlusOptions,
+              fortBriefBlock,
+              legacySystem: system,
+              legacyUser: user,
+              model: claudeModel,
+              userId,
+              workspaceId,
+              selections: selections ?? undefined,
+              fort: body.fort,
+              estimatedCredits: cost,
+              generationId,
+              jobId: prep?.job.id,
+              providerRequestCount: 1,
+            });
+          }
           if (prep) {
-            await completeGeneration({
-              jobId: prep.job.id,
+            await settlePreparedGeneration({
+              financial,
+              prep,
               userId,
               module: "web",
               cost,
               model: claudeModel,
+              outcome: "success",
+            });
+            await stampJobExecutionTelemetry(prep.job.id, {
+              provider_request_count: 1,
+              success: true,
+              generation_id: generationId,
+              total_latency_ms: Date.now() - routeStarted,
             });
           }
         }
@@ -262,6 +438,16 @@ export async function POST(req: Request) {
             jobId: prep.job.id,
             idempotencyKey: prep.idempotencyKey,
             error: (err as Error)?.message ?? "ai-failed",
+          });
+          financial.terminal = "failed";
+        }
+        if (prep) {
+          await stampJobExecutionTelemetry(prep.job.id, {
+            provider_request_count: execution.mode === "engine_internal" ? 0 : 1,
+            failure_stage: execution.mode === "engine_internal" ? "provider" : "provider",
+            error_code: (err as Error)?.message ?? "ai-failed",
+            success: false,
+            total_latency_ms: Date.now() - routeStarted,
           });
         }
         const e = err as { code?: string; detail?: string; message?: string; status?: number };

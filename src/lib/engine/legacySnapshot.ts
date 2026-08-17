@@ -2,7 +2,7 @@
  * Build legacy snapshots for shadow comparison from production assembly state.
  */
 
-import { buildHtmlGenerateSystem, buildHtmlGenerateUser } from "@/lib/ai/prompts";
+import { buildHtmlGenerateSystem, buildHtmlGenerateUser, buildWebHtmlOutputContract } from "@/lib/ai/prompts";
 import type { AiGenerateRequest } from "@/lib/ai/types";
 import type { ShadowComparisonSnapshot } from "./types";
 
@@ -52,6 +52,10 @@ export function buildWebLegacySnapshot(input: {
   return {
     systemInstructions: system,
     userContent: user,
+    outputRequirements: buildWebHtmlOutputContract({
+      websiteType: input.body.websiteType,
+      language: input.body.language,
+    }),
     model: input.model,
     estimatedCredits: input.estimatedCredits,
     websiteType: input.body.websiteType ?? "business",

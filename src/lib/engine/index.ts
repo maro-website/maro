@@ -18,3 +18,8 @@ export * from "./shadowDiff";
 export * from "./engineIntegrationPolicy";
 export * from "./maroWebShadowPreconditions";
 export * from "./legacySnapshot";
+export * from "./webCompile";
+export * from "./internalCanary";
+export * from "./webExecution";
+export * from "./webEngineRun";
+export * from "./executionTelemetry";

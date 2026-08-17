@@ -18,9 +18,6 @@ export function mapWebBriefToClaude(
   for (const block of messages.systemBlocks ?? []) {
     if (block.content?.trim()) systemParts.push(block.content.trim());
   }
-  if (brief.outputRequirements?.trim()) {
-    systemParts.push(brief.outputRequirements.trim());
-  }
 
   return {
     ok: true,

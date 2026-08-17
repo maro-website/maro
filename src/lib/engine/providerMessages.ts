@@ -11,10 +11,17 @@ import type {
   ProviderMessagePart,
 } from "./types";
 
+export interface BuildProviderMessagesOptions {
+  userContentOverride?: string;
+  /** maroWeb: Fort expert brief belongs in user message (legacy parity). */
+  omitFortFromSystem?: boolean;
+}
+
 export function buildProviderMessages(
   brief: CompiledGenerationBrief,
   systemContent: string,
-  input: CompileGenerationBriefInput
+  input: CompileGenerationBriefInput,
+  opts?: BuildProviderMessagesOptions
 ): ProviderMessagePackage {
   const systemBlocks: ProviderMessagePart[] = [];
 
@@ -52,7 +59,7 @@ export function buildProviderMessages(
     });
   }
 
-  if (brief.restrictions?.trim()) {
+  if (brief.restrictions?.trim() && !opts?.omitFortFromSystem) {
     systemBlocks.push({
       role: "system",
       label: "Restrictions / maroFort",
@@ -61,12 +68,19 @@ export function buildProviderMessages(
   }
 
   const userParts: string[] = [];
-  if (brief.primaryUserRequest?.trim()) userParts.push(brief.primaryUserRequest.trim());
-  if (brief.brandContext?.trim()) {
-    userParts.push(`## maroBrain\n${brief.brandContext.trim()}`);
-  }
-  if (brief.references?.trim()) {
-    userParts.push(`## References\n${brief.references.trim()}`);
+  if (opts?.userContentOverride?.trim()) {
+    userParts.push(opts.userContentOverride.trim());
+    if (brief.brandContext?.trim()) {
+      userParts.push(`## maroBrain\n${brief.brandContext.trim()}`);
+    }
+  } else {
+    if (brief.primaryUserRequest?.trim()) userParts.push(brief.primaryUserRequest.trim());
+    if (brief.brandContext?.trim()) {
+      userParts.push(`## maroBrain\n${brief.brandContext.trim()}`);
+    }
+    if (brief.references?.trim()) {
+      userParts.push(`## References\n${brief.references.trim()}`);
+    }
   }
 
   const attachments: CompileAttachmentMeta[] = input.attachments ?? [];

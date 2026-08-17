@@ -153,18 +153,31 @@ HARD RULES for each HTML document:
 8. Keep the primary brand color close to the provided hex; build a coherent palette around it.
 9. Do NOT use the em-dash character. Use commas or periods.`;
 
+/** Immutable maroWeb designer role — injected by legacy + Engine compiler. */
+export function buildWebSystemRoleAppendix(): string {
+  return "You are maro, an elite web designer and front-end engineer. You craft complete, production-quality marketing websites as raw HTML + Tailwind CSS. Your work should look hand-crafted and premium.";
+}
+
+/** HTML page-count, language, and ===PAGE=== output contract for maroWeb. */
+export function buildWebHtmlOutputContract(input: {
+  websiteType?: string;
+  language?: string;
+}): string {
+  const count = HTML_PAGE_COUNT[input.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
+  return `${count}
+
+All user-facing copy must be in ${langName(input.language ?? "sq")}.
+
+${HTML_RULES}`;
+}
+
 export function buildHtmlGenerateSystem(
   req: AiGenerateRequest,
   masterPrompt: string
 ): string {
-  const count = HTML_PAGE_COUNT[req.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
-  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are maro, an elite web designer and front-end engineer. You craft complete, production-quality marketing websites as raw HTML + Tailwind CSS. Your work should look hand-crafted and premium.
+  return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}${buildWebSystemRoleAppendix()}
 
-${count}
-
-All user-facing copy must be in ${langName(req.language)}.
-
-${HTML_RULES}`;
+${buildWebHtmlOutputContract({ websiteType: req.websiteType, language: req.language })}`;
 }
 
 export function buildHtmlGenerateUser(req: AiGenerateRequest): string {

@@ -171,6 +171,21 @@ export function buildWebStructuralDiff(
     criticalFlags.push("output_requirements_missing_in_engine");
   }
 
+  if (
+    norm(legacy.systemInstructions).includes("===PAGE===") &&
+    !norm(engine.outputRequirements).includes("===PAGE===") &&
+    !norm(engine.systemInstructions).includes("===PAGE===")
+  ) {
+    criticalFlags.push("html_output_contract_missing_in_engine");
+  }
+
+  if (
+    norm(legacy.userContent).includes("BUSINESS DETAILS:") &&
+    !norm(engine.userContent).includes("BUSINESS DETAILS:")
+  ) {
+    criticalFlags.push("business_details_missing_in_engine");
+  }
+
   if (legacy.model && engine.model && legacy.model !== engine.model) {
     criticalFlags.push("model_mismatch");
   }

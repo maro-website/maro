@@ -47,8 +47,24 @@ describe("Engine provider execution gate", () => {
     expect(canExecuteEngineProvider({ toolId: "maro_web", pipeline: "legacy", promptCompilerV2: false })).toBe(false);
   });
 
-  it("allows execution only when engine pipeline AND global flag", () => {
-    expect(canExecuteEngineProvider({ toolId: "maro_web", pipeline: "engine", promptCompilerV2: true })).toBe(true);
+  it("allows execution only when engine pipeline, global flag, user, and allowlist", () => {
+    expect(
+      canExecuteEngineProvider({
+        toolId: "maro_web",
+        pipeline: "engine",
+        promptCompilerV2: true,
+        userId: "user-1",
+        internalCanaryEligible: true,
+      })
+    ).toBe(true);
+
+    expect(
+      canExecuteEngineProvider({
+        toolId: "maro_web",
+        pipeline: "engine",
+        promptCompilerV2: true,
+      })
+    ).toBe(false);
   });
 });
 

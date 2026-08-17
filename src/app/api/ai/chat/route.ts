@@ -13,10 +13,11 @@ import { getTool, visibleSettings, defaultSelections } from "@/lib/tools/registr
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
-  completeGeneration,
-  failGeneration,
+  settlePreparedGeneration,
+  ensurePreparedGenerationTerminal,
   guardErrorResponse,
   bearer,
+  type GenerationFinancialState,
 } from "@/lib/generation/orchestrator";
 
 export const runtime = "nodejs";
@@ -110,34 +111,54 @@ export async function POST(req: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let sentAny = false;
+      const financial: GenerationFinancialState = { terminal: "pending" };
+
+      const settleSuccess = async () => {
+        if (!userId || !prep) return;
+        const lastUser = messages.filter((m) => m.role === "user").pop()?.content ?? "";
+        await logGeneration({
+          user_id: userId,
+          user_email: userEmail,
+          prompt: lastUser.slice(0, 500),
+          final_prompt: system.slice(0, 500),
+          model: CHAT_MODEL,
+          credits_spent: cost,
+          tool_id: body.toolId ?? "chat",
+          kind: "chat",
+          workspace_id: workspaceId ?? undefined,
+        });
+        await settlePreparedGeneration({
+          financial,
+          prep,
+          userId,
+          module: "chat",
+          cost,
+          model: CHAT_MODEL,
+          outcome: "success",
+        });
+      };
+
+      const settleFailure = async (error: string) => {
+        if (!prep || !userId) return;
+        await settlePreparedGeneration({
+          financial,
+          prep,
+          userId,
+          module: "chat",
+          cost,
+          model: CHAT_MODEL,
+          outcome: "failure",
+          error,
+        });
+      };
+
       try {
         for await (const delta of streamChat({ system, messages })) {
           sentAny = true;
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: delta })}\n\n`));
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-        if (userId && prep) {
-          const lastUser = messages.filter((m) => m.role === "user").pop()?.content ?? "";
-          await logGeneration({
-            user_id: userId,
-            user_email: userEmail,
-            prompt: lastUser.slice(0, 500),
-            final_prompt: system.slice(0, 500),
-            model: CHAT_MODEL,
-            credits_spent: cost,
-            tool_id: body.toolId ?? "chat",
-            kind: "chat",
-            workspace_id: workspaceId ?? undefined,
-          });
-          await completeGeneration({
-            jobId: prep.job.id,
-            userId,
-            module: "chat",
-            cost,
-            skipBilling: cost <= 0,
-            model: CHAT_MODEL,
-          });
-        }
+        await settleSuccess();
       } catch (streamErr) {
         console.error("[ai/chat] streaming failed, trying fallback:", streamErr);
         if (!sentAny) {
@@ -147,16 +168,7 @@ export async function POST(req: Request) {
               sentAny = true;
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ t: text })}\n\n`));
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-              if (userId && prep) {
-                await completeGeneration({
-                  jobId: prep.job.id,
-                  userId,
-                  module: "chat",
-                  cost,
-                  skipBilling: cost <= 0,
-                  model: CHAT_MODEL,
-                });
-              }
+              await settleSuccess();
               return;
             }
           } catch (fallbackErr) {
@@ -164,24 +176,21 @@ export async function POST(req: Request) {
           }
         }
         const detail = streamErr instanceof Error ? streamErr.message : String(streamErr);
-        if (prep && cost && !sentAny) {
-          await failGeneration({
-            jobId: prep.job.id,
-            idempotencyKey: prep.idempotencyKey,
-            error: detail,
-          });
-        } else if (prep && cost <= 0) {
-          await failGeneration({
-            jobId: prep.job.id,
-            idempotencyKey: prep.idempotencyKey,
-            error: detail,
-            skipBilling: true,
-          });
-        }
+        await settleFailure(detail);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: "ai-failed", detail })}\n\n`)
         );
       } finally {
+        if (prep && userId) {
+          await ensurePreparedGenerationTerminal({
+            financial,
+            prep,
+            userId,
+            module: "chat",
+            cost,
+            model: CHAT_MODEL,
+          });
+        }
         controller.close();
       }
     },

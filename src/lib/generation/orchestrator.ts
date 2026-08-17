@@ -13,6 +13,7 @@ import {
   createJob,
   cleanupStaleJobs,
   findJobByIdempotency,
+  isInFlightJobStatus,
   updateJob,
   type GenerationJob,
 } from "@/lib/generation/jobs";
@@ -60,6 +61,70 @@ export interface PreparedGeneration {
   cost: number;
   isFort: boolean;
   skipBilling: boolean;
+}
+
+export type GenerationFinancialTerminal = "pending" | "success" | "failed";
+
+export interface GenerationFinancialState {
+  terminal: GenerationFinancialTerminal;
+}
+
+/** Settle a prepared generation job to success or failure exactly once. */
+export async function settlePreparedGeneration(opts: {
+  financial: GenerationFinancialState;
+  prep: PreparedGeneration;
+  userId: string;
+  module: string;
+  cost: number;
+  model?: string;
+  outcome: "success" | "failure";
+  error?: string;
+}): Promise<void> {
+  if (opts.financial.terminal !== "pending") return;
+
+  if (opts.outcome === "success") {
+    opts.financial.terminal = "success";
+    await completeGeneration({
+      jobId: opts.prep.job.id,
+      userId: opts.userId,
+      module: opts.module,
+      cost: opts.cost,
+      skipBilling: opts.cost <= 0,
+      model: opts.model,
+    });
+    return;
+  }
+
+  opts.financial.terminal = "failed";
+  await failGeneration({
+    jobId: opts.prep.job.id,
+    idempotencyKey: opts.prep.idempotencyKey,
+    error: opts.error ?? "generation_failed",
+    skipBilling: opts.cost <= 0,
+  });
+}
+
+/** Guarantee a prepared job reaches a financial terminal state (failure if still pending). */
+export async function ensurePreparedGenerationTerminal(opts: {
+  financial: GenerationFinancialState;
+  prep: PreparedGeneration;
+  userId: string;
+  module: string;
+  cost: number;
+  model?: string;
+  incompleteError?: string;
+}): Promise<void> {
+  if (opts.financial.terminal !== "pending") return;
+  await settlePreparedGeneration({
+    financial: opts.financial,
+    prep: opts.prep,
+    userId: opts.userId,
+    module: opts.module,
+    cost: opts.cost,
+    model: opts.model,
+    outcome: "failure",
+    error: opts.incompleteError ?? "stream_incomplete",
+  });
 }
 
 function bearer(req: Request): string | null {
@@ -200,15 +265,12 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       if (existing.status === "completed") {
         throw new GenerationGuardError(409, "duplicate_job", undefined, { job_id: existing.id });
       }
-      return {
-        userId: user.id,
-        userEmail: profile.email,
-        job: existing,
-        idempotencyKey,
-        cost,
-        isFort,
-        skipBilling,
-      };
+      if (isInFlightJobStatus(existing.status)) {
+        throw new GenerationGuardError(409, "generation_in_progress", undefined, {
+          job_id: existing.id,
+          status: existing.status,
+        });
+      }
     }
   }
 
@@ -222,6 +284,11 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
   });
 
   if (!created.ok) {
+    if (created.code === "job_idempotency_conflict") {
+      throw new GenerationGuardError(409, "generation_in_progress", undefined, {
+        job_id: created.detail,
+      });
+    }
     throw new GenerationGuardError(500, created.code, created.detail);
   }
 

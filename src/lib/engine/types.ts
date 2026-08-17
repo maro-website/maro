@@ -1,5 +1,7 @@
 /** Maro Engine — canonical types for Phase 2A compiler + CMS. */
 
+import type { AiGenerateRequest } from "@/lib/ai/types";
+
 export type EngineToolId =
   | "maro_imazh"
   | "maro_logo"
@@ -255,9 +257,13 @@ export interface CompileGenerationBriefInput {
   selections?: Record<string, string>;
   fort?: CompileFortInput;
   presetId?: string;
+  /** Resolved preset / maroPrompt template text (server-side only). */
+  presetPrompt?: string;
   useBrain?: boolean;
   plan?: string;
   generationType?: string;
+  /** maroWeb business fields — required for full legacy user-prompt parity. */
+  webRequest?: Partial<AiGenerateRequest>;
 }
 
 export interface AppliedPromptLayer {
@@ -306,6 +312,7 @@ export interface CompiledGenerationBrief {
     conflicts: ConflictNote[];
     warnings: string[];
     selections: Record<string, string>;
+    websiteType?: string;
   };
   /** Provider-independent message roles for Phase 2B adapters. */
   providerMessages?: ProviderMessagePackage;
