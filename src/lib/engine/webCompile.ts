@@ -13,9 +13,12 @@ export function resolveWebWebsiteType(input: CompileGenerationBriefInput): strin
 }
 
 export function buildWebOutputRequirements(input: CompileGenerationBriefInput): string {
+  const wr = input.webRequest;
   return buildWebHtmlOutputContract({
     websiteType: resolveWebWebsiteType(input),
-    language: input.webRequest?.language ?? "sq",
+    language: wr?.language,
+    userPrompt: input.userPrompt ?? wr?.userPrompt,
+    goal: wr?.goal,
   });
 }
 
@@ -26,7 +29,7 @@ export function buildWebUserContent(
   const body: AiGenerateRequest = {
     businessName: input.webRequest?.businessName ?? "Business",
     category: input.webRequest?.category ?? "generic",
-    language: input.webRequest?.language ?? "sq",
+    language: input.webRequest?.language ?? "auto",
     goal: input.webRequest?.goal ?? input.userPrompt ?? "",
     userPrompt: input.userPrompt ?? "",
     tagline: input.webRequest?.tagline,

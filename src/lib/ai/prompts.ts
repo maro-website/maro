@@ -1,5 +1,15 @@
 import type { AiEditRequest, AiGenerateRequest } from "./types";
 import { BUTTON_STYLES, FONT_KEYS, SECTION_KINDS } from "./types";
+import {
+  WEB_LANGUAGE_AUTO,
+  WEB_LOCALE_NEUTRALITY_POLICY,
+  buildWebLanguageDirective,
+  isExplicitStructuredLanguage,
+  langDisplayName,
+  resolveWebContentLanguage,
+} from "./webLanguage";
+
+export { WEB_LOCALE_NEUTRALITY_POLICY } from "./webLanguage";
 
 // Documents the exact `data` shape the renderer expects for each section kind.
 // The model must fill these fields; unknown fields are ignored by the renderer.
@@ -33,7 +43,22 @@ const THEME_SPEC = `THEME fields:
 - dark: boolean (true only for intentionally dark designs).`;
 
 function langName(code: string) {
-  return code === "en" ? "English" : code === "de" ? "German" : "Albanian (Shqip)";
+  if (code === WEB_LANGUAGE_AUTO) return "auto";
+  return langDisplayName(code as "sq" | "en" | "de");
+}
+
+function resolveWebLangFromRequest(req: AiGenerateRequest, brandLanguage?: string) {
+  return resolveWebContentLanguage({
+    structuredLanguage: req.language,
+    userPrompt: req.userPrompt || req.goal,
+    brandLanguage,
+  });
+}
+
+function webBusinessLanguageLine(req: AiGenerateRequest, brandLanguage?: string): string {
+  const resolution = resolveWebLangFromRequest(req, brandLanguage);
+  if (!resolution.injectDirective) return "";
+  return `- Content language: ${langDisplayName(resolution.code as "sq" | "en" | "de")}\n`;
 }
 
 export function buildEditSystem(req: AiEditRequest): string {
@@ -86,6 +111,10 @@ export function buildComposedGenerateSystem(
   masterPrompt: string
 ): string {
   const typeGuide = WEBSITE_TYPE_GUIDE[req.websiteType ?? "business"] ?? WEBSITE_TYPE_GUIDE.business;
+  const lang = resolveWebLangFromRequest(req);
+  const copyLanguage = lang.injectDirective
+    ? langDisplayName(lang.code as "sq" | "en" | "de")
+    : "the language the user requested, or match the language of their request naturally";
   return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}You are maro AI. Generate a complete, professional website. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${typeGuide}
@@ -96,7 +125,7 @@ ${THEME_SPEC}
 
 RULES:
 1. The first page MUST have slug "home". Every page's first section should be a "hero". End pages with "cta" and/or "contact" where appropriate.
-2. Write specific, credible, conversion-focused copy in ${langName(req.language)} tailored to THIS business — never generic placeholder text.
+2. Write specific, credible, conversion-focused copy in ${copyLanguage} tailored to THIS business — never generic placeholder text.
 3. Choose a "theme" that matches the brand: keep primaryColor close to ${req.primaryColor}, pick tasteful fonts and buttonStyle for the industry.
 4. Each page needs "seo": { title, description (<=155 chars), slug }.
 5. Follow the IMAGE RULES strictly (empty strings / empty arrays).
@@ -106,6 +135,7 @@ Respond with ONLY a JSON object (no markdown, no prose):
 }
 
 export function buildComposedGenerateUser(req: AiGenerateRequest): string {
+  const languageLine = webBusinessLanguageLine(req);
   return `USER REQUEST (what the user typed):
 ${req.userPrompt || req.goal || "(none)"}
 
@@ -114,8 +144,7 @@ BUSINESS DETAILS:
 - Tagline: ${req.tagline || "(none)"}
 - Brand color: ${req.primaryColor}
 - Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
-- Content language: ${langName(req.language)}
-
+${languageLine}
 Generate the full website now.`;
 }
 
@@ -162,25 +191,43 @@ export function buildWebSystemRoleAppendix(): string {
 export function buildWebHtmlOutputContract(input: {
   websiteType?: string;
   language?: string;
+  userPrompt?: string;
+  goal?: string;
+  brandLanguage?: string;
 }): string {
   const count = HTML_PAGE_COUNT[input.websiteType ?? "landing"] ?? HTML_PAGE_COUNT.landing;
+  const resolution = resolveWebContentLanguage({
+    structuredLanguage: input.language,
+    userPrompt: input.userPrompt ?? input.goal,
+    brandLanguage: input.brandLanguage,
+  });
   return `${count}
 
-All user-facing copy must be in ${langName(input.language ?? "sq")}.
+${buildWebLanguageDirective(resolution)}
+
+${WEB_LOCALE_NEUTRALITY_POLICY}
 
 ${HTML_RULES}`;
 }
 
 export function buildHtmlGenerateSystem(
   req: AiGenerateRequest,
-  masterPrompt: string
+  masterPrompt: string,
+  brandLanguage?: string
 ): string {
   return `${masterPrompt ? masterPrompt.trim() + "\n\n" : ""}${buildWebSystemRoleAppendix()}
 
-${buildWebHtmlOutputContract({ websiteType: req.websiteType, language: req.language })}`;
+${buildWebHtmlOutputContract({
+  websiteType: req.websiteType,
+  language: req.language,
+  userPrompt: req.userPrompt,
+  goal: req.goal,
+  brandLanguage,
+})}`;
 }
 
-export function buildHtmlGenerateUser(req: AiGenerateRequest): string {
+export function buildHtmlGenerateUser(req: AiGenerateRequest, brandLanguage?: string): string {
+  const languageLine = webBusinessLanguageLine(req, brandLanguage);
   return `USER REQUEST (what the user typed):
 ${req.userPrompt || req.goal || "(none)"}
 
@@ -189,17 +236,23 @@ BUSINESS DETAILS:
 - Tagline: ${req.tagline || "(none)"}
 - Brand color: ${req.primaryColor}
 - Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
-- Content language: ${langName(req.language)}
-
+${languageLine}
 Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
 }
 
 export function buildHtmlEditSystem(businessName: string, language: string): string {
+  const languageRule =
+    language === WEB_LANGUAGE_AUTO || !isExplicitStructuredLanguage(language)
+      ? "All user-facing copy stays in the same language as the current page unless the user instruction specifies otherwise."
+      : `All user-facing copy stays in ${langDisplayName(language as "sq" | "en" | "de")}.`;
+
   return `You are maro, an elite web designer editing a live, single HTML page for "${businessName}".
 
 You receive the CURRENT full HTML document and an instruction. Apply ONLY what the user asked and keep everything else identical (structure, copy, styles that were not mentioned). Preserve the premium quality and responsiveness. Keep using Tailwind (CDN). For imagery keep using real photos (Unsplash <img> with a picsum onerror fallback), and inline SVG only for icons. Do not use the em-dash character.
 
-All user-facing copy stays in ${language === "en" ? "English" : language === "de" ? "German" : "Albanian (Shqip)"}.
+${languageRule}
+
+${WEB_LOCALE_NEUTRALITY_POLICY}
 
 OUTPUT FORMAT (output nothing else):
 ===REPLY===
@@ -222,6 +275,10 @@ ${html}`;
 }
 
 export function buildGenerateSystem(req: AiGenerateRequest): string {
+  const lang = resolveWebLangFromRequest(req);
+  const copyLanguage = lang.injectDirective
+    ? langDisplayName(lang.code as "sq" | "en" | "de")
+    : "the language the user requested, or match the language of their request naturally";
   return `You are maro AI, an expert web designer + copywriter. Generate a complete, professional multi-page website for a real business. The output is rendered by a fixed component library, so you must follow the section schema exactly.
 
 ${SECTION_SPEC}
@@ -231,7 +288,7 @@ ${THEME_SPEC}
 RULES:
 1. Produce 3-4 pages. The first page MUST have slug "home" and 6-8 well-chosen sections that fit a ${req.category} business. Typical secondary pages: about, services/menu/work, contact.
 2. Every page's first section should be a "hero". Every page should end with a "cta" and/or "contact" where appropriate.
-3. Write specific, credible, conversion-focused copy in ${langName(req.language)} tailored to THIS business — never generic placeholder text. Use the business name naturally.
+3. Write specific, credible, conversion-focused copy in ${copyLanguage} tailored to THIS business — never generic placeholder text. Use the business name naturally.
 4. Choose a "theme" that matches the brand: keep primaryColor close to the provided brand color, pick tasteful fonts and buttonStyle for the category (e.g. restaurants/agencies can use a serif heading like Playfair Display; clinics/construction read better with Manrope/Space Grotesk).
 5. Each page needs "seo": { title, description (<=155 chars), slug }.
 6. Follow the IMAGE RULES strictly (empty strings / empty arrays).
@@ -241,6 +298,7 @@ Respond with ONLY a JSON object (no markdown, no prose):
 }
 
 export function buildGenerateUser(req: AiGenerateRequest): string {
+  const languageLine = webBusinessLanguageLine(req);
   return `BUSINESS BRIEF:
 - Name: ${req.businessName}
 - What they do / goal: ${req.goal || "(not specified)"}
@@ -248,7 +306,6 @@ export function buildGenerateUser(req: AiGenerateRequest): string {
 - Category: ${req.category}
 - Brand color: ${req.primaryColor}
 - Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
-- Content language: ${langName(req.language)}
-
+${languageLine}
 Generate the full website now.`;
 }

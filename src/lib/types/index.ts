@@ -25,7 +25,7 @@ export type StyleKey =
 
 export type GenerationMode = "fast" | "smart" | "maximum";
 
-export type LanguageCode = "sq" | "en" | "de";
+export type LanguageCode = "sq" | "en" | "de" | "auto";
 
 // Composer selections (Beta): website kind + generation speed.
 export type WebsiteKind = "landing" | "business" | "platform";

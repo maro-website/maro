@@ -85,7 +85,7 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
     const body = {
       businessName: input.webBody?.businessName ?? "Test Business",
       category: input.webBody?.category ?? "generic",
-      language: input.webBody?.language ?? "sq",
+      language: input.webBody?.language ?? "auto",
       goal: input.webBody?.goal ?? input.userPrompt,
       userPrompt: input.userPrompt,
       websiteType: input.webBody?.websiteType ?? "business",

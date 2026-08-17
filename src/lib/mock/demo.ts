@@ -79,7 +79,7 @@ export function makeProject(inp: MakeInput): Project {
     phone: inp.phone,
     location: inp.location,
     goal: inp.goal,
-    language: inp.language ?? "sq",
+    language: inp.language ?? "auto",
     category: inp.category,
     style: inp.style ?? "auto",
     generationMode: inp.mode ?? "smart",

@@ -40,7 +40,7 @@ export function createProjectFromComposer(input: {
     goal: input.prompt,
     category: "generic",
     style: "auto",
-    language: "sq",
+    language: "auto",
     status: "generating",
     primaryColor: input.primaryColor || "#253FDA",
   });
