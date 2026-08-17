@@ -44,7 +44,7 @@ import {
   createImageReferenceTracker,
   toSafeAttachmentMeta,
 } from "@/lib/engine/imageReferenceTracker";
-import { IMAGE_PROVIDER_REF_LIMIT } from "@/lib/engine/imageCompile";
+import { IMAGE_PROVIDER_REF_LIMIT, buildImageTextInstruction } from "@/lib/engine/imageCompile";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
 import type { ImageSize } from "@/lib/tools/registry";
 
@@ -99,6 +99,7 @@ export async function POST(req: Request) {
     ? (selections.text ?? textSetting.default) === "on"
     : false;
   let fontSelection: string | undefined;
+  let textOffDeferred = false;
   if (textSetting) {
     if (textOn) {
       const fontSetting = tool.settings.find((s) => s.id === "font");
@@ -108,8 +109,13 @@ export async function POST(req: Request) {
       fontSelection = fontOpt?.id ?? selections.font;
       const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
       finalPrompt = `${finalPrompt}\n\nText: render any requested headline/text cleanly and legibly, spelling every word correctly.${fontNote}`;
+    } else if (hasRefs) {
+      const instruction = buildImageTextInstruction("maro_imazh", selections, {
+        hasReferences: true,
+      });
+      if (instruction) finalPrompt = `${finalPrompt}\n\n${instruction}`;
     } else {
-      finalPrompt = `${finalPrompt}\n\nDo not include any text, letters, words, numbers or watermarks in the image.`;
+      textOffDeferred = true;
     }
   }
 
@@ -251,6 +257,13 @@ export async function POST(req: Request) {
         await pushRefFromUrl(brand.logoUrl, "workspace_brain");
       }
     }
+  }
+
+  if (textSetting && textOffDeferred) {
+    const instruction = buildImageTextInstruction("maro_imazh", selections, {
+      hasReferences: refs.length > 0,
+    });
+    if (instruction) finalPrompt = `${finalPrompt}\n\n${instruction}`;
   }
 
   // Stream heartbeats while OpenAI generates so Cloudflare (~100s proxy timeout)

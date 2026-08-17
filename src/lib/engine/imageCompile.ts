@@ -19,16 +19,48 @@ import { getRegistryToolId } from "./toolRegistry";
 export const IMAGE_REFERENCE_PRESERVATION =
   "IMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.";
 
-export const IMAGE_TEXT_OFF =
-  "Do not include any text, letters, words, numbers or watermarks in the image.";
+/** Text OFF when no reference images are in play — prohibit newly generated copy only. */
+export const IMAGE_TEXT_OFF_NO_REFERENCE =
+  "Do not add any text, headlines, captions, labels, letters, words, numbers or watermarks to the generated image.";
+
+/** Text OFF when reference image(s) exist — preserve existing product typography/branding. */
+export const IMAGE_TEXT_OFF_WITH_REFERENCE =
+  "Do not add any new text, headlines, captions, labels or watermarks to the generated scene. Existing brand names, logos, labels, packaging typography, product markings, numbers and printed details visible in the provided reference image are part of the referenced product and should be preserved faithfully. Do not remove, rewrite, translate, replace or invent them.";
+
+/** @deprecated Use {@link buildImageTextOffInstruction} — kept for imports expecting a single constant. */
+export const IMAGE_TEXT_OFF = IMAGE_TEXT_OFF_NO_REFERENCE;
 
 export const IMAGE_PARITY_MARKERS = {
   referencePreservation: "IMPORTANT: Use the provided reference image(s)",
-  textOff: IMAGE_TEXT_OFF,
+  textOff: "Do not add any",
+  textOffNoReference: IMAGE_TEXT_OFF_NO_REFERENCE,
+  textOffWithReference: IMAGE_TEXT_OFF_WITH_REFERENCE,
   textOn: "Text: render any requested headline/text cleanly and legibly",
   fortHeader: "## BRIEF EKSPERT (maroFort)",
   brainHeader: "## maroBrain",
 } as const;
+
+export function promptHasTextOffInstruction(prompt: string): boolean {
+  return (
+    prompt.includes(IMAGE_TEXT_OFF_NO_REFERENCE) || prompt.includes(IMAGE_TEXT_OFF_WITH_REFERENCE)
+  );
+}
+
+export function hasImageReferencesForTextOff(parts: {
+  attachments?: Array<string | CompileAttachmentMeta>;
+  brainLogoUrl?: string;
+  matchedSourceUrls?: string[];
+}): boolean {
+  return (
+    hasImageReferenceAttachments(parts.attachments) ||
+    Boolean(parts.brainLogoUrl?.trim()) ||
+    (parts.matchedSourceUrls?.length ?? 0) > 0
+  );
+}
+
+export function buildImageTextOffInstruction(hasReferences: boolean): string {
+  return hasReferences ? IMAGE_TEXT_OFF_WITH_REFERENCE : IMAGE_TEXT_OFF_NO_REFERENCE;
+}
 
 export const IMAGE_PROVIDER_REF_LIMIT = 4;
 
@@ -202,7 +234,8 @@ export function resolveImageN(requested?: number): number {
 
 export function buildImageTextInstruction(
   toolId: EngineToolId,
-  selections: ToolSelections
+  selections: ToolSelections,
+  opts?: { hasReferences?: boolean }
 ): string | undefined {
   const registryId = getRegistryToolId(toolId);
   const tool = getTool(registryId);
@@ -220,7 +253,7 @@ export function buildImageTextInstruction(
     const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
     return `${IMAGE_PARITY_MARKERS.textOn}, spelling every word correctly.${fontNote}`;
   }
-  return IMAGE_TEXT_OFF;
+  return buildImageTextOffInstruction(Boolean(opts?.hasReferences));
 }
 
 export function hasImageReferenceAttachments(
@@ -245,6 +278,8 @@ export function assembleImageFlatPrompt(parts: {
   brainBrief?: string;
   matchedSourcesBrief?: string;
   workspaceBrandBrief?: string;
+  brainLogoUrl?: string;
+  matchedSourceUrls?: string[];
 }): string {
   const registryId = getRegistryToolId(parts.toolId);
   const tool = getTool(registryId);
@@ -266,7 +301,14 @@ export function assembleImageFlatPrompt(parts: {
     finalPrompt = `${finalPrompt}\n\n${IMAGE_REFERENCE_PRESERVATION}`;
   }
 
-  const textInstruction = buildImageTextInstruction(parts.toolId, parts.selections);
+  const hasReferences = hasImageReferencesForTextOff({
+    attachments: parts.attachments,
+    brainLogoUrl: parts.brainLogoUrl,
+    matchedSourceUrls: parts.matchedSourceUrls,
+  });
+  const textInstruction = buildImageTextInstruction(parts.toolId, parts.selections, {
+    hasReferences,
+  });
   if (textInstruction) {
     finalPrompt = `${finalPrompt}\n\n${textInstruction}`;
   }
@@ -315,7 +357,11 @@ export function buildLegacyImageProviderRequest(input: {
   quality?: ImageQuality;
   n?: number;
 }): NormalizedOpenAIImageRequest {
-  const prompt = assembleImageFlatPrompt(input);
+  const prompt = assembleImageFlatPrompt({
+    ...input,
+    brainLogoUrl: input.brainLogoUrl,
+    matchedSourceUrls: input.matchedSourceUrls,
+  });
   const refs = resolveImageReferences({
     attachments: input.attachments,
     brainLogoUrl: input.brainLogoUrl,
@@ -387,6 +433,8 @@ export function buildEngineImageProviderRequest(
     brainBrief,
     matchedSourcesBrief: opts?.matchedSourcesBrief,
     workspaceBrandBrief: opts?.workspaceBrandBrief,
+    brainLogoUrl: opts?.brainLogoUrl,
+    matchedSourceUrls: opts?.matchedSourceUrls,
   });
 
   const refs = resolveImageReferences({

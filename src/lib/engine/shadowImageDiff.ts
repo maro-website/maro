@@ -6,6 +6,7 @@ import type {
   NormalizedOpenAIImageRequest,
   SafeImageReferenceMeta,
 } from "./imageCompile";
+import { promptHasTextOffInstruction } from "./imageCompile";
 import type {
   ShadowComparisonSnapshot,
   ShadowStructuralDiff,
@@ -192,7 +193,7 @@ export function buildImageStructuralDiff(
   const legacyPrompt = norm(legacy.userContent ?? legacyP?.prompt);
   const enginePrompt = norm(engine.userContent ?? engineP?.prompt);
 
-  if (legacyPrompt.includes("Do not include any text") && !enginePrompt.includes("Do not include any text")) {
+  if (promptHasTextOffInstruction(legacyPrompt) && !promptHasTextOffInstruction(enginePrompt)) {
     criticalFlags.push("text_instruction_missing");
   }
 

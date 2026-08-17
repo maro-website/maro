@@ -140,10 +140,16 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
 
   let brainBrief: string | undefined;
   let matchedSourcesBrief: string | undefined;
+  let brainLogoUrl: string | undefined;
+  let matchedSourceUrls: string[] | undefined;
   if (input.useBrain && input.brainProfile && registryId === "reklama") {
     brainBrief = buildBrainBrief(input.brainProfile);
     const matched = matchSourcesByPrompt(input.userPrompt, input.sources ?? []);
-    if (matched.length) matchedSourcesBrief = buildMatchedSourcesBrief(matched);
+    if (matched.length) {
+      matchedSourcesBrief = buildMatchedSourcesBrief(matched);
+      matchedSourceUrls = matched.map((s) => s.fileUrl).filter(Boolean);
+    }
+    brainLogoUrl = input.brainProfile.brand.logoUrl ?? undefined;
     finalPrompt = assembleImageFlatPrompt({
       toolId: input.toolId,
       userPrompt: input.userPrompt,
@@ -155,6 +161,8 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
       fortExpertBrief,
       brainBrief,
       matchedSourcesBrief,
+      brainLogoUrl,
+      matchedSourceUrls,
     });
   } else if (input.useBrain && input.workspaceBrandBrief?.trim() && registryId === "reklama") {
     finalPrompt = assembleImageFlatPrompt({
@@ -167,6 +175,7 @@ export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeRes
       fortLayerText,
       fortExpertBrief,
       workspaceBrandBrief: input.workspaceBrandBrief,
+      brainLogoUrl: input.brainProfile?.brand.logoUrl ?? undefined,
     });
   }
 

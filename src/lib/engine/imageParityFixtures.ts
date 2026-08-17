@@ -364,6 +364,11 @@ export function buildLegacyProviderRequest(
     fixture.legacy.useBrain && fixture.legacy.sources?.length
       ? matchSourcesByPrompt(fixture.legacy.userPrompt, fixture.legacy.sources)
       : [];
+  const matchedSourceUrls =
+    fixture.matchedSourceUrls ??
+    (matched.length ? matched.map((s) => s.fileUrl).filter(Boolean) : undefined);
+  const brainLogoUrl =
+    fixture.brainLogoUrl ?? fixture.legacy.brainProfile?.brand.logoUrl ?? undefined;
   return buildLegacyImageProviderRequest({
     toolId: fixture.toolId,
     userPrompt: fixture.legacy.userPrompt,
@@ -380,8 +385,8 @@ export function buildLegacyProviderRequest(
         : undefined,
     matchedSourcesBrief: matched.length ? buildMatchedSourcesBrief(matched) : undefined,
     workspaceBrandBrief: fixture.legacy.workspaceBrandBrief ?? fixture.engine.workspaceBrandBrief,
-    brainLogoUrl: fixture.brainLogoUrl,
-    matchedSourceUrls: fixture.matchedSourceUrls,
+    brainLogoUrl,
+    matchedSourceUrls,
     fetchedUrls: fixture.fetchedUrls ? new Set(fixture.fetchedUrls) : undefined,
     quality: fixture.quality,
     n: fixture.n,
@@ -401,11 +406,20 @@ export function compileImazhFixture(fixture: ImazhParityFixture) {
   const brief = compileGenerationBrief(engineInput, ctx);
   const legacy = legacyComposePrompt(fixture.legacy);
   const legacyProvider = buildLegacyProviderRequest(fixture, legacy);
+  const matched =
+    fixture.legacy.useBrain && fixture.legacy.sources?.length
+      ? matchSourcesByPrompt(fixture.legacy.userPrompt, fixture.legacy.sources)
+      : [];
+  const matchedSourceUrls =
+    fixture.matchedSourceUrls ??
+    (matched.length ? matched.map((s) => s.fileUrl).filter(Boolean) : undefined);
+  const brainLogoUrl =
+    fixture.brainLogoUrl ?? fixture.legacy.brainProfile?.brand.logoUrl ?? undefined;
   const engineProvider = buildNormalizedFromBrief(brief, engineInput, ctx, {
     quality: fixture.quality ?? fixture.engine.quality,
     n: fixture.n ?? fixture.engine.n,
-    brainLogoUrl: fixture.brainLogoUrl,
-    matchedSourceUrls: fixture.matchedSourceUrls,
+    brainLogoUrl,
+    matchedSourceUrls,
     fetchedUrls: fixture.fetchedUrls ? new Set(fixture.fetchedUrls) : undefined,
     workspaceBrandBrief: engineInput.workspaceBrandBrief,
   });

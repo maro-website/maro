@@ -82,6 +82,7 @@ function buildOptionFragments(
 import {
   IMAGE_REFERENCE_PRESERVATION,
   buildImageTextInstruction,
+  hasImageReferenceAttachments,
 } from "./imageCompile";
 
 function buildTechnicalDirection(
@@ -98,7 +99,9 @@ function buildTechnicalDirection(
     lines.push(IMAGE_REFERENCE_PRESERVATION);
   }
 
-  const textInstruction = buildImageTextInstruction(toolId, selections);
+  const textInstruction = buildImageTextInstruction(toolId, selections, {
+    hasReferences: hasImageReferenceAttachments(attachments),
+  });
   if (textInstruction) lines.push(textInstruction);
 
   for (const s of visibleSettings(tool, selections)) {

@@ -2,7 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   IMAGE_PROVIDER_REF_LIMIT,
   IMAGE_REFERENCE_PRESERVATION,
-  IMAGE_TEXT_OFF,
+  IMAGE_TEXT_OFF_WITH_REFERENCE,
+  buildImageTextOffInstruction,
   applyRuntimeReferenceOutcome,
 } from "@/lib/engine/imageCompile";
 import {
@@ -61,7 +62,7 @@ function buildLegacySnapshotWithRefs(
     opts?.userPrompt ??
     "Use the attached perfume bottle as the main product reference. Premium studio photo.";
   let finalPrompt = `${userPrompt}\n\n${IMAGE_REFERENCE_PRESERVATION}`;
-  if (textOff) finalPrompt = `${finalPrompt}\n\n${IMAGE_TEXT_OFF}`;
+  if (textOff) finalPrompt = `${finalPrompt}\n\n${buildImageTextOffInstruction(true)}`;
 
   const legacyImageProvider = buildRuntimeImageLegacyProvider({
     finalPrompt,
@@ -249,8 +250,10 @@ describe("user-upload shadow structural parity", () => {
 
     expect(legacyPrompt).toContain(IMAGE_REFERENCE_PRESERVATION);
     expect(enginePrompt).toContain(IMAGE_REFERENCE_PRESERVATION);
-    expect(legacyPrompt).toContain(IMAGE_TEXT_OFF);
-    expect(enginePrompt).toContain(IMAGE_TEXT_OFF);
+    expect(legacyPrompt).toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
+    expect(enginePrompt).toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
+    expect(legacyPrompt).toContain("preserved faithfully");
+    expect(enginePrompt).toContain("preserved faithfully");
     expect(enginePrompt).not.toContain("Text: render any requested headline/text");
     expect(enginePrompt).not.toMatch(/Use a Handwritten typography style\./);
 
