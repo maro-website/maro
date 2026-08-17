@@ -15,6 +15,8 @@ export interface MapEngineBriefOptions {
   brainLogoUrl?: string;
   matchedSourceUrls?: string[];
   fetchedUrls?: Set<string>;
+  workspaceBrandBrief?: string;
+  matchedSourcesBrief?: string;
 }
 
 export function mapEngineBriefToProviderRequest(
@@ -47,6 +49,8 @@ export function mapEngineBriefToProviderRequest(
       brainLogoUrl: opts?.brainLogoUrl,
       matchedSourceUrls: opts?.matchedSourceUrls,
       fetchedUrls: opts?.fetchedUrls,
+      workspaceBrandBrief: opts?.workspaceBrandBrief,
+      matchedSourcesBrief: opts?.matchedSourcesBrief,
     });
     if (!mapped.ok || !mapped.request) return null;
     return {

@@ -38,7 +38,6 @@ import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
 import {
   buildRuntimeImageLegacyProvider,
-  type ImageShadowSchedulePayload,
 } from "@/lib/engine/imageShadowRuntime";
 import {
   createImageReferenceTracker,
@@ -46,6 +45,12 @@ import {
 } from "@/lib/engine/imageReferenceTracker";
 import { IMAGE_PROVIDER_REF_LIMIT, buildImageTextInstruction } from "@/lib/engine/imageCompile";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
+import { resolveImageExecutionContext } from "@/lib/engine/imageExecution";
+import { runImageEngineInternalGeneration } from "@/lib/engine/imageEngineRun";
+import {
+  buildInitialExecutionTelemetry,
+  stampJobExecutionTelemetry,
+} from "@/lib/engine/executionTelemetry";
 import type { ImageSize } from "@/lib/tools/registry";
 
 export const runtime = "nodejs";
@@ -266,6 +271,26 @@ export async function POST(req: Request) {
     if (instruction) finalPrompt = `${finalPrompt}\n\n${instruction}`;
   }
 
+  const execution = await resolveImageExecutionContext({
+    userId,
+    registryToolId: tool.id,
+  });
+
+  if (prep) {
+    await stampJobExecutionTelemetry(
+      prep.job.id,
+      buildInitialExecutionTelemetry({
+        configuredPipeline: execution.configuredPipeline,
+        effectiveExecution: execution.label,
+        internalCanary: execution.internalCanary,
+        model: IMAGE_MODEL,
+        module: tool.id,
+        provider: "openai",
+        compiler: execution.mode === "engine_internal" ? "maro_engine_v1" : "legacy",
+      })
+    );
+  }
+
   // Stream heartbeats while OpenAI generates so Cloudflare (~100s proxy timeout)
   // keeps the connection open until images are ready (maro Imazh + maro Logo).
   const stream = new ReadableStream({
@@ -279,20 +304,106 @@ export async function POST(req: Request) {
       }, 15000);
 
       try {
-        const b64s = refs.length
-          ? await editImages({
-              prompt: finalPrompt,
-              images: refs,
-              size,
-              quality: body.quality,
-              n: body.n,
-            })
-          : await generateImages({
-              prompt: finalPrompt,
-              size,
-              quality: body.quality,
-              n,
+        const routeStarted = Date.now();
+        let b64s: string[] = [];
+        let persistedFinalPrompt = finalPrompt;
+
+        if (execution.mode === "engine_internal" && userId) {
+          const engineResult = await runImageEngineInternalGeneration({
+            engineToolId: execution.engineToolId,
+            userId,
+            workspaceId,
+            userPrompt: body.prompt,
+            selections,
+            model: IMAGE_MODEL,
+            fort: body.fort,
+            useBrain: Boolean(body.useWorkspaceBrand && workspaceId),
+            presetId: maroPromptId,
+            presetPrompt: presetPromptText,
+            workspaceBrandBrief,
+            brainLogoUrl,
+            matchedSourceUrls,
+            fetchedUrls,
+            attachments: body.attachments,
+            resolvedRefBytes: refs,
+            quality: body.quality,
+            n,
+            size: (size ?? "1024x1024") as ImageSize,
+          });
+
+          if (!engineResult.ok) {
+            let refunded = false;
+            if (prep && cost) {
+              refunded = Boolean(
+                await failGeneration({
+                  jobId: prep.job.id,
+                  idempotencyKey: prep.idempotencyKey,
+                  error: engineResult.code ?? engineResult.error,
+                })
+              );
+            }
+            if (prep) {
+              await stampJobExecutionTelemetry(prep.job.id, {
+                provider_request_count: engineResult.providerRequestCount,
+                failure_stage: engineResult.stage,
+                error_code: engineResult.code ?? engineResult.error,
+                success: false,
+                total_latency_ms: Date.now() - routeStarted,
+                system_prompt_version: engineResult.brief?.systemPromptVersion?.versionLabel ?? null,
+                system_prompt_status: engineResult.brief?.systemPromptVersion?.status ?? null,
+              });
+            }
+            send({
+              ok: false,
+              error: engineResult.code ?? engineResult.error,
+              detail: engineResult.error,
+              refunded,
+              jobId: prep?.job.id,
             });
+            return;
+          }
+
+          b64s = engineResult.b64s;
+          persistedFinalPrompt = engineResult.finalPrompt;
+
+          if (prep) {
+            await stampJobExecutionTelemetry(prep.job.id, {
+              provider_request_count: engineResult.providerRequestCount,
+              provider_latency_ms: engineResult.providerLatencyMs,
+              operation: engineResult.providerRequest.operation,
+              image_size: engineResult.providerRequest.size ?? null,
+              image_quality: engineResult.providerRequest.quality ?? body.quality ?? null,
+              image_n: engineResult.providerRequest.n ?? n,
+              reference_count_received: engineResult.providerRequest.referenceCountReceived ?? null,
+              reference_count_usable: engineResult.providerRequest.referenceCountUsable ?? null,
+              reference_count_used: engineResult.providerRequest.referenceCountUsed ?? null,
+              reference_source_types: (engineResult.providerRequest.references ?? [])
+                .map((r) => r.sourceType)
+                .filter(Boolean),
+              text_mode: textOn ? "on" : "off",
+              fort_enabled: Boolean(body.fort?.enabled),
+              brain_used: Boolean(brainBrief || workspaceBrandBrief),
+              preset_present: Boolean(maroPromptId),
+              system_prompt_version: engineResult.brief.systemPromptVersion?.versionLabel ?? null,
+              system_prompt_status: engineResult.brief.systemPromptVersion?.status ?? null,
+            });
+          }
+        } else {
+          b64s = refs.length
+            ? await editImages({
+                prompt: finalPrompt,
+                images: refs,
+                size,
+                quality: body.quality,
+                n: body.n,
+              })
+            : await generateImages({
+                prompt: finalPrompt,
+                size,
+                quality: body.quality,
+                n,
+              });
+        }
 
         if (!b64s.length) {
           let refunded = false;
@@ -301,6 +412,14 @@ export async function POST(req: Request) {
               jobId: prep.job.id,
               idempotencyKey: prep.idempotencyKey,
               error: "empty",
+            });
+          }
+          if (prep && execution.mode === "engine_internal") {
+            await stampJobExecutionTelemetry(prep.job.id, {
+              failure_stage: "provider",
+              error_code: "empty",
+              success: false,
+              total_latency_ms: Date.now() - routeStarted,
             });
           }
           send({ ok: false, error: "empty", refunded, jobId: prep?.job.id });
@@ -322,7 +441,7 @@ export async function POST(req: Request) {
             user_id: userId,
             user_email: userEmail,
             prompt: body.prompt,
-            final_prompt: finalPrompt,
+            final_prompt: persistedFinalPrompt,
             model: IMAGE_MODEL,
             credits_spent: cost,
             tool_id: tool.id,
@@ -333,54 +452,55 @@ export async function POST(req: Request) {
             workspace_id: workspaceId ?? undefined,
           });
 
-          const providerRefsUsed = refs.length
-            ? Math.min(refs.length, IMAGE_PROVIDER_REF_LIMIT)
-            : 0;
-          const referenceOutcome = refTracker.finalize(providerRefsUsed);
-          const legacyImageProvider = buildRuntimeImageLegacyProvider({
-            finalPrompt,
-            model: IMAGE_MODEL,
-            size: (size ?? "1024x1024") as ImageSize,
-            quality: body.quality,
-            n,
-            referenceOutcome,
-          });
+          if (execution.scheduleShadowAfterSuccess && execution.mode !== "engine_internal") {
+            const providerRefsUsed = refs.length
+              ? Math.min(refs.length, IMAGE_PROVIDER_REF_LIMIT)
+              : 0;
+            const referenceOutcome = refTracker.finalize(providerRefsUsed);
+            const legacyImageProvider = buildRuntimeImageLegacyProvider({
+              finalPrompt: persistedFinalPrompt,
+              model: IMAGE_MODEL,
+              size: (size ?? "1024x1024") as ImageSize,
+              quality: body.quality,
+              n,
+              referenceOutcome,
+            });
 
-          const shadowPayload: ImageShadowSchedulePayload = {
-            registryToolId: tool.id,
-            finalPrompt,
-            model: IMAGE_MODEL,
-            userId,
-            workspaceId,
-            userPrompt: body.prompt,
-            selections,
-            fort: body.fort,
-            attachments: toSafeAttachmentMeta(body.attachments),
-            useBrain: Boolean(body.useWorkspaceBrand && workspaceId),
-            brandOnly,
-            estimatedCredits: cost,
-            generationId: generationId ?? undefined,
-            jobId: prep?.job.id,
-            presetId: maroPromptId,
-            presetPrompt: presetPromptText,
-            quality: body.quality,
-            n,
-            size: (size ?? "1024x1024") as ImageSize,
-            toolPrompts: settings.tool_prompts ?? {},
-            fortLayerText,
-            fortExpertBrief,
-            brainBrief,
-            matchedSourcesBrief,
-            workspaceBrandBrief,
-            brainLogoUrl,
-            matchedSourceUrls,
-            fetchedUrls,
-            legacyImageProvider,
-            textMode: textOn ? "on" : "off",
-            font: fontSelection,
-          };
+            void maybeScheduleImageShadow({
+              registryToolId: tool.id,
+              finalPrompt: persistedFinalPrompt,
+              model: IMAGE_MODEL,
+              userId,
+              workspaceId,
+              userPrompt: body.prompt,
+              selections,
+              fort: body.fort,
+              attachments: toSafeAttachmentMeta(body.attachments),
+              useBrain: Boolean(body.useWorkspaceBrand && workspaceId),
+              brandOnly,
+              estimatedCredits: cost,
+              generationId: generationId ?? undefined,
+              jobId: prep?.job.id,
+              presetId: maroPromptId,
+              presetPrompt: presetPromptText,
+              quality: body.quality,
+              n,
+              size: (size ?? "1024x1024") as ImageSize,
+              toolPrompts: settings.tool_prompts ?? {},
+              fortLayerText,
+              fortExpertBrief,
+              brainBrief,
+              matchedSourcesBrief,
+              workspaceBrandBrief,
+              brainLogoUrl,
+              matchedSourceUrls,
+              fetchedUrls,
+              legacyImageProvider,
+              textMode: textOn ? "on" : "off",
+              font: fontSelection,
+            });
+          }
 
-          void maybeScheduleImageShadow(shadowPayload);
           if (prep) {
             await completeGeneration({
               jobId: prep.job.id,
@@ -390,6 +510,13 @@ export async function POST(req: Request) {
               model: IMAGE_MODEL,
               imageCount: b64s.length,
             });
+            if (execution.mode === "engine_internal") {
+              await stampJobExecutionTelemetry(prep.job.id, {
+                success: true,
+                generation_id: generationId,
+                total_latency_ms: Date.now() - routeStarted,
+              });
+            }
           }
         }
 

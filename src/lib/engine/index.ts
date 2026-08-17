@@ -27,4 +27,6 @@ export * from "./shadowImageDiff";
 export * from "./internalCanary";
 export * from "./webExecution";
 export * from "./webEngineRun";
+export * from "./imageExecution";
+export * from "./imageEngineRun";
 export * from "./executionTelemetry";
