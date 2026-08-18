@@ -12,6 +12,7 @@ import {
   resolveWorkspaceId,
   supabaseServerConfigured,
   uploadGeneratedImage,
+  resolveAssetListForClient,
 } from "@/lib/supabase/server";
 import { buildWorkspaceBrandBrief } from "@/lib/workspaces/brand";
 import {
@@ -54,6 +55,13 @@ import {
   stampJobExecutionTelemetry,
 } from "@/lib/engine/executionTelemetry";
 import type { ImageSize } from "@/lib/tools/registry";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { validateOutboundHttpUrl } from "@/lib/security/ssrf";
+import {
+  MAX_USER_IMAGE_BYTES,
+  validateRasterUpload,
+} from "@/lib/security/uploadValidation";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,9 +72,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }
 
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!parsed.ok) return parsed.response;
+
   let body: AiImageRequest;
   try {
-    body = (await req.json()) as AiImageRequest;
+    body = parsed.body as AiImageRequest;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
@@ -138,7 +152,7 @@ export async function POST(req: Request) {
   let userEmail = "";
   let workspaceId: string | null = null;
   let cost = 0;
-  let entitled = !supabaseServerConfigured();
+  let entitled = false;
   let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
@@ -196,6 +210,17 @@ export async function POST(req: Request) {
 
   for (const attachment of body.attachments ?? []) {
     if (typeof attachment !== "string") continue;
+    if (attachment.startsWith("data:image/")) {
+      const validated = validateRasterUpload({
+        dataUrl: attachment,
+        maxBytes: MAX_USER_IMAGE_BYTES,
+        storagePrefix: "refs",
+        userId: userId ?? "anonymous",
+      });
+      if (!validated.ok) {
+        return NextResponse.json({ error: validated.reason }, { status: 400 });
+      }
+    }
     refTracker.recordAttempt("user", attachment);
   }
 
@@ -215,9 +240,14 @@ export async function POST(req: Request) {
       return;
     }
     if (!u.startsWith("http")) return;
+    const safe = validateOutboundHttpUrl(u);
+    if (!safe.ok) {
+      refTracker.recordAttempt(sourceType, u, false);
+      return;
+    }
     refTracker.recordAttempt(sourceType, u, false);
     try {
-      const res = await fetch(u);
+      const res = await fetch(safe.url.toString(), { redirect: "error" });
       if (!res.ok) return;
       const mime = res.headers.get("content-type") || "image/png";
       const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
@@ -464,15 +494,15 @@ export async function POST(req: Request) {
           return;
         }
 
-        let urls: string[] = [];
+        let storedUrls: string[] = [];
         if (userId && supabaseServerConfigured()) {
-          urls = (await Promise.all(b64s.map((b) => uploadGeneratedImage(userId!, b)))).filter(
-            (u): u is string => Boolean(u)
-          );
+          storedUrls = (
+            await Promise.all(b64s.map((b) => uploadGeneratedImage(userId!, b)))
+          ).filter((u): u is string => Boolean(u));
         }
-        if (!urls.length) {
-          urls = b64s.map((b) => `data:image/png;base64,${b}`);
-        }
+        const displayUrls = storedUrls.length
+          ? await resolveAssetListForClient(storedUrls)
+          : b64s.map((b) => `data:image/png;base64,${b}`);
 
         if (userId) {
           const generationId = await logGeneration({
@@ -484,7 +514,7 @@ export async function POST(req: Request) {
             credits_spent: cost,
             tool_id: tool.id,
             kind: "image",
-            output_urls: urls.filter((u) => !u.startsWith("data:")),
+            output_urls: storedUrls.filter((u) => !u.startsWith("data:")),
             selections: Object.keys(selections).length ? selections : undefined,
             fort: fortLog,
             workspace_id: workspaceId ?? undefined,
@@ -565,7 +595,7 @@ export async function POST(req: Request) {
 
         send({
           ok: true,
-          images: urls,
+          images: displayUrls,
           creditsSpent: cost,
           jobId: prep?.job.id,
         });

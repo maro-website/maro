@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSecurityConfigStatus } from "@/lib/config/serverEnv";
 import {
   getSupabaseAdmin,
   supabaseServerConfigured,
@@ -108,6 +109,7 @@ export async function GET(req: Request) {
     suspiciousIps,
     marginFlags,
     refundedTx: refundedTx ?? [],
+    securityConfig: getSecurityConfigStatus(),
   });
 }
 

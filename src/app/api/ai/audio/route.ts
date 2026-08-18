@@ -15,6 +15,7 @@ import {
   resolveWorkspaceId,
   supabaseServerConfigured,
   uploadGeneratedAudio,
+  resolveStoredAssetUrl,
 } from "@/lib/supabase/server";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
@@ -29,6 +30,8 @@ import {
   getTool,
   toolSelectionCost,
 } from "@/lib/tools/registry";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,12 +48,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }
 
-  let body: AiAudioRequest;
-  try {
-    body = (await req.json()) as AiAudioRequest;
-  } catch {
-    return NextResponse.json({ error: "bad-json" }, { status: 400 });
-  }
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonAiAudio);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as AiAudioRequest;
 
   const tool = getTool(body?.toolId ?? "");
   if (!tool || tool.kind !== "audio") {
@@ -191,10 +194,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "empty" }, { status: 502 });
     }
 
-    let audioUrl = "";
+    let storedAudio = "";
     if (userId && supabaseServerConfigured()) {
-      audioUrl = (await uploadGeneratedAudio(userId, b64)) ?? "";
+      storedAudio = (await uploadGeneratedAudio(userId, b64)) ?? "";
     }
+    let audioUrl = storedAudio ? await resolveStoredAssetUrl(storedAudio) : "";
     if (!audioUrl) {
       audioUrl = `data:audio/mpeg;base64,${b64}`;
     }
@@ -209,7 +213,7 @@ export async function POST(req: Request) {
         credits_spent: cost,
         tool_id: tool.id,
         kind: "audio",
-        output_urls: audioUrl.startsWith("data:") ? [] : [audioUrl],
+        output_urls: storedAudio ? [storedAudio] : [],
         selections: Object.keys(selections).length ? selections : undefined,
         workspace_id: workspaceId ?? undefined,
       });

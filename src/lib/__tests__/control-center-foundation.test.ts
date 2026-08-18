@@ -55,11 +55,11 @@ describe("test payment isolation", () => {
     expect(isTestPaymentAllowed()).toBe(true);
   });
 
-  it("blocks test payment in production unless ALLOW_TEST_PAYMENTS=true", () => {
+  it("blocks test payment in production even when ALLOW_TEST_PAYMENTS=true", () => {
     vi.stubEnv("PAYMENT_MODE", "test");
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("ALLOW_TEST_PAYMENTS", "");
+    vi.stubEnv("ALLOW_TEST_PAYMENTS", "true");
     expect(isTestPaymentAllowed()).toBe(false);
-    expect(testPaymentBlockReason()).toBe("production_requires_allow_test_payments");
+    expect(testPaymentBlockReason()).toBe("production_blocked");
   });
 });

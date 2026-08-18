@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { isPaymentModeValid } from "@/lib/config/serverEnv";
 import { requireUser } from "@/lib/payments/auth";
 import { fulfillCreditOrder } from "@/lib/payments/fulfill";
 import { getOrderForUser } from "@/lib/payments/orders";
 import { isTestPaymentAllowed, testPaymentBlockReason } from "@/lib/payments/testMode";
 
 export async function POST(req: Request) {
+  if (!isPaymentModeValid()) {
+    return NextResponse.json({ error: "forbidden", reason: "invalid_payment_mode" }, { status: 403 });
+  }
   if (!isTestPaymentAllowed()) {
     return NextResponse.json({ error: "forbidden", reason: testPaymentBlockReason() }, { status: 403 });
   }

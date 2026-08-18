@@ -1,14 +1,18 @@
 import "server-only";
 
+import { isTurnstileRequired } from "@/lib/config/serverEnv";
+
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 export async function verifyTurnstileToken(
   token: string | null | undefined,
   remoteIp?: string | null
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
+  const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) {
-    // Dev / unset: skip verification
+    if (isTurnstileRequired()) {
+      return { ok: false, reason: "turnstile_not_configured" };
+    }
     return { ok: true };
   }
   if (!token?.trim()) {

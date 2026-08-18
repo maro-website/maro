@@ -1,21 +1,37 @@
 /** @type {import('next').NextConfig} */
-const securityHeaders = [
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-];
+import { buildSecurityHeaders } from "./security-headers.mjs";
+
+const isProduction = process.env.NODE_ENV === "production";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+const baseHeaders = buildSecurityHeaders({ supabaseUrl, isProduction });
+const noStoreHeaders = buildSecurityHeaders({
+  supabaseUrl,
+  isProduction,
+  cacheControl: "no-store",
+});
 
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
     ],
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: baseHeaders },
+      { source: "/admin/:path*", headers: noStoreHeaders },
+      { source: "/account/:path*", headers: noStoreHeaders },
+      { source: "/sign-in", headers: noStoreHeaders },
+      { source: "/sign-up", headers: noStoreHeaders },
+      { source: "/checkout/:path*", headers: noStoreHeaders },
+      { source: "/order/:path*", headers: noStoreHeaders },
+      { source: "/pay/:path*", headers: noStoreHeaders },
+      { source: "/projects/:path*", headers: noStoreHeaders },
+      { source: "/api/:path*", headers: noStoreHeaders },
+    ];
   },
   async redirects() {
     return [

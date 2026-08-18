@@ -9,6 +9,7 @@ import { WEB_INSPIRATION } from "@/lib/modules/web/inspiration";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import type { Project } from "@/lib/types";
+import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
 import { Eye, Pencil, RefreshCw } from "lucide-react";
 
 function projectPreviewHtml(project: Project): string | null {
@@ -112,11 +113,10 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
         </div>
         <div className="relative min-h-0 flex-1 bg-surface-2 p-3">
           {previewHtml ? (
-            <iframe
+            <AiHtmlPreviewFrame
               title="Preview website"
-              srcDoc={previewHtml}
+              html={previewHtml}
               className="h-full min-h-[240px] w-full rounded-xl border border-line bg-white"
-              sandbox="allow-scripts allow-same-origin"
             />
           ) : (
             <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-[13px] text-ink-3">

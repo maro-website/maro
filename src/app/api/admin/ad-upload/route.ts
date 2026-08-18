@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
-import { supabaseServerConfigured, uploadGeneratedImage } from "@/lib/supabase/server";
+import { supabaseServerConfigured, uploadValidatedImage } from "@/lib/supabase/server";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import {
+  MAX_ADMIN_RASTER_BYTES,
+  validateRasterUpload,
+} from "@/lib/security/uploadValidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Admin-only: upload an ad banner image and return its public URL.
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
@@ -13,18 +17,25 @@ export async function POST(req: Request) {
   const auth = await requirePermission(req, "notifications.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  let body: { dataUrl?: string };
-  try {
-    body = (await req.json()) as typeof body;
-  } catch {
-    return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonAdminUpload);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as { dataUrl?: string };
+
+  const validated = validateRasterUpload({
+    dataUrl: body.dataUrl ?? "",
+    maxBytes: MAX_ADMIN_RASTER_BYTES,
+    storagePrefix: "admin-ads",
+    userId: auth.admin.userId,
+  });
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.reason }, { status: 400 });
   }
 
-  const dataUrl = body.dataUrl ?? "";
-  const m = dataUrl.match(/^data:image\/[a-zA-Z+]+;base64,(.+)$/);
-  if (!m) return NextResponse.json({ error: "bad-image" }, { status: 400 });
-
-  const url = await uploadGeneratedImage(auth.admin.userId, m[1]);
+  const url = await uploadValidatedImage(
+    validated.bytes,
+    validated.storageKey,
+    validated.mime
+  );
   if (!url) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
   return NextResponse.json({ url });
 }

@@ -3,6 +3,7 @@ import {
   getSupabaseAdmin,
   getUserFromToken,
   supabaseServerConfigured,
+  publishStoredUrlToExplore,
 } from "@/lib/supabase/server";
 import { getTool } from "@/lib/tools/registry";
 
@@ -131,13 +132,19 @@ export async function POST(req: Request) {
     "Anonim";
   const authorAvatar = (user.user_metadata?.avatar_url as string | undefined) || null;
 
+  const slug = slugify();
+  const publicUrl = await publishStoredUrlToExplore({ storedUrl: body.url, slug });
+  if (!publicUrl) {
+    return NextResponse.json({ error: "publish-failed" }, { status: 400 });
+  }
+
   const row: Record<string, unknown> = {
     user_id: user.id,
     tool_id: tool.id,
     prompt: (body.prompt ?? "").slice(0, 2000),
-    url: body.url,
+    url: publicUrl,
     author,
-    slug: slugify(),
+    slug,
   };
 
   if (body.selections) row.selections = body.selections;

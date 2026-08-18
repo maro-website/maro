@@ -14,6 +14,8 @@ import {
   failGeneration,
   guardErrorResponse,
 } from "@/lib/generation/orchestrator";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,12 +26,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no-key", fallback: true }, { status: 503 });
   }
 
-  let body: AiEditRequest;
-  try {
-    body = (await req.json()) as AiEditRequest;
-  } catch {
-    return NextResponse.json({ error: "bad-json" }, { status: 400 });
-  }
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonAiEdit);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as AiEditRequest;
   if (!body?.instruction?.trim()) {
     return NextResponse.json({ error: "missing-instruction" }, { status: 400 });
   }

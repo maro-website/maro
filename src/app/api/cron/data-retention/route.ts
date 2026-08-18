@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server";
 import { runGenerationDebugRetention } from "@/lib/operations/retention";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
+import { authorizeCronRequest } from "@/lib/security/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CRON_SECRET = process.env.CRON_SECRET;
-
-function authorized(req: Request): boolean {
-  if (!CRON_SECRET) return process.env.NODE_ENV !== "production";
-  return req.headers.get("authorization") === `Bearer ${CRON_SECRET}`;
-}
-
 /** Policy-driven retention cleanup — generation debug metadata only. */
 export async function POST(req: Request) {
-  if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!supabaseServerConfigured()) {
+    return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  }
+
+  const auth = authorizeCronRequest(req);
+  if (auth === "misconfigured") {
+    return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  }
+  if (auth === "unauthorized") {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const retention = await runGenerationDebugRetention();
 

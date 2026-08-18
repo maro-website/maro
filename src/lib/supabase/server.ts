@@ -13,6 +13,18 @@ import {
   refundCreditsAtomic,
   releaseCreditReserve,
 } from "@/lib/credits/ledger";
+import {
+  getPublicStorageUrl,
+  isPublicAssetPath,
+  STORAGE_BUCKET,
+  toStorageRef,
+} from "@/lib/storage/assets";
+
+export {
+  resolveAssetForClient,
+  resolveAssetListForClient,
+  publishStoredUrlToExplore,
+} from "@/lib/storage/assets";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -99,64 +111,73 @@ export async function getAppSettings(): Promise<AppSettings> {
   }
 }
 
-// Upload an admin SVG asset to the public "generations" bucket.
-export async function uploadAdminSvg(userId: string, svg: string, slug: string): Promise<string | null> {
+// Upload an admin SVG asset (public admin-icons prefix).
+export async function uploadAdminSvg(
+  userId: string,
+  svgBytes: Buffer,
+  storageKey: string
+): Promise<string | null> {
+  return uploadStorageObject(storageKey, svgBytes, "image/svg+xml");
+}
+
+// Upload validated raster bytes. Public-prefix paths return a public URL; private paths return a storage ref.
+export async function uploadValidatedImage(
+  bytes: Buffer,
+  storageKey: string,
+  contentType: string
+): Promise<string | null> {
+  return uploadStorageObject(storageKey, bytes, contentType);
+}
+
+async function uploadStorageObject(
+  storageKey: string,
+  bytes: Buffer,
+  contentType: string
+): Promise<string | null> {
   try {
     const admin = getSupabaseAdmin();
-    const safe = slug.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-    const path = `admin-icons/${userId}/${safe}-${Date.now()}.svg`;
-    const bytes = Buffer.from(svg, "utf-8");
+    const path = storageKey.replace(/^\/+/, "");
     const { error } = await admin.storage
-      .from("generations")
-      .upload(path, bytes, { contentType: "image/svg+xml", upsert: false });
+      .from(STORAGE_BUCKET)
+      .upload(path, bytes, { contentType, upsert: false });
     if (error) return null;
-    const { data } = admin.storage.from("generations").getPublicUrl(path);
-    return data.publicUrl ?? null;
+    if (isPublicAssetPath(path)) {
+      return (await getPublicStorageUrl(path)) ?? null;
+    }
+    return toStorageRef(path);
   } catch {
     return null;
   }
 }
 
-// Upload a base64 PNG to the public "generations" bucket and return its public
-// URL. Uses the service role (bypasses Storage RLS).
+/** Resolve a stored ref/legacy URL to a client-usable URL (signed when private). */
+export async function resolveStoredAssetUrl(stored: string): Promise<string> {
+  const { resolveAssetForClient } = await import("@/lib/storage/assets");
+  return resolveAssetForClient(stored);
+}
+
+// Upload a base64 PNG to private user storage; returns a storage ref for DB persistence.
 export async function uploadGeneratedImage(
   userId: string,
   b64: string
 ): Promise<string | null> {
-  try {
-    const admin = getSupabaseAdmin();
-    const bytes = Buffer.from(b64, "base64");
-    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
-    const { error } = await admin.storage
-      .from("generations")
-      .upload(path, bytes, { contentType: "image/png", upsert: false });
-    if (error) return null;
-    const { data } = admin.storage.from("generations").getPublicUrl(path);
-    return data.publicUrl ?? null;
-  } catch {
-    return null;
-  }
+  const { validateProviderImageBytes } = await import("@/lib/security/uploadValidation");
+  const validated = validateProviderImageBytes(b64);
+  if (!validated.ok) return null;
+  const storageKey = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  return uploadValidatedImage(validated.bytes, storageKey, "image/png");
 }
 
-// Upload a base64 mp3 to the public "generations" bucket and return its public
-// URL. Used by maro Zo (ElevenLabs audio output).
+// Upload a base64 mp3 to private user storage; returns a storage ref.
 export async function uploadGeneratedAudio(
   userId: string,
   b64: string
 ): Promise<string | null> {
-  try {
-    const admin = getSupabaseAdmin();
-    const bytes = Buffer.from(b64, "base64");
-    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp3`;
-    const { error } = await admin.storage
-      .from("generations")
-      .upload(path, bytes, { contentType: "audio/mpeg", upsert: false });
-    if (error) return null;
-    const { data } = admin.storage.from("generations").getPublicUrl(path);
-    return data.publicUrl ?? null;
-  } catch {
-    return null;
-  }
+  const { validateProviderAudioBytes } = await import("@/lib/security/uploadValidation");
+  const validated = validateProviderAudioBytes(b64);
+  if (!validated.ok) return null;
+  const storageKey = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp3`;
+  return uploadStorageObject(storageKey, validated.bytes, "audio/mpeg");
 }
 
 // Atomically spend credits via the SQL function. Returns the new balance, or -1

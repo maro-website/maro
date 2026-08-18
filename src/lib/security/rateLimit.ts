@@ -1,4 +1,6 @@
 import "server-only";
+
+import { isProduction } from "@/lib/config/serverEnv";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export interface RateLimitResult {
@@ -6,11 +8,14 @@ export interface RateLimitResult {
   retryAfter: number;
 }
 
+export type RateLimitMode = "strict" | "best_effort";
+
 export async function checkRateLimit(
   scope: string,
   scopeKey: string,
   limit: number,
-  windowSeconds: number
+  windowSeconds: number,
+  mode: RateLimitMode = "best_effort"
 ): Promise<RateLimitResult> {
   try {
     const { data, error } = await getSupabaseAdmin().rpc("check_rate_limit", {
@@ -19,13 +24,21 @@ export async function checkRateLimit(
       p_limit: limit,
       p_window_seconds: windowSeconds,
     });
-    if (error) return { allowed: true, retryAfter: 0 };
+    if (error) {
+      if (mode === "strict" && isProduction()) {
+        return { allowed: false, retryAfter: 60 };
+      }
+      return { allowed: true, retryAfter: 0 };
+    }
     const j = data as { allowed?: boolean; retry_after?: number };
     return {
       allowed: j?.allowed !== false,
       retryAfter: j?.retry_after ?? 0,
     };
   } catch {
+    if (mode === "strict" && isProduction()) {
+      return { allowed: false, retryAfter: 60 };
+    }
     return { allowed: true, retryAfter: 0 };
   }
 }
@@ -59,4 +72,23 @@ const INJECTION_PATTERNS = [
 
 export function detectPromptInjection(text: string): boolean {
   return INJECTION_PATTERNS.some((p) => p.test(text));
+}
+
+export function clientIp(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+export async function enforceRateLimit(
+  req: Request,
+  scope: string,
+  scopeKey: string,
+  limit: number,
+  windowSeconds: number,
+  mode: RateLimitMode = "strict"
+): Promise<RateLimitResult> {
+  return checkRateLimit(scope, scopeKey, limit, windowSeconds, mode);
 }

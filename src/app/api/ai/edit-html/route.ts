@@ -16,6 +16,8 @@ import {
   failGeneration,
   guardErrorResponse,
 } from "@/lib/generation/orchestrator";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,15 +31,12 @@ export async function POST(req: Request) {
     });
   }
 
-  let body: AiEditHtmlRequest;
-  try {
-    body = (await req.json()) as AiEditHtmlRequest;
-  } catch {
-    return new Response(JSON.stringify({ error: "bad-json" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonEditHtml);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as AiEditHtmlRequest;
   if (!body?.instruction?.trim() || !body?.page?.html?.trim()) {
     return new Response(JSON.stringify({ error: "missing-input" }), {
       status: 400,

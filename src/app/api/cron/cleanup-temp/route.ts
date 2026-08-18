@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
 import { cleanupStaleJobs } from "@/lib/generation/jobs";
+import { authorizeCronRequest } from "@/lib/security/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const CRON_SECRET = process.env.CRON_SECRET;
-
-function authorized(req: Request): boolean {
-  if (!CRON_SECRET) return true;
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${CRON_SECRET}`;
-}
 
 /** Delete stale failed jobs and trim old rate-limit events. */
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  if (!authorized(req)) {
+
+  const auth = authorizeCronRequest(req);
+  if (auth === "misconfigured") {
+    return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  }
+  if (auth === "unauthorized") {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { getCheckoutItem } from "@/lib/credits/money";
-import { paymentMode } from "@/lib/config/features";
+import { paymentModeStrict } from "@/lib/config/serverEnv";
 import { recordOrderPricingSnapshot } from "@/lib/pricing/snapshots";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
@@ -57,7 +57,7 @@ export async function createCreditOrder(opts: {
       amount_cents: item.priceCents,
       currency: "EUR",
       status: "pending",
-      provider: paymentMode() === "test" ? "test" : "raiffeisen",
+      provider: paymentModeStrict() === "test" ? "test" : "raiffeisen",
       promo_code: opts.promoCode ?? null,
       item_type: item.itemType,
       item_id: item.itemId,

@@ -9,7 +9,7 @@ import {
   LEGAL_CONSENT_REQUIRED,
 } from "@/components/legal/LegalConsentCheckbox";
 import { TurnstileWidget, turnstileConfigured } from "@/components/auth/TurnstileWidget";
-import { isSignupEnabled } from "@/lib/config/features";
+import { isSignupEnabled, MIN_PASSWORD_LENGTH } from "@/lib/config/features";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AuthPanel({
@@ -47,8 +47,8 @@ export function AuthPanel({
       setError("Plotëso email-in dhe fjalëkalimin.");
       return;
     }
-    if (mode === "sign-up" && password.length < 6) {
-      setError("Fjalëkalimi duhet të ketë të paktën 6 karaktere.");
+    if (mode === "sign-up" && password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Fjalëkalimi duhet të ketë të paktën ${MIN_PASSWORD_LENGTH} karaktere.`);
       return;
     }
     if (mode === "sign-up" && !legalAccepted) {

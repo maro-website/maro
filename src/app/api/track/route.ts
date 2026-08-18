@@ -4,6 +4,9 @@ import {
   getUserFromToken,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
+import { isValidTrackKind, normalizeBoundedString } from "@/lib/security/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,28 +17,35 @@ function bearer(req: Request): string | null {
   return h.startsWith("Bearer ") ? h.slice(7) : h;
 }
 
-// Record a prompt view/copy event (best-effort analytics). Auth is optional.
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ ok: false });
 
-  let body: { kind?: string; toolId?: string; prompt?: string; url?: string };
-  try {
-    body = (await req.json()) as typeof body;
-  } catch {
-    return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const ip = clientIp(req);
+  const rl = await enforceRateLimit(req, "track:prompt", ip, 300, 3600, "best_effort");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retry_after: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
   }
 
-  const kind = body.kind === "copy" ? "copy" : body.kind === "view" ? "view" : null;
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonTrack);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as { kind?: string; toolId?: string; url?: string };
+
+  const kind = isValidTrackKind(body.kind) ? body.kind : null;
   if (!kind) return NextResponse.json({ error: "bad-kind" }, { status: 400 });
 
+  const toolId = normalizeBoundedString(body.toolId, 64);
+  const url = normalizeBoundedString(body.url, 512);
   const user = await getUserFromToken(bearer(req));
 
   try {
     await getSupabaseAdmin().from("prompt_events").insert({
       kind,
-      tool_id: body.toolId ?? null,
-      prompt: (body.prompt ?? "").slice(0, 2000),
-      url: body.url ?? null,
+      tool_id: toolId,
+      prompt: null,
+      url,
       user_id: user?.id ?? null,
     });
   } catch {

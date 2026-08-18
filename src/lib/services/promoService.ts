@@ -61,10 +61,15 @@ export async function lookupPromoBySlug(raw: string): Promise<PromoInfo | null> 
 export async function trackPromo(code: string, kind: "link" | "code"): Promise<void> {
   if (!code || !supabaseConfigured) return;
   try {
-    let userId: string | null = null;
-    const { data } = await getSupabaseBrowser().auth.getUser();
-    userId = data.user?.id ?? null;
-    await getSupabaseBrowser().from("promo_events").insert({ code, kind, user_id: userId });
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const { data: sessionData } = await getSupabaseBrowser().auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+    await fetch("/api/promo/track", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ code, kind }),
+    });
   } catch {
     /* best-effort */
   }

@@ -5,6 +5,7 @@ import type { Project } from "@/lib/types";
 import { previewVars, buttonStyle } from "./theme";
 import { renderSection } from "./sections";
 import type { EditTarget } from "./Editable";
+import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
 
 // Renders Claude-authored full HTML pages inside a sandboxed iframe. Supports
 // switching between multiple pages via a small top nav.
@@ -42,10 +43,9 @@ function HtmlPreview({
           ))}
         </div>
       )}
-      <iframe
+      <AiHtmlPreviewFrame
         title={active.name}
-        srcDoc={active.html}
-        sandbox="allow-scripts allow-same-origin allow-popups"
+        html={active.html}
         className="block w-full"
         style={{
           border: 0,

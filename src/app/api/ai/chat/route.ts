@@ -19,6 +19,8 @@ import {
   bearer,
   type GenerationFinancialState,
 } from "@/lib/generation/orchestrator";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,12 +62,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }
 
-  let body: AiChatRequest;
-  try {
-    body = (await req.json()) as AiChatRequest;
-  } catch {
-    return NextResponse.json({ error: "bad-json" }, { status: 400 });
-  }
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonAiChat);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as AiChatRequest;
 
   const messages: ChatMsg[] = Array.isArray(body?.messages)
     ? body.messages

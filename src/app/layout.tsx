@@ -7,8 +7,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { MARO_LOGO } from "@/lib/design/maro-system";
 
-// Light UI — set meta theme-color before first paint.
-const THEME_INIT = `(function(){try{localStorage.setItem('maro.theme','mshelt');document.documentElement.removeAttribute('data-theme');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#F5F5F5');}catch(e){}})();`;
+import { THEME_INIT_SCRIPT } from "@/lib/security/headers";
 
 export const metadata: Metadata = {
   title: "maro · AI Hub",
@@ -34,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="sq">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
         <ThemeProvider>

@@ -225,7 +225,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       });
     }
 
-    const rlUser = await checkRateLimit("user", user.id, 120, 3600);
+    const rlUser = await checkRateLimit("user", user.id, 120, 3600, "strict");
     if (!rlUser.allowed) {
       await bumpRiskScore(user.id, 5);
       throw new GenerationGuardError(429, "rate_limited", undefined, {
@@ -233,14 +233,14 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       });
     }
 
-    const rlIp = await checkRateLimit("ip", ip, 200, 3600);
+    const rlIp = await checkRateLimit("ip", ip, 200, 3600, "strict");
     if (!rlIp.allowed) {
       throw new GenerationGuardError(429, "rate_limited", undefined, {
         retry_after: rlIp.retryAfter,
       });
     }
 
-    const rlGen = await checkRateLimit(`gen:${module}`, user.id, 30, 3600);
+    const rlGen = await checkRateLimit(`gen:${module}`, user.id, 30, 3600, "strict");
     if (!rlGen.allowed) {
       throw new GenerationGuardError(429, "rate_limited", undefined, {
         retry_after: rlGen.retryAfter,

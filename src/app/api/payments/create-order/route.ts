@@ -5,16 +5,24 @@ import { validatePromoCode } from "@/lib/payments/promo";
 import { emitProductEvent } from "@/lib/events/productEvents";
 import { getCheckoutItem } from "@/lib/credits/money";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
+import {
+  isValidEmail,
+  isValidPromoCode,
+  normalizeBoundedString,
+} from "@/lib/security/validation";
 
 function parseBilling(body: Record<string, unknown>): BillingSnapshot | null {
-  const fullName = String(body.fullName ?? "").trim();
-  const email = String(body.email ?? "").trim();
-  const country = String(body.country ?? "").trim();
-  const city = String(body.city ?? "").trim();
+  const fullName = normalizeBoundedString(body.fullName, REQUEST_LIMITS.billingFieldMax);
+  const email = normalizeBoundedString(body.email, REQUEST_LIMITS.billingFieldMax);
+  const country = normalizeBoundedString(body.country, REQUEST_LIMITS.billingFieldMax);
+  const city = normalizeBoundedString(body.city, REQUEST_LIMITS.billingFieldMax);
   const legalConsent = body.legalConsent === true;
   if (!fullName || !email || !country || !city || !legalConsent) return null;
-  const businessName = String(body.businessName ?? "").trim();
-  const nui = String(body.nui ?? "").trim();
+  if (!isValidEmail(email)) return null;
+  const businessName = normalizeBoundedString(body.businessName, REQUEST_LIMITS.billingFieldMax);
+  const nui = normalizeBoundedString(body.nui, REQUEST_LIMITS.billingFieldMax);
   return {
     fullName,
     email,
@@ -30,14 +38,21 @@ export async function POST(req: Request) {
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: Record<string, unknown>;
-  try {
-    body = (await req.json()) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  const ip = clientIp(req);
+  const rl = await enforceRateLimit(req, "payments:create-order", user.id, 20, 3600, "strict");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retry_after: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
   }
 
-  const itemId = String(body.itemId ?? "").trim();
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonCreateOrder);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as Record<string, unknown>;
+
+  const itemId = normalizeBoundedString(body.itemId, 64);
+  if (!itemId) return NextResponse.json({ error: "invalid_item" }, { status: 400 });
   const item = getCheckoutItem(itemId);
   if (!item) return NextResponse.json({ error: "invalid_item" }, { status: 400 });
 
@@ -52,8 +67,11 @@ export async function POST(req: Request) {
     .single();
 
   let promoCode: string | null = null;
-  const rawPromo = String(body.promoCode ?? "").trim();
+  const rawPromo = normalizeBoundedString(body.promoCode, REQUEST_LIMITS.promoCodeMax);
   if (rawPromo) {
+    if (!isValidPromoCode(rawPromo)) {
+      return NextResponse.json({ error: "invalid_promo" }, { status: 400 });
+    }
     const validated = await validatePromoCode(rawPromo);
     if (!validated) {
       return NextResponse.json({ error: "invalid_promo" }, { status: 400 });

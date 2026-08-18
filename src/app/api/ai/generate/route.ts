@@ -36,6 +36,8 @@ import {
   buildInitialExecutionTelemetry,
   stampJobExecutionTelemetry,
 } from "@/lib/engine/executionTelemetry";
+import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,9 +54,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no-key", fallback: true }, { status: 503 });
   }
 
+  const infraDeny = denyIfProductionWithoutSupabase();
+  if (infraDeny) return infraDeny;
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonWebGenerate);
+  if (!parsed.ok) return parsed.response;
+
   let body: AiGenerateRequest;
   try {
-    body = (await req.json()) as AiGenerateRequest;
+    body = parsed.body as AiGenerateRequest;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
@@ -112,7 +120,7 @@ export async function POST(req: Request) {
   let workspaceId: string | null = null;
   let cost = 0;
   let effort: string | undefined;
-  let entitled = !supabaseServerConfigured();
+  let entitled = false;
   let prep: Awaited<ReturnType<typeof prepareGeneration>> | null = null;
 
   if (supabaseServerConfigured()) {
