@@ -22,6 +22,10 @@ import {
 } from "@/lib/email/sanitize";
 import { renderEmail } from "@/lib/email/render";
 import { renderEmailLayout } from "@/lib/email/layout";
+import {
+  EMAIL_LOGO_ASSET_PATH,
+  resolveEmailLogoUrl,
+} from "@/lib/email/assets";
 import { isResendConfigured, sendViaResend } from "@/lib/email/provider/resend";
 import { assertTemplateMutationAllowed } from "@/lib/email/templates";
 
@@ -183,6 +187,14 @@ describe("email sanitizer", () => {
   });
 });
 
+describe("email asset URLs", () => {
+  it("falls back to production HTTPS origin for localhost", () => {
+    expect(resolveEmailLogoUrl("http://localhost:3006")).toBe(
+      "https://maro.al/email/maro-logo-email.png"
+    );
+  });
+});
+
 describe("email render + layout", () => {
   it("renders signup template with safe CTA link", () => {
     const url = "https://maro.al/auth/callback?type=signup";
@@ -207,6 +219,54 @@ describe("email render + layout", () => {
       paragraphs: ['Safe & "quoted"'],
     });
     expect(html).toContain("Safe &amp; &quot;quoted&quot;");
+  });
+
+  it("uses absolute HTTPS PNG logo without SVG or relative paths", () => {
+    const html = renderEmailLayout(
+      { heading: "Test", paragraphs: ["Body"] },
+      { assetOrigin: "https://maro.al" }
+    );
+    const logoUrl = resolveEmailLogoUrl("https://maro.al");
+    expect(logoUrl).toMatch(/^https:\/\//);
+    expect(logoUrl).toContain(EMAIL_LOGO_ASSET_PATH);
+    expect(logoUrl.endsWith(".png")).toBe(true);
+    expect(html).toContain(`src="${logoUrl}"`);
+    expect(html).not.toMatch(/\.svg/i);
+    expect(html).not.toMatch(/src="\//);
+    expect(html).not.toMatch(/localhost/i);
+  });
+
+  it("renders bulletproof CTA with explicit high-contrast brand colors", () => {
+    const html = renderEmailLayout({
+      heading: "Test",
+      paragraphs: ["Body"],
+      cta: { label: "Konfirmo", url: "https://maro.al/auth/callback?preview=1" },
+    });
+    expect(html).toContain('bgcolor="#253fda"');
+    expect(html).toContain("background-color:#253fda");
+    expect(html).toContain("color:#ffffff");
+    expect(html).toContain("font-weight:700");
+    expect(html).not.toContain("<script");
+  });
+
+  it("uses readable secondary and footer contrast colors", () => {
+    const html = renderEmailLayout({
+      heading: "Test",
+      paragraphs: ["Body"],
+      secondaryText: "Secondary copy",
+      footerNote: "Footer note",
+    });
+    expect(html).toContain("color:#374151");
+    expect(html).not.toContain("#818181");
+    expect(html).not.toContain("#c7c7c7");
+    expect(html).toContain("color:#1d34b8");
+    expect(html).toContain("text-decoration:underline");
+  });
+
+  it("declares light color-scheme for client dark-mode resilience", () => {
+    const html = renderEmailLayout({ heading: "Test", paragraphs: ["Body"] });
+    expect(html).toContain('name="color-scheme" content="light only"');
+    expect(html).toContain('name="supported-color-schemes" content="light"');
   });
 });
 
