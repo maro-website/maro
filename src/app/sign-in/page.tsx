@@ -13,6 +13,27 @@ function SignInContent() {
   const next = searchParams.get("next");
   const authError = searchParams.get("auth_error");
 
+  const authErrorMessage = React.useMemo(() => {
+    switch (authError) {
+      case "expired_link":
+        return "Linku ka skaduar. Kërko një link të ri për rivendosjen e fjalëkalimit.";
+      case "invalid_link":
+      case "missing_token":
+      case "malformed_callback":
+        return "Linku i autentikimit nuk është i vlefshëm. Kërko një link të ri.";
+      case "code_exchange_failed":
+        return "Sesioni nuk u krijua dot. Provo përsëri me linkun e fundit.";
+      case "invalid_type":
+        return "Lloji i autentikimit nuk mbështetet.";
+      case "not_configured":
+        return "Autentikimi nuk është i konfiguruar. Provo përsëri më vonë.";
+      default:
+        return authError
+          ? "Lidhja e autentikimit nuk funksionoi. Provo përsëri ose kërko një link të ri."
+          : null;
+    }
+  }, [authError]);
+
   const destination = React.useMemo(
     () => sanitizeInternalRedirectPath(next, "/"),
     [next]
@@ -20,9 +41,9 @@ function SignInContent() {
 
   return (
     <AuthLayout title="Mirë se erdhe përsëri" subtitle="Hyr në llogarinë tënde për të vazhduar.">
-      {authError ? (
+      {authErrorMessage ? (
         <div className="mb-4 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
-          Lidhja e autentikimit nuk funksionoi. Provo përsëri ose kërko një link të ri.
+          {authErrorMessage}
         </div>
       ) : null}
       <AuthPanel initialMode="sign-in" onDone={() => router.push(destination)} />

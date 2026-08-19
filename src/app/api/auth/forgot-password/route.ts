@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getAppOrigin } from "@/lib/config/appOrigin";
+import { buildPublicUrl } from "@/lib/config/appOrigin";
 import { isTurnstileConfigured, isTurnstileRequired } from "@/lib/config/serverEnv";
 import { normalizeEmail } from "@/lib/security/disposableEmails";
 import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
@@ -54,7 +54,10 @@ export async function POST(req: Request) {
     return NextResponse.json(GENERIC_OK, { headers: { "Cache-Control": "no-store" } });
   }
 
-  const redirectTo = `${getAppOrigin()}/auth/callback?type=recovery&next=${encodeURIComponent("/reset-password")}`;
+  const redirectTo = buildPublicUrl("/auth/callback", {
+    type: "recovery",
+    next: "/reset-password",
+  });
 
   const supabase = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
