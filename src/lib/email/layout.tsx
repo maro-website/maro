@@ -28,6 +28,16 @@ const COLORS = {
 
 const FONT_STACK = '"Manrope", "Segoe UI", Arial, Helvetica, sans-serif';
 
+/** Solid same-color gradient — resists Gmail dark-mode background recoloring. */
+const CTA_SOLID_GRADIENT = `linear-gradient(${BRAND_PRIMARY},${BRAND_PRIMARY})`;
+
+/** CTA container cell — layered background lock. */
+const CTA_TD_STYLE = [
+  `background-color:${BRAND_PRIMARY} !important`,
+  `background-image:${CTA_SOLID_GRADIENT} !important`,
+  "border-radius:8px",
+].join(";");
+
 /** Inline styles applied to every CTA anchor — must not inherit generic link colors. */
 const CTA_ANCHOR_STYLE = [
   "display:inline-block",
@@ -40,11 +50,18 @@ const CTA_ANCHOR_STYLE = [
   `color:${BRAND_CTA_TEXT} !important`,
   `-webkit-text-fill-color:${BRAND_CTA_TEXT} !important`,
   `background-color:${BRAND_PRIMARY} !important`,
+  `background-image:${CTA_SOLID_GRADIENT} !important`,
   "border-radius:8px",
   "text-decoration:none !important",
   "text-align:center",
   "mso-line-height-rule:exactly",
   "-webkit-text-size-adjust:none",
+].join(";");
+
+const CTA_TEXT_STYLE = [
+  `color:${BRAND_CTA_TEXT} !important`,
+  `-webkit-text-fill-color:${BRAND_CTA_TEXT} !important`,
+  "font-weight:700 !important",
 ].join(";");
 
 export interface EmailLayoutOptions {
@@ -81,9 +98,9 @@ function renderCta(cta: { label: string; url: string }): string {
           <!--[if !mso]><!-->
           <table role="presentation" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td align="center" bgcolor="${BRAND_PRIMARY}" style="background-color:${BRAND_PRIMARY};border-radius:8px;">
-                <a href="${url}" target="_blank" rel="noopener noreferrer" style="${CTA_ANCHOR_STYLE}">
-                  ${label}
+              <td align="center" bgcolor="${BRAND_PRIMARY}" class="maro-cta" style="${CTA_TD_STYLE}">
+                <a href="${url}" target="_blank" rel="noopener noreferrer" class="maro-cta" style="${CTA_ANCHOR_STYLE}">
+                  <span class="maro-cta-text" style="${CTA_TEXT_STYLE}">${label}</span>
                 </a>
               </td>
             </tr>

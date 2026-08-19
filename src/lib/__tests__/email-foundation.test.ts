@@ -241,20 +241,30 @@ describe("email render + layout", () => {
     expect(html).toContain('height="40"');
   });
 
-  it("locks CTA to brand primary with explicit !important anchor styles", () => {
+  it("locks CTA to brand primary with layered dark-mode-resistant markup", () => {
     const html = renderEmailLayout({
       heading: "Test",
       paragraphs: ["Body"],
       cta: { label: "Konfirmo", url: "https://maro.al/auth/callback?preview=1" },
     });
     expect(html).toContain('bgcolor="#253FDA"');
-    expect(html).toContain("background-color:#253FDA");
     expect(html).toContain("background-color:#253FDA !important");
+    expect(html).toContain("background-image:linear-gradient(#253FDA,#253FDA) !important");
+    expect(html).toContain('class="maro-cta"');
+    expect(html).toContain('class="maro-cta-text"');
     expect(html).toContain("color:#FFFFFF !important");
     expect(html).toContain("-webkit-text-fill-color:#FFFFFF !important");
     expect(html).toContain("text-decoration:none !important");
     expect(html).toContain("font-weight:700 !important");
-    expect(html).not.toMatch(/gradient/i);
+    expect(html).toContain("<span class=\"maro-cta-text\"");
+    expect(html).not.toMatch(/prefers-color-scheme:\s*dark/i);
+    for (const gradient of html.match(/linear-gradient\([^)]+\)/g) ?? []) {
+      expect(gradient.toLowerCase()).toBe("linear-gradient(#253fda,#253fda)");
+    }
+    const ctaBlock =
+      html.match(/<td align="center" bgcolor="#253FDA" class="maro-cta"[\s\S]*?<!--<!\[endif\]-->/)?.[0] ?? "";
+    expect(ctaBlock.length).toBeGreaterThan(0);
+    expect(ctaBlock).not.toMatch(/#(?:ffc0cb|dda0dd|e6e6fa|f0a0d0|e0b0ff|d8b4fe)/i);
     expect(html).not.toMatch(/opacity/i);
     expect(html).not.toContain("<script");
   });
@@ -268,6 +278,7 @@ describe("email render + layout", () => {
     expect(html).not.toMatch(/<style[^>]*>[\s\S]*a\s*\{/i);
     expect(html).toContain('href="mailto:info@maro.al"');
     expect(html).toContain("text-decoration:underline");
+    expect(html).toContain('class="maro-cta-text"');
     expect(html).toContain("color:#FFFFFF !important");
   });
 
