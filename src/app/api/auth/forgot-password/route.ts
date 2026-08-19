@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { buildPublicUrl } from "@/lib/config/appOrigin";
 import { isTurnstileConfigured, isTurnstileRequired } from "@/lib/config/serverEnv";
@@ -15,7 +16,7 @@ const GENERIC_OK = {
   message: "Nëse ekziston një llogari me këtë email, do të marrësh udhëzime për rivendosjen e fjalëkalimit.",
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const ip = clientIp(req);
   const rl = await enforceRateLimit(req, "auth:forgot-password", ip, 5, 3600, "strict");
   if (!rl.allowed) {
@@ -59,6 +60,11 @@ export async function POST(req: Request) {
     next: "/reset-password",
   });
 
+  // Built-in Supabase mailer uses PKCE (?code= callback). resetPasswordForEmail()
+  // stores a code_verifier that exchangeCodeForSession() must read from the same
+  // browser cookies. This route uses stateless @supabase/supabase-js (not
+  // @supabase/ssr), so no verifier cookie reaches the browser. Phase 1B custom
+  // hook emails use token_hash + verifyOtp and do not depend on this PKCE path.
   const supabase = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

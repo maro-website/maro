@@ -6,10 +6,16 @@ import {
 } from "@/lib/config/appOrigin";
 import {
   classifyCodeExchangeError,
+  classifyCodeExchangeFailure,
   classifySupabaseRedirectError,
   classifyVerifyOtpError,
   callbackFailureLogMeta,
 } from "@/lib/auth/callbackErrors";
+import {
+  isSupabasePkceVerifierCookieName,
+  requestHasPkceVerifierCookie,
+  responseSetsPkceVerifierCookie,
+} from "@/lib/auth/pkceDiagnostics";
 
 describe("canonical public app origin", () => {
   const envSnapshot = { ...process.env };
@@ -81,6 +87,19 @@ describe("auth callback error classification", () => {
     expect(classifyCodeExchangeError("Code expired")).toBe("expired_link");
     expect(classifyCodeExchangeError("Invalid code")).toBe("invalid_link");
     expect(classifyCodeExchangeError("PKCE mismatch")).toBe("code_exchange_failed");
+    expect(
+      classifyCodeExchangeFailure(
+        "PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device."
+      )
+    ).toBe("pkce_verifier_missing");
+    expect(
+      classifyCodeExchangeError(
+        "PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device."
+      )
+    ).toBe("code_exchange_failed");
+    expect(
+      classifyCodeExchangeFailure("both auth code and code verifier should be non-empty")
+    ).toBe("pkce_verifier_missing");
   });
 
   it("classifies Supabase provider redirect errors", () => {
@@ -93,9 +112,54 @@ describe("auth callback error classification", () => {
       reason: "verification_failed",
       flow: "verify_otp",
       otpType: "recovery",
+      exchangeFailureCategory: "pkce_verifier_missing",
+      pkceVerifierPresent: false,
     });
-    expect(JSON.stringify(meta)).not.toMatch(/token_hash|access_token|refresh_token/i);
+    expect(JSON.stringify(meta)).not.toMatch(/token_hash|access_token|refresh_token|code=/i);
     expect(meta.reason).toBe("verification_failed");
+    expect(meta.pkce_verifier_present).toBe(false);
+    expect(meta.exchange_failure_category).toBe("pkce_verifier_missing");
+  });
+});
+
+describe("PKCE verifier cookie diagnostics", () => {
+  it("detects Supabase verifier cookie names without reading values", () => {
+    expect(isSupabasePkceVerifierCookieName("sb-abc-auth-token-code-verifier")).toBe(true);
+    expect(
+      isSupabasePkceVerifierCookieName("sb-abc-auth-token-flow-01234567-code-verifier")
+    ).toBe(true);
+    expect(isSupabasePkceVerifierCookieName("sb-abc-auth-token")).toBe(false);
+  });
+
+  it("reports verifier presence on callback request cookies", () => {
+    expect(
+      requestHasPkceVerifierCookie([
+        { name: "sb-project-auth-token-code-verifier", value: "secret" },
+      ])
+    ).toBe(true);
+    expect(requestHasPkceVerifierCookie([{ name: "other-cookie", value: "x" }])).toBe(false);
+  });
+
+  it("reports verifier Set-Cookie on forgot-password style responses", () => {
+    expect(
+      responseSetsPkceVerifierCookie([
+        "sb-project-auth-token-code-verifier=abc; Path=/; HttpOnly; SameSite=Lax",
+      ])
+    ).toBe(true);
+    expect(responseSetsPkceVerifierCookie(["session=abc; Path=/"])).toBe(false);
+  });
+});
+
+describe("forgot-password server client architecture", () => {
+  it("uses stateless supabase-js rather than @supabase/ssr cookie client", async () => {
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile("src/app/api/auth/forgot-password/route.ts", "utf8")
+    );
+    expect(source).toContain('from "@supabase/supabase-js"');
+    expect(source).not.toMatch(/from\s+"@supabase\/ssr"/);
+    expect(source).not.toContain("createSupabaseRouteHandlerClient");
+    expect(source).toContain("persistSession: false");
+    expect(source).toContain("NextResponse.json(GENERIC_OK");
   });
 });
 

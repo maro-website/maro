@@ -8,10 +8,12 @@ import { parseEmailOtpType } from "@/lib/email/authUrls";
 import {
   callbackFailureLogMeta,
   classifyCodeExchangeError,
+  classifyCodeExchangeFailure,
   classifySupabaseRedirectError,
   classifyVerifyOtpError,
   type AuthCallbackErrorReason,
 } from "@/lib/auth/callbackErrors";
+import { requestHasPkceVerifierCookie } from "@/lib/auth/pkceDiagnostics";
 import {
   DEFAULT_AUTH_REDIRECT,
   sanitizeInternalRedirectPath,
@@ -78,12 +80,23 @@ export async function GET(req: NextRequest) {
   // Built-in Supabase mailer PKCE handoff — prefer code before token_hash.
   if (code) {
     const destination = resolveDestination(nextRaw, typeRaw);
+    const pkceVerifierPresent = requestHasPkceVerifierCookie(req.cookies.getAll());
     let response = successRedirect(destination);
     const supabase = createSupabaseRouteHandlerClient(req, response);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
+      const exchangeFailureCategory = classifyCodeExchangeFailure(error.message);
       const reason = classifyCodeExchangeError(error.message);
-      console.warn("[auth/callback]", callbackFailureLogMeta({ reason, flow: "code_exchange", otpType: typeRaw }));
+      console.warn(
+        "[auth/callback]",
+        callbackFailureLogMeta({
+          reason,
+          flow: "code_exchange",
+          otpType: typeRaw,
+          exchangeFailureCategory,
+          pkceVerifierPresent,
+        })
+      );
       return authErrorRedirect(reason);
     }
     response.headers.set("Cache-Control", "no-store");
