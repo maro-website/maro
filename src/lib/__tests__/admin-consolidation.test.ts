@@ -60,6 +60,7 @@ describe("Admin consolidation — access roles", () => {
 
   it("keeps editor out of security management", () => {
     expect(hasPermission("editor", "security.manage")).toBe(false);
+    expect(hasPermission("editor", "emails.manage")).toBe(false);
     expect(hasPermission("super_admin", "users.manage")).toBe(true);
   });
 

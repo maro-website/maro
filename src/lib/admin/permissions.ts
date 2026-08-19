@@ -28,7 +28,8 @@ export type PermissionKey =
   | "security.manage"
   | "analytics.view"
   | "audit.view"
-  | "help.manage";
+  | "help.manage"
+  | "emails.manage";
 
 const ALL_PERMISSIONS: PermissionKey[] = [
   "admin.access",
@@ -48,6 +49,7 @@ const ALL_PERMISSIONS: PermissionKey[] = [
   "analytics.view",
   "audit.view",
   "help.manage",
+  "emails.manage",
 ];
 
 const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionKey[]> = {
@@ -70,6 +72,7 @@ const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionKey[]> = {
     "analytics.view",
     "audit.view",
     "help.manage",
+    "emails.manage",
   ],
   developer: [
     "admin.access",
@@ -83,6 +86,7 @@ const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionKey[]> = {
     "analytics.view",
     "audit.view",
     "help.manage",
+    "emails.manage",
   ],
   editor: [
     "admin.access",

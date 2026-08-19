@@ -48,6 +48,14 @@ export function isCronSecretConfigured(): boolean {
   return Boolean(process.env.CRON_SECRET?.trim());
 }
 
+export function isResendConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY?.trim());
+}
+
+export function isAuthEmailHookConfigured(): boolean {
+  return Boolean(process.env.SUPABASE_AUTH_HOOK_SECRET?.trim());
+}
+
 export function infraUnavailableResponse(): NextResponse {
   return NextResponse.json({ error: "not-configured" }, { status: 503 });
 }
@@ -65,6 +73,8 @@ export type SecurityConfigStatus = {
   supabaseServer: "OK" | "MISSING";
   turnstile: "CONFIGURED" | "DISABLED" | "MISSING";
   cronSecret: "CONFIGURED" | "DISABLED" | "MISSING";
+  resend: "CONFIGURED" | "MISSING";
+  authEmailHook: "CONFIGURED" | "MISSING";
   paymentMode: PaymentModeStatus;
   testPayments: "ENABLED" | "DISABLED";
 };
@@ -83,6 +93,8 @@ export function getSecurityConfigStatus(): SecurityConfigStatus {
       : isProduction()
         ? "MISSING"
         : "DISABLED",
+    resend: isResendConfigured() ? "CONFIGURED" : "MISSING",
+    authEmailHook: isAuthEmailHookConfigured() ? "CONFIGURED" : "MISSING",
     paymentMode: resolvePaymentMode(),
     testPayments: isProduction() ? "DISABLED" : resolvePaymentMode() === "test" ? "ENABLED" : "DISABLED",
   };

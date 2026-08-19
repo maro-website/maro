@@ -183,6 +183,14 @@ export function AuthPanel({
           {mode === "sign-in" ? "Hyr" : "Krijo llogari"}
         </Button>
       </form>
+
+      {mode === "sign-in" && (
+        <p className="text-center text-[13px] text-ink-3">
+          <a href="/forgot-password" className="font-semibold text-brand hover:underline">
+            Harrove fjalëkalimin?
+          </a>
+        </p>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Star,
   Cpu,
   Megaphone,
+  Mail,
   ShoppingCart,
   LifeBuoy,
   BarChart3,
@@ -35,6 +36,7 @@ export const ADMIN_ROUTES = {
   engine: "/admin/engine",
   presets: "/admin/engine/presets",
   notifications: "/admin/notifications",
+  emails: "/admin/emails",
   help: "/admin/help",
   commerce: {
     plans: "/admin/commerce/plans",
@@ -90,6 +92,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Përmbajtja",
     items: [
       { href: ADMIN_ROUTES.notifications, label: "Njoftimet", permission: "notifications.manage", icon: Megaphone },
+      { href: ADMIN_ROUTES.emails, label: "Emailat", permission: "emails.manage", icon: Mail },
       { href: ADMIN_ROUTES.help, label: "Help Center", permission: "help.manage" },
     ],
   },
@@ -174,7 +177,7 @@ export function adminNavGroupForPath(pathname: string): string | null {
   if (pathname === ADMIN_ROUTES.dashboard) return "command";
   if (pathname.startsWith("/admin/users") || pathname.startsWith(ADMIN_ROUTES.access) || pathname.startsWith(ADMIN_ROUTES.creators)) return "users";
   if (pathname.startsWith("/admin/engine")) return "engine";
-  if (pathname.startsWith("/admin/notifications") || pathname.startsWith("/admin/help")) return "content";
+  if (pathname.startsWith("/admin/notifications") || pathname.startsWith("/admin/help") || pathname.startsWith("/admin/emails")) return "content";
   if (pathname.startsWith("/admin/commerce")) return "commerce";
   if (pathname.startsWith("/admin/support")) return "support";
   if (pathname.startsWith("/admin/analytics")) return "analytics";
