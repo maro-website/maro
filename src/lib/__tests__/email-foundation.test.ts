@@ -23,8 +23,8 @@ import {
 import { renderEmail } from "@/lib/email/render";
 import { renderEmailLayout } from "@/lib/email/layout";
 import {
-  EMAIL_LOGO_ASSET_PATH,
-  resolveEmailLogoUrl,
+  EMAIL_SYMBOL_ASSET_PATH,
+  resolveEmailSymbolUrl,
 } from "@/lib/email/assets";
 import { isResendConfigured, sendViaResend } from "@/lib/email/provider/resend";
 import { assertTemplateMutationAllowed } from "@/lib/email/templates";
@@ -189,8 +189,8 @@ describe("email sanitizer", () => {
 
 describe("email asset URLs", () => {
   it("falls back to production HTTPS origin for localhost", () => {
-    expect(resolveEmailLogoUrl("http://localhost:3006")).toBe(
-      "https://maro.al/email/maro-logo-email.png"
+    expect(resolveEmailSymbolUrl("http://localhost:3006")).toBe(
+      "https://maro.al/email/maro-symbol-email.png"
     );
   });
 });
@@ -221,32 +221,54 @@ describe("email render + layout", () => {
     expect(html).toContain("Safe &amp; &quot;quoted&quot;");
   });
 
-  it("uses absolute HTTPS PNG logo without SVG or relative paths", () => {
+  it("uses symbol-only absolute HTTPS PNG without wordmark or SVG", () => {
     const html = renderEmailLayout(
       { heading: "Test", paragraphs: ["Body"] },
       { assetOrigin: "https://maro.al" }
     );
-    const logoUrl = resolveEmailLogoUrl("https://maro.al");
-    expect(logoUrl).toMatch(/^https:\/\//);
-    expect(logoUrl).toContain(EMAIL_LOGO_ASSET_PATH);
-    expect(logoUrl.endsWith(".png")).toBe(true);
-    expect(html).toContain(`src="${logoUrl}"`);
+    const symbolUrl = resolveEmailSymbolUrl("https://maro.al");
+    expect(symbolUrl).toMatch(/^https:\/\//);
+    expect(symbolUrl).toContain(EMAIL_SYMBOL_ASSET_PATH);
+    expect(symbolUrl).toContain("maro-symbol-email.png");
+    expect(symbolUrl.endsWith(".png")).toBe(true);
+    expect(html).toContain(`src="${symbolUrl}"`);
+    expect(html).not.toMatch(/maro-logo-email/i);
     expect(html).not.toMatch(/\.svg/i);
     expect(html).not.toMatch(/src="\//);
     expect(html).not.toMatch(/localhost/i);
+    expect(html).toContain('alt="maro"');
+    expect(html).toContain('width="40"');
+    expect(html).toContain('height="40"');
   });
 
-  it("renders bulletproof CTA with explicit high-contrast brand colors", () => {
+  it("locks CTA to brand primary with explicit !important anchor styles", () => {
     const html = renderEmailLayout({
       heading: "Test",
       paragraphs: ["Body"],
       cta: { label: "Konfirmo", url: "https://maro.al/auth/callback?preview=1" },
     });
-    expect(html).toContain('bgcolor="#253fda"');
-    expect(html).toContain("background-color:#253fda");
-    expect(html).toContain("color:#ffffff");
-    expect(html).toContain("font-weight:700");
+    expect(html).toContain('bgcolor="#253FDA"');
+    expect(html).toContain("background-color:#253FDA");
+    expect(html).toContain("background-color:#253FDA !important");
+    expect(html).toContain("color:#FFFFFF !important");
+    expect(html).toContain("-webkit-text-fill-color:#FFFFFF !important");
+    expect(html).toContain("text-decoration:none !important");
+    expect(html).toContain("font-weight:700 !important");
+    expect(html).not.toMatch(/gradient/i);
+    expect(html).not.toMatch(/opacity/i);
     expect(html).not.toContain("<script");
+  });
+
+  it("scopes footer link styles without global anchor rules affecting CTA", () => {
+    const html = renderEmailLayout({
+      heading: "Test",
+      paragraphs: ["Body"],
+      cta: { label: "Konfirmo", url: "https://maro.al/auth/callback?preview=1" },
+    });
+    expect(html).not.toMatch(/<style[^>]*>[\s\S]*a\s*\{/i);
+    expect(html).toContain('href="mailto:info@maro.al"');
+    expect(html).toContain("text-decoration:underline");
+    expect(html).toContain("color:#FFFFFF !important");
   });
 
   it("uses readable secondary and footer contrast colors", () => {

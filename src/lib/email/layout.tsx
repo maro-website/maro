@@ -1,11 +1,15 @@
 import { escapeHtml } from "./variables";
 import {
-  EMAIL_LOGO_HEIGHT,
-  EMAIL_LOGO_WIDTH,
+  EMAIL_SYMBOL_HEIGHT,
+  EMAIL_SYMBOL_WIDTH,
   resolveEmailHomeUrl,
-  resolveEmailLogoUrl,
+  resolveEmailSymbolUrl,
 } from "./assets";
 import type { EmailStructuredContent } from "./types";
+
+/** Locked brand tokens — transactional email shell only. */
+const BRAND_PRIMARY = "#253FDA";
+const BRAND_CTA_TEXT = "#FFFFFF";
 
 /**
  * Inlined, email-client-safe palette.
@@ -17,13 +21,31 @@ const COLORS = {
   ink: "#111111",
   inkSecondary: "#374151",
   inkFooter: "#4b5563",
-  brand: "#253fda",
-  brandDark: "#1d34b8",
+  brand: BRAND_PRIMARY,
+  brandLink: "#1d34b8",
   line: "#e5e7eb",
-  ctaText: "#ffffff",
 } as const;
 
 const FONT_STACK = '"Manrope", "Segoe UI", Arial, Helvetica, sans-serif';
+
+/** Inline styles applied to every CTA anchor — must not inherit generic link colors. */
+const CTA_ANCHOR_STYLE = [
+  "display:inline-block",
+  "min-width:180px",
+  "padding:14px 28px",
+  `font-family:${FONT_STACK}`,
+  "font-size:16px",
+  "font-weight:700 !important",
+  "line-height:1.25",
+  `color:${BRAND_CTA_TEXT} !important`,
+  `-webkit-text-fill-color:${BRAND_CTA_TEXT} !important`,
+  `background-color:${BRAND_PRIMARY} !important`,
+  "border-radius:8px",
+  "text-decoration:none !important",
+  "text-align:center",
+  "mso-line-height-rule:exactly",
+  "-webkit-text-size-adjust:none",
+].join(";");
 
 export interface EmailLayoutOptions {
   previewText?: string;
@@ -41,29 +63,26 @@ function renderParagraphs(paragraphs: string[]): string {
     .join("");
 }
 
-/** Bulletproof CTA — code-owned colours, not admin-editable. */
+/** Bulletproof CTA — single locked brand appearance in all clients/themes. */
 function renderCta(cta: { label: string; url: string }): string {
   const label = escapeHtml(cta.label);
   const url = escapeHtml(cta.url);
-  const bg = COLORS.brand;
-  const fg = COLORS.ctaText;
 
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 12px;">
       <tr>
         <td align="center">
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:office" href="${url}" style="height:48px;v-text-anchor:middle;width:280px;" arcsize="17%" strokecolor="${bg}" fillcolor="${bg}">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:office" href="${url}" style="height:48px;v-text-anchor:middle;width:280px;" arcsize="17%" strokecolor="${BRAND_PRIMARY}" fillcolor="${BRAND_PRIMARY}">
             <w:anchorlock/>
-            <center style="color:${fg};font-family:Segoe UI, Arial, sans-serif;font-size:16px;font-weight:bold;">${label}</center>
+            <center style="color:${BRAND_CTA_TEXT};font-family:Segoe UI, Arial, sans-serif;font-size:16px;font-weight:bold;">${label}</center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-->
           <table role="presentation" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td align="center" bgcolor="${bg}" style="background-color:${bg};border:2px solid ${bg};border-radius:8px;">
-                <a href="${url}" target="_blank" rel="noopener noreferrer"
-                   style="display:inline-block;min-width:180px;padding:14px 28px;font-family:${FONT_STACK};font-size:16px;font-weight:700;line-height:1.25;color:${fg};background-color:${bg};border-radius:8px;text-decoration:none;text-align:center;mso-line-height-rule:exactly;-webkit-text-size-adjust:none;">
+              <td align="center" bgcolor="${BRAND_PRIMARY}" style="background-color:${BRAND_PRIMARY};border-radius:8px;">
+                <a href="${url}" target="_blank" rel="noopener noreferrer" style="${CTA_ANCHOR_STYLE}">
                   ${label}
                 </a>
               </td>
@@ -75,16 +94,16 @@ function renderCta(cta: { label: string; url: string }): string {
     </table>`;
 }
 
-function renderLogoBlock(homeUrl: string, logoUrl: string): string {
+function renderSymbolBlock(homeUrl: string, symbolUrl: string): string {
   const home = escapeHtml(homeUrl);
 
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
-        <td style="padding:0 0 20px;text-align:left;">
-          <a href="${home}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">
-            <img src="${escapeHtml(logoUrl)}" width="${EMAIL_LOGO_WIDTH}" height="${EMAIL_LOGO_HEIGHT}" alt="maro"
-                 style="display:block;border:0;outline:none;text-decoration:none;width:${EMAIL_LOGO_WIDTH}px;height:${EMAIL_LOGO_HEIGHT}px;max-width:100%;font-family:${FONT_STACK};font-size:20px;font-weight:800;line-height:${EMAIL_LOGO_HEIGHT}px;color:${COLORS.ink};" />
+        <td align="center" style="padding:0 0 24px;text-align:center;">
+          <a href="${home}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;line-height:0;">
+            <img src="${escapeHtml(symbolUrl)}" width="${EMAIL_SYMBOL_WIDTH}" height="${EMAIL_SYMBOL_HEIGHT}" alt="maro"
+                 style="display:block;border:0;outline:none;text-decoration:none;width:${EMAIL_SYMBOL_WIDTH}px;height:${EMAIL_SYMBOL_HEIGHT}px;max-width:100%;margin:0 auto;" />
           </a>
         </td>
       </tr>
@@ -102,7 +121,7 @@ export function renderEmailLayout(
   const preview = options.previewText?.trim() ?? "";
   const contact = options.contactEmail?.trim() || "info@maro.al";
   const assetOrigin = options.assetOrigin;
-  const logoUrl = resolveEmailLogoUrl(assetOrigin);
+  const symbolUrl = resolveEmailSymbolUrl(assetOrigin);
   const homeUrl = resolveEmailHomeUrl(assetOrigin);
 
   const heading = escapeHtml(content.heading);
@@ -139,7 +158,7 @@ export function renderEmailLayout(
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
           <tr>
             <td>
-              ${renderLogoBlock(homeUrl, logoUrl)}
+              ${renderSymbolBlock(homeUrl, symbolUrl)}
             </td>
           </tr>
           <tr>
@@ -159,7 +178,7 @@ export function renderEmailLayout(
                 maro.al · NICE Creative Agency SH.P.K.
               </p>
               <p style="margin:0;font-size:13px;line-height:1.6;color:${COLORS.inkSecondary};font-weight:500;">
-                Pyetje? Shkruaj te <a href="mailto:${contactMailto}" style="color:${COLORS.brandDark};font-weight:700;text-decoration:underline;">${contactMailto}</a>
+                Pyetje? Shkruaj te <a href="mailto:${contactMailto}" style="color:${COLORS.brandLink};font-weight:700;text-decoration:underline;">${contactMailto}</a>
               </p>
             </td>
           </tr>
