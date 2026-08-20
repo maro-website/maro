@@ -24,7 +24,7 @@ export function TraitPills({
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-[10px]">
       {BRAND_TRAITS.map((trait) => {
         const active = value.includes(trait);
         return (
@@ -33,7 +33,7 @@ export function TraitPills({
             type="button"
             aria-pressed={active}
             onClick={() => toggle(trait)}
-            className="maro-chip-select min-h-[44px] px-4 py-2.5"
+            className="maro-chip-select min-h-[52px] px-[20px] py-[10px]"
             data-selected={active || undefined}
           >
             {trait}

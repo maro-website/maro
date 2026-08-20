@@ -37,12 +37,12 @@ export function StepLogo({
       onStepClick={onStepClick}
     >
       <div>
-        <span className="marologo-field-label mb-3 block">Logo Type</span>
+        <span className="marologo-field-label mb-[10px] block">Logo Type</span>
         <LogoTypeCards value={wizard.logo.type} onChange={(type) => onChange({ type })} />
       </div>
 
       {symbolVisible && (
-        <div className="space-y-4">
+        <div className="space-y-[20px]">
           <span className="block text-[15px] font-semibold text-ink">Symbol Direction</span>
 
           <Field label="Çka duhet me përfaqësu simboli?">
@@ -56,7 +56,7 @@ export function StepLogo({
           </Field>
 
           <div>
-            <span className="marologo-field-label mb-2 block">Preferon simbolin të jetë:</span>
+            <span className="marologo-field-label mb-[10px] block">Preferon simbolin të jetë:</span>
             <SymbolDirectionPills
               value={wizard.logo.symbolDirection}
               onChange={(v) => onChange({ symbolDirection: v })}

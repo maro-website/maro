@@ -39,7 +39,7 @@ export function StepBrand({
           value={wizard.brand.name}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder="NICE"
-          className="marologo-card h-12 border-0 bg-surface-2"
+          className="marologo-card h-[52px] border-0 bg-surface"
         />
       </Field>
 
@@ -48,7 +48,7 @@ export function StepBrand({
           value={wizard.brand.slogan}
           onChange={(e) => onChange({ slogan: e.target.value })}
           placeholder="Opcionale"
-          className="marologo-card h-12 border-0 bg-surface-2"
+          className="marologo-card h-[52px] border-0 bg-surface"
         />
       </Field>
 
@@ -58,11 +58,11 @@ export function StepBrand({
           onChange={(e) => onChange({ description: e.target.value })}
           rows={4}
           placeholder="Agjension kreativ që merret me branding, web, video dhe marketing."
-          className="marologo-card min-h-[120px] border-0 bg-surface-2"
+          className="marologo-card min-h-[160px] border-0 bg-surface"
         />
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-[20px] md:grid-cols-2">
         <SearchableSelect
           label="Industria *"
           options={INDUSTRIES}

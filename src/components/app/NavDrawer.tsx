@@ -26,37 +26,37 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[80] lg:hidden">
+        <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label="Navigimi">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
+            className="absolute inset-0 bg-overlay"
             onClick={onClose}
           />
           <motion.aside
-            initial={{ x: "-100%" }}
+            initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,320px)] flex-col bg-canvas"
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+            className="absolute inset-0 flex w-full flex-col bg-canvas"
           >
-            <div className="flex shrink-0 items-center justify-between px-5 py-4">
+            <div className="flex h-[var(--maro-shell-header-height)] shrink-0 items-center justify-between px-4">
               <Link href="/" onClick={onClose} className="flex items-center gap-2">
                 <MaroSymbol className="h-8 w-8" />
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                className="grid h-10 w-10 place-items-center rounded-xl text-ink-3 hover:bg-surface"
+                className="grid h-11 w-11 place-items-center rounded-maro12 bg-surface text-ink hover:bg-surface-hover"
                 aria-label="Mbyll"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-              <div className="mb-4 px-1">
+            <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+              <div className="mb-6 px-1">
                 <HubDropdown />
               </div>
 
@@ -70,7 +70,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       href={dest.route}
                       onClick={onClose}
                       className={cn(
-                        "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
+                        "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
                         active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
@@ -89,7 +89,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                   dest.disabled ? (
                     <span
                       key={dest.id}
-                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold text-ink-3"
+                      className="flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold text-ink-3"
                     >
                       {dest.label}
                       {dest.badge && <span className="text-[11px]">{dest.badge}</span>}
@@ -100,7 +100,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       href={dest.route}
                       onClick={onClose}
                       className={cn(
-                        "flex items-center rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
+                        "flex min-h-[52px] items-center rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
                         isNavActive(pathname, dest) ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
@@ -129,7 +129,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                             href={dest.route}
                             onClick={onClose}
                             className={cn(
-                              "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-brand transition-colors",
+                              "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
                               active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                             )}
                           >

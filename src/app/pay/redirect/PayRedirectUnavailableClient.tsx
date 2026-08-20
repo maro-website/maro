@@ -9,7 +9,7 @@ export function PayRedirectUnavailableClient() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 text-center">
-      <div className="w-full max-w-md rounded-maro16 bg-surface p-10 shadow-float">
+      <div className="w-full max-w-md rounded-maro16 bg-surface p-10">
         <h1 className="text-[20px] font-semibold text-ink">Pagesa nuk është e disponueshme</h1>
         <p className="mt-2 text-[14px] text-ink-2">
           Integrimi me bankën partner është ende në përgatitje. Porosia juaj mbetet e papaguar.

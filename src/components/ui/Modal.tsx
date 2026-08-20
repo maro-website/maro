@@ -41,16 +41,16 @@ export function Modal({
   const sizes = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl" };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-overlay backdrop-blur-[2px] animate-fade-in"
+        className="absolute inset-0 bg-overlay animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
       />
       <div
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative w-full rounded-2xl bg-surface animate-scale-in",
+          "relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-maro24 bg-surface animate-scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-maro20",
           sizes[size],
           className
         )}

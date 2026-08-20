@@ -144,12 +144,12 @@ export function AuthPanel({
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
+          <div className="flex items-start gap-2 rounded-xl bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
           </div>
         )}
         {notice && (
-          <div className="flex items-start gap-2 rounded-xl border border-success/30 bg-success/5 px-3.5 py-2.5 text-[13px] text-success">
+          <div className="flex items-start gap-2 rounded-xl bg-success/5 px-3.5 py-2.5 text-[13px] text-success">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {notice}
           </div>
         )}

@@ -22,13 +22,10 @@ export function DiscreteSlider({
   const positions = steps === 5 ? ([1, 2, 3, 4, 5] as SliderValue[]) : ([1, 5] as SliderValue[]);
 
   return (
-    <div className={cn("marologo-card px-4 py-4", className)}>
-      <div className="mb-3 flex items-center justify-between text-[14px] font-semibold text-ink">
-        <span>{left}</span>
-        <span>{right}</span>
-      </div>
-      <div className="relative flex items-center justify-between px-1">
-        <div className="pointer-events-none absolute inset-x-3 top-1/2 h-0.5 -translate-y-1/2 bg-line-strong" />
+    <div className={cn("marologo-card flex min-h-[72px] items-center gap-[20px] px-[20px] py-[10px]", className)}>
+      <span className="shrink-0 text-[14px] font-semibold text-ink">{left}</span>
+      <div className="relative flex min-w-[140px] flex-1 items-center justify-between">
+        <div className="pointer-events-none absolute inset-x-[15px] top-1/2 h-0.5 -translate-y-1/2 bg-line-strong" />
         {positions.map((pos) => {
           const active = value === pos;
           return (
@@ -42,20 +39,21 @@ export function DiscreteSlider({
               aria-label={`${left} to ${right}, position ${pos}`}
               onClick={() => onChange(clampSlider(pos))}
               className={cn(
-                "relative z-10 flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-                active ? "bg-brand" : "bg-surface hover:bg-surface-2"
+                "relative z-10 flex h-[30px] w-[30px] items-center justify-center rounded-full bg-surface transition-colors",
+                active && "text-brand"
               )}
             >
               <span
                 className={cn(
                   "block rounded-full",
-                  active ? "h-3 w-3 bg-brand-fg" : "h-2.5 w-2.5 border-2 border-line-strong bg-surface"
+                  active ? "h-5 w-5 bg-brand" : "h-3.5 w-3.5 bg-[var(--maro-gray-300)]"
                 )}
               />
             </button>
           );
         })}
       </div>
+      <span className="shrink-0 text-[14px] font-semibold text-ink">{right}</span>
     </div>
   );
 }

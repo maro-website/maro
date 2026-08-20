@@ -1,6 +1,6 @@
-# maro Design System
+# LEGACY — maro Design System
 
-The canonical product and brand system for **maro.al**. It is derived from the supplied maro logo, symbol, Figma interface, Manrope typography, and the approved color palette.
+Ky sistem nuk është më burim vizual për **maro.al**. Ruhet për histori dhe për asetet ekzistuese, por aplikacioni duhet të përdorë vetëm [`../maro-final-design-system`](../maro-final-design-system).
 
 ## Start here
 

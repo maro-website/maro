@@ -20,7 +20,7 @@ const SIZES = {
 
 /**
  * Theme-aware toggle with fixed knob anchoring (left + translate).
- * OFF: muted track + white knob · ON: brand track + contrasting knob + soft glow.
+ * OFF: muted track + white knob · ON: brand track. Flat, without elevation.
  */
 export function Switch({
   checked,
@@ -48,33 +48,20 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "group relative inline-flex shrink-0 items-center rounded-full transition-all duration-300 ease-out",
+        "group relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-out",
         "focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-45",
-        "active:scale-[0.96]",
+        "active:scale-[0.98]",
         s.track,
         s.pad,
-        checked
-          ? "bg-brand shadow-[inset_0_1px_2px_rgba(0,0,0,0.14),0_0_0_1px_rgba(255,255,255,0.06)]"
-          : "bg-[var(--switch-track)] shadow-[inset_0_1px_3px_rgba(0,0,0,0.18)]"
+        checked ? "bg-brand" : "bg-[var(--switch-track)]"
       )}
     >
-      {/* subtle ON glow */}
-      <span
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-0 rounded-full transition-opacity duration-300",
-          checked ? "opacity-100" : "opacity-0",
-          "bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.22),transparent_70%)]"
-        )}
-      />
-
       <span
         aria-hidden
         className={cn(
           "pointer-events-none relative block rounded-full",
-          "transition-transform duration-300 ease-[cubic-bezier(0.34,1.45,0.64,1)]",
-          "shadow-[0_1px_2px_rgba(0,0,0,0.28),0_3px_10px_rgba(0,0,0,0.14)]",
+          "transition-transform duration-200 ease-out",
           s.knob,
           checked ? s.on : "translate-x-0",
           checked ? "bg-[var(--brand-fg)]" : "bg-[var(--switch-knob,#ffffff)]"

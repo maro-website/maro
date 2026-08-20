@@ -145,7 +145,7 @@ function WorkspaceSettingsInner() {
                 id="ws-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-12 flex-1 rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
+                className="h-12 flex-1 rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface"
               />
               <button
                 type="button"
@@ -222,7 +222,7 @@ function WorkspaceSettingsInner() {
                   value={brand.name ?? ""}
                   onChange={(e) => setBrand((b) => ({ ...b, name: e.target.value }))}
                   placeholder="p.sh. Kafe Luna"
-                  className="h-12 w-full rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
+                  className="h-12 w-full rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface"
                 />
               </div>
 
@@ -248,7 +248,7 @@ function WorkspaceSettingsInner() {
                       <input
                         value={brand[key]}
                         onChange={(e) => setBrand((b) => ({ ...b, [key]: e.target.value }))}
-                        className="h-10 min-w-0 flex-1 rounded-maro12 bg-surface-2 px-3 font-mono text-[13px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
+                        className="h-10 min-w-0 flex-1 rounded-maro12 bg-surface-2 px-3 font-mono text-[13px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface"
                       />
                     </div>
                   </div>

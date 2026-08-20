@@ -15,7 +15,7 @@ export function LogoTypeCards({
   onChange: (v: LogoTypeValue) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-3">
       {LOGO_TYPES.map((opt) => {
         const active = value === opt.value;
         return (
@@ -24,21 +24,15 @@ export function LogoTypeCards({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(opt.value as LogoTypeValue)}
-            className={cn(
-              "marologo-card flex min-h-[120px] flex-col items-center justify-center gap-3 p-4 transition-all",
-              active ? "ring-2 ring-brand" : "hover:bg-surface-2"
-            )}
+            className="flex flex-col gap-[10px] text-left"
           >
-            <span
-              className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-md border",
-                active ? "border-brand bg-brand text-brand-fg" : "border-line-strong"
-              )}
-            >
-              {active && <Check className="h-3 w-3" strokeWidth={3} />}
+            <span className="marologo-card relative grid aspect-[3/2] w-full place-items-center transition-colors hover:bg-surface-hover">
+              <span className="marologo-checkbox absolute left-[20px] top-[20px]" data-checked={active || undefined}>
+                {active && <Check className="h-4 w-4" strokeWidth={3} />}
+              </span>
+              <LogoTypePreview type={opt.value as LogoTypeValue} />
             </span>
-            <LogoTypePreview type={opt.value as LogoTypeValue} />
-            <span className={cn("text-[13px] font-medium", active ? "text-ink" : "text-ink-3")}>
+            <span className={cn("text-center text-[14px] font-semibold", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
               {opt.label}
             </span>
           </button>
@@ -81,15 +75,10 @@ export function MaroDecidesCheckbox({
       role="checkbox"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="marologo-card flex min-h-[52px] w-full items-center gap-3 px-4 py-3 text-left"
+      className="marologo-card flex min-h-[52px] w-full items-center gap-[20px] px-[20px] py-[14px] text-left"
     >
-      <span
-        className={cn(
-          "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
-          checked ? "border-brand bg-brand text-brand-fg" : "border-line-strong"
-        )}
-      >
-        {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+      <span className="marologo-checkbox" data-checked={checked || undefined}>
+        {checked && <Check className="h-4 w-4" strokeWidth={3} />}
       </span>
       <span className="text-[14px] font-medium text-ink">{label}</span>
     </button>

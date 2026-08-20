@@ -13,7 +13,7 @@ export function TypographyGrid({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-[20px] sm:grid-cols-3">
       {TYPOGRAPHY_OPTIONS.map((opt) => {
         const active = value === opt.value;
         const fontClass = PREVIEW_FONT_CLASS[opt.previewFont] ?? "";
@@ -24,20 +24,15 @@ export function TypographyGrid({
             aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "relative marologo-card flex min-h-[100px] flex-col items-center justify-center gap-2 p-3 transition-all",
-              active ? "ring-2 ring-brand" : "hover:bg-surface-2"
+              "relative marologo-card flex min-h-[120px] flex-col items-center justify-center gap-[10px] p-[20px] transition-colors",
+              active ? "bg-surface" : "hover:bg-surface-hover"
             )}
           >
-            <span
-              className={cn(
-                "absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded-md border",
-                active ? "border-brand bg-brand text-brand-fg" : "border-line-strong bg-surface"
-              )}
-            >
-              {active && <Check className="h-3 w-3" strokeWidth={3} />}
+            <span className="marologo-checkbox absolute left-[20px] top-[20px]" data-checked={active || undefined}>
+              {active && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
             <span className={cn("text-[22px] font-semibold text-ink", fontClass)}>maro</span>
-            <span className={cn("text-center text-[11px] font-medium", active ? "text-ink" : "text-ink-3")}>
+            <span className={cn("text-center text-[12px] font-medium", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
               {opt.label}
             </span>
           </button>
@@ -56,7 +51,7 @@ export function SymbolDirectionPills({
 }) {
   const options = ["Literal", "Abstract", "Geometric", "Typographic", "Mascot", "Monogram", "No preference"];
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-[10px]">
       {options.map((opt) => {
         const active = value === opt;
         return (
@@ -66,7 +61,7 @@ export function SymbolDirectionPills({
             aria-pressed={active}
             onClick={() => onChange(opt)}
             className={cn(
-              "min-h-[44px] rounded-2xl px-4 py-2 text-[13px] font-medium transition-colors",
+              "min-h-[52px] rounded-maro16 px-[20px] py-[10px] text-[14px] font-medium transition-colors",
               active ? "bg-brand text-brand-fg" : "marologo-card text-ink hover:bg-surface-2"
             )}
           >

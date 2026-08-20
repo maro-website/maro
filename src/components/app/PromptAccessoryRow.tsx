@@ -69,7 +69,7 @@ export function FortPill({
           layout
           transition={{ type: "spring", stiffness: 520, damping: 32 }}
           className={cn(
-            "block h-3 w-3 rounded-full bg-white shadow-sm",
+            "block h-3 w-3 rounded-full bg-white",
             active ? "translate-x-3" : "translate-x-0"
           )}
         />

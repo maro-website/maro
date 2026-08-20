@@ -57,7 +57,7 @@ export function PayTestPageClient() {
       </header>
 
       <div className="mx-auto max-w-lg px-5 py-10">
-        <div className="rounded-maro16 bg-surface p-6 sm:p-8 shadow-float">
+        <div className="rounded-maro16 bg-surface p-6 sm:p-8">
           <h1 className="text-[18px] font-semibold text-ink">Detajet e pagesës</h1>
           <p className="mt-1 text-[13px] text-ink-2">Porosia #{orderId.slice(0, 8)}…</p>
 

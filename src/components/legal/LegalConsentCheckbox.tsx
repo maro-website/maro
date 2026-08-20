@@ -18,7 +18,7 @@ export function LegalConsentCheckbox({
     <label
       htmlFor={id}
       className={cn(
-        "flex cursor-pointer items-start gap-3 text-[13px] leading-relaxed text-ink-2",
+        "flex cursor-pointer items-start gap-[20px] text-[13px] leading-relaxed text-ink-2",
         className
       )}
     >
@@ -27,7 +27,7 @@ export function LegalConsentCheckbox({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong accent-brand"
+        className="maro-native-checkbox mt-0.5"
       />
       <span>
         Unë pranoj{" "}

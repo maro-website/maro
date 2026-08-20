@@ -130,7 +130,7 @@ function PricingPageInner() {
               onClick={() => setTabAndUrl(t.id)}
               className={cn(
                 "flex items-center gap-2 rounded-maro8 px-5 py-2.5 text-[14px] font-semibold transition-all",
-                tab === t.id ? "bg-surface text-ink shadow-float" : "text-ink-3 hover:text-ink-2"
+                tab === t.id ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
               )}
             >
               {t.id === "topup" && !canTopUp && ready && user && (
@@ -149,7 +149,7 @@ function PricingPageInner() {
                   key={plan.id}
                 className={cn(
                   "relative flex flex-col rounded-maro16 bg-surface p-8",
-                  plan.badge && "shadow-float"
+                  plan.badge && "bg-surface"
                 )}
                 >
                   {plan.badge && (

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LEGAL_ADDRESS, LEGAL_ENTITY } from "@/components/legal/legal-config";
+import { cn } from "@/lib/utils/cn";
 
 const FOOTER_LINKS = [
   { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
@@ -16,10 +17,10 @@ const FOOTER_LINKS = [
 export function AppFooter({ className }: { className?: string }) {
   return (
     <footer
-      className={
-        className ??
-        "flex shrink-0 flex-col gap-3 border-t border-line/60 bg-footer px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
-      }
+      className={cn(
+        "flex shrink-0 flex-col gap-3 bg-footer px-6 py-4 sm:flex-row sm:items-center sm:justify-between",
+        className
+      )}
     >
       <div className="min-w-0">
         <p className="text-[12px] text-footer">

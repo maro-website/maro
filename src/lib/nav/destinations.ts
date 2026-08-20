@@ -15,7 +15,7 @@ export interface NavDestination {
   comingSoon?: boolean;
   badge?: string;
   toolId?: string;
-  /** Icon name from maro-design-system/icons/manifest.json */
+  /** Icon name from the canonical public Maro icon library. */
   iconName?: string;
 }
 
@@ -40,18 +40,18 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 /** Top bar module links (Hub trigger is separate). */
 export const TOP_BAR_DESTINATIONS: NavDestination[] = [
   { id: "imazh", label: "maroImazh", route: "/imazh", group: "tools", showInTopBar: true, toolId: "reklama", iconName: "maro-imazh" },
+  { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
   { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma", comingSoon: true },
-  { id: "audio", label: "maroZo", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo", comingSoon: true },
+  { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo", comingSoon: true },
   { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea", comingSoon: true },
   { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
-  { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
 ];
 
 export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
   { id: "hub", label: "Hub", route: "/", iconName: "maro-imazh" },
   { id: "krijimet", label: "Cka ke maru", route: "/krijimet", iconName: "history" },
-  { id: "brain", label: "maroBrain", route: "/brain", iconName: "maro-web" },
+  { id: "fort", label: "maroFort", route: "#", iconName: "maro-fort", disabled: true, badge: "së shpejti" },
   { id: "workspaces", label: "Cilesimet", route: "/account/workspaces", iconName: "settings" },
 ];
 

@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, Shield, Star, User as UserIcon } from "lucide-react";
+import { Bookmark, Camera, ChevronDown, Shield, Star, User as UserIcon } from "lucide-react";
 
 function Avatar({
   user,
@@ -97,10 +97,14 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="grid h-11 w-11 place-items-center rounded-full transition-opacity hover:opacity-90"
+        className="flex h-11 items-center gap-[10px] rounded-maro16 bg-surface p-0.5 transition-colors hover:bg-surface-hover lg:pr-3"
         aria-label="Llogaria"
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
         <Avatar user={user} className="h-10 w-10 text-[14px]" />
+        <span className="hidden text-[14px] font-semibold text-ink lg:inline">Profili</span>
+        <ChevronDown className={cn("mr-0.5 hidden h-4 w-4 text-ink transition-transform lg:block", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -110,11 +114,12 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="maro-menu absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] px-5 py-5"
+            className="maro-menu absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(17.8125rem,calc(100vw-1rem))] p-[30px]"
+            role="menu"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-h-[52px] items-center gap-[10px] rounded-maro16 bg-surface-2 p-[6px]">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
-                <Avatar user={user} className="h-11 w-11 text-[15px]" />
+                <Avatar user={user} className="h-10 w-10 text-[14px]" />
                 <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
                   {uploading ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
@@ -129,16 +134,16 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             </div>
 
-            <div className="mt-[20px] flex flex-col">
+            <div className="mt-[30px] flex flex-col gap-[20px]">
               <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
             </div>
 
-            <div className="my-[16px] h-px bg-menu-divider" />
+            <div className="my-[20px] h-px bg-menu-divider" />
 
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-[20px]">
               <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
               <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
             </div>
@@ -149,10 +154,12 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
                 await signOut();
                 go("/");
               }}
-              className="mt-[20px] flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-menu-logout text-[16px] font-bold text-menu-logout transition-opacity hover:opacity-90"
+              className="mt-[30px] flex h-[52px] w-full items-center justify-between gap-[20px] rounded-maro16 bg-menu-logout px-[20px] text-[16px] font-bold text-menu-logout transition-opacity hover:opacity-90"
             >
-              <MaroIcon name="logout" className="h-5 w-5 text-white" />
-              Dil
+              <span className="inline-flex items-center gap-[10px]">
+                <MaroIcon name="logout" className="h-5 w-5 text-white" />
+                Dil
+              </span>
               <span className="text-[12px] font-normal opacity-80">(mos thuj qe ke)</span>
             </button>
           </motion.div>
@@ -196,7 +203,8 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[16px] font-medium text-menu-fg transition-colors hover:bg-menu-row"
+      className="flex min-h-8 w-full items-center gap-[20px] rounded-maro12 text-left text-[16px] font-medium text-menu-fg transition-colors hover:bg-menu-row"
+      role="menuitem"
     >
       <MaroIcon name={icon} fallback={Fallback} className="h-5 w-5 shrink-0 text-ink" />
       {label}

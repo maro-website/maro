@@ -1,12 +1,12 @@
-/* App UI font — Manrope (400–700 per MARO-DESIGN-SYSTEM.md) */
+/* App UI font — Manrope, locked by maro-final-design-system. */
 @import "@fontsource/manrope/400.css";
 @import "@fontsource/manrope/500.css";
 @import "@fontsource/manrope/600.css";
 @import "@fontsource/manrope/700.css";
 
-/* Canonical design system — import once at root (§14) */
-@import "../../maro-design-system/tokens/maro.css";
-@import "../../maro-design-system/components/maro-primitives.css";
+/* Final design system — import once at root. Legacy systems are not runtime dependencies. */
+@import "../../maro-final-design-system/tokens/maro-final.css";
+@import "../../maro-final-design-system/components/maro-final-primitives.css";
 @import "../styles/maro-compat.css";
 
 /* Website-preview selectable fonts (self-hosted, no external font API) */
@@ -27,6 +27,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* The final system does not outline generic surfaces. Structural separators
+   use dedicated elements/tokens instead of card borders. */
+.border-line,
+.border-line\/60 {
+  border-color: transparent !important;
+}
 
 html {
   -webkit-font-smoothing: antialiased;

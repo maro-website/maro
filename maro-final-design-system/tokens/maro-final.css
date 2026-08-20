@@ -1,0 +1,227 @@
+/*
+ * maro-final-design-system
+ * The only visual token source used by maro.al.
+ * Light-only, flat, mobile-first. Do not add a second theme layer.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Primitive palette */
+  --maro-white: #ffffff;
+  --maro-black: #000000;
+  --maro-ink: #0a0a0a;
+  --maro-gray-050: #f9f9f9;
+  --maro-gray-100: #f3f3f3;
+  --maro-gray-150: #ededed;
+  --maro-gray-200: #e3e3e3;
+  --maro-gray-300: #c9c9c9;
+  --maro-gray-500: #8a8a8a;
+  --maro-gray-650: #5f5f5f;
+  --maro-blue: #253fda;
+  --maro-blue-hover: #1f35bd;
+  --maro-blue-soft-icon: #8793ef;
+  --maro-red: #da2525;
+  --maro-success: #15824b;
+  --maro-warning: #aa6700;
+  --maro-danger: #d92d2d;
+
+  /* Semantic roles */
+  --maro-color-bg-canvas: var(--maro-gray-050);
+  --maro-color-bg-surface: var(--maro-white);
+  --maro-color-bg-surface-02: var(--maro-gray-100);
+  --maro-color-bg-surface-hover: var(--maro-gray-150);
+  --maro-color-bg-surface-selected: var(--maro-gray-200);
+  --maro-color-bg-inverse: var(--maro-ink);
+  --maro-color-bg-disabled: var(--maro-gray-150);
+  --maro-color-bg-overlay: rgb(0 0 0 / 48%);
+  --maro-color-bg-selected: var(--maro-blue);
+  --maro-color-bg-danger: var(--maro-danger);
+
+  --maro-color-text-primary: var(--maro-ink);
+  --maro-color-text-secondary: var(--maro-gray-650);
+  --maro-color-text-tertiary: var(--maro-gray-500);
+  --maro-color-text-muted: var(--maro-gray-500);
+  --maro-color-text-inverse: var(--maro-white);
+  --maro-color-text-brand: var(--maro-blue);
+  --maro-color-text-danger: var(--maro-danger);
+  --maro-color-text-disabled: var(--maro-gray-300);
+
+  --maro-color-icon-primary: var(--maro-ink);
+  --maro-color-icon-secondary: var(--maro-gray-650);
+  --maro-color-icon-inverse: var(--maro-white);
+  --maro-color-icon-brand: var(--maro-blue);
+  --maro-color-icon-danger: var(--maro-danger);
+
+  /* Structural separators only. Never use these to outline every surface. */
+  --maro-color-border-subtle: var(--maro-gray-200);
+  --maro-color-border-default: var(--maro-gray-300);
+  --maro-color-border-strong: var(--maro-ink);
+  --maro-color-border-focus: var(--maro-blue);
+
+  --maro-color-accent: var(--maro-blue);
+  --maro-color-accent-hover: var(--maro-blue-hover);
+  --maro-color-success: var(--maro-success);
+  --maro-color-warning: var(--maro-warning);
+  --maro-color-danger: var(--maro-danger);
+
+  /* Product-only gradients. They are not general surface colors. */
+  --maro-gradient-fort: linear-gradient(90deg, #da2525 0%, #e45c5c 52%, rgb(255 255 255 / 78%) 100%);
+  --maro-gradient-preset: linear-gradient(90deg, #253fda 0%, #6878ea 52%, rgb(255 255 255 / 78%) 100%);
+  --maro-gradient-cta: linear-gradient(90deg, #253fda 0%, #8793ef 100%);
+
+  /* Typography */
+  --maro-font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+  --maro-font-weight-regular: 400;
+  --maro-font-weight-medium: 500;
+  --maro-font-weight-semibold: 600;
+  --maro-font-weight-bold: 700;
+  --maro-tracking-brand: -0.03em;
+  --maro-tracking-body: -0.03em;
+  --maro-tracking-code: 0;
+
+  --maro-font-size-11: 0.6875rem;
+  --maro-font-size-12: 0.75rem;
+  --maro-font-size-14: 0.875rem;
+  --maro-font-size-16: 1rem;
+  --maro-font-size-18: 1.125rem;
+  --maro-font-size-20: 1.25rem;
+  --maro-font-size-24: 1.5rem;
+  --maro-font-size-32: 2rem;
+  --maro-font-size-40: 2.5rem;
+  --maro-font-size-56: 3.5rem;
+  --maro-font-size-72: 4.5rem;
+
+  --maro-line-height-tight: 1.02;
+  --maro-line-height-heading: 1.08;
+  --maro-line-height-control: 1.2;
+  --maro-line-height-body: 1.5;
+
+  /* Four-point spacing with the requested 30px nav rhythm. */
+  --maro-space-0: 0;
+  --maro-space-1: 0.25rem;
+  --maro-space-2: 0.5rem;
+  --maro-space-3: 0.75rem;
+  --maro-space-4: 1rem;
+  --maro-space-5: 1.25rem;
+  --maro-space-6: 1.5rem;
+  --maro-space-8: 2rem;
+  --maro-space-10: 2.5rem;
+  --maro-space-12: 3rem;
+  --maro-space-16: 4rem;
+  --maro-space-20: 5rem;
+  --maro-space-24: 6rem;
+  --maro-space-30: 7.5rem;
+
+  /* Reference rhythm: green / yellow / red annotations. */
+  --maro-gap-10: 10px;
+  --maro-gap-20: 20px;
+  --maro-gap-30: 30px;
+
+  /* Shape */
+  --maro-radius-0: 0;
+  --maro-radius-4: 0.25rem;
+  --maro-radius-8: 0.5rem;
+  --maro-radius-12: 0.75rem;
+  --maro-radius-16: 1rem;
+  --maro-radius-20: 1.25rem;
+  --maro-radius-24: 1.5rem;
+  --maro-radius-32: 2rem;
+  --maro-radius-pill: 999px;
+
+  /* Elevation is deliberately disabled in the final system. */
+  --maro-shadow-none: none;
+  --maro-shadow-float: none;
+  --maro-shadow-overlay: none;
+
+  /* Motion */
+  --maro-duration-instant: 100ms;
+  --maro-duration-fast: 160ms;
+  --maro-duration-normal: 240ms;
+  --maro-duration-slow: 360ms;
+  --maro-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --maro-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Controls */
+  --maro-control-height-sm: 2.25rem;
+  --maro-control-height-md: 2.75rem;
+  --maro-control-height-lg: 3.25rem;
+  --maro-icon-size-sm: 1rem;
+  --maro-icon-size-md: 1.25rem;
+  --maro-icon-size-lg: 1.5rem;
+  --maro-focus-ring: 0 0 0 3px rgb(37 63 218 / 20%);
+
+  /* Product shell */
+  --maro-shell-header-height: 5.25rem;
+  --maro-shell-footer-height: 3.5rem;
+  --maro-shell-sidebar-width: 17.5rem;
+  --maro-shell-content-max: 75rem;
+  --maro-shell-gutter: clamp(1rem, 3vw, 3rem);
+
+  /* Reference-locked layout */
+  --maro-layout-module-max: 70rem;
+  --maro-layout-composer-max: 55rem;
+  --maro-layout-hero-subtitle-max: 32.625rem;
+  --maro-carousel-card-width: clamp(8.75rem, 18vw, 11rem);
+  --maro-carousel-card-height: clamp(8.75rem, 18vw, 11rem);
+  --maro-carousel-gap: 1rem;
+  --maro-nav-gap: var(--maro-gap-30);
+  --maro-hub-tile-size: 11.125rem;
+  --maro-hub-tile-gap: var(--maro-gap-30);
+  --maro-hub-banner-max: 62.875rem;
+  --maro-hub-banner-min-height: 22.3125rem;
+  --maro-hub-promo-width: 30.4375rem;
+  --maro-hub-promo-height: 11.125rem;
+  --maro-hub-promo-gap: 1.875rem;
+  --maro-hub-dropdown-width: 17.8125rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--maro-font-family);
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-canvas);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+body {
+  margin: 0;
+  background: var(--maro-color-bg-canvas);
+}
+
+:focus-visible {
+  outline: 2px solid var(--maro-color-border-focus);
+  outline-offset: 3px;
+}
+
+@media (max-width: 63.999rem) {
+  :root {
+    --maro-shell-header-height: 4.25rem;
+    --maro-layout-composer-max: 100%;
+    --maro-hub-tile-size: min(42vw, 10rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

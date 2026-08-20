@@ -59,7 +59,7 @@ export function ReferenceUpload({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-[20px]">
       <h3 className="text-[15px] font-semibold text-ink">Referenca</h3>
       {references.length < MAX_REFERENCE_IMAGES && (
         <div
@@ -71,27 +71,30 @@ export function ReferenceUpload({
         >
           <UploadArea
             label="Drag & Drop ose kliko këtu"
-            hint={`PNG, JPG, WEBP · max ${MAX_REFERENCE_IMAGES} imazhe · 8MB secili`}
+            hint=""
             onFiles={(urls) => void addFiles(urls)}
-            className="marologo-card border border-dashed border-line-strong bg-surface"
+            inline
+            className="marologo-card bg-surface"
           />
         </div>
       )}
       {references.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-[10px]">
           {references.map((ref) => (
-            <li key={ref.id} className="marologo-card flex items-center gap-3 px-3 py-2">
+            <li key={ref.id} className="flex items-center gap-[20px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ref.dataUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{ref.name}</span>
-              <button
-                type="button"
-                aria-label={`Hiq ${ref.name}`}
-                onClick={() => onChange(references.filter((r) => r.id !== ref.id))}
-                className="rounded-lg p-2 text-ink-3 hover:bg-surface-2 hover:text-ink"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <img src={ref.dataUrl} alt="" className="h-[64px] w-[64px] shrink-0 rounded-maro16 object-cover" />
+              <div className="marologo-card flex h-[64px] min-w-0 flex-1 items-center gap-[20px] px-[20px]">
+                <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{ref.name}</span>
+                <button
+                  type="button"
+                  aria-label={`Hiq ${ref.name}`}
+                  onClick={() => onChange(references.filter((r) => r.id !== ref.id))}
+                  className="rounded-lg p-[10px] text-[var(--maro-gray-300)] hover:bg-surface-2 hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>

@@ -137,7 +137,7 @@ export function BrainWorkspace() {
             <select
               value={workspaceId ?? ""}
               onChange={(e) => void setActiveWorkspace(e.target.value)}
-              className="h-11 w-full appearance-none rounded-maro12 bg-surface-2 px-4 pr-9 text-[14px] font-semibold text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
+              className="h-11 w-full appearance-none rounded-maro12 bg-surface-2 px-4 pr-9 text-[14px] font-semibold text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface"
             >
               {workspaces.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -213,11 +213,11 @@ function Field({
 }
 
 function inputCls() {
-  return "h-11 w-full rounded-maro12 bg-surface-2 px-4 text-[14px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]";
+  return "h-11 w-full rounded-maro12 bg-surface-2 px-4 text-[14px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface";
 }
 
 function textareaCls() {
-  return "min-h-[100px] w-full rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]";
+  return "min-h-[100px] w-full rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface";
 }
 
 function BrandTab({

@@ -124,7 +124,7 @@ export function NotificationBell() {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-[38px] w-10 place-items-center rounded-maro12 bg-surface-2 text-ink transition-colors hover:bg-surface-hover focus:outline-none"
+        className="relative grid h-11 w-11 place-items-center rounded-maro16 bg-surface text-ink transition-colors hover:bg-surface-hover focus:outline-none"
         aria-label="Njoftime"
         title="Njoftime"
       >
@@ -147,7 +147,7 @@ export function NotificationBell() {
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
                 style={{ position: "fixed", top: pos.top, left: pos.left, width: 320 }}
-                className="z-[130] overflow-hidden rounded-2xl bg-surface"
+                className="z-[130] overflow-hidden rounded-maro20 bg-surface"
               >
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-[13px] font-bold text-ink">Njoftime</span>

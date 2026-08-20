@@ -10,7 +10,7 @@ import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import type { Project } from "@/lib/types";
 import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
-import { Eye, Pencil, RefreshCw } from "lucide-react";
+import { Eye, Pencil, RefreshCw, X } from "lucide-react";
 
 function projectPreviewHtml(project: Project): string | null {
   const page = project.htmlPages?.find((p) => p.id === project.activeHtmlPageId) ?? project.htmlPages?.[0];
@@ -31,6 +31,8 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
   );
 
   const [previewId, setPreviewId] = React.useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  const previousProjectCount = React.useRef(recentProjects.length);
   const previewProject =
     recentProjects.find((p) => p.id === previewId) ?? recentProjects[0] ?? null;
   const previewHtml = previewProject ? projectPreviewHtml(previewProject) : null;
@@ -38,6 +40,14 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
   React.useEffect(() => {
     if (!previewId && recentProjects[0]) setPreviewId(recentProjects[0].id);
   }, [previewId, recentProjects]);
+
+  React.useEffect(() => {
+    if (recentProjects.length > previousProjectCount.current) {
+      setPreviewId(recentProjects[0]?.id ?? null);
+      setPreviewOpen(true);
+    }
+    previousProjectCount.current = recentProjects.length;
+  }, [recentProjects]);
 
   const headerSlot = (
     <>
@@ -58,7 +68,10 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setPreviewId(p.id)}
+                onClick={() => {
+                  setPreviewId(p.id);
+                  setPreviewOpen(true);
+                }}
                 className="rounded-maro16 bg-surface p-4 text-left transition-colors hover:bg-surface-2"
               >
                 <div className="truncate text-[14px] font-semibold text-ink">
@@ -97,19 +110,30 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
         <ToolComposer toolId={toolId} layout="conversation" headerSlot={headerSlot} />
       </div>
 
-      <aside className="flex min-h-[280px] flex-col border-t border-line bg-canvas lg:min-h-0 lg:w-[min(440px,38%)] lg:border-l lg:border-t-0">
-        <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+      {previewOpen && (
+      <aside className="mx-4 mb-4 flex min-h-[320px] flex-col overflow-hidden rounded-maro20 bg-surface lg:mb-4 lg:ml-0 lg:mr-4 lg:mt-4 lg:min-h-0 lg:w-[min(440px,38%)]">
+        <div className="flex min-h-14 items-center justify-between gap-2 px-4 py-3">
           <span className="text-[13px] font-semibold text-ink">Preview live</span>
-          {previewProject && (
+          <div className="flex items-center gap-1">
+            {previewProject && (
             <button
               type="button"
               onClick={() => setPreviewId(previewProject.id)}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold text-brand hover:underline"
+              className="inline-flex h-10 items-center gap-1 rounded-maro12 px-3 text-[12px] font-semibold text-brand hover:bg-surface-2"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Rifresko
             </button>
-          )}
+            )}
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(false)}
+              className="grid h-10 w-10 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink"
+              aria-label="Mbyll preview"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         <div className="relative min-h-0 flex-1 bg-surface-2 p-3">
           {previewHtml ? (
@@ -127,6 +151,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
           )}
         </div>
       </aside>
+      )}
     </div>
   );
 }

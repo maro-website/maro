@@ -41,7 +41,7 @@ export function InspirationCarousel({
   };
 
   return (
-    <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden pb-8 sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-[max(1.5rem,calc((100vw-100%)/2))] lg:w-screen lg:max-w-[100vw]">
+    <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden pb-8 sm:-mx-6 sm:w-[calc(100%+3rem)] sm:pb-10 lg:-mx-[max(1.5rem,calc((100vw-100%)/2))] lg:w-screen lg:max-w-[100vw]">
       <div className="flex w-max animate-hub-carousel gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none sm:px-6">
         {doubled.map((item, i) => {
           const isActive = Boolean(activePresetId && item.preset?.id === activePresetId);
@@ -54,7 +54,7 @@ export function InspirationCarousel({
               onDragStart={(e) => onDragStart(e, item)}
               className={cn(
                 "group relative h-[var(--carousel-card-h)] w-[var(--carousel-card-w)] shrink-0 cursor-grab overflow-hidden rounded-maro16 bg-surface text-left active:cursor-grabbing",
-                isActive && "ring-2 ring-brand ring-offset-2 ring-offset-canvas"
+                isActive && "opacity-70"
               )}
               aria-pressed={isActive || undefined}
               aria-label={item.preset ? `maroPreset ${item.preset.code}` : item.label ?? item.category ?? "Inspirim"}
@@ -66,11 +66,6 @@ export function InspirationCarousel({
                 className="aspect-square h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                 draggable={false}
               />
-              {item.category && (
-                <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">
-                  {item.category}
-                </span>
-              )}
             </button>
           );
         })}

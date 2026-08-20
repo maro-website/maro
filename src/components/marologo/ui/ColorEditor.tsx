@@ -50,14 +50,14 @@ export function ColorEditor({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-[20px]">
       <h3 className="text-[15px] font-semibold text-ink">Ngjyrat</h3>
 
       <div className={cn(!customActive && "opacity-50 pointer-events-none")}>
-        <span className="marologo-field-label mb-2 block">Kam ngjyra:</span>
-        <div className="space-y-2">
+        <span className="marologo-field-label mb-[10px] block">Kam ngjyra:</span>
+        <div className="space-y-[10px]">
           {values.map((hex, i) => (
-            <div key={`${hex}-${i}`} className="marologo-card flex items-center gap-2 px-3 py-2">
+            <div key={`${hex}-${i}`} className="marologo-card flex items-center gap-[10px] px-[20px] py-[10px]">
               <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-lg">
                 <span className="block h-full w-full" style={{ background: normalizeHex(hex) ?? hex }} />
                 <input
@@ -85,7 +85,7 @@ export function ColorEditor({
           ))}
         </div>
         {values.length < MAX_COLORS && (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-[10px] flex gap-[10px]">
             <input
               type="text"
               value={draft}

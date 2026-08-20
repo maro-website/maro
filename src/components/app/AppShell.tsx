@@ -48,9 +48,11 @@ export function AppShell({
         <div
           className={cn(
             "min-h-0 min-w-0 flex-1",
-            isWorkspace || isProjectImmersive
+            isProjectImmersive
               ? "flex flex-col overflow-hidden"
-              : "overflow-x-clip overflow-y-auto"
+              : isWorkspace
+                ? "flex flex-col overflow-x-clip overflow-y-auto lg:overflow-hidden"
+                : "overflow-x-clip overflow-y-auto"
           )}
         >
           {footerVisible ? (

@@ -1,0 +1,34 @@
+---
+description: maro.al UI must follow maro-final-design-system; V1/V2 are legacy
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: true
+---
+
+Before changing any Maro UI, read:
+
+1. `maro-final-design-system/README.md`
+2. `maro-final-design-system/tokens/maro-final.css`
+3. `maro-final-design-system/components/maro-final-primitives.css`
+
+Non-negotiable rules:
+
+- Never import from `maro-design-system/tokens` or `maro-design-system/components`. That directory is legacy.
+- Light-only. Canvas is `#f9f9f9`; surfaces are white or neutral light gray.
+- Manrope is the application font. Global letter-spacing is `-0.03em`.
+- No decorative shadows, glass effects, or card outlines. Use surface contrast and spacing.
+- Borders are reserved for focus, validation, and deliberate structural dividers.
+- Blue is the shared Maro action/selection accent. Red is reserved for maroFort and destructive/error states.
+- Desktop navigation uses 30px spacing between links and dividers. Hide the two neighboring dividers when an item is active or hovered.
+- Build mobile-first. Every interactive target is at least 44px and every workflow must work at 320px without horizontal page overflow.
+- Reuse the shared shell, primitives, promptbox and Maro icon library. Lucide is fallback-only for missing utility icons.
+- `maroFort` lives inside promptbox attributes/advanced controls. Do not reintroduce `maroBrain` as a primary UI label.
+- `maroLogo` stays a focused wizard with one decision per step.
+- Do not change auth, credits, billing, Supabase, routing, permissions, prompt compilation or generation behavior while making visual changes.
+
+Token authority:
+
+- Runtime truth: `maro-final-design-system/tokens/maro-final.css`
+- Tooling/Figma mirror: `maro-final-design-system/tokens/maro-final.tokens.json`
+- Compatibility names in `src/styles/maro-compat.css` may map to final tokens but may not invent independent values.
+
+Before finishing a UI change, run `pnpm build` and inspect the affected page at desktop and mobile widths.

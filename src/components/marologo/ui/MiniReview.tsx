@@ -26,7 +26,7 @@ export function MiniReview({ wizard }: { wizard: MaroLogoWizardState }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-[20px]">
       <span className="marologo-field-label block">Mini-Review: Logo Brief</span>
       <div className="marologo-card p-5">
         <div className="mb-4">
@@ -37,7 +37,7 @@ export function MiniReview({ wizard }: { wizard: MaroLogoWizardState }) {
           )}
           <p className="mt-1 text-[14px] text-ink-2">{resolveIndustry(wizard)}</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
           {rows.map((row) => (
             <div key={row.label}>
               <p className="text-[11px] font-medium uppercase tracking-wide text-ink-3">{row.label}</p>

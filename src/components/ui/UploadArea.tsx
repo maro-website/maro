@@ -25,6 +25,7 @@ export function UploadArea({
   multiple = true,
   className,
   compact = false,
+  inline = false,
 }: {
   onFiles: (dataUrls: string[]) => void;
   label?: string;
@@ -32,6 +33,7 @@ export function UploadArea({
   multiple?: boolean;
   className?: string;
   compact?: boolean;
+  inline?: boolean;
 }) {
   const [dragging, setDragging] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -57,23 +59,24 @@ export function UploadArea({
       }}
       className={cn(
         "group flex cursor-pointer flex-col items-center justify-center rounded-2xl text-center transition-all",
-        compact ? "gap-1.5 p-5" : "gap-2 p-8",
-        dragging ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-surface-hover",
+        inline ? "min-h-[178px] flex-row gap-[20px] p-[30px]" : compact ? "gap-1.5 p-5" : "gap-[10px] p-[30px]",
+        dragging ? "bg-brand text-brand-fg" : "bg-surface hover:bg-surface-hover",
         className
       )}
     >
       <div
         className={cn(
-          "grid place-items-center rounded-2xl bg-surface text-ink transition-transform group-hover:scale-105",
-          compact ? "h-9 w-9" : "h-12 w-12"
+          "grid place-items-center rounded-2xl text-ink transition-transform group-hover:scale-105",
+          inline ? "h-11 w-11 bg-transparent text-[var(--maro-gray-300)]" : "bg-surface",
+          compact ? "h-9 w-9" : !inline && "h-12 w-12"
         )}
       >
-        <UploadCloud className={compact ? "h-4 w-4" : "h-5 w-5"} />
+        <UploadCloud className={compact ? "h-4 w-4" : inline ? "h-7 w-7" : "h-5 w-5"} />
       </div>
-      <div className={cn("font-semibold", compact ? "text-[13px]" : "text-[14px]")}>
+      <div className={cn("font-semibold", inline ? "text-[15px] text-[var(--maro-gray-300)]" : compact ? "text-[13px]" : "text-[14px]")}>
         {label}
       </div>
-      <div className={cn("text-[12px]", dragging ? "text-brand-fg/70" : "text-ink-3")}>{hint}</div>
+      {hint && <div className={cn("text-[12px]", dragging ? "text-brand-fg/70" : "text-ink-3")}>{hint}</div>}
       <input
         ref={inputRef}
         type="file"

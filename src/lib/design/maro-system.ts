@@ -1,13 +1,13 @@
 /**
- * maro.al ↔ maro-design-system bridge.
- * Source of truth: maro-design-system/MARO-DESIGN-SYSTEM.md + tokens/maro.css
+ * maro.al ↔ maro-final-design-system bridge.
+ * Source of truth: maro-final-design-system/tokens/maro-final.css
  *
  * Intentional exceptions (documented):
  * 1. Website preview editor uses separate theme tokens (generated sites, not app shell).
- * 2. Legacy Tailwind aliases (--canvas, --ink, …) in maro-compat.css for gradual migration.
+ * 2. Existing Tailwind aliases (--canvas, --ink, …) are a compatibility bridge only.
  */
 
-/** Official logo assets (synced to public/brand via pnpm sync:design-system). */
+/** Official runtime logo assets. */
 export const MARO_LOGO = {
   lockup: "/brand/maro-logo.svg",
   symbol: "/brand/maro-symbol.svg",
@@ -15,7 +15,7 @@ export const MARO_LOGO = {
   partnerNice: "/brand/nice-logo-white.svg",
 } as const;
 
-/** Canonical icon library (synced to public/icons). */
+/** Canonical runtime icon library. */
 export const MARO_ICONS = {
   base: "/icons",
   manifest: "/icons/manifest.json",
@@ -24,11 +24,11 @@ export const MARO_ICONS = {
 /** Figma tracking -30 → CSS -0.03em (never -30px). */
 export const MARO_TRACKING = {
   brand: "-0.03em",
-  body: "-0.01em",
+  body: "-0.03em",
   code: "0",
 } as const;
 
-/** Product shell geometry from tokens/maro.css. */
+/** Product shell geometry from maro-final tokens. */
 export const MARO_SHELL = {
   headerHeight: "var(--maro-shell-header-height)",
   footerHeight: "var(--maro-shell-footer-height)",

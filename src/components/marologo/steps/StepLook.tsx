@@ -64,7 +64,7 @@ export function StepLook({
       onStepClick={onStepClick}
     >
       <div>
-        <h3 className="mb-3 text-[15px] font-semibold text-ink">Typography</h3>
+        <h3 className="mb-[10px] text-[15px] font-semibold text-ink">Typography</h3>
         <TypographyGrid
           value={wizard.look.typography}
           onChange={(typography) => onChangeLook({ typography })}
@@ -72,8 +72,8 @@ export function StepLook({
       </div>
 
       <div className={cn(typoDisabled && "pointer-events-none opacity-50")}>
-        <h3 className="mb-3 text-[15px] font-semibold text-ink">Advanced</h3>
-        <div className="space-y-3">
+        <h3 className="mb-[10px] text-[15px] font-semibold text-ink">Advanced</h3>
+        <div className="space-y-[20px]">
           {TYPOGRAPHY_SLIDER_LABELS.map((s) => (
             <DiscreteSlider
               key={s.key}
@@ -109,10 +109,10 @@ export function StepLook({
           <ChevronDown className={cn("h-4 w-4 transition-transform", advancedOpen && "rotate-180")} />
         </button>
         {advancedOpen && (
-          <div className="mt-2 space-y-3">
+          <div className="mt-[10px] space-y-[20px]">
             {ADVANCED_SLIDER_LABELS.map((s) => (
               <div key={s.key}>
-                <span className="marologo-field-label mb-2 block">{s.label}</span>
+                <span className="marologo-field-label mb-[10px] block">{s.label}</span>
                 <DiscreteSlider
                   left={s.left}
                   right={s.right}
@@ -122,7 +122,7 @@ export function StepLook({
               </div>
             ))}
             <div>
-              <span className="marologo-field-label mb-2 block">Negative Space:</span>
+              <span className="marologo-field-label mb-[10px] block">Negative Space:</span>
               <DiscreteSlider
                 left="Normal"
                 right="Explore"
@@ -132,7 +132,7 @@ export function StepLook({
               />
             </div>
             <div>
-              <span className="marologo-field-label mb-2 block">Construction</span>
+              <span className="marologo-field-label mb-[10px] block">Construction</span>
               <DiscreteSlider
                 left="Freeform"
                 right="Grid-based"

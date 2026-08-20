@@ -41,7 +41,7 @@ export function StepDirection({
       onStepClick={onStepClick}
     >
       <div>
-        <span className="marologo-field-label mb-3 block">
+        <span className="marologo-field-label mb-[10px] block">
           Qysh duhet me u ndi brendi? Zgjedh deri në 5 *
         </span>
         <TraitPills value={wizard.direction.traits} onChange={onChangeTraits} onMaxReached={onMaxTraits} />
@@ -49,8 +49,8 @@ export function StepDirection({
       </div>
 
       <div>
-        <span className="marologo-field-label mb-3 block">Brendi duhet me u ndi më shumë: *</span>
-        <div className="space-y-3">
+        <span className="marologo-field-label mb-[10px] block">Brendi duhet me u ndi më shumë: *</span>
+        <div className="space-y-[20px]">
           {DIRECTION_SLIDER_LABELS.map((s) => (
             <DiscreteSlider
               key={s.key}

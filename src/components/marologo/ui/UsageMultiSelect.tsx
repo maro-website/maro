@@ -46,12 +46,12 @@ export function UsageMultiSelect({
 
   return (
     <div ref={rootRef} className="relative">
-      <span className="marologo-field-label mb-2 block">Përdorimi *</span>
+      <span className="marologo-field-label mb-[10px] block">Përdorimi *</span>
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="marologo-card flex min-h-[52px] w-full flex-wrap items-center gap-2 px-3 py-2 text-left"
+        className="marologo-card flex min-h-[52px] w-full flex-wrap items-center gap-[10px] px-[20px] py-[10px] text-left"
       >
         {value.length === 0 ? (
           <span className="px-1 text-[14px] text-ink-3">Zgjedh përdorimin</span>
@@ -59,7 +59,7 @@ export function UsageMultiSelect({
           value.map((v) => (
             <span
               key={v}
-              className="inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[12px] font-medium text-white"
+              className="inline-flex min-h-8 items-center gap-[10px] rounded-maro12 bg-ink px-[12px] text-[13px] font-medium text-white"
             >
               {v}
               <button
@@ -81,18 +81,18 @@ export function UsageMultiSelect({
       {error && <p className="mt-1.5 text-[12px] text-danger">{error}</p>}
 
       {open && (
-        <div className="maro-menu absolute z-50 mt-2 w-full overflow-hidden">
-          <div className="border-b border-line p-2">
+        <div className="maro-menu absolute z-50 mt-[10px] w-full overflow-hidden p-[10px]">
+          <div className="mb-[10px]">
             <input
               type="text"
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Kërko…"
-              className="h-10 w-full rounded-xl bg-surface-2 px-3 text-[14px] outline-none"
+              className="h-[44px] w-full rounded-maro12 bg-surface-2 px-[20px] text-[14px] outline-none"
             />
           </div>
-          <ul className="max-h-56 overflow-y-auto p-1">
+          <ul className="max-h-56 space-y-[10px] overflow-y-auto">
             {filtered.map((opt) => {
               const active = value.includes(opt);
               return (
@@ -101,7 +101,7 @@ export function UsageMultiSelect({
                     type="button"
                     onClick={() => toggle(opt)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[14px] hover:bg-surface-2",
+                      "flex min-h-[44px] w-full items-center justify-between rounded-maro12 px-[20px] text-left text-[14px] hover:bg-surface-2",
                       active && "bg-brand/10"
                     )}
                   >

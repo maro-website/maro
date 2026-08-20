@@ -4,13 +4,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 const fieldInputClass =
-  "w-full min-h-[var(--maro-control-height-lg)] rounded-maro12 bg-surface-2 px-4 text-[16px] sm:text-[14px] text-ink placeholder:text-ink-3 outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)] disabled:opacity-60";
+  "w-full min-h-[52px] rounded-maro16 bg-surface px-[20px] text-[16px] sm:text-[15px] text-ink placeholder:text-[var(--maro-gray-300)] outline-none transition-colors focus:bg-surface disabled:opacity-60";
 
 export const Input = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, ...props }, ref) => (
-  <input ref={ref} className={cn(fieldInputClass, "h-11", className)} {...props} />
+  <input ref={ref} className={cn(fieldInputClass, "h-[52px]", className)} {...props} />
 ));
 Input.displayName = "Input";
 
@@ -20,7 +20,7 @@ export const Textarea = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <textarea
     ref={ref}
-    className={cn(fieldInputClass, "py-3 resize-y leading-relaxed", className)}
+    className={cn(fieldInputClass, "resize-y px-[20px] py-[20px] leading-relaxed", className)}
     {...props}
   />
 ));
@@ -33,7 +33,7 @@ export const Select = React.forwardRef<
   <div className="relative">
     <select
       ref={ref}
-      className={cn(fieldInputClass, "h-11 appearance-none pr-9 cursor-pointer", className)}
+      className={cn(fieldInputClass, "h-[52px] cursor-pointer appearance-none pr-10", className)}
       {...props}
     >
       {children}
@@ -69,9 +69,9 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={cn("maro-field block", className)}>
+    <label className={cn("maro-field", className)}>
       {label && (
-        <span className="maro-field__label mb-0 flex items-center gap-1.5">
+        <span className="maro-field__label flex items-center gap-[10px]">
           {label}
           {optional && (
             <span className="text-[11px] font-medium text-ink-3">opsionale</span>
@@ -79,7 +79,7 @@ export function Field({
         </span>
       )}
       {children}
-      {hint && <span className="maro-field__help mt-1.5 block">{hint}</span>}
+      {hint && <span className="maro-field__help block">{hint}</span>}
     </label>
   );
 }

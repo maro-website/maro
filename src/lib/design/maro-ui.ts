@@ -1,5 +1,5 @@
 /**
- * Figma sizing mirror — values come from maro-design-system/tokens/maro.css.
+ * Figma sizing mirror — values come from maro-final-design-system/tokens/maro-final.css.
  * Prefer CSS variables in components; use these only when JS needs numbers.
  */
 import { MARO_SHELL, MARO_TRACKING } from "@/lib/design/maro-system";
@@ -24,40 +24,28 @@ export const UI = {
   shell: MARO_SHELL,
 } as const;
 
-/** @deprecated Use MARO_COLOR / CSS vars. Kept for gradual migration. */
+/** @deprecated Use MARO_COLOR / CSS vars. Kept only for compatibility. */
 export const BRAND_PALETTE = {
   light: {
-    canvas: "#f5f5f5",
+    canvas: "#f9f9f9",
     surface: "#ffffff",
-    surface2: "#f5f5f5",
-    muted: "#c7c7c7",
+    surface2: "#f3f3f3",
+    muted: "#8a8a8a",
     brand: "#253fda",
-    ink: "#111111",
-    inkMuted: "#818181",
-  },
-  dark: {
-    canvas: "#111111",
-    surface: "#ffffff",
-    surface2: "#f5f5f5",
-    muted: "#c7c7c7",
-    brand: "#253fda",
-    inkMuted: "#818181",
-    menuHover: "#f5f5f5",
+    ink: "#0a0a0a",
+    inkMuted: "#5f5f5f",
   },
 } as const;
 
 /** @deprecated Use semantic --maro-* tokens. */
 export const BRAND = {
   primary: "#253fda",
-  ink: "#111111",
-  canvas: "#f5f5f5",
-  muted: "#c7c7c7",
-  secondary: "#818181",
+  ink: "#0a0a0a",
+  canvas: "#f9f9f9",
+  muted: "#8a8a8a",
+  secondary: "#5f5f5f",
   white: "#ffffff",
   red: "#da2525",
   teal: "#253fda",
-  forest: "#111111",
-  canvasDark: "#111111",
-  surfaceDark: "#ffffff",
-  surface2Dark: "#f5f5f5",
+  forest: "#0a0a0a",
 } as const;

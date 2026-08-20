@@ -1,6 +1,6 @@
 /*
- * App compatibility layer — maps legacy Tailwind/component tokens to maro V2 semantic tokens.
- * New code should prefer --maro-* or V2 aliases (--surface-01, --text-muted, etc.).
+ * Compatibility bridge from existing class names to maro-final-design-system.
+ * This file contains no independent visual decisions.
  */
 
 :root {
@@ -14,7 +14,7 @@
   --ui-radius-dock: var(--maro-radius-20);
   --nav-gap: var(--maro-nav-gap);
 
-  /* V2 surface & text aliases (canonical names from migration spec) */
+  /* Final surface & text aliases */
   --canvas: var(--maro-color-bg-canvas);
   --surface-01: var(--maro-color-bg-surface);
   --surface-02: var(--maro-color-bg-surface-02);

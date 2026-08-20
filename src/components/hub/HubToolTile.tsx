@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
-import { Lock, Megaphone, type LucideIcon } from "lucide-react";
+import { Megaphone, type LucideIcon } from "lucide-react";
 
 const HUB_TILE_PREVIEWS: Record<string, string> = {
   imazh: "/images/hub/marketing-stack.png",
-  marologo: "/images/hub/marketing-stack.png",
-  web: "/images/hub/marketing-stack.png",
-  filma: "/images/hub/marketing-stack.png",
-  audio: "/images/hub/marketing-stack.png",
-  marketing: "/images/hub/marketing-stack.png",
-  presets: "/images/hub/marketing-stack.png",
 };
 
 export function HubToolTile({
@@ -41,16 +35,13 @@ export function HubToolTile({
         </div>
       )}
       <div className="maro-hub-tile__icon-area">
-        {locked ? (
-          <Lock className="h-10 w-10 text-ink-3" />
-        ) : toolId ? (
-          <ToolIcon toolId={toolId} fallback={Icon} className="h-12 w-12 text-brand group-hover:text-white" />
+        {toolId ? (
+          <ToolIcon toolId={toolId} fallback={Icon} className="h-14 w-14 text-[var(--maro-blue-soft-icon)] group-hover:text-white" />
         ) : (
-          <MaroIcon name="prompts" fallback={Icon} className="h-12 w-12 text-brand group-hover:text-white" />
+          <MaroIcon name="prompts" fallback={Icon} className="h-14 w-14 text-[var(--maro-blue-soft-icon)] group-hover:text-white" />
         )}
       </div>
       <span className="maro-hub-tile__label">{label}</span>
-      {locked && <span className="pb-3 text-center text-[11px] font-medium text-ink-3">së shpejti</span>}
     </div>
   );
 

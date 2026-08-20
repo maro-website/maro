@@ -5,7 +5,7 @@ import * as React from "react";
 /** App UI is light-only; kept for icon resolution hooks that read theme. */
 export type Theme = "mshelt";
 
-const THEME_COLOR = "#F5F5F5";
+const THEME_COLOR = "#F9F9F9";
 
 interface ThemeCtx {
   theme: Theme;

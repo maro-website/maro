@@ -14,7 +14,7 @@ export function PromoCard({
   href: string;
 }) {
   return (
-    <div className="flex h-[var(--hub-promo-h)] w-full max-w-[var(--hub-promo-w)] flex-col justify-between rounded-maro16 bg-surface p-8 sm:flex-row sm:items-end">
+    <div className="flex min-h-[var(--hub-promo-h)] w-full max-w-[var(--hub-promo-w)] flex-col justify-between rounded-maro20 bg-surface p-7 sm:h-[var(--hub-promo-h)] sm:flex-row sm:items-end sm:p-8">
       <div>
         <div className="text-[clamp(28px,4vw,36px)] font-bold leading-[1.1] tracking-brand text-ink">
           {title}
@@ -23,7 +23,7 @@ export function PromoCard({
       </div>
       <Link
         href={href}
-        className="cta-gradient mt-6 inline-flex h-10 shrink-0 items-center rounded-full px-5 text-[14px] font-semibold tracking-brand transition-opacity hover:opacity-90 sm:mt-0"
+        className="cta-gradient mt-6 inline-flex h-11 shrink-0 items-center rounded-maro12 px-5 text-[14px] font-semibold tracking-brand transition-opacity hover:opacity-90 sm:mt-0"
       >
         {ctaLabel}
       </Link>

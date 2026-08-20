@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F5F5F5",
+  themeColor: "#F9F9F9",
   width: "device-width",
   initialScale: 1,
   // Prevent iOS auto-zoom when focusing form fields.

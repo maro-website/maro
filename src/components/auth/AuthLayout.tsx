@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { Logo, MaroSymbol } from "@/components/ui/Logo";
-import { Sparkles } from "lucide-react";
 
 export function AuthLayout({
   children,
@@ -15,17 +14,17 @@ export function AuthLayout({
   subtitle: string;
 }) {
   return (
-    <div className="grid min-h-screen bg-canvas lg:grid-cols-2">
+    <div className="grid min-h-screen bg-canvas lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:p-4">
       {/* Form side */}
-      <div className="flex flex-col px-5 py-8 sm:px-10">
+      <div className="flex min-h-screen flex-col bg-surface px-5 py-6 sm:px-10 sm:py-8 lg:min-h-[calc(100vh-2rem)] lg:rounded-maro32 lg:px-14">
         <Link href="/" className="inline-flex">
           <Logo mobileLockup />
         </Link>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm animate-fade-up">
-            <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink">{title}</h1>
-            <p className="mt-2 text-[14.5px] text-ink-3">{subtitle}</p>
-            <div className="mt-8">{children}</div>
+            <h1 className="text-[clamp(32px,5vw,48px)] font-bold leading-[1.04] tracking-brand text-ink">{title}</h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{subtitle}</p>
+            <div className="mt-9">{children}</div>
           </div>
         </div>
         <div className="text-center text-[12.5px] text-ink-3">
@@ -34,34 +33,24 @@ export function AuthLayout({
       </div>
 
       {/* Brand side */}
-      <div className="relative hidden overflow-hidden bg-brand lg:block">
-        <div className="absolute -right-24 top-1/4 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex h-full flex-col justify-between p-12">
-          <div className="flex items-center gap-2 text-white/90">
-            <MaroSymbol className="h-8 w-8 brightness-0 invert" />
-            <span className="text-[13px] font-semibold uppercase tracking-widest">maro.al</span>
+      <div className="relative hidden overflow-hidden lg:block">
+        <div className="relative flex h-full flex-col justify-between p-12 xl:p-16">
+          <div className="flex items-center gap-3 text-brand">
+            <MaroSymbol className="h-10 w-10" />
+            <span className="text-[14px] font-semibold">maro.al</span>
           </div>
-          <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-medium text-white/90">
-              <Sparkles className="h-3.5 w-3.5" /> Website me AI
-            </div>
-            <p className="max-w-md text-balance text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em] text-white">
+          <div className="py-16">
+            <span className="mb-8 block text-[13px] font-semibold text-brand">Krejt tools-at me ni vend.</span>
+            <p className="max-w-xl text-balance text-[clamp(44px,5vw,76px)] font-bold leading-[0.98] tracking-brand text-ink">
               Trego çka të duhet.
               <br />
-              <span className="text-white/80">maro e maron.</span>
+              <span className="text-brand">maro e maron.</span>
             </p>
-            <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-white/70">
+            <p className="mt-7 max-w-md text-[16px] leading-relaxed text-ink-2">
               Bashkohu me bizneset që e ndërtojnë praninë e tyre online në minuta, jo javë.
             </p>
           </div>
-          <div className="flex items-center gap-3 text-white/60">
-            <div className="flex -space-x-2">
-              {["#253FDA", "#111111", "#ffffff", "#C7C7C7"].map((c) => (
-                <span key={c} className="h-8 w-8 rounded-full border-2 border-white/30" style={{ background: c }} />
-              ))}
-            </div>
-            <span className="text-[13px]">2,400+ website të maruara</span>
-          </div>
+          <p className="text-[13px] font-medium text-ink-3">2,400+ krijime të maruara</p>
         </div>
       </div>
     </div>

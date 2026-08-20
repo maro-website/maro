@@ -24,7 +24,7 @@ export function AdminShell({
   if (minimal) {
     return (
       <div className="min-h-screen bg-canvas">
-        <header className="border-b border-line bg-surface">
+        <header className="bg-surface">
           <div className="mx-auto flex max-w-[640px] items-center gap-3 px-4 py-4 sm:px-6">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-ink-inv">
               <Shield className="h-4 w-4" />
@@ -44,7 +44,7 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 bg-surface">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-ink-inv">
@@ -61,7 +61,7 @@ export function AdminShell({
             </Badge>
             <Link
               href="/"
-              className="rounded-lg px-3 py-1.5 text-[12px] font-semibold text-ink-2 hover:bg-surface-2"
+              className="inline-flex min-h-11 items-center rounded-maro12 px-3 text-[12px] font-semibold text-ink-2 hover:bg-surface-2"
             >
               Kthehu te Maro
             </Link>
@@ -69,7 +69,7 @@ export function AdminShell({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1400px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_1fr]">
+      <div className="mx-auto grid max-w-[1400px] gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[240px_1fr]">
         <AdminSidebar role={role} />
         <main key={pathname} className="min-w-0">
           {children}

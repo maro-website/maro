@@ -1,7 +1,7 @@
 import { optionKey } from "@/lib/tools/registry";
 import { MARO_ICONS } from "@/lib/design/maro-system";
 
-/** Public SVG assets — canonical maro-design-system/icons (synced to public/icons). */
+/** Public SVG assets used by maro-final-design-system. */
 export const ICONS_BASE = MARO_ICONS.base;
 
 /** Tool cards in sidebar grid — keyed by registry tool id. */

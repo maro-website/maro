@@ -13,7 +13,7 @@ export function CreativeFreedomCards({
   onChange: (v: CreativeFreedom) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-3">
       {CREATIVE_FREEDOM_OPTIONS.map((opt) => {
         const active = value === opt.value;
         return (
@@ -23,17 +23,12 @@ export function CreativeFreedomCards({
             aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "marologo-card flex min-h-[100px] flex-col items-start gap-2 p-4 text-left transition-all",
-              active ? "ring-2 ring-brand" : "hover:bg-surface-2"
+              "marologo-card flex min-h-[120px] flex-col items-start gap-[10px] p-[20px] text-left transition-colors",
+              active ? "bg-surface" : "hover:bg-surface-hover"
             )}
           >
-            <span
-              className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-md border",
-                active ? "border-brand bg-brand text-brand-fg" : "border-line-strong"
-              )}
-            >
-              {active && <Check className="h-3 w-3" strokeWidth={3} />}
+            <span className="marologo-checkbox" data-checked={active || undefined}>
+              {active && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
             <span className="text-[15px] font-semibold text-ink">{opt.label}</span>
             <span className="text-[13px] text-ink-2">{opt.description}</span>

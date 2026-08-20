@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils/cn";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { MaroIcon } from "@/components/app/OptionIcon";
@@ -41,21 +40,19 @@ export function StepFinish({
       onNext={() => {}}
       onStepClick={onStepClick}
       nextExtra={
-        <div className="space-y-6">
+        <div className="space-y-[30px]">
           <button
             type="button"
             role="checkbox"
             aria-checked={wizard.finish.confirmed}
             onClick={() => onChangeFinish({ confirmed: !wizard.finish.confirmed })}
-            className="flex w-full items-start gap-3 text-left"
+            className="flex w-full items-start gap-[20px] text-left"
           >
             <span
-              className={cn(
-                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
-                wizard.finish.confirmed ? "border-brand bg-brand text-brand-fg" : "border-line-strong bg-surface"
-              )}
+              className="marologo-checkbox mt-0.5"
+              data-checked={wizard.finish.confirmed || undefined}
             >
-              {wizard.finish.confirmed && <Check className="h-3 w-3" strokeWidth={3} />}
+              {wizard.finish.confirmed && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
             <span className="text-[14px] leading-relaxed text-ink">
               Pranoj qe i kom plotesu te gjitha dhe jam i gatshem te shoh gjenerimin e logos
@@ -69,7 +66,7 @@ export function StepFinish({
             disabled={!canGenerate}
             onClick={onGenerate}
           >
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-[10px]">
               maro-je Logon
               <MaroIcon name="coins" className="h-4 w-4" />
               {cost}
@@ -81,7 +78,7 @@ export function StepFinish({
       <MiniReview wizard={wizard} />
 
       <div>
-        <span className="marologo-field-label mb-3 block">Creative Freedom:</span>
+        <span className="marologo-field-label mb-[10px] block">Creative Freedom:</span>
         <CreativeFreedomCards
           value={wizard.finish.creativeFreedom}
           onChange={(creativeFreedom: CreativeFreedom) => onChangeFinish({ creativeFreedom })}

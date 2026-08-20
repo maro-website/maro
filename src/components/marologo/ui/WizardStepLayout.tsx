@@ -29,6 +29,10 @@ export function WizardStepLayout({
   return (
     <div className="marologo-shell">
       <div className="mb-8">
+        <div className="mb-4 flex items-center justify-between text-[12px] font-semibold text-ink-3">
+          <span>maroLogo</span>
+          <span>Hapi {step} prej 5</span>
+        </div>
         <MaroLogoProgress
           currentStep={step}
           highestStepReached={highestStepReached}
@@ -36,15 +40,15 @@ export function WizardStepLayout({
         />
       </div>
 
-      <h1 className="marologo-step-title mb-8">{title}</h1>
+      <h1 className="marologo-step-title mb-10">{title}</h1>
 
-      <div className="space-y-6">{children}</div>
+      <div className="space-y-[30px]">{children}</div>
 
       <div className="mt-10">
         {nextExtra ?? (
           <Button
             type="button"
-            className="h-12 w-full rounded-2xl text-[15px] font-semibold"
+            className="h-[52px] w-full rounded-maro16 text-[15px] font-semibold"
             onClick={onNext}
             disabled={nextDisabled}
           >

@@ -23,7 +23,7 @@ export function PayRedirectTestClient() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 text-center">
-      <div className="w-full max-w-md rounded-maro16 bg-surface p-10 shadow-float">
+      <div className="w-full max-w-md rounded-maro16 bg-surface p-10">
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#FFCC00]">
           <Loader2 className="h-7 w-7 animate-spin text-ink" />
         </div>

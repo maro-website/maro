@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Legacy app aliases (see src/styles/maro-compat.css)
+        // Compatibility aliases backed by maro-final-design-system.
         brand: {
           DEFAULT: "var(--brand)",
           hover: "var(--brand-hover)",
@@ -49,7 +49,7 @@ const config: Config = {
           DEFAULT: "var(--generate-bg)",
           fg: "var(--generate-fg)",
         },
-        // Canonical maro semantic tokens (prefer for new code)
+        // Canonical maro-final semantic tokens (prefer for new code)
         maro: {
           canvas: "var(--maro-color-bg-canvas)",
           surface: "var(--maro-color-bg-surface)",
@@ -84,6 +84,8 @@ const config: Config = {
         maro12: "var(--maro-radius-12)",
         maro16: "var(--maro-radius-16)",
         maro20: "var(--maro-radius-20)",
+        maro24: "var(--maro-radius-24)",
+        maro32: "var(--maro-radius-32)",
         xl: "0.875rem",
         "2xl": "1.125rem",
         "3xl": "1.5rem",
