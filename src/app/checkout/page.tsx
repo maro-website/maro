@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 import { useMaro } from "@/context/store";
-import { getCheckoutItem, formatEur } from "@/lib/credits/money";
+import { formatEur } from "@/lib/credits/money";
 import { paymentMode } from "@/lib/config/features";
 import {
   LegalConsentCheckbox,
@@ -30,7 +30,13 @@ function CheckoutPageInner() {
 
   const itemId = searchParams.get("item") ?? "";
   const promoFromUrl = searchParams.get("promo")?.trim() ?? "";
-  const item = getCheckoutItem(itemId);
+  const [preview, setPreview] = React.useState<{
+    label: string;
+    credits: number;
+    priceEur: number;
+    orderKind: string;
+  } | null>(null);
+  const [previewError, setPreviewError] = React.useState<string | null>(null);
 
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -49,6 +55,40 @@ function CheckoutPageInner() {
   }, [promoFromUrl]);
 
   React.useEffect(() => {
+    if (!ready || !user || !itemId) return;
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/commerce/checkout-preview?item=${encodeURIComponent(itemId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = (await res.json()) as {
+        label?: string;
+        credits?: number;
+        priceEur?: number;
+        orderKind?: string;
+        error?: string;
+      };
+      if (cancelled) return;
+      if (!res.ok) {
+        setPreview(null);
+        setPreviewError(data.error ?? "invalid_item");
+        return;
+      }
+      setPreviewError(null);
+      setPreview({
+        label: data.label ?? itemId,
+        credits: data.credits ?? 0,
+        priceEur: data.priceEur ?? 0,
+        orderKind: data.orderKind ?? "plan_purchase",
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, user, itemId, getAccessToken]);
+
+  React.useEffect(() => {
     if (!ready) return;
     if (!user) {
       router.replace(`/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}`)}`);
@@ -58,11 +98,19 @@ function CheckoutPageInner() {
     setEmail(user.email || "");
   }, [ready, user, router, itemId]);
 
-  if (!item) {
+  if (!preview && previewError) {
+    const messages: Record<string, string> = {
+      topup_requires_active_plan: "Top-up kërkon plan aktiv.",
+      plan_already_active: "Ke tashmë plan aktiv. Rinovimi hapet 7 ditë para skadimit.",
+      renewal_not_available: "Rinovimi nuk është ende i disponueshëm.",
+      upgrade_not_eligible: "Upgrade në maroPro nuk është i disponueshëm për llogarinë tënde.",
+    };
     return (
       <AppShell showFooter>
         <div className="mx-auto max-w-lg px-5 py-20 text-center">
-          <p className="text-[15px] text-ink-2">Artikulli i zgjedhur nuk është i vlefshëm.</p>
+          <p className="text-[15px] text-ink-2">
+            {messages[previewError] ?? "Artikulli i zgjedhur nuk është i vlefshëm."}
+          </p>
           <Link href="/pricing" className="mt-4 inline-block text-[14px] font-semibold text-brand hover:underline">
             Kthehu te planet
           </Link>
@@ -70,6 +118,18 @@ function CheckoutPageInner() {
       </AppShell>
     );
   }
+
+  if (!preview) {
+    return (
+      <AppShell showFooter>
+        <div className="mx-auto max-w-lg px-5 py-20 text-center text-[15px] text-ink-3">
+          Duke ngarkuar…
+        </div>
+      </AppShell>
+    );
+  }
+
+  const item = preview;
 
   const pay = async () => {
     setError(null);
@@ -143,11 +203,11 @@ function CheckoutPageInner() {
           <ArrowLeft className="h-4 w-4" /> Kthehu
         </Link>
 
-        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-light tracking-[-0.03em] text-ink">
+        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-bold tracking-brand text-ink">
           Checkout
         </h1>
 
-        <div className="mt-6 rounded-2xl border border-line bg-surface p-5">
+        <div className="mt-6 rounded-maro16 bg-surface p-5">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-ink-3">Porosia</p>
           <p className="mt-2 text-[18px] font-semibold text-ink">{item.label}</p>
           <p className="mt-1 text-[14px] text-ink-2">
@@ -155,7 +215,7 @@ function CheckoutPageInner() {
           </p>
         </div>
 
-        <div className="mt-6 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        <div className="mt-6 rounded-maro12 bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
           {isTestPayment
             ? "Pagesa live me Raiffeisen është ende e çaktivizuar. Porosia krijohet dhe përfundon në modalitet test — nuk merren të dhëna kartë në maro."
             : "Do të ridrejtoheni te pagesa e sigurt e bankës partner. maro nuk mbledh të dhëna kartë."}
@@ -196,7 +256,7 @@ function CheckoutPageInner() {
           </Field>
 
           {error && (
-            <div className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
+            <div className="flex items-start gap-2 rounded-maro12 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
             </div>
           )}

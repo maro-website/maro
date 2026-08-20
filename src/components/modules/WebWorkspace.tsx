@@ -59,7 +59,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
                 key={p.id}
                 type="button"
                 onClick={() => setPreviewId(p.id)}
-                className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-surface-2"
+                className="rounded-maro16 bg-surface p-4 text-left transition-colors hover:bg-surface-2"
               >
                 <div className="truncate text-[14px] font-semibold text-ink">
                   {p.businessName || p.name}
@@ -78,7 +78,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
                   <Link
                     href={`/projects/${p.id}/preview`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-semibold text-ink"
+                    className="inline-flex items-center gap-1 rounded-maro8 bg-surface-2 px-2.5 py-1.5 text-[12px] font-semibold text-ink hover:bg-surface-hover"
                   >
                     <Eye className="h-3 w-3" /> Preview
                   </Link>
@@ -116,7 +116,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
             <AiHtmlPreviewFrame
               title="Preview website"
               html={previewHtml}
-              className="h-full min-h-[240px] w-full rounded-xl border border-line bg-white"
+              className="h-full min-h-[240px] w-full rounded-maro12 bg-surface"
             />
           ) : (
             <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-[13px] text-ink-3">

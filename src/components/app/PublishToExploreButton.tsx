@@ -44,7 +44,7 @@ export function PublishToExploreButton({
       type="button"
       onClick={publish}
       disabled={loading || published}
-      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-[12px] font-semibold text-ink transition-colors hover:bg-canvas disabled:opacity-60"
+      className="inline-flex h-9 items-center gap-1.5 rounded-maro12 bg-surface-2 px-3 text-[12px] font-semibold text-ink transition-colors hover:bg-surface-hover disabled:opacity-60"
     >
       {loading ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

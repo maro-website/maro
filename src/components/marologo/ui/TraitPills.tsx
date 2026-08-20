@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils/cn";
 import { BRAND_TRAITS, MAX_TRAITS } from "@/lib/marologo/constants";
 
 export function TraitPills({
@@ -34,10 +33,8 @@ export function TraitPills({
             type="button"
             aria-pressed={active}
             onClick={() => toggle(trait)}
-            className={cn(
-              "min-h-[44px] rounded-2xl px-4 py-2.5 text-[14px] font-medium transition-colors",
-              active ? "bg-brand text-brand-fg" : "marologo-card text-ink hover:bg-surface-2"
-            )}
+            className="maro-chip-select min-h-[44px] px-4 py-2.5"
+            data-selected={active || undefined}
           >
             {trait}
           </button>

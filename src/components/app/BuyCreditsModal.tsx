@@ -27,7 +27,7 @@ export function BuyCreditsModal({
         description="Zgjidh një plan ose rimbush kredite për të vazhduar."
       />
       <div className="px-6 pb-2">
-        <div className="rounded-xl bg-surface-2 p-4">
+        <div className="rounded-maro12 bg-surface-2 p-4">
           <div className="flex items-center justify-between text-[13.5px]">
             <span className="text-ink-2">Kreditet e tua</span>
             <span className="font-bold text-ink">{credits.toLocaleString("de-DE")}</span>
@@ -39,16 +39,15 @@ export function BuyCreditsModal({
             </div>
           )}
         </div>
-        <button
-          type="button"
+        <Button
+          className="mt-4 w-full"
           onClick={() => {
             onClose();
             router.push("/pricing");
           }}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[13.5px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
         >
           <Coins className="h-4 w-4" /> Shiko planet & kredite
-        </button>
+        </Button>
       </div>
       <ModalFooter>
         <Button variant="ghost" onClick={onClose}>

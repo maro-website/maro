@@ -127,7 +127,7 @@ describe("Batch S2 — test payment lockdown", () => {
     const route = readRoute("src/app/api/payments/complete-test/route.ts");
     expect(route).toContain("isPaymentModeValid()");
     expect(route).toContain("isTestPaymentAllowed()");
-    expect(route).toContain("fulfillCreditOrder");
+    expect(route).toContain("fulfillCommerceOrder");
   });
 });
 

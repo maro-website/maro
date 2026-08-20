@@ -107,7 +107,7 @@ export function OrdersSection() {
         <button
           type="button"
           onClick={() => void load()}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line hover:text-ink"
+          className="inline-flex items-center gap-1.5 rounded-maro12 bg-surface-2 px-3 py-2 text-[13px] font-semibold text-ink-2 hover:bg-surface-hover hover:text-ink"
         >
           <RefreshCw className="h-4 w-4" /> Rifresko
         </button>
@@ -134,7 +134,7 @@ export function OrdersSection() {
                 <th className="pb-3 font-semibold">Faturë</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody className="divide-y divide-border-subtle">
               {list.map((o) => (
                 <tr key={o.id}>
                   <td className="py-3.5 pr-4">

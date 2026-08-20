@@ -1,4 +1,4 @@
-import { listPriceEur } from "@/lib/credits/money";
+import { getLowestEffectiveCreditSellRateEur } from "@/lib/commerce/plans";
 
 /** Estimated provider cost in USD (conservative defaults for margin tracking). */
 const MODEL_COST_PER_1K: Record<string, { input: number; output: number }> = {
@@ -23,10 +23,18 @@ export function estimateProviderCostUsd(opts: {
   return Math.round((inCost + outCost + imgCost) * 1_000_000) / 1_000_000;
 }
 
-export function marginPct(creditsCharged: number, costUsd: number): number {
-  const revenue = listPriceEur(creditsCharged);
+export function marginPct(creditsCharged: number, costUsd: number, revenuePerCreditEur: number): number {
+  const revenue = creditsCharged * revenuePerCreditEur;
   if (revenue <= 0) return 0;
   return Math.round(((revenue - costUsd) / revenue) * 100);
+}
+
+export async function marginPctFromCommerceConfig(
+  creditsCharged: number,
+  costUsd: number
+): Promise<number> {
+  const rate = await getLowestEffectiveCreditSellRateEur();
+  return marginPct(creditsCharged, costUsd, rate);
 }
 
 export const TARGET_MARGIN_PCT = 40;

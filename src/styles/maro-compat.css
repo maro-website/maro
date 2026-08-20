@@ -1,48 +1,63 @@
 /*
- * App compatibility layer — maps legacy Tailwind/component tokens to maro semantic tokens.
- * New code should prefer --maro-* aliases directly. See maro-design-system/MARO-DESIGN-SYSTEM.md
+ * App compatibility layer — maps legacy Tailwind/component tokens to maro V2 semantic tokens.
+ * New code should prefer --maro-* or V2 aliases (--surface-01, --text-muted, etc.).
  */
 
 :root {
   /* Typography bridge */
   --font-app: var(--maro-font-family);
 
-  /* Layout — product shell (MARO-DESIGN-SYSTEM §6) */
+  /* Layout — product shell */
   --sidebar-width: var(--maro-shell-sidebar-width);
   --ui-btn-h: var(--maro-control-height-md);
   --ui-radius-card: var(--maro-radius-16);
   --ui-radius-dock: var(--maro-radius-20);
+  --nav-gap: var(--maro-nav-gap);
 
-  /* Core surfaces & text */
+  /* V2 surface & text aliases (canonical names from migration spec) */
   --canvas: var(--maro-color-bg-canvas);
-  --surface: var(--maro-color-bg-surface);
-  --surface-2: color-mix(in srgb, var(--maro-color-bg-canvas) 65%, var(--maro-color-bg-surface));
-  --line: var(--maro-color-border-default);
-  --line-strong: var(--maro-gray-600);
+  --surface-01: var(--maro-color-bg-surface);
+  --surface-02: var(--maro-color-bg-surface-02);
+  --surface-hover: var(--maro-color-bg-surface-hover);
+  --surface-selected: var(--maro-color-bg-surface-selected);
+  --surface: var(--surface-01);
+  --surface-2: var(--surface-02);
 
-  --ink: var(--maro-color-text-primary);
-  --ink-2: var(--maro-color-text-secondary);
-  --ink-3: var(--maro-color-text-tertiary);
+  --text-primary: var(--maro-color-text-primary);
+  --text-secondary: var(--maro-color-text-secondary);
+  --text-muted: var(--maro-color-text-muted);
+
+  --border-subtle: var(--maro-color-border-subtle);
+  --border-default: var(--maro-color-border-default);
+
+  --accent: var(--maro-color-accent);
+  --accent-hover: var(--maro-color-accent-hover);
+
+  /* Legacy ink/line aliases */
+  --line: var(--border-subtle);
+  --line-strong: var(--border-default);
+  --ink: var(--text-primary);
+  --ink-2: var(--text-secondary);
+  --ink-3: var(--text-muted);
   --ink-inv: var(--maro-color-text-inverse);
 
-  /* Brand & accents */
-  --brand: var(--maro-blue);
-  --brand-hover: color-mix(in srgb, var(--maro-blue) 88%, var(--maro-black));
-  --brand-soft: color-mix(in srgb, var(--maro-blue) 10%, transparent);
+  /* Brand */
+  --brand: var(--accent);
+  --brand-hover: var(--accent-hover);
+  --brand-soft: color-mix(in srgb, var(--accent) 10%, transparent);
   --brand-fg: var(--maro-color-text-inverse);
-  --accent: var(--maro-blue);
-  --accent-teal: var(--maro-blue);
+  --accent-teal: var(--accent);
   --accent-soft: var(--brand-soft);
   --accent-teal-soft: var(--brand-soft);
-  --accent-teal-border: color-mix(in srgb, var(--maro-blue) 35%, transparent);
+  --accent-teal-border: color-mix(in srgb, var(--accent) 35%, transparent);
   --brand-forest: var(--maro-ink);
-  --brand-muted: var(--maro-gray-300);
+  --brand-muted: var(--text-muted);
 
   /* Status */
-  --success: var(--maro-blue);
-  --warning: var(--maro-ink);
-  --danger: var(--maro-red);
-  --info: var(--maro-gray-600);
+  --success: var(--maro-color-success);
+  --warning: var(--maro-color-warning);
+  --danger: var(--maro-color-danger);
+  --info: var(--text-secondary);
 
   /* Overlays */
   --overlay: var(--maro-color-bg-overlay);
@@ -51,76 +66,78 @@
   --on-scrim: var(--maro-color-text-inverse);
 
   /* Logo loader monochrome */
-  --c-blue: var(--maro-blue);
-  --c-teal: var(--maro-blue);
-  --c-red: var(--maro-blue);
-  --c-pale: var(--maro-blue);
-  --c-yellow: var(--maro-blue);
+  --c-blue: var(--accent);
+  --c-teal: var(--accent);
+  --c-red: var(--accent);
+  --c-pale: var(--accent);
+  --c-yellow: var(--accent);
 
   /* Switch */
-  --switch-track: var(--maro-gray-300);
+  --switch-track: var(--surface-selected);
   --switch-knob: var(--maro-white);
   --switch-off: var(--maro-ink);
   --skeleton-shine: rgb(17 17 17 / 6%);
 
   /* Sidebar */
-  --sidebar-card: var(--maro-color-bg-surface);
-  --sidebar-nav-bg: var(--maro-color-bg-surface);
-  --sidebar-nav-prompts-fg: var(--maro-color-text-primary);
-  --sidebar-nav-history-fg: var(--maro-color-text-primary);
+  --sidebar-card: var(--surface-01);
+  --sidebar-nav-bg: var(--surface-01);
+  --sidebar-nav-prompts-fg: var(--text-primary);
+  --sidebar-nav-history-fg: var(--text-primary);
 
-  /* Composer dock */
-  --prompt-dock: var(--maro-color-bg-surface);
+  /* Composer dock — stroke-free Surface 01 shell */
+  --prompt-dock: var(--surface-01);
   --dock-btn: var(--maro-color-bg-inverse);
   --fort-pill: var(--maro-red);
-  --dock-tool-btn: var(--maro-color-bg-selected);
+  --dock-tool-btn: var(--accent);
   --dock-tool-fg: var(--maro-color-text-inverse);
-  --dock-muted: var(--maro-gray-300);
+  --dock-muted: var(--text-muted);
+  --dock-pill-bg: var(--maro-color-bg-inverse);
+  --dock-pill-fg: var(--maro-color-text-inverse);
   --generate-bg: var(--maro-color-bg-inverse);
-  --generate-bg-idle: color-mix(in srgb, var(--maro-color-bg-canvas) 55%, var(--maro-color-bg-surface));
+  --generate-bg-idle: var(--surface-02);
   --generate-fg: var(--maro-color-text-inverse);
-  --generate-fg-idle: var(--maro-gray-300);
+  --generate-fg-idle: var(--text-muted);
 
-  /* Read-only metadata chips (conversation header) */
-  --meta-pill-bg: var(--maro-color-bg-surface);
-  --meta-pill-fg: var(--maro-color-text-primary);
-  --meta-pill-border: var(--maro-color-border-default);
+  /* Read-only metadata chips */
+  --meta-pill-bg: var(--surface-01);
+  --meta-pill-fg: var(--text-primary);
+  --meta-pill-border: transparent;
 
-  /* Menus */
-  --menu-bg: var(--maro-color-bg-surface);
-  --menu-fg: var(--maro-color-text-primary);
-  --menu-muted: var(--maro-gray-300);
-  --menu-divider: var(--maro-color-border-subtle);
-  --menu-row-hover: var(--maro-color-bg-canvas);
-  --menu-chip-bg: var(--maro-color-bg-canvas);
-  --menu-border: var(--maro-color-border-default);
-  --menu-logout-bg: var(--maro-color-bg-danger);
+  /* Menus — no default stroke */
+  --menu-bg: var(--surface-01);
+  --menu-fg: var(--text-primary);
+  --menu-muted: var(--text-muted);
+  --menu-divider: var(--border-subtle);
+  --menu-row-hover: var(--surface-02);
+  --menu-chip-bg: var(--surface-02);
+  --menu-border: transparent;
+  --menu-logout-bg: var(--danger);
   --menu-logout-fg: var(--maro-color-text-inverse);
 
   /* Top bar */
-  --topbar-credits-bg: var(--maro-color-bg-surface);
-  --topbar-credits-fg: var(--maro-color-text-brand);
-  --topbar-credits-muted: var(--maro-gray-300);
-  --topbar-wallet-bg: var(--maro-color-bg-surface);
-  --topbar-wallet-fg: var(--maro-color-text-primary);
+  --topbar-credits-bg: var(--surface-01);
+  --topbar-credits-fg: var(--accent);
+  --topbar-credits-muted: var(--text-muted);
+  --topbar-wallet-bg: var(--surface-01);
+  --topbar-wallet-fg: var(--text-primary);
 
-  /* Product rail cards — active uses Ink, not blue (§6) */
-  --card-active-bg: var(--maro-color-bg-inverse);
-  --card-active-fg: var(--maro-color-text-inverse);
-  --card-idle-bg: var(--maro-color-bg-surface);
-  --card-idle-fg: var(--maro-color-text-primary);
-  --card-idle-border: var(--maro-color-border-default);
-  --card-hover-bg: var(--maro-color-bg-canvas);
-  --card-locked-bg: color-mix(in srgb, var(--maro-color-bg-canvas) 80%, var(--maro-color-bg-surface));
-  --card-locked-fg: var(--maro-color-text-tertiary);
-  --card-active-ring: var(--maro-color-border-focus);
+  /* Product rail — active nav uses Surface 01 + accent text */
+  --card-active-bg: var(--surface-01);
+  --card-active-fg: var(--accent);
+  --card-idle-bg: transparent;
+  --card-idle-fg: var(--text-primary);
+  --card-idle-border: transparent;
+  --card-hover-bg: var(--surface-hover);
+  --card-locked-bg: var(--surface-02);
+  --card-locked-fg: var(--text-muted);
+  --card-active-ring: transparent;
 
   /* Hub / chat / footer */
-  --hub-tool: var(--maro-color-text-primary);
-  --hub-tool-sub: var(--maro-gray-300);
-  --hub-page-bg: var(--maro-color-bg-canvas);
+  --hub-tool: var(--text-primary);
+  --hub-tool-sub: var(--text-muted);
+  --hub-page-bg: var(--canvas);
 
-  /* Final UI layout (Figma) */
+  /* Layout tokens */
   --layout-module-max: var(--maro-layout-module-max);
   --layout-composer-max: var(--maro-layout-composer-max);
   --layout-hero-subtitle-max: var(--maro-layout-hero-subtitle-max);
@@ -135,16 +152,16 @@
   --hub-promo-h: var(--maro-hub-promo-height);
   --hub-promo-gap: var(--maro-hub-promo-gap);
   --hub-dropdown-w: var(--maro-hub-dropdown-width);
-  --chat-user-bg: var(--maro-color-bg-surface);
-  --chat-user-fg: var(--maro-color-text-primary);
-  --chat-user-border: var(--maro-color-border-default);
-  --chat-maro-bg: var(--maro-color-bg-surface);
-  --chat-maro-border: var(--maro-color-border-default);
-  --footer-bg: var(--maro-color-bg-canvas);
-  --footer-fg: var(--maro-color-text-primary);
-  --footer-muted: var(--maro-color-text-secondary);
+  --chat-user-bg: var(--surface-01);
+  --chat-user-fg: var(--text-primary);
+  --chat-user-border: transparent;
+  --chat-maro-bg: var(--surface-01);
+  --chat-maro-border: transparent;
+  --footer-bg: var(--canvas);
+  --footer-fg: var(--text-primary);
+  --footer-muted: var(--text-secondary);
 
-  /* Z-index scale (§14) */
+  /* Z-index scale */
   --maro-z-base: 0;
   --maro-z-sticky: 10;
   --maro-z-dropdown: 20;
@@ -153,35 +170,32 @@
   --maro-z-toast: 50;
 }
 
-/*
- * Final UI exceptions (Figma g1IVQZrFllhytyBsbVa09G — nodes 67:328, 69:801):
- * gradient fort/preset pills and CTA buttons only.
- */
+/* maroFort / maroPreset chips — approved gradient exceptions */
 .fort-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 12px;
+  gap: var(--maro-space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--maro-space-4);
+  border-radius: var(--maro-radius-12);
   background: var(--maro-gradient-fort);
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--maro-font-size-14);
+  font-weight: var(--maro-font-weight-semibold);
   letter-spacing: var(--maro-tracking-brand);
 }
 
 .preset-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 12px;
+  gap: var(--maro-space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--maro-space-4);
+  border-radius: var(--maro-radius-12);
   background: var(--maro-gradient-preset);
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--maro-font-size-14);
+  font-weight: var(--maro-font-weight-semibold);
   letter-spacing: var(--maro-tracking-brand);
 }
 

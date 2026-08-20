@@ -243,7 +243,7 @@ function RenameInput({
       />
       <button
         onClick={save}
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-brand hover:bg-line"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-brand hover:bg-surface-hover"
       >
         <Check className="h-4 w-4" />
       </button>
@@ -345,7 +345,7 @@ export function CreationCard({
   };
 
   return (
-    <div className="group relative rounded-2xl border border-line bg-surface transition-colors">
+    <div className="group relative rounded-maro16 bg-surface transition-colors">
       <button
         onClick={openCreation}
         className="block w-full"

@@ -108,7 +108,7 @@ function WorkspaceSettingsInner() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="relative overflow-hidden rounded-xl border border-line"
+                className="relative overflow-hidden rounded-maro12 bg-surface-2"
               >
                 {ws.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -145,7 +145,7 @@ function WorkspaceSettingsInner() {
                 id="ws-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-12 flex-1 rounded-xl border border-line bg-canvas px-4 text-[15px] text-ink outline-none focus:border-brand"
+                className="h-12 flex-1 rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
               />
               <button
                 type="button"
@@ -159,7 +159,7 @@ function WorkspaceSettingsInner() {
             </div>
           </div>
 
-          <div className="border-t border-line pt-6">
+          <div className="border-t border-subtle pt-8">
             <h2 className="text-[16px] font-bold tracking-brand text-ink">Brand i workspace</h2>
             <p className="mt-1 text-[13px] text-ink-3">
               Përdoret automatikisht në maro Brand dhe maro Imazh kur aktivizohet.
@@ -172,7 +172,7 @@ function WorkspaceSettingsInner() {
                   <button
                     type="button"
                     onClick={() => logoRef.current?.click()}
-                    className="relative overflow-hidden rounded-xl border border-line bg-canvas"
+                    className="relative overflow-hidden rounded-maro12 bg-surface-2"
                   >
                     {brand.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -222,7 +222,7 @@ function WorkspaceSettingsInner() {
                   value={brand.name ?? ""}
                   onChange={(e) => setBrand((b) => ({ ...b, name: e.target.value }))}
                   placeholder="p.sh. Kafe Luna"
-                  className="h-12 w-full rounded-xl border border-line bg-canvas px-4 text-[15px] text-ink outline-none focus:border-brand"
+                  className="h-12 w-full rounded-maro12 bg-surface-2 px-4 text-[15px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
                 />
               </div>
 
@@ -242,13 +242,13 @@ function WorkspaceSettingsInner() {
                         type="color"
                         value={brand[key]}
                         onChange={(e) => setBrand((b) => ({ ...b, [key]: e.target.value }))}
-                        className="h-10 w-10 cursor-pointer rounded-lg border border-line bg-transparent p-0.5"
+                        className="h-10 w-10 cursor-pointer rounded-maro8 bg-surface-2 p-0.5"
                         aria-label={label}
                       />
                       <input
                         value={brand[key]}
                         onChange={(e) => setBrand((b) => ({ ...b, [key]: e.target.value }))}
-                        className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 font-mono text-[13px] text-ink outline-none focus:border-brand"
+                        className="h-10 min-w-0 flex-1 rounded-maro12 bg-surface-2 px-3 font-mono text-[13px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
                       />
                     </div>
                   </div>
@@ -267,7 +267,7 @@ function WorkspaceSettingsInner() {
             </div>
           </div>
 
-          <div className="border-t border-line pt-6">
+          <div className="border-t border-subtle pt-8">
             <button
               type="button"
               onClick={async () => {

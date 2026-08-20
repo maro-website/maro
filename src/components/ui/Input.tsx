@@ -3,16 +3,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
-// Note: text is 16px on mobile to prevent iOS auto-zoom on focus; a touch
-// smaller on >=sm where zoom isn't an issue.
-const base =
-  "w-full bg-surface-2 rounded-2xl px-3.5 text-[16px] sm:text-[14px] text-ink placeholder:text-ink-3 outline-none transition-all focus:bg-surface focus:ring-2 focus:ring-ink/10 disabled:opacity-60";
+const fieldInputClass =
+  "w-full min-h-[var(--maro-control-height-lg)] rounded-maro12 bg-surface-2 px-4 text-[16px] sm:text-[14px] text-ink placeholder:text-ink-3 outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)] disabled:opacity-60";
 
 export const Input = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, ...props }, ref) => (
-  <input ref={ref} className={cn(base, "h-11", className)} {...props} />
+  <input ref={ref} className={cn(fieldInputClass, "h-11", className)} {...props} />
 ));
 Input.displayName = "Input";
 
@@ -22,7 +20,7 @@ export const Textarea = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <textarea
     ref={ref}
-    className={cn(base, "py-3 resize-none leading-relaxed", className)}
+    className={cn(fieldInputClass, "py-3 resize-y leading-relaxed", className)}
     {...props}
   />
 ));
@@ -35,7 +33,7 @@ export const Select = React.forwardRef<
   <div className="relative">
     <select
       ref={ref}
-      className={cn(base, "h-11 appearance-none pr-9 cursor-pointer", className)}
+      className={cn(fieldInputClass, "h-11 appearance-none pr-9 cursor-pointer", className)}
       {...props}
     >
       {children}
@@ -71,9 +69,9 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={cn("block", className)}>
+    <label className={cn("maro-field block", className)}>
       {label && (
-        <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-ink">
+        <span className="maro-field__label mb-0 flex items-center gap-1.5">
           {label}
           {optional && (
             <span className="text-[11px] font-medium text-ink-3">opsionale</span>
@@ -81,7 +79,7 @@ export function Field({
         </span>
       )}
       {children}
-      {hint && <span className="mt-1.5 block text-[12px] text-ink-3">{hint}</span>}
+      {hint && <span className="maro-field__help mt-1.5 block">{hint}</span>}
     </label>
   );
 }

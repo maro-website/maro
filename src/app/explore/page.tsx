@@ -54,7 +54,7 @@ function ExploreCard({
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-3 break-inside-avoid overflow-hidden rounded-maro16 border border-line bg-surface"
+      className="mb-3 break-inside-avoid overflow-hidden rounded-maro16 bg-surface"
     >
       <Link href={item.slug ? `/c/${item.slug}` : "#"} className="block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -156,7 +156,7 @@ export default function ExplorePage() {
         </div>
 
         {challenge && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-maro16 border border-line bg-surface px-5 py-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-maro16 bg-surface px-5 py-4">
             <div className="flex items-start gap-3">
               <Trophy className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
               <div>
@@ -179,7 +179,7 @@ export default function ExplorePage() {
         {loading ? (
           <p className="mt-10 text-center text-[14px] text-ink-3">Duke ngarkuar…</p>
         ) : items.length === 0 ? (
-          <div className="mt-10 rounded-maro16 border border-line bg-surface px-6 py-16 text-center">
+          <div className="mt-10 rounded-maro16 bg-surface px-6 py-16 text-center">
             <p className="text-[15px] font-semibold text-ink">Ende pa krijime publike</p>
             <p className="mt-2 text-[14px] text-ink-2">
               Gjenero diçka dhe publiko në Explore që të të shohin të tjerët.

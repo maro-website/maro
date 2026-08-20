@@ -8,7 +8,9 @@ export type EmailTemplateKey =
   | "auth.confirm_signup"
   | "auth.reset_password"
   | "auth.email_change"
-  | "auth.magic_link";
+  | "auth.magic_link"
+  | "plan_expiring_2_days"
+  | "plan_expiring_1_day";
 
 /** Admin-editable structured body — no raw HTML, scripts, or arbitrary CSS. */
 export interface EmailStructuredContent {

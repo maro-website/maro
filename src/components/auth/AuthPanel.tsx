@@ -110,7 +110,7 @@ export function AuthPanel({
       ) : null}
 
       {mode === "sign-up" && !signupEnabled && (
-        <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13.5px] leading-relaxed text-ink-2">
+        <div className="rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink-2">
           {signupDisabledMessage ??
             "Platforma është në development mode. Regjistrimi hapet së shpejti — hyr nëse ke llogari."}
         </div>

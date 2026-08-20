@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getCheckoutItem } from "@/lib/credits/money";
+import type { CommercialSnapshot } from "@/lib/commerce/types";
 import { getAppSettings, getSupabaseAdmin } from "@/lib/supabase/server";
 
 export async function recordOrderPricingSnapshot(input: {
@@ -8,9 +8,9 @@ export async function recordOrderPricingSnapshot(input: {
   userId: string;
   itemId: string;
   promoCode?: string | null;
+  commercialSnapshot?: CommercialSnapshot | null;
 }): Promise<void> {
   try {
-    const item = getCheckoutItem(input.itemId);
     const settings = await getAppSettings();
     await getSupabaseAdmin().from("pricing_snapshots").insert({
       order_id: input.orderId,
@@ -19,10 +19,10 @@ export async function recordOrderPricingSnapshot(input: {
       snapshot: {
         captured_at: new Date().toISOString(),
         item_id: input.itemId,
-        item,
         promo_code: input.promoCode ?? null,
         generation_pricing: settings.pricing,
         list_price_centi_credit: 9,
+        commercial: input.commercialSnapshot ?? null,
       },
     });
   } catch (err) {

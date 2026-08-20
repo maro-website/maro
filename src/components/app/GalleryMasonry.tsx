@@ -28,7 +28,7 @@ export function GalleryMasonry({
             className="mb-3 break-inside-avoid lg:mb-4"
           >
             <div
-              className="relative overflow-hidden rounded-maro16 border border-line bg-surface"
+              className="relative overflow-hidden rounded-maro16 bg-surface"
               style={{ aspectRatio: ratio, maxWidth: maxW }}
             >
               {m.status === "thinking" && (

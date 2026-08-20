@@ -24,12 +24,12 @@ export function HomeHub({ firstName }: { firstName?: string }) {
   const { user, credits } = useMaro();
 
   return (
-    <div className="flex min-h-full w-full flex-col items-center bg-hub-page px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+    <div className="flex min-h-full w-full flex-col items-center bg-hub-page px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: EASE }}
-        className="flex w-full max-w-[var(--layout-module-max)] flex-col items-center gap-8"
+        className="flex w-full max-w-[var(--layout-module-max)] flex-col items-center gap-12"
       >
         <header className="text-center">
           <h1 className="text-[clamp(32px,5vw,48px)] font-bold leading-[1.12] tracking-brand text-ink">
@@ -52,6 +52,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
           {HUB_TOOLS.map((t) => (
             <HubToolTile
               key={t.id}
+              id={t.id}
               label={t.label}
               toolId={"toolId" in t ? t.toolId : undefined}
               icon={"icon" in t ? t.icon : undefined}
@@ -60,6 +61,7 @@ export function HomeHub({ firstName }: { firstName?: string }) {
             />
           ))}
           <HubToolTile
+            id="presets"
             label="maroPresets"
             href="/prompts"
             icon={Lightbulb}

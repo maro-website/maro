@@ -46,7 +46,7 @@ export function CookieBanner() {
         "transition-all duration-300"
       )}
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-line bg-surface p-4 shadow-[0_8px_40px_rgba(0,0,0,0.12)] sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+      <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-maro16 bg-surface p-4 shadow-float sm:flex-row sm:items-center sm:gap-5 sm:p-5">
         <p className="min-w-0 flex-1 text-[13.5px] leading-relaxed text-ink-2">
           Përdorim cookies dhe ruajtje lokale për funksionimin e maro, sigurinë dhe preferencat e
           tua. Duke vazhduar, pranon{" "}

@@ -8,7 +8,7 @@ import { ACTIVE_MAIN_TOOLS, COMING_SOON_MAIN_TOOLS, type ToolDef } from "@/lib/t
 const LOCKED_PLAN = { id: "plan", name: "maro Plan" };
 
 const utilityBtn =
-  "group flex h-[60px] w-full items-center justify-between rounded-maro16 border border-line bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none";
+  "group flex h-[60px] w-full items-center justify-between rounded-maro16 bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none";
 
 function SidebarLockedRow({ name }: { name: string }) {
   return (

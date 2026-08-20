@@ -85,7 +85,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <Link
         href="/sign-in"
         onClick={onNavigate}
-        className="inline-flex h-12 min-w-[48px] items-center justify-center rounded-2xl border border-line bg-surface px-5 text-[16px] font-semibold text-ink"
+        className="inline-flex h-12 min-w-[48px] items-center justify-center rounded-maro12 bg-surface px-5 text-[16px] font-semibold text-ink transition-colors hover:bg-surface-hover"
       >
         Hyr
       </Link>
@@ -110,7 +110,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-maro16 border border-menu bg-menu px-5 py-5 shadow-float"
+            className="maro-menu absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(20rem,calc(100vw-2rem))] px-5 py-5"
           >
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">

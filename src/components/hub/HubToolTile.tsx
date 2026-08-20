@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
-import { cn } from "@/lib/utils/cn";
 import { Lock, Megaphone, type LucideIcon } from "lucide-react";
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+const HUB_TILE_PREVIEWS: Record<string, string> = {
+  imazh: "/images/hub/marketing-stack.png",
+  marologo: "/images/hub/marketing-stack.png",
+  web: "/images/hub/marketing-stack.png",
+  filma: "/images/hub/marketing-stack.png",
+  audio: "/images/hub/marketing-stack.png",
+  marketing: "/images/hub/marketing-stack.png",
+  presets: "/images/hub/marketing-stack.png",
+};
 
 export function HubToolTile({
   label,
@@ -14,39 +20,43 @@ export function HubToolTile({
   icon,
   href,
   locked,
+  id,
 }: {
   label: string;
   toolId?: string;
   icon?: LucideIcon;
   href: string;
   locked?: boolean;
+  id?: string;
 }) {
   const Icon = icon ?? Megaphone;
+  const previewUrl = id ? HUB_TILE_PREVIEWS[id] : undefined;
 
   const inner = (
-    <motion.div
-      whileHover={locked ? undefined : { scale: 1.04 }}
-      transition={{ duration: 0.2, ease: EASE }}
-      className={cn(
-        "flex h-[var(--hub-tile-size)] w-[var(--hub-tile-size)] flex-col items-center justify-center gap-4 rounded-maro16 border border-line bg-surface transition-shadow",
-        locked ? "cursor-default opacity-70" : "hover:shadow-float motion-reduce:transform-none"
+    <div className="maro-hub-tile" data-locked={locked || undefined}>
+      {previewUrl && !locked && (
+        <div className="maro-hub-tile__preview" aria-hidden>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="" />
+        </div>
       )}
-    >
-      {locked ? (
-        <Lock className="h-10 w-10 text-ink-3" />
-      ) : toolId ? (
-        <ToolIcon toolId={toolId} fallback={Icon} className="h-12 w-12 text-brand" />
-      ) : (
-        <MaroIcon name="prompts" fallback={Icon} className="h-12 w-12 text-brand" />
-      )}
-      <span className="text-[15px] font-semibold tracking-brand text-ink">{label}</span>
-      {locked && <span className="text-[11px] font-medium text-ink-3">së shpejti</span>}
-    </motion.div>
+      <div className="maro-hub-tile__icon-area">
+        {locked ? (
+          <Lock className="h-10 w-10 text-ink-3" />
+        ) : toolId ? (
+          <ToolIcon toolId={toolId} fallback={Icon} className="h-12 w-12 text-brand group-hover:text-white" />
+        ) : (
+          <MaroIcon name="prompts" fallback={Icon} className="h-12 w-12 text-brand group-hover:text-white" />
+        )}
+      </div>
+      <span className="maro-hub-tile__label">{label}</span>
+      {locked && <span className="pb-3 text-center text-[11px] font-medium text-ink-3">së shpejti</span>}
+    </div>
   );
 
   if (locked) return inner;
   return (
-    <Link href={href} className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+    <Link href={href} className="group shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
       {inner}
     </Link>
   );

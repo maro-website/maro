@@ -14,16 +14,16 @@ export function PromoCard({
   href: string;
 }) {
   return (
-    <div className="flex h-[var(--hub-promo-h)] w-full max-w-[var(--hub-promo-w)] flex-col justify-between rounded-maro16 border border-line bg-surface p-6 sm:flex-row sm:items-end">
+    <div className="flex h-[var(--hub-promo-h)] w-full max-w-[var(--hub-promo-w)] flex-col justify-between rounded-maro16 bg-surface p-8 sm:flex-row sm:items-end">
       <div>
         <div className="text-[clamp(28px,4vw,36px)] font-bold leading-[1.1] tracking-brand text-ink">
           {title}
         </div>
-        <p className="mt-2 text-[15px] text-ink-2">{subtitle}</p>
+        <p className="mt-3 text-[15px] text-ink-2">{subtitle}</p>
       </div>
       <Link
         href={href}
-        className="cta-gradient mt-4 inline-flex h-[39px] shrink-0 items-center rounded-full px-5 text-[14px] font-semibold tracking-brand transition-opacity hover:opacity-90 sm:mt-0"
+        className="cta-gradient mt-6 inline-flex h-10 shrink-0 items-center rounded-full px-5 text-[14px] font-semibold tracking-brand transition-opacity hover:opacity-90 sm:mt-0"
       >
         {ctaLabel}
       </Link>

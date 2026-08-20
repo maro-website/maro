@@ -56,7 +56,7 @@ export function PublishModal({
       />
 
       <div className="space-y-4 px-6 pb-2">
-        <div className="flex gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        <div className="flex gap-3 rounded-maro12 bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
           <p>
             Preview URL (<span className="font-mono text-ink">{project.previewUrl}</span>) shërben vetëm

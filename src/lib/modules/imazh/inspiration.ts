@@ -3,12 +3,31 @@ export interface InspirationItem {
   imageUrl: string;
   label?: string;
   category?: string;
+  /** When present, item represents a maroPreset (click/drag attaches preset metadata). */
+  preset?: {
+    id: string;
+    code: string;
+    targetTool: string;
+  };
 }
+
+export const MARO_IMAGE_URL_MIME = "application/x-maro-image-url";
+export const MARO_PRESET_MIME = "application/x-maro-preset";
 
 const LOCAL = "/images/hub/marketing-stack.png";
 
-/** Curated inspiration cards for maroImazh landing carousel (local assets). */
-export const IMAZH_INSPIRATION: InspirationItem[] = [
+export function presetAttachFromItem(item: InspirationItem) {
+  if (!item.preset) return null;
+  return {
+    id: item.preset.id,
+    code: item.preset.code,
+    targetTool: item.preset.targetTool,
+    thumbnailUrl: item.imageUrl,
+  };
+}
+
+/** Fallback tiles when no API presets are available yet. */
+export const IMAZH_INSPIRATION_FALLBACK: InspirationItem[] = [
   { id: "1", imageUrl: LOCAL, category: "Drinks" },
   { id: "2", imageUrl: LOCAL, category: "Product" },
   { id: "3", imageUrl: LOCAL, category: "Ads" },
@@ -21,4 +40,7 @@ export const IMAZH_INSPIRATION: InspirationItem[] = [
   { id: "10", imageUrl: LOCAL, category: "Social" },
 ];
 
-export const MARO_IMAGE_URL_MIME = "application/x-maro-image-url";
+/** @deprecated Use fetched maroImazh presets; kept as offline fallback. */
+export const IMAZH_INSPIRATION = IMAZH_INSPIRATION_FALLBACK;
+
+export { LOCAL as IMAZH_INSPIRATION_FALLBACK_IMAGE };

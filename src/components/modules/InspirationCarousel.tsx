@@ -2,53 +2,78 @@
 
 import * as React from "react";
 import type { InspirationItem } from "@/lib/modules/imazh/inspiration";
-import { MARO_IMAGE_URL_MIME } from "@/lib/modules/imazh/inspiration";
+import {
+  MARO_IMAGE_URL_MIME,
+  MARO_PRESET_MIME,
+  presetAttachFromItem,
+} from "@/lib/modules/imazh/inspiration";
+import type { PromptAttach } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils/cn";
 
-export function InspirationCarousel({ items }: { items: InspirationItem[] }) {
-  const [paused, setPaused] = React.useState(false);
+/** Full-width auto-scrolling preset/inspiration strip — 1:1 tiles, no pause on hover. */
+export function InspirationCarousel({
+  items,
+  activePresetId,
+  onPresetSelect,
+}: {
+  items: InspirationItem[];
+  activePresetId?: string | null;
+  onPresetSelect?: (attach: PromptAttach) => void;
+}) {
   const doubled = [...items, ...items];
 
-  const onDragStart = (e: React.DragEvent, url: string) => {
-    e.dataTransfer.setData(MARO_IMAGE_URL_MIME, url);
+  const onDragStart = (e: React.DragEvent, item: InspirationItem) => {
+    if (item.imageUrl) {
+      e.dataTransfer.setData(MARO_IMAGE_URL_MIME, item.imageUrl);
+    }
+    const attach = presetAttachFromItem(item);
+    if (attach) {
+      e.dataTransfer.setData(MARO_PRESET_MIME, JSON.stringify(attach));
+    }
     e.dataTransfer.effectAllowed = "copy";
   };
 
+  const onItemClick = (item: InspirationItem) => {
+    const attach = presetAttachFromItem(item);
+    if (attach && onPresetSelect) {
+      onPresetSelect(attach);
+    }
+  };
+
   return (
-    <div
-      className="relative w-full overflow-hidden pb-6"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-    >
-      <div
-        className={cn(
-          "flex w-max gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none",
-          !paused && "animate-hub-carousel"
-        )}
-      >
-        {doubled.map((item, i) => (
-          <div
-            key={`${item.id}-${i}`}
-            draggable
-            onDragStart={(e) => onDragStart(e, item.imageUrl)}
-            className="group relative h-[var(--carousel-card-h)] w-[var(--carousel-card-w)] shrink-0 cursor-grab overflow-hidden rounded-maro16 border border-line bg-surface active:cursor-grabbing"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={item.imageUrl}
-              alt={item.label ?? item.category ?? "Inspirim"}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-              draggable={false}
-            />
-            {item.category && (
-              <span className="absolute right-2 top-2 rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">
-                {item.category}
-              </span>
-            )}
-          </div>
-        ))}
+    <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden pb-8 sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-[max(1.5rem,calc((100vw-100%)/2))] lg:w-screen lg:max-w-[100vw]">
+      <div className="flex w-max animate-hub-carousel gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none sm:px-6">
+        {doubled.map((item, i) => {
+          const isActive = Boolean(activePresetId && item.preset?.id === activePresetId);
+          return (
+            <button
+              key={`${item.id}-${i}`}
+              type="button"
+              draggable
+              onClick={() => onItemClick(item)}
+              onDragStart={(e) => onDragStart(e, item)}
+              className={cn(
+                "group relative h-[var(--carousel-card-h)] w-[var(--carousel-card-w)] shrink-0 cursor-grab overflow-hidden rounded-maro16 bg-surface text-left active:cursor-grabbing",
+                isActive && "ring-2 ring-brand ring-offset-2 ring-offset-canvas"
+              )}
+              aria-pressed={isActive || undefined}
+              aria-label={item.preset ? `maroPreset ${item.preset.code}` : item.label ?? item.category ?? "Inspirim"}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.imageUrl}
+                alt=""
+                className="aspect-square h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                draggable={false}
+              />
+              {item.category && (
+                <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">
+                  {item.category}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

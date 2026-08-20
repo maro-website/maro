@@ -4,7 +4,6 @@ import { CHAT_HISTORY_LIMIT, type AiChatRequest, type ChatMsg } from "@/lib/ai/c
 import {
   getAppSettings,
   getUserFromToken,
-  hasFort,
   logGeneration,
   resolveWorkspaceId,
   supabaseServerConfigured,
@@ -90,7 +89,7 @@ export async function POST(req: Request) {
   if (supabaseServerConfigured()) {
     const user = await getUserFromToken(bearer(req));
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    cost = (await hasFort(user.id)) ? 0 : settings.pricing.chatCost ?? 1;
+    cost = settings.pricing.chatCost ?? 1;
 
     try {
       prep = await prepareGeneration({

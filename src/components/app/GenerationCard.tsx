@@ -87,7 +87,7 @@ function GenerationImageBox({
   if (status === "error") {
     return (
       <div
-        className="mx-auto w-full overflow-hidden rounded-2xl border border-line bg-surface px-4 py-6 text-center text-[14px] text-danger"
+        className="mx-auto w-full overflow-hidden rounded-maro16 bg-surface px-4 py-6 text-center text-[14px] text-danger"
         style={{ aspectRatio: ratio, maxWidth: maxW }}
       >
         {error || "Gabim gjenerimi."}
@@ -97,7 +97,7 @@ function GenerationImageBox({
 
   return (
     <div
-      className="relative mx-auto w-full overflow-hidden rounded-maro16 border border-line bg-surface"
+      className="relative mx-auto w-full overflow-hidden rounded-maro16 bg-surface"
       style={{ aspectRatio: ratio, maxWidth: maxW }}
     >
       {/* Watermark */}
@@ -216,7 +216,7 @@ export function GenerationCard({
       </div>
 
       {/* Prompt */}
-      <div className="rounded-maro16 border border-line bg-surface px-5 py-4">
+      <div className="rounded-maro16 bg-surface px-5 py-4">
         {message.attachments && message.attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {message.attachments.map((src, i) => (
@@ -266,13 +266,13 @@ export function GenerationCard({
       )}
 
       {isAudio && message.status === "done" && message.creation?.urls[0] && (
-        <div className="rounded-2xl border border-line bg-surface px-4 py-3">
+        <div className="rounded-maro16 bg-surface px-4 py-3">
           <audio controls src={message.creation.urls[0]} className="w-full" />
         </div>
       )}
 
       {isText && message.status === "done" && message.creation && (
-        <div className="rounded-2xl border border-line bg-surface px-5 py-4">
+        <div className="rounded-maro16 bg-surface px-5 py-4">
           <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{message.creation.text}</p>
           {onOpen && (
             <button

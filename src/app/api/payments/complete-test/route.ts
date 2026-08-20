@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { isPaymentModeValid } from "@/lib/config/serverEnv";
 import { requireUser } from "@/lib/payments/auth";
-import { fulfillCreditOrder } from "@/lib/payments/fulfill";
+import { fulfillCommerceOrder } from "@/lib/payments/fulfill";
 import { getOrderForUser } from "@/lib/payments/orders";
 import { isTestPaymentAllowed, testPaymentBlockReason } from "@/lib/payments/testMode";
+import { emitProductEvent } from "@/lib/events/productEvents";
+import { syncMaroPlanCache, resolveEntitlements } from "@/lib/commerce/entitlements";
 
 export async function POST(req: Request) {
   if (!isPaymentModeValid()) {
@@ -32,9 +34,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "cancelled" }, { status: 409 });
   }
 
-  const result = await fulfillCreditOrder(orderId);
+  const providerRef = `test-${orderId}`;
+  const result = await fulfillCommerceOrder(orderId, providerRef);
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? "fulfill_failed" }, { status: 500 });
+  }
+
+  if (!result.already) {
+    const entitlements = await resolveEntitlements(user.id);
+    await syncMaroPlanCache(user.id, entitlements);
+
+    if (order.order_kind === "topup") {
+      await emitProductEvent({
+        eventName: "topup_purchased",
+        userId: user.id,
+        metadata: { order_id: orderId, credits: result.credits },
+        dedupeKey: `topup-${orderId}`,
+      });
+    } else if (
+      order.order_kind === "plan_purchase" ||
+      order.order_kind === "plan_renewal" ||
+      order.order_kind === "plan_upgrade"
+    ) {
+      await emitProductEvent({
+        eventName: "plan_started",
+        userId: user.id,
+        metadata: { order_id: orderId, order_kind: order.order_kind },
+        dedupeKey: `plan-${orderId}`,
+      });
+    }
   }
 
   return NextResponse.json({

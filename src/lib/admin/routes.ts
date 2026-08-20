@@ -39,7 +39,10 @@ export const ADMIN_ROUTES = {
   emails: "/admin/emails",
   help: "/admin/help",
   commerce: {
+    overview: "/admin/commerce",
     plans: "/admin/commerce/plans",
+    topups: "/admin/commerce/topups",
+    business: "/admin/commerce/business",
     payments: "/admin/commerce/payments",
     promos: "/admin/commerce/promos",
     creators: "/admin/commerce/creators",
@@ -100,7 +103,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     id: "commerce",
     label: "Tregtia",
     items: [
-      { href: ADMIN_ROUTES.commerce.plans, label: "Planet & Kreditet", permission: "payments.view" },
+      { href: ADMIN_ROUTES.commerce.overview, label: "Përmbledhje", permission: "payments.view" },
+      { href: ADMIN_ROUTES.commerce.plans, label: "Planet", permission: "payments.view" },
+      { href: ADMIN_ROUTES.commerce.topups, label: "Top-ups", permission: "payments.view" },
+      { href: ADMIN_ROUTES.commerce.business, label: "Business", permission: "payments.view" },
       { href: ADMIN_ROUTES.commerce.payments, label: "Pagesat", permission: "payments.view", icon: ShoppingCart },
       { href: ADMIN_ROUTES.commerce.promos, label: "Kodet Promo", permission: "payments.view" },
       { href: ADMIN_ROUTES.commerce.creators, label: "Fitimet e Kriatorëve", permission: "payments.view" },

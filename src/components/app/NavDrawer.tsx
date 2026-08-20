@@ -39,7 +39,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,320px)] flex-col border-r border-line bg-canvas"
+            className="absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,320px)] flex-col bg-canvas"
           >
             <div className="flex shrink-0 items-center justify-between px-5 py-4">
               <Link href="/" onClick={onClose} className="flex items-center gap-2">

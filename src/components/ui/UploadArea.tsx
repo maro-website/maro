@@ -58,7 +58,7 @@ export function UploadArea({
       className={cn(
         "group flex cursor-pointer flex-col items-center justify-center rounded-2xl text-center transition-all",
         compact ? "gap-1.5 p-5" : "gap-2 p-8",
-        dragging ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-line",
+        dragging ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-surface-hover",
         className
       )}
     >

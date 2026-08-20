@@ -9,7 +9,7 @@ export default function AcademyPage() {
   return (
     <AppShell>
       <div className="grid h-full place-items-center px-6">
-        <div className="max-w-md rounded-maro16 border border-line bg-surface px-8 py-16 text-center">
+        <div className="max-w-md rounded-maro16 bg-surface px-8 py-16 text-center">
           <GraduationCap className="mx-auto h-12 w-12 text-brand" />
           <h1 className="mt-4 text-[22px] font-bold tracking-brand text-ink">maro Academy</h1>
           <p className="mt-2 text-[14px] leading-relaxed text-ink-2">

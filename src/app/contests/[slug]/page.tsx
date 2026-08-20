@@ -63,7 +63,7 @@ export default function ContestDetailPage({ params }: { params: Promise<{ slug: 
               <div
                 key={s.id}
                 className={cn(
-                  "overflow-hidden rounded-maro16 border border-line bg-surface",
+                  "overflow-hidden rounded-maro16 bg-surface",
                   s.winner && "ring-2 ring-brand"
                 )}
               >

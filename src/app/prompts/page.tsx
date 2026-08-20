@@ -26,7 +26,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-const BRAND = "#253FDA";
+const BRAND = "var(--accent)";
 
 export default function PromptsPage() {
   const router = useRouter();

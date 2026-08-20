@@ -6,7 +6,11 @@ export type EmailTemplateVariableName =
   | "magic_link_url"
   | "user_email"
   | "recipient_email"
-  | "change_recipient_role";
+  | "change_recipient_role"
+  | "plan_name"
+  | "expires_date"
+  | "billing_url"
+  | "user_name";
 
 export interface EmailTemplateRegistryEntry {
   key: EmailTemplateKey;
@@ -138,11 +142,59 @@ const AUTH_MAGIC_LINK: EmailTemplateRegistryEntry = {
   },
 };
 
+const PLAN_EXPIRING_2_DAYS: EmailTemplateRegistryEntry = {
+  key: "plan_expiring_2_days",
+  name: "Plani skadon për 2 ditë",
+  category: "commerce",
+  description: "Manual renewal reminder — 2 days before plan expiry.",
+  isSystem: true,
+  canDisable: false,
+  allowedVariables: ["plan_name", "expires_date", "billing_url", "user_name"],
+  requiredVariables: ["plan_name", "expires_date", "billing_url"],
+  optionalVariables: ["user_name"],
+  urlVariables: ["billing_url"],
+  fallbackSubject: "Plani yt maro skadon për 2 ditë",
+  fallbackPreviewText: "Rinovo planin për të vazhduar me përfitimet aktive.",
+  fallbackContent: {
+    heading: "Rinovimi i planit",
+    paragraphs: [
+      "Plani yt {{plan_name}} skadon më {{expires_date}}.",
+      "Rinovimi automatik: Jo. Kreditet e tua mbeten — rinovo planin për Top-up dhe përfitimet e planit.",
+    ],
+    cta: { label: "Rinovo planin", url: "{{billing_url}}" },
+  },
+};
+
+const PLAN_EXPIRING_1_DAY: EmailTemplateRegistryEntry = {
+  key: "plan_expiring_1_day",
+  name: "Plani skadon nesër",
+  category: "commerce",
+  description: "Manual renewal reminder — 1 day before plan expiry.",
+  isSystem: true,
+  canDisable: false,
+  allowedVariables: ["plan_name", "expires_date", "billing_url", "user_name"],
+  requiredVariables: ["plan_name", "expires_date", "billing_url"],
+  optionalVariables: ["user_name"],
+  urlVariables: ["billing_url"],
+  fallbackSubject: "Plani yt maro skadon nesër",
+  fallbackPreviewText: "Rinovo planin për të vazhduar me përfitimet aktive.",
+  fallbackContent: {
+    heading: "Rinovimi i planit",
+    paragraphs: [
+      "Plani yt {{plan_name}} skadon më {{expires_date}}.",
+      "Rinovimi automatik: Jo. Kreditet e tua mbeten.",
+    ],
+    cta: { label: "Rinovo planin", url: "{{billing_url}}" },
+  },
+};
+
 export const EMAIL_TEMPLATE_REGISTRY: Record<EmailTemplateKey, EmailTemplateRegistryEntry> = {
   "auth.confirm_signup": AUTH_CONFIRM_SIGNUP,
   "auth.reset_password": AUTH_RESET_PASSWORD,
   "auth.email_change": AUTH_EMAIL_CHANGE,
   "auth.magic_link": AUTH_MAGIC_LINK,
+  plan_expiring_2_days: PLAN_EXPIRING_2_DAYS,
+  plan_expiring_1_day: PLAN_EXPIRING_1_DAY,
 };
 
 export const EMAIL_TEMPLATE_KEYS = Object.keys(EMAIL_TEMPLATE_REGISTRY) as EmailTemplateKey[];

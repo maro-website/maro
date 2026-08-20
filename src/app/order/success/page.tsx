@@ -49,7 +49,7 @@ function OrderSuccessPageInner() {
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success/10">
           <CheckCircle2 className="h-8 w-8 text-success" />
         </div>
-        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-light tracking-[-0.03em] text-ink">
+        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-bold tracking-brand text-ink">
           Pagesa u konfirmua
         </h1>
         <p className="mt-3 text-[15px] text-ink-2">
@@ -57,7 +57,7 @@ function OrderSuccessPageInner() {
         </p>
 
         {orderId && (
-          <div className="mt-8 rounded-2xl border border-line bg-surface p-5 text-left">
+          <div className="mt-8 rounded-maro16 bg-surface p-5 text-left">
             <p className="text-[12px] font-semibold uppercase tracking-wider text-ink-3">
               Numri i porosisë
             </p>
@@ -93,7 +93,7 @@ function OrderSuccessPageInner() {
           </Link>
           <Link
             href="/account?tab=orders"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-2 px-6 text-[14px] font-semibold text-ink hover:bg-line"
+            className="inline-flex h-11 items-center justify-center rounded-maro12 bg-surface-2 px-6 text-[14px] font-semibold text-ink hover:bg-surface-hover"
           >
             Porositë e mia
           </Link>

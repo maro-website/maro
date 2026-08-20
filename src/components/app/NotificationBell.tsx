@@ -1,28 +1,31 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMaro } from "@/context/store";
 import { timeAgo } from "@/lib/utils/format";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import {
-  loadNotifications,
-  markAllRead,
-  clearNotifications,
+  clearLocalNotifications,
+  loadLocalNotifications,
+  mapDbNotification,
+  mergeNotifications,
   subscribeNotifications,
   type MaroNotification,
 } from "@/lib/notifications/store";
-import { Bell, Coins, Gift, Users } from "lucide-react";
+import { Bell, Coins, Gift, Receipt, Users } from "lucide-react";
 
 const ICONS: Record<MaroNotification["type"], React.ElementType> = {
   credits: Coins,
+  billing: Receipt,
   giveaway: Gift,
   referral: Users,
 };
 
 export function NotificationBell() {
-  const { user } = useMaro();
+  const { user, getAccessToken } = useMaro();
   const userId = user?.id ?? null;
   const [items, setItems] = React.useState<MaroNotification[]>([]);
   const [open, setOpen] = React.useState(false);
@@ -30,11 +33,54 @@ export function NotificationBell() {
   const btnRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
-  const refresh = React.useCallback(() => setItems(loadNotifications(userId)), [userId]);
+  const refresh = React.useCallback(async () => {
+    const local = loadLocalNotifications(userId);
+    if (!userId) {
+      setItems(local);
+      return;
+    }
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/notifications?limit=50", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          notifications?: {
+            id: string;
+            kind: string;
+            title: string;
+            body: string;
+            actionHref: string | null;
+            readAt: string | null;
+            createdAt: string;
+          }[];
+        };
+        const db = (data.notifications ?? []).map((n) =>
+          mapDbNotification({
+            id: n.id,
+            kind: n.kind,
+            title: n.title,
+            body: n.body,
+            actionHref: n.actionHref,
+            readAt: n.readAt,
+            createdAt: n.createdAt,
+          })
+        );
+        setItems(mergeNotifications(local, db));
+        return;
+      }
+    } catch {
+      /* fallback local only */
+    }
+    setItems(local);
+  }, [userId, getAccessToken]);
 
   React.useEffect(() => {
-    refresh();
-    return subscribeNotifications(refresh);
+    void refresh();
+    return subscribeNotifications(() => {
+      void refresh();
+    });
   }, [refresh]);
 
   const unread = items.filter((n) => !n.read).length;
@@ -51,22 +97,34 @@ export function NotificationBell() {
   React.useEffect(() => {
     if (!open) return;
     place();
-    markAllRead(userId);
-    setTimeout(refresh, 50);
+    void (async () => {
+      if (!userId) return;
+      const token = await getAccessToken();
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    })();
     const onDoc = (e: MouseEvent) => {
-      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
+      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node))
+        return;
       setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open, place, userId, refresh]);
+  }, [open, place, userId, getAccessToken]);
 
   return (
     <div className="relative">
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-[38px] w-10 place-items-center rounded-xl border border-line bg-surface text-ink transition-colors hover:bg-canvas focus:outline-none"
+        className="relative grid h-[38px] w-10 place-items-center rounded-maro12 bg-surface-2 text-ink transition-colors hover:bg-surface-hover focus:outline-none"
         aria-label="Njoftime"
         title="Njoftime"
       >
@@ -96,8 +154,8 @@ export function NotificationBell() {
                   {items.length > 0 && (
                     <button
                       onClick={() => {
-                        clearNotifications(userId);
-                        refresh();
+                        clearLocalNotifications(userId);
+                        void refresh();
                       }}
                       className="text-[12px] font-semibold text-ink-3 transition-colors hover:text-ink"
                     >
@@ -113,17 +171,26 @@ export function NotificationBell() {
                   ) : (
                     items.map((n) => {
                       const Icon = ICONS[n.type] ?? Bell;
-                      return (
-                        <div key={n.id} className="flex gap-3 px-4 py-3 last:border-0">
+                      const inner = (
+                        <div className="flex gap-3 px-4 py-3 last:border-0">
                           <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-brand">
                             <Icon className="h-4 w-4" />
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-[13.5px] font-semibold text-ink">{n.title}</div>
-                            {n.body && <div className="text-[12.5px] leading-relaxed text-ink-2">{n.body}</div>}
+                            {n.body && (
+                              <div className="text-[12.5px] leading-relaxed text-ink-2">{n.body}</div>
+                            )}
                             <div className="mt-0.5 text-[11.5px] text-ink-3">{timeAgo(n.createdAt)}</div>
                           </div>
                         </div>
+                      );
+                      return n.actionHref ? (
+                        <Link key={n.id} href={n.actionHref} className="block hover:bg-surface-2">
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={n.id}>{inner}</div>
                       );
                     })
                   )}

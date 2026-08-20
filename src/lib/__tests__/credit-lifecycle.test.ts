@@ -70,6 +70,30 @@ vi.mock("@/lib/security/riskScore", () => ({
   bumpRiskScore: vi.fn(async () => undefined),
 }));
 
+vi.mock("@/lib/commerce/entitlements", () => ({
+  resolveEntitlements: vi.fn(async () => ({
+    plan_id: null,
+    plan_status: "NO_PLAN",
+    plan_display_name: null,
+    started_at: null,
+    expires_at: null,
+    renewal_mode: "manual",
+    renewal_available: false,
+    credits_balance: 100,
+    credits_reserved: 0,
+    credits_available: 100,
+    can_top_up: false,
+    workspace_limit: 1,
+    current_workspace_count: 0,
+    can_create_workspace: true,
+    concurrency_limit: 1,
+    maro_brain_access: true,
+    maro_presets_access: true,
+    business_overrides: null,
+    membership_id: null,
+  })),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   supabaseServerConfigured: vi.fn(() => true),
   getUserFromToken: vi.fn(async () => ({ id: "user-1", email_confirmed_at: "2026-01-01" })),

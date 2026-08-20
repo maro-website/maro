@@ -52,7 +52,7 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
             <button
               type="button"
               onClick={follow}
-              className="ml-auto inline-flex h-10 items-center rounded-xl border border-line bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-canvas"
+              className="ml-auto inline-flex h-10 items-center rounded-maro12 bg-surface-2 px-4 text-[14px] font-semibold text-ink hover:bg-surface-hover"
             >
               {following ? "Po ndjek" : "Ndiq"}
             </button>
@@ -64,7 +64,7 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
             <Link
               key={item.id}
               href={item.slug ? `/c/${item.slug}` : "/explore"}
-              className="overflow-hidden rounded-maro16 border border-line bg-surface"
+              className="overflow-hidden rounded-maro16 bg-surface"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={item.url} alt="" className="aspect-square w-full object-cover" />

@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import {
   Bell,
+  Coins,
   Lock,
   Receipt,
   Trash2,
@@ -20,6 +21,7 @@ import {
 
 const TAB_ICONS: Record<AccountTab, React.ReactNode> = {
   profile: <UserIcon className="h-4 w-4" />,
+  billing: <Coins className="h-4 w-4" />,
   preferences: <Bell className="h-4 w-4" />,
   security: <Lock className="h-4 w-4" />,
   orders: <Receipt className="h-4 w-4" />,

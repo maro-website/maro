@@ -151,7 +151,12 @@ function NotificationsTestCard() {
   const { user } = useMaro();
   const { toast } = useToast();
 
-  const samples: { type: NotificationType; icon: React.ElementType; title: string; body: string }[] = [
+  const samples: {
+    type: Exclude<NotificationType, "billing">;
+    icon: React.ElementType;
+    title: string;
+    body: string;
+  }[] = [
     {
       type: "credits",
       icon: Coins,

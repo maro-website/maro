@@ -3,7 +3,6 @@ import { requireUser } from "@/lib/payments/auth";
 import { createCreditOrder, type BillingSnapshot } from "@/lib/payments/orders";
 import { validatePromoCode } from "@/lib/payments/promo";
 import { emitProductEvent } from "@/lib/events/productEvents";
-import { getCheckoutItem } from "@/lib/credits/money";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
@@ -34,6 +33,17 @@ function parseBilling(body: Record<string, unknown>): BillingSnapshot | null {
   };
 }
 
+const ERROR_STATUS: Record<string, number> = {
+  invalid_item: 400,
+  invalid_billing: 400,
+  invalid_promo: 400,
+  topup_requires_active_plan: 403,
+  plan_already_active: 403,
+  renewal_not_available: 403,
+  renewal_already_fulfilled: 409,
+  upgrade_not_eligible: 403,
+};
+
 export async function POST(req: Request) {
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -53,8 +63,6 @@ export async function POST(req: Request) {
 
   const itemId = normalizeBoundedString(body.itemId, 64);
   if (!itemId) return NextResponse.json({ error: "invalid_item" }, { status: 400 });
-  const item = getCheckoutItem(itemId);
-  if (!item) return NextResponse.json({ error: "invalid_item" }, { status: 400 });
 
   const billing = parseBilling(body);
   if (!billing) return NextResponse.json({ error: "invalid_billing" }, { status: 400 });
@@ -62,7 +70,7 @@ export async function POST(req: Request) {
   const admin = getSupabaseAdmin();
   const { data: profile } = await admin
     .from("profiles")
-    .select("maro_plan, email")
+    .select("email")
     .eq("id", user.id)
     .single();
 
@@ -84,7 +92,6 @@ export async function POST(req: Request) {
     userEmail: (profile?.email as string) || user.email || billing.email,
     itemId,
     billing,
-    maroPlan: (profile?.maro_plan as string | null) ?? null,
     promoCode,
   });
 
@@ -98,8 +105,7 @@ export async function POST(req: Request) {
   }
 
   if (!result.ok) {
-    const status =
-      result.error === "topup_requires_plan" ? 403 : result.error === "invalid_item" ? 400 : 500;
+    const status = ERROR_STATUS[result.error ?? ""] ?? 500;
     return NextResponse.json({ error: result.error }, { status });
   }
 

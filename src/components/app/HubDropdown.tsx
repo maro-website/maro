@@ -72,15 +72,14 @@ export function HubDropdown() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "inline-flex h-[39px] shrink-0 items-center gap-1.5 rounded-xl px-3 text-[14px] font-semibold tracking-brand transition-colors",
-          hubActive
-            ? "bg-surface text-brand shadow-[0_0_0_1px_var(--line)]"
-            : "text-ink-2 hover:bg-canvas hover:text-ink"
+          "maro-nav__link h-10",
+          hubActive ? "text-brand" : "text-ink-2"
         )}
+        data-active={hubActive || undefined}
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Home className={cn("h-3.5 w-3.5", hubActive ? "text-brand" : "text-ink")} />
+        <Home className={cn("h-4 w-4", hubActive ? "text-brand" : "text-ink")} />
         Hub
       </button>
 
@@ -93,25 +92,25 @@ export function HubDropdown() {
                 initial={{ opacity: 0, y: 6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.18 }}
                 style={{ position: "fixed", top: pos.top, left: pos.left, width: "var(--hub-dropdown-w)", zIndex: 130 }}
-                className="overflow-hidden rounded-maro16 border border-line bg-surface shadow-float"
+                className="maro-menu overflow-hidden py-0"
                 role="menu"
               >
-                <div className="border-b border-line p-4">
+                <div className="p-4">
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setWsOpen((o) => !o)}
-                      className="flex h-[39px] w-full items-center justify-between rounded-xl border border-line bg-canvas px-3 text-left text-[14px] font-semibold text-ink"
+                      className="flex h-10 w-full items-center justify-between rounded-maro12 bg-surface-2 px-4 text-left text-[14px] font-semibold text-ink transition-colors hover:bg-surface-hover"
                     >
                       <span className="truncate">{ready ? wsLabel : "…"}</span>
                       <ChevronDown
-                        className={cn("h-3.5 w-3.5 shrink-0 text-ink-3 transition-transform", wsOpen && "rotate-180")}
+                        className={cn("h-4 w-4 shrink-0 text-ink-3 transition-transform", wsOpen && "rotate-180")}
                       />
                     </button>
                     {wsOpen && workspaces.length > 0 && (
-                      <div className="absolute inset-x-0 top-[calc(100%+4px)] z-10 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-float">
+                      <div className="maro-menu absolute inset-x-0 top-[calc(100%+4px)] z-10 py-1">
                         {workspaces.map((ws) => (
                           <button
                             key={ws.id}
@@ -121,7 +120,7 @@ export function HubDropdown() {
                               setWsOpen(false);
                             }}
                             className={cn(
-                              "flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-semibold transition-colors hover:bg-canvas",
+                              "maro-menu__item",
                               ws.id === activeWorkspace?.id ? "text-brand" : "text-ink"
                             )}
                           >
@@ -142,22 +141,26 @@ export function HubDropdown() {
                 </div>
 
                 <div className="py-2">
-                  {HUB_MENU_DESTINATIONS.map((item, i) => {
+                  {HUB_MENU_DESTINATIONS.map((item) => {
                     const active = isNavActive(pathname, item);
                     const isSeparatorBefore = item.id === "brain";
                     const content = (
                       <>
-                        <NavIcon name={item.iconName} hub={item.id === "hub"} className="h-3.5 w-3.5" />
+                        <NavIcon
+                          name={item.iconName}
+                          hub={item.id === "hub"}
+                          className={cn("h-4 w-4", active ? "text-brand" : "text-ink")}
+                        />
                         <span className="flex-1">{item.label}</span>
                         {item.badge && <span className="text-[11px] font-medium text-ink-3">{item.badge}</span>}
                       </>
                     );
                     return (
                       <React.Fragment key={item.id}>
-                        {isSeparatorBefore && <div className="mx-4 my-1 border-t border-line" />}
+                        {isSeparatorBefore && <div className="mx-4 my-2 h-px bg-line" />}
                         {item.disabled ? (
                           <span
-                            className="flex cursor-not-allowed items-center gap-2.5 px-4 py-2 text-[14px] font-semibold text-ink-3"
+                            className="flex cursor-not-allowed items-center gap-3 px-4 py-3 text-[14px] font-semibold text-ink-3"
                             role="menuitem"
                             aria-disabled
                           >
@@ -168,16 +171,15 @@ export function HubDropdown() {
                             href={item.route}
                             onClick={() => setOpen(false)}
                             className={cn(
-                              "flex items-center gap-2.5 px-4 py-2 text-[14px] font-semibold transition-colors hover:bg-canvas",
-                              active ? "text-brand" : "text-ink",
-                              i === 0 && "font-bold"
+                              "flex items-center gap-3 px-4 py-3 text-[14px] font-semibold transition-colors hover:bg-surface-2",
+                              active ? "text-brand" : "text-ink"
                             )}
                             role="menuitem"
                           >
                             {content}
                           </Link>
                         )}
-                        {item.id === "krijimet" && <div className="mx-4 my-1 border-t border-line" />}
+                        {item.id === "krijimet" && <div className="mx-4 my-2 h-px bg-line" />}
                       </React.Fragment>
                     );
                   })}

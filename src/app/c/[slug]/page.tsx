@@ -50,7 +50,7 @@ export default function CreationPermalinkPage({ params }: { params: Promise<{ sl
       </header>
 
       <div className="mx-auto grid max-w-[900px] gap-6 px-4 py-8 sm:grid-cols-[1fr_280px] sm:px-6">
-        <div className="overflow-hidden rounded-maro16 border border-line bg-surface">
+        <div className="overflow-hidden rounded-maro16 bg-surface">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.url} alt="" className="w-full object-contain" />
         </div>
@@ -73,7 +73,7 @@ export default function CreationPermalinkPage({ params }: { params: Promise<{ sl
                 void toggleCreationLike(item.id, next).then(setLikes);
               }}
               className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-xl border border-line px-4 text-[13px] font-semibold",
+                "inline-flex h-10 items-center gap-2 rounded-maro12 bg-surface-2 px-4 text-[13px] font-semibold hover:bg-surface-hover",
                 liked ? "text-danger" : "text-ink"
               )}
             >

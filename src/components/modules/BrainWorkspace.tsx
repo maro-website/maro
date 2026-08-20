@@ -92,25 +92,25 @@ export function BrainWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-canvas">
       {/* Header */}
-      <div className="shrink-0 border-b border-line bg-canvas px-4 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="shrink-0 bg-canvas px-4 py-6 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="text-[clamp(28px,4vw,40px)] font-bold tracking-brand text-ink">maroBrain</h1>
-            <div className="mt-3 max-w-md">
-              <div className="h-2 overflow-hidden rounded-full bg-line">
+            <div className="mt-4 max-w-md">
+              <div className="h-2 overflow-hidden rounded-full bg-surface-selected">
                 <div
                   className="h-full rounded-full bg-brand transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-[13px] font-semibold text-ink-2">{progress}% e përfunduar</p>
+              <p className="mt-2 text-[14px] font-semibold text-ink-2">{progress}% e përfunduar</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={onClear}
-              className="h-10 rounded-xl px-4 text-[14px] font-semibold text-danger hover:bg-danger/5"
+              className="h-10 rounded-maro12 px-4 text-[14px] font-semibold text-danger hover:bg-surface-2"
             >
               Pastroje
             </button>
@@ -118,7 +118,8 @@ export function BrainWorkspace() {
               type="button"
               onClick={() => void onSave()}
               disabled={saving || !workspaceId}
-              className="h-10 rounded-xl bg-brand px-5 text-[14px] font-bold text-brand-fg hover:bg-brand-hover disabled:opacity-50"
+              className="maro-button h-10 px-5"
+              data-variant="brand"
             >
               {saving ? "Duke ruajtur…" : "Ruaje"}
             </button>
@@ -126,17 +127,17 @@ export function BrainWorkspace() {
         </div>
       </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-0 px-4 py-6 sm:flex-row sm:px-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-8">
         {/* Sidebar */}
-        <aside className="mb-6 w-full shrink-0 sm:mb-0 sm:w-[220px]">
-          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-ink-3">
+        <aside className="w-full shrink-0 sm:w-[220px]">
+          <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-ink-3">
             Workspace
           </label>
-          <div className="relative mb-6">
+          <div className="relative mb-8">
             <select
               value={workspaceId ?? ""}
               onChange={(e) => void setActiveWorkspace(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl border border-line bg-surface px-3 pr-9 text-[14px] font-semibold text-ink outline-none focus:border-brand"
+              className="h-11 w-full appearance-none rounded-maro12 bg-surface-2 px-4 pr-9 text-[14px] font-semibold text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]"
             >
               {workspaces.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -147,15 +148,15 @@ export function BrainWorkspace() {
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
           </div>
 
-          <nav className="flex flex-row gap-1 overflow-x-auto sm:flex-col sm:overflow-visible">
+          <nav className="flex flex-row gap-2 overflow-x-auto sm:flex-col sm:overflow-visible">
             {BRAIN_TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "shrink-0 rounded-xl px-3 py-2.5 text-left text-[14px] font-semibold transition-colors sm:w-full",
-                  tab === t.id ? "bg-brand text-brand-fg" : "text-ink-2 hover:bg-surface hover:text-ink"
+                  "shrink-0 rounded-maro12 px-4 py-2.5 text-left text-[14px] font-semibold transition-colors sm:w-full",
+                  tab === t.id ? "bg-surface text-brand" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                 )}
               >
                 {t.label}
@@ -165,7 +166,7 @@ export function BrainWorkspace() {
         </aside>
 
         {/* Main panel */}
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scroll-thin rounded-2xl border border-line bg-surface p-5 sm:p-8">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scroll-thin rounded-maro16 bg-surface p-6 sm:p-8">
           {loading ? (
             <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>
           ) : tab === "brand" ? (
@@ -212,11 +213,11 @@ function Field({
 }
 
 function inputCls() {
-  return "h-11 w-full rounded-xl border border-line bg-canvas px-3 text-[14px] text-ink outline-none focus:border-brand";
+  return "h-11 w-full rounded-maro12 bg-surface-2 px-4 text-[14px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]";
 }
 
 function textareaCls() {
-  return "min-h-[100px] w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-[14px] leading-relaxed text-ink outline-none focus:border-brand";
+  return "min-h-[100px] w-full rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface focus-visible:shadow-[var(--maro-focus-ring)]";
 }
 
 function BrandTab({
@@ -288,10 +289,10 @@ function BrandTab({
               type="button"
               onClick={() => setBrand({ salesChannel: o.id })}
               className={cn(
-                "rounded-xl border px-4 py-2 text-[13px] font-bold tracking-wide",
+                "rounded-maro12 px-4 py-2 text-[13px] font-bold tracking-wide",
                 b.salesChannel === o.id
-                  ? "border-brand bg-brand text-brand-fg"
-                  : "border-line bg-canvas text-ink-2 hover:border-line-strong"
+                  ? "bg-brand text-brand-fg"
+                  : "bg-surface-2 text-ink-2 hover:bg-surface-hover"
               )}
             >
               {o.label}
@@ -303,7 +304,7 @@ function BrandTab({
       <div>
         <SectionTitle>Logo</SectionTitle>
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <div className="flex h-20 min-w-[120px] items-center justify-center rounded-xl border border-line bg-canvas px-4">
+          <div className="flex h-20 min-w-[120px] items-center justify-center rounded-maro12 bg-surface-2 px-4">
             {b.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoUrl} alt="" className="max-h-14 max-w-[160px] object-contain" />
@@ -311,7 +312,7 @@ function BrandTab({
               <span className="text-[13px] text-ink-3">Pa logo</span>
             )}
           </div>
-          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-line bg-canvas px-4 text-[13px] font-semibold text-ink hover:bg-surface-2">
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface-2 px-4 text-[13px] font-semibold text-ink hover:bg-surface-hover">
             <Upload className="h-4 w-4" />
             Ndrysho logo / Upload
             <input
@@ -575,7 +576,7 @@ function SourcesTab({
         </p>
       </div>
 
-      <div className="rounded-xl border border-line bg-canvas p-4 space-y-4">
+      <div className="rounded-maro12 bg-surface-2 p-4 space-y-4">
         <Field label="Emri i burimit">
           <input className={inputCls()} value={name} onChange={(e) => setName(e.target.value)} placeholder="Iveco Daily" />
         </Field>
@@ -591,9 +592,9 @@ function SourcesTab({
           <div className="flex flex-wrap items-center gap-3">
             {fileUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={fileUrl} alt="" className="h-20 w-20 rounded-lg border border-line object-cover" />
+              <img src={fileUrl} alt="" className="h-20 w-20 rounded-maro8 object-cover" />
             )}
-            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-semibold">
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface px-4 text-[13px] font-semibold hover:bg-surface-hover">
               <Upload className="h-4 w-4" /> Upload
               <input
                 type="file"
@@ -627,7 +628,7 @@ function SourcesTab({
           sources.map((s) => (
             <div
               key={s.id}
-              className="flex items-center gap-4 rounded-xl border border-line bg-canvas p-3"
+              className="flex items-center gap-4 rounded-maro12 bg-surface-2 p-3"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.fileUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />

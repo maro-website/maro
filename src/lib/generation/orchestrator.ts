@@ -22,6 +22,7 @@ import { assertCircuitAllows, getPlatformLimits, recordJobSpend } from "@/lib/se
 import { assertBudgetGuards } from "@/lib/operations/budgetGuards";
 import { recordProviderCostEstimate } from "@/lib/cost/recordEstimate";
 import { recordGenerationPricingSnapshot } from "@/lib/pricing/snapshots";
+import { resolveEntitlements } from "@/lib/commerce/entitlements";
 import { checkRateLimit, detectPromptInjection, logAbuseEvent } from "@/lib/security/rateLimit";
 import { bumpRiskScore } from "@/lib/security/riskScore";
 import {
@@ -247,10 +248,10 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       });
     }
 
-    const isFort = profile.plan === "fort" && (await hasFortActive(user.id));
-    const maxConcurrent = isFort
+    const entitlements = await resolveEntitlements(user.id);
+    const maxConcurrent = profile.is_admin
       ? (limits.maxConcurrentFort ?? 3)
-      : (limits.maxConcurrentFree ?? 1);
+      : entitlements.concurrency_limit;
 
     await cleanupStaleJobs();
     await cleanupStaleJobs(user.id);
@@ -269,7 +270,11 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     }
   }
 
-  const isFort = profile.plan === "fort" && (await hasFortActive(user.id));
+  const entitlements = await resolveEntitlements(user.id);
+  const isProOrBusiness =
+    entitlements.plan_status === "ACTIVE" ||
+    entitlements.plan_status === "RENEWAL_WINDOW" ||
+    entitlements.plan_status === "BUSINESS_ACTIVE";
   const skipBilling = cost <= 0;
 
   if (idempotencyKey) {
@@ -292,7 +297,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     module,
     model,
     idempotency_key: idempotencyKey,
-    priority: isFort ? 10 : 0,
+    priority: isProOrBusiness ? 10 : 0,
     metadata: metadata ?? {},
   });
 
@@ -308,7 +313,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
   const job = created.job;
 
   if (!skipBilling && cost > 0) {
-    const available = profile.credits;
+    const available = Math.max(0, profile.credits - (profile.credits_reserved ?? 0));
     if (available < cost) {
       await updateJob(job.id, { status: "failed", error: "insufficient_credits" });
       throw new GenerationGuardError(402, "insufficient-credits", undefined, {
@@ -334,25 +339,9 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     job,
     idempotencyKey,
     cost,
-    isFort,
+    isFort: isProOrBusiness,
     skipBilling,
   };
-}
-
-async function hasFortActive(userId: string): Promise<boolean> {
-  try {
-    const { data } = await getSupabaseAdmin()
-      .from("profiles")
-      .select("plan, fort_until")
-      .eq("id", userId)
-      .single();
-    if ((data?.plan as string) !== "fort") return false;
-    const until = data?.fort_until as string | null;
-    if (until && new Date(until) < new Date()) return false;
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function completeGeneration(opts: {

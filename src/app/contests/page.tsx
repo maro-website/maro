@@ -11,7 +11,7 @@ import { Trophy } from "lucide-react";
 function ContestCard({ contest }: { contest: ContestItem }) {
   const open = contest.status === "open";
   return (
-    <article className="overflow-hidden rounded-maro16 border border-line bg-surface">
+    <article className="overflow-hidden rounded-maro16 bg-surface">
       <div
         className="relative flex min-h-[200px] items-end bg-ink p-6 sm:min-h-[240px]"
         style={
@@ -76,7 +76,7 @@ export default function ContestsPage() {
         {loading ? (
           <p className="mt-6 text-[14px] text-ink-3">Duke ngarkuar…</p>
         ) : contests.length === 0 ? (
-          <div className="mt-6 rounded-maro16 border border-line bg-surface px-6 py-12 text-center">
+          <div className="mt-6 rounded-maro16 bg-surface px-6 py-12 text-center">
             <p className="text-[15px] font-semibold text-ink">Asnjë kontest aktiv ende</p>
             <p className="mt-2 text-[14px] text-ink-2">Kontestet e reja do të shfaqen këtu së shpejti.</p>
           </div>

@@ -126,13 +126,13 @@ body {
 
 .bg-meta-pill {
   background-color: var(--meta-pill-bg);
-  border: 1px solid var(--meta-pill-border);
+  border: 0;
   color: var(--meta-pill-fg);
 }
 
 .bg-card-idle {
   background-color: var(--card-idle-bg);
-  border: 1px solid var(--card-idle-border);
+  border: 0;
 }
 .bg-card-active {
   background-color: var(--card-active-bg);
@@ -271,7 +271,7 @@ body {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: var(--maro-space-2);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -285,13 +285,13 @@ body {
   flex: 1;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
+  gap: var(--maro-space-2);
 }
 .dock-toolbar-actions {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 10px;
+  gap: var(--maro-space-2);
 }
 
 .dock-pill {
@@ -305,8 +305,8 @@ body {
 
 /* Prompt dock — Tekst switch */
 .dock-control {
-  --switch-track: #c7c7c7;
-  --switch-knob: #ffffff;
+  --switch-track: var(--surface-selected);
+  --switch-knob: var(--maro-white);
 }
 
 .logo-lockup-light {

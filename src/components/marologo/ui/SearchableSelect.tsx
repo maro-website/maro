@@ -73,7 +73,7 @@ export function SearchableSelect({
       )}
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-lg">
+        <div className="maro-menu absolute z-50 mt-2 w-full overflow-hidden">
           <div className="border-b border-line p-2">
             <input
               type="text"

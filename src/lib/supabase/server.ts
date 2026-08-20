@@ -202,44 +202,61 @@ export async function refundCredits(
 
 export { refundCreditsAtomic, releaseCreditReserve };
 
-export async function getProfileCredits(
-  userId: string
-): Promise<{
+export interface ProfileCredits {
   credits: number;
+  credits_reserved: number;
   is_admin: boolean;
   access_role?: string | null;
   email: string;
   plan: string;
   generation_paused?: boolean;
   created_at?: string;
-} | null> {
+}
+
+function readFiniteNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function mapProfileCreditsRow(row: Record<string, unknown>): ProfileCredits {
+  return {
+    credits: readFiniteNumber(row.credits),
+    credits_reserved: readFiniteNumber(row.credits_reserved),
+    is_admin: Boolean(row.is_admin),
+    access_role:
+      row.access_role === null || typeof row.access_role === "string" ? row.access_role : null,
+    email: typeof row.email === "string" ? row.email : "",
+    plan: typeof row.plan === "string" ? row.plan : "free",
+    generation_paused: Boolean(row.generation_paused),
+    created_at: readOptionalString(row.created_at),
+  };
+}
+
+export async function getProfileCredits(userId: string): Promise<ProfileCredits | null> {
   const admin = getSupabaseAdmin();
-  let data: Record<string, unknown> | null = null;
+  let row: Record<string, unknown> | null = null;
   const withPlan = await admin
     .from("profiles")
-    .select("credits, is_admin, access_role, email, plan, generation_paused, created_at")
+    .select(
+      "credits, credits_reserved, is_admin, access_role, email, plan, generation_paused, created_at"
+    )
     .eq("id", userId)
     .single();
-  if (!withPlan.error) {
-    data = withPlan.data as Record<string, unknown>;
+  if (!withPlan.error && withPlan.data) {
+    row = withPlan.data as Record<string, unknown>;
   } else {
     const legacy = await admin
       .from("profiles")
-      .select("credits, is_admin, email, plan, created_at")
+      .select("credits, credits_reserved, is_admin, email, plan, created_at")
       .eq("id", userId)
       .single();
-    data = legacy.data as Record<string, unknown> | null;
+    row = legacy.data ? (legacy.data as Record<string, unknown>) : null;
   }
-  if (!data) return null;
-  return {
-    credits: (data.credits as number) ?? 0,
-    is_admin: Boolean(data.is_admin),
-    access_role: (data.access_role as string | null | undefined) ?? null,
-    email: (data.email as string) ?? "",
-    plan: (data.plan as string) ?? "free",
-    generation_paused: Boolean(data.generation_paused),
-    created_at: data.created_at as string | undefined,
-  };
+  if (!row) return null;
+  return mapProfileCreditsRow(row);
 }
 
 // True when the user's subscription plan unlocks maroFort mode. Best-effort:

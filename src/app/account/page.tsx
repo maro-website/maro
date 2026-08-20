@@ -12,6 +12,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { Switch } from "@/components/ui/Switch";
 import { initials } from "@/lib/utils/format";
 import { OrdersSection } from "@/components/account/OrdersSection";
+import { BillingSection } from "@/components/account/BillingSection";
 import {
   AccountSidebar,
   AccountTabSelect,
@@ -210,6 +211,12 @@ function AccountInner() {
             </div>
           )}
 
+          {active === "billing" && (
+            <div className="mt-6">
+              <BillingSection />
+            </div>
+          )}
+
           {active === "orders" && (
             <div className="mt-6">
               <OrdersSection />
@@ -280,7 +287,7 @@ function EditableField({
           <button
             onClick={save}
             disabled={saving}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand hover:bg-line disabled:opacity-50"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand hover:bg-surface-hover disabled:opacity-50"
             aria-label="Ruaj"
           >
             {saving ? (
@@ -302,7 +309,7 @@ function EditableField({
           <span className="truncate text-[15px] text-ink">{value || "Shto…"}</span>
           <button
             onClick={() => setEditing(true)}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-line hover:text-ink"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-hover hover:text-ink"
             aria-label={`Ndrysho ${label}`}
           >
             <Pencil className="h-4 w-4" />

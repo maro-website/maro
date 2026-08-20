@@ -35,10 +35,11 @@ export function formatOrderDate(iso: string | null | undefined): string {
   });
 }
 
-export type AccountTab = "profile" | "preferences" | "security" | "orders" | "danger";
+export type AccountTab = "profile" | "preferences" | "security" | "billing" | "orders" | "danger";
 
 export const ACCOUNT_TABS: { id: AccountTab; label: string }[] = [
   { id: "profile", label: "Profili" },
+  { id: "billing", label: "Plani & Kreditet" },
   { id: "preferences", label: "Preferencat" },
   { id: "security", label: "Siguria" },
   { id: "orders", label: "Porositë e mia" },

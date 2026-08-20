@@ -8,28 +8,42 @@
   --maro-white: #ffffff;
   --maro-ink: #111111;
   --maro-gray-300: #c7c7c7;
-  --maro-gray-600: #818181;
-  --maro-gray-050: #f5f5f5;
+  --maro-gray-600: #555555;
+  --maro-gray-muted: #9a9a9a;
+  --maro-gray-050: #f9f9f9;
+  --maro-gray-100: #f8f8f8;
+  --maro-gray-150: #ececec;
+  --maro-gray-200: #dcdcdc;
+  --maro-gray-border-subtle: #e6e6e6;
+  --maro-gray-border-default: #d0d0d0;
   --maro-blue: #253fda;
+  --maro-blue-hover: #415bff;
   --maro-black: #000000;
   --maro-red: #da2525;
+  --maro-danger: #ef4444;
+  --maro-success: #16a34a;
+  --maro-warning: #f59e0b;
   --maro-white-38: rgb(255 255 255 / 38%);
   --maro-gradient-fort: linear-gradient(90deg, #da2525 0%, #e65b5b 48%, rgb(255 255 255 / 38%) 100%);
   --maro-gradient-preset: linear-gradient(90deg, #253fda 0%, #5b6fe8 48%, rgb(255 255 255 / 38%) 100%);
   --maro-gradient-cta: linear-gradient(90deg, #253fda 0%, #5b6fe8 100%);
 
-  /* Semantic color roles */
+  /* Semantic color roles — Maro Design System V2 */
   --maro-color-bg-canvas: var(--maro-gray-050);
   --maro-color-bg-surface: var(--maro-white);
+  --maro-color-bg-surface-02: var(--maro-gray-100);
+  --maro-color-bg-surface-hover: var(--maro-gray-150);
+  --maro-color-bg-surface-selected: var(--maro-gray-200);
   --maro-color-bg-inverse: var(--maro-ink);
-  --maro-color-bg-disabled: rgb(199 199 199 / 24%);
+  --maro-color-bg-disabled: rgb(154 154 154 / 20%);
   --maro-color-bg-overlay: rgb(0 0 0 / 44%);
   --maro-color-bg-selected: var(--maro-blue);
-  --maro-color-bg-danger: var(--maro-red);
+  --maro-color-bg-danger: var(--maro-danger);
 
   --maro-color-text-primary: var(--maro-ink);
   --maro-color-text-secondary: var(--maro-gray-600);
-  --maro-color-text-tertiary: var(--maro-gray-300);
+  --maro-color-text-tertiary: var(--maro-gray-muted);
+  --maro-color-text-muted: var(--maro-gray-muted);
   --maro-color-text-inverse: var(--maro-white);
   --maro-color-text-brand: var(--maro-blue);
   --maro-color-text-danger: var(--maro-red);
@@ -41,10 +55,15 @@
   --maro-color-icon-brand: var(--maro-blue);
   --maro-color-icon-danger: var(--maro-red);
 
-  --maro-color-border-subtle: rgb(17 17 17 / 8%);
-  --maro-color-border-default: var(--maro-gray-300);
+  --maro-color-border-subtle: var(--maro-gray-border-subtle);
+  --maro-color-border-default: var(--maro-gray-border-default);
   --maro-color-border-strong: var(--maro-ink);
   --maro-color-border-focus: var(--maro-blue);
+
+  --maro-color-accent: var(--maro-blue);
+  --maro-color-accent-hover: var(--maro-blue-hover);
+  --maro-color-success: var(--maro-success);
+  --maro-color-warning: var(--maro-warning);
 
   /* Typography */
   --maro-font-family: "Manrope", "Segoe UI", Arial, sans-serif;
@@ -129,11 +148,12 @@
 
   /* Final UI layout (Figma g1IVQZrFllhytyBsbVa09G) */
   --maro-layout-module-max: 70rem; /* 1120 */
-  --maro-layout-composer-max: 49.875rem; /* 798 */
+  --maro-layout-composer-max: 55rem; /* 880 — canonical PromptBox max-width */
   --maro-layout-hero-subtitle-max: 32.625rem; /* 522 */
-  --maro-carousel-card-width: 14.4375rem; /* 231 */
-  --maro-carousel-card-height: 25.9375rem; /* 415 */
-  --maro-carousel-gap: 1.5625rem; /* 25 */
+  --maro-carousel-card-width: 11rem; /* 176 — 1:1 preset slider */
+  --maro-carousel-card-height: 11rem;
+  --maro-carousel-gap: 1rem; /* 16 */
+  --maro-nav-gap: 1.875rem; /* 30 — top navigation rhythm */
   --maro-hub-tile-size: 11.125rem; /* 178 */
   --maro-hub-tile-gap: 1.8125rem; /* 29 */
   --maro-hub-banner-max: 62.75rem; /* 1004 */

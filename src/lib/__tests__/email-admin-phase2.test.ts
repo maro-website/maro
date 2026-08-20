@@ -31,7 +31,13 @@ describe("Admin emails — navigation", () => {
 
 describe("Admin emails — system template guards", () => {
   it("forbids disable/delete on auth system templates", () => {
-    for (const key of Object.keys(EMAIL_TEMPLATE_REGISTRY)) {
+    const authKeys = [
+      "auth.confirm_signup",
+      "auth.reset_password",
+      "auth.email_change",
+      "auth.magic_link",
+    ] as const;
+    for (const key of authKeys) {
       expect(() =>
         assertTemplateMutationAllowed({ isSystem: true, templateKey: key }, "disable")
       ).toThrow(/system_auth_template_disable_forbidden/);

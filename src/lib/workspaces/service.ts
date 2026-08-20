@@ -1,7 +1,7 @@
+import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import type { Workspace, WorkspaceBrand } from "@/lib/workspaces/types";
 import { DEFAULT_WORKSPACE_NAME, MAX_WORKSPACES } from "@/lib/workspaces/types";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
-import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
 
 const LOCAL_KEY = "maro:workspaces";
@@ -44,7 +44,7 @@ function mapWorkspaceRow(r: Record<string, unknown>): Workspace {
   };
 }
 
-function brandToDb(brand?: Partial<WorkspaceBrand>) {
+function brandToDb(brand?: Partial<Workspace["brand"]>) {
   if (!brand) return {};
   const normalized = normalizeWorkspaceBrand(brand);
   return {
@@ -79,18 +79,12 @@ export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
       )
       .eq("owner_id", userId)
       .order("sort_order", { ascending: true });
-
     if (!error && data?.length) {
       return data.map((r) => mapWorkspaceRow(r as Record<string, unknown>));
     }
   }
-
-  let local = readLocal(userId);
-  if (!local.length) {
-    local = [defaultWorkspace(userId)];
-    writeLocal(userId, local);
-  }
-  return local;
+  const local = readLocal(userId);
+  return local.length ? local : [];
 }
 
 export async function fetchActiveWorkspaceId(userId: string): Promise<string | null> {
@@ -115,37 +109,37 @@ export async function setActiveWorkspaceId(userId: string, workspaceId: string):
 }
 
 export async function createWorkspace(userId: string, name: string): Promise<Workspace> {
+  if (supabaseConfigured) {
+    const supabase = getSupabaseBrowser();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch("/api/workspaces", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    const payload = (await res.json()) as { workspace?: Record<string, unknown>; error?: string };
+    if (!res.ok) {
+      if (payload.error === "WORKSPACE_LIMIT") throw new Error("WORKSPACE_LIMIT");
+      throw new Error(payload.error ?? "create_failed");
+    }
+    if (payload.workspace) {
+      return mapWorkspaceRow(payload.workspace);
+    }
+  }
+
   const existing = await fetchWorkspaces(userId);
   if (existing.length >= MAX_WORKSPACES) {
     throw new Error("WORKSPACE_LIMIT");
   }
-  const ws: Workspace = {
-    id: uid("ws"),
-    ownerId: userId,
-    name,
-    iconUrl: null,
-    sortOrder: existing.length,
-    createdAt: new Date().toISOString(),
-  };
-
-  if (supabaseConfigured) {
-    const supabase = getSupabaseBrowser();
-    const { data, error } = await supabase
-      .from("workspaces")
-      .insert({
-        id: ws.id,
-        owner_id: userId,
-        name: ws.name,
-        icon_url: null,
-        sort_order: ws.sortOrder,
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      return mapWorkspaceRow(data as Record<string, unknown>);
-    }
-  }
-
+  const ws = defaultWorkspace(userId);
+  ws.name = name;
+  ws.sortOrder = existing.length;
   const next = [...existing, ws];
   writeLocal(userId, next);
   return ws;
@@ -161,31 +155,32 @@ export async function updateWorkspace(
     const { data, error } = await supabase
       .from("workspaces")
       .update({
-        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.name != null ? { name: patch.name } : {}),
         ...(patch.iconUrl !== undefined ? { icon_url: patch.iconUrl } : {}),
         ...brandToDb(patch.brand),
       })
       .eq("id", workspaceId)
       .eq("owner_id", userId)
-      .select()
+      .select(
+        "id, owner_id, name, icon_url, sort_order, created_at, brand_name, brand_logo_url, brand_primary_color, brand_secondary_color, brand_background_color, brand_text_color"
+      )
       .single();
-    if (!error && data) {
-      return mapWorkspaceRow(data as Record<string, unknown>);
-    }
+    if (!error && data) return mapWorkspaceRow(data as Record<string, unknown>);
   }
 
   const items = readLocal(userId);
   const idx = items.findIndex((w) => w.id === workspaceId);
   if (idx < 0) return null;
-  items[idx] = { ...items[idx], ...patch };
+  items[idx] = {
+    ...items[idx],
+    ...patch,
+    brand: normalizeWorkspaceBrand({ ...items[idx].brand, ...patch.brand }),
+  };
   writeLocal(userId, items);
   return items[idx];
 }
 
 export async function deleteWorkspace(userId: string, workspaceId: string): Promise<boolean> {
-  const items = await fetchWorkspaces(userId);
-  if (items.length <= 1) return false;
-
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     const { error } = await supabase
@@ -193,12 +188,10 @@ export async function deleteWorkspace(userId: string, workspaceId: string): Prom
       .delete()
       .eq("id", workspaceId)
       .eq("owner_id", userId);
-    if (error) return false;
-  } else {
-    writeLocal(
-      userId,
-      items.filter((w) => w.id !== workspaceId)
-    );
+    if (!error) return true;
   }
+
+  const items = readLocal(userId).filter((w) => w.id !== workspaceId);
+  writeLocal(userId, items);
   return true;
 }

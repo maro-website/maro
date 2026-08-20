@@ -30,12 +30,14 @@ import { isResendConfigured, sendViaResend } from "@/lib/email/provider/resend";
 import { assertTemplateMutationAllowed } from "@/lib/email/templates";
 
 describe("email template registry", () => {
-  it("registers all four auth system templates", () => {
+  it("registers auth system templates and billing reminder templates", () => {
     expect(EMAIL_TEMPLATE_KEYS).toEqual([
       "auth.confirm_signup",
       "auth.reset_password",
       "auth.email_change",
       "auth.magic_link",
+      "plan_expiring_2_days",
+      "plan_expiring_1_day",
     ]);
   });
 

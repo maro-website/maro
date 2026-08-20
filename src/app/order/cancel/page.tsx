@@ -47,7 +47,7 @@ function OrderCancelPageInner() {
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-surface-2">
           <XCircle className="h-8 w-8 text-ink-3" />
         </div>
-        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-light tracking-[-0.03em] text-ink">
+        <h1 className="mt-6 text-[clamp(26px,5vw,36px)] font-bold tracking-brand text-ink">
           {isDeclined ? "Pagesa u refuzua" : "Porosia u anulua"}
         </h1>
         <p className="mt-3 text-[15px] text-ink-2">
@@ -57,7 +57,7 @@ function OrderCancelPageInner() {
         </p>
 
         {orderId && (
-          <div className="mt-8 rounded-2xl border border-line bg-surface p-5 text-left">
+          <div className="mt-8 rounded-maro16 bg-surface p-5 text-left">
             <p className="text-[12px] font-semibold uppercase tracking-wider text-ink-3">
               Numri i porosisë
             </p>

@@ -54,7 +54,7 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-line bg-surface-2 p-6">
+        <div className="mt-8 rounded-maro16 bg-surface-2 p-6">
           <h2 className="text-[17px] font-semibold text-ink">maroBiz</h2>
           <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
             Për plane të personalizuara, prompt engineering dhe marrëveshje biznesi, na shkruaj me

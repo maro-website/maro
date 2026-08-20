@@ -11,7 +11,7 @@ import {
   setAiPaused,
   getPlatformLimits,
 } from "@/lib/security/circuitBreaker";
-import { marginPct, TARGET_MARGIN_PCT } from "@/lib/cost/providerCost";
+import { marginPctFromCommerceConfig, TARGET_MARGIN_PCT } from "@/lib/cost/providerCost";
 import type { PlatformLimits } from "@/lib/security/platformLimits";
 
 export const runtime = "nodejs";
@@ -83,17 +83,23 @@ export async function GET(req: Request) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  const marginFlags = (lowMarginJobs ?? [])
-    .map((j) => {
-      const row = j as {
-        id: string;
-        module: string;
-        credits_charged: number;
-        provider_cost_usd: number;
-      };
-      const margin = marginPct(row.credits_charged, Number(row.provider_cost_usd ?? 0));
-      return { ...row, margin_pct: margin };
-    })
+  const marginFlags = (
+    await Promise.all(
+      (lowMarginJobs ?? []).map(async (j) => {
+        const row = j as {
+          id: string;
+          module: string;
+          credits_charged: number;
+          provider_cost_usd: number;
+        };
+        const margin = await marginPctFromCommerceConfig(
+          row.credits_charged,
+          Number(row.provider_cost_usd ?? 0)
+        );
+        return { ...row, margin_pct: margin };
+      })
+    )
+  )
     .filter((j) => j.margin_pct < TARGET_MARGIN_PCT && j.credits_charged > 0)
     .slice(0, 15);
 

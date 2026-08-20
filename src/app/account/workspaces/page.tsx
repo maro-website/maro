@@ -45,7 +45,7 @@ function WorkspacesListInner() {
                 <Link
                   href={`/account/workspaces/${ws.id}`}
                   className={cn(
-                    "flex items-center gap-3 rounded-maro16 border border-line bg-surface px-4 py-3 transition-colors hover:bg-canvas",
+                    "flex items-center gap-3 rounded-maro16 bg-surface px-4 py-3 transition-colors hover:bg-surface-hover",
                     ws.id === activeWorkspace?.id && "border-brand/30"
                   )}
                 >

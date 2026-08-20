@@ -52,7 +52,7 @@ import {
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
-import { MARO_IMAGE_URL_MIME } from "@/lib/modules/imazh/inspiration";
+import { MARO_IMAGE_URL_MIME, MARO_PRESET_MIME } from "@/lib/modules/imazh/inspiration";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -116,10 +116,14 @@ export function ToolComposer({
   toolId,
   layout = "conversation",
   headerSlot,
+  promptAttach: promptAttachProp,
+  onPromptAttachChange,
 }: {
   toolId: string;
   layout?: "conversation" | "gallery";
   headerSlot?: React.ReactNode;
+  promptAttach?: PromptAttach | null;
+  onPromptAttachChange?: (attach: PromptAttach | null) => void;
 }) {
   const tool = getTool(toolId)!;
   const router = useRouter();
@@ -152,7 +156,16 @@ export function ToolComposer({
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
-  const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
+  const [promptAttachInternal, setPromptAttachInternal] = React.useState<PromptAttach | null>(null);
+  const promptAttachControlled = onPromptAttachChange !== undefined;
+  const promptAttach = promptAttachControlled ? (promptAttachProp ?? null) : promptAttachInternal;
+  const setPromptAttach = React.useCallback(
+    (attach: PromptAttach | null) => {
+      if (promptAttachControlled) onPromptAttachChange!(attach);
+      else setPromptAttachInternal(attach);
+    },
+    [promptAttachControlled, onPromptAttachChange]
+  );
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
   const [dragOver, setDragOver] = React.useState(false);
@@ -278,9 +291,9 @@ export function ToolComposer({
     // recent card while already on the same tool page).
   }, [tool, openId]);
 
-  // Keep the conversation scrolled to the newest message.
+  // Keep the conversation scrolled to the newest message (top of feed).
   React.useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [messages]);
 
   // Initialize maroFort values (defaults + persisted) once config is available.
@@ -303,10 +316,6 @@ export function ToolComposer({
 
   // Open the maroFort pop-up (or trigger the upgrade flow when not entitled).
   const openFortModal = () => {
-    if (!hasFort) {
-      router.push("/pricing");
-      return;
-    }
     setFortDirty(false);
     setFortModalOpen(true);
   };
@@ -457,7 +466,6 @@ export function ToolComposer({
     const now = new Date().toISOString();
     const isTextMode = mode === "stt";
     setMessages((m) => [
-      ...m,
       {
         id: maroId,
         role: "generation",
@@ -466,6 +474,7 @@ export function ToolComposer({
         status: "thinking",
         mediaType: isTextMode ? "text" : "audio",
       },
+      ...m,
     ]);
     setPrompt("");
     setAudioInput(null);
@@ -562,7 +571,6 @@ export function ToolComposer({
     const now = new Date().toISOString();
     const labels = resolveGenerationLabels(tool, selections);
     setMessages((m) => [
-      ...m,
       {
         id: maroId,
         role: "generation",
@@ -579,6 +587,7 @@ export function ToolComposer({
         status: "thinking",
         mediaType: "image",
       },
+      ...m,
     ]);
     setPrompt("");
     setAttachments([]);
@@ -720,11 +729,22 @@ export function ToolComposer({
       void addImageUrl(url);
       return;
     }
+    const presetRaw = e.dataTransfer?.getData(MARO_PRESET_MIME);
+    if (presetRaw) {
+      try {
+        const parsed = JSON.parse(presetRaw) as PromptAttach;
+        if (parsed?.targetTool === tool.id) setPromptAttach(parsed);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) addImageFiles(files);
   };
 
   const isGallery = layout === "gallery" && isImage;
+  const showLandingHeader = Boolean(headerSlot) && !openId && messages.length === 0;
 
   return (
     <div
@@ -769,12 +789,12 @@ export function ToolComposer({
             isGallery ? "max-w-[var(--layout-module-max)] sm:pt-8" : "max-w-[var(--layout-composer-max)] sm:max-w-[var(--layout-composer-max)] sm:pt-12"
           )}
         >
-          {headerSlot}
+          {showLandingHeader && headerSlot}
 
-          {!headerSlot && maintenance ? (
+          {!showLandingHeader && !headerSlot && maintenance ? (
             <MaintenanceHero tool={tool} />
           ) : (
-            !headerSlot && !functional && <ComingSoonHero tool={tool} />
+            !showLandingHeader && !headerSlot && !functional && <ComingSoonHero tool={tool} />
           )}
 
           {functional && isGallery && (isImage || isAudio) && messages.length > 0 && (
@@ -794,8 +814,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-transparent max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="w-full px-4 pb-4 pt-2 lg:px-6 lg:pb-6">
-          <div className="w-full">
+        <div className="mx-auto w-full max-w-[var(--layout-composer-max)] px-4 pb-4 pt-2 lg:pb-6">
           <AnnouncementBanner toolId={tool.id} />
 
           {attachments.length > 0 && (
@@ -831,9 +850,9 @@ export function ToolComposer({
           )}
 
           {(fortAvailable || promptAttach || (isImage && brainReady)) && !loading && (
-            <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1">
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
               {isImage && brainReady && (
-                <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink-2">
+                <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-surface-2 px-4 text-[13px] font-semibold text-ink-2">
                   <Switch
                     checked={useWorkspaceBrand}
                     onChange={setUseWorkspaceBrand}
@@ -844,8 +863,8 @@ export function ToolComposer({
               )}
               {fortAvailable && (
                 <FortPill
-                  active={fortActive && hasFort}
-                  locked={!hasFort}
+                  active={fortActive}
+                  locked={false}
                   label={fortResolved.label}
                   badgeText={fortResolved.badgeText}
                   onToggle={(next) => {
@@ -869,7 +888,7 @@ export function ToolComposer({
             </div>
           )}
 
-          <div className="w-full rounded-maro20 border border-line bg-prompt-dock">
+          <div className="maro-composer">
             {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
@@ -882,10 +901,10 @@ export function ToolComposer({
                   onPaste={onPasteImages}
                   rows={2}
                   placeholder={placeholder}
-                  className="relative block max-h-56 min-h-[72px] w-full resize-none bg-transparent pl-[30px] pr-14 pt-[24px] text-[18px] leading-relaxed text-ink outline-none placeholder:text-ink-3 focus:outline-none"
+                  className="maro-composer__input block max-h-56 min-h-[4.5rem] w-full resize-none pl-2 pr-12 pt-1 text-[16px] leading-relaxed placeholder:text-ink-3"
                 />
               ) : (
-                <div className="flex min-h-[72px] items-center pl-[30px] pr-14 pt-[24px] text-[17px] text-ink-3">
+                <div className="flex min-h-[4.5rem] items-center pl-2 pr-12 pt-1 text-[16px] text-ink-3">
                   {audioInput ? "Audio gati. Kliko gjenero." : audioPlaceholder}
                 </div>
               )}
@@ -893,7 +912,7 @@ export function ToolComposer({
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-xl text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none"
+                  className="absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none"
                   aria-label="Zgjero promptin"
                 >
                   <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
@@ -901,8 +920,8 @@ export function ToolComposer({
               )}
             </div>
 
-            {/* Toolbar — individual pills, no shared background */}
-            <div className="mx-3 mb-3 sm:mx-4 dock-toolbar">
+            {/* Toolbar */}
+            <div className="dock-toolbar">
               <div className="dock-toolbar-controls">
               {isImage && (
                 <>
@@ -980,8 +999,8 @@ export function ToolComposer({
 
               <div className="dock-toolbar-actions">
                 {functional && (
-                  <span className="maro-pill shrink-0 bg-dock-btn text-[14.5px] font-semibold text-white">
-                    <MaroIcon name="coins" className="h-5 w-5 shrink-0 text-white" />
+                  <span className="maro-dock-pill shrink-0">
+                    <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
                     {cost}
                     <span className="text-ink-3">kredite</span>
                   </span>
@@ -991,7 +1010,7 @@ export function ToolComposer({
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
                   className={cn(
-                    "inline-flex h-11 min-w-[72px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-[16px] font-bold transition-all focus:outline-none",
+                    "inline-flex h-10 min-w-[4.5rem] shrink-0 items-center justify-center gap-2 rounded-maro12 px-5 text-[16px] font-bold transition-all focus:outline-none",
                     functional && canGenerate && !loading
                       ? "bg-generate text-generate-fg hover:opacity-90"
                       : "cursor-not-allowed bg-generate-idle text-generate-fg-idle"
@@ -1022,7 +1041,6 @@ export function ToolComposer({
           ) : (
             <p className="mt-3 text-center text-[13px] text-ink-3">kush punon gabon, edhe maro gabon</p>
           )}
-          </div>
         </div>
       </div>
       )}
@@ -1171,7 +1189,7 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className="maro-icon-btn bg-dock-btn text-white transition-opacity hover:opacity-75 focus:outline-none disabled:opacity-50"
+      className="maro-dock-icon-btn focus:outline-none"
     >
       {children}
     </button>
@@ -1227,10 +1245,11 @@ function ToolSwitcher({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-auto min-w-[120px] max-w-[148px] items-center gap-2 rounded-xl bg-dock-tool px-3 text-[14px] font-bold text-dock-tool-fg transition-opacity hover:opacity-90 focus:outline-none"
+        className="maro-dock-pill"
+        data-variant="accent"
       >
-        <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0 text-dock-tool-fg" />
-        <span className="dock-pill-label min-w-0 flex-1 text-left">{current.name}</span>
+        <ToolIcon toolId={current.id} fallback={current.icon} className="h-5 w-5 shrink-0" />
+        <span className="maro-dock-pill__label">{current.name}</span>
         <ChevronDown className="h-4 w-4 shrink-0" />
       </button>
       {typeof document !== "undefined" &&
@@ -1244,7 +1263,7 @@ function ToolSwitcher({
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
                 style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl"
+                className="maro-menu overflow-hidden p-1.5"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
                 {tools.map((t) => {
@@ -1298,9 +1317,9 @@ function ToggleSetting({
   const checked = value === onId;
   const Icon = setting.icon;
   return (
-    <div className="maro-pill shrink-0 bg-dock-btn text-white">
-      <Icon className="h-5 w-5 shrink-0 text-white/70" />
-      <span className="text-[14px] font-semibold">{setting.label}</span>
+    <div className="maro-dock-pill shrink-0">
+      <Icon className="h-5 w-5 shrink-0 opacity-70" />
+      <span>{setting.label}</span>
       <Switch
         size="sm"
         checked={checked}
@@ -1364,7 +1383,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-pill dock-pill shrink-0 bg-dock-btn text-white transition-opacity hover:opacity-90 focus:outline-none"
+        className="maro-dock-pill shrink-0"
         title={setting.label}
       >
         <OptionIcon
@@ -1373,10 +1392,10 @@ function SettingSelect({
           optionId={currentId}
           icons={optionIcons}
           fallback={Icon}
-          className="h-5 w-5 shrink-0 text-white"
+          className="h-5 w-5 shrink-0"
         />
-        <span className="dock-pill-label min-w-0">{current?.label}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-white/60" />
+        <span className="maro-dock-pill__label">{current?.label}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
       </button>
       {typeof document !== "undefined" &&
         createPortal(
@@ -1389,7 +1408,7 @@ function SettingSelect({
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
                 style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="overflow-hidden rounded-2xl bg-surface p-1.5 shadow-xl"
+                className="maro-menu overflow-hidden p-1.5"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
                   {setting.label}
