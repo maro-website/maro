@@ -186,17 +186,29 @@ export async function callClaudeJSON<T>(opts: {
 export async function callClaudeText(opts: {
   system: string;
   user: string;
+  imageUrls?: string[];
   maxTokens?: number;
   effort?: string;
   model?: string;
 }): Promise<{ text: string; truncated: boolean }> {
+  const userContent: string | Anthropic.ContentBlockParam[] = opts.imageUrls?.length
+    ? [
+        ...opts.imageUrls.map(
+          (url): Anthropic.ImageBlockParam => ({
+            type: "image",
+            source: { type: "url", url },
+          })
+        ),
+        { type: "text", text: opts.user },
+      ]
+    : opts.user;
   const res = await runClaudeStream({
     model: opts.model ?? AI_MODEL,
     max_tokens: opts.maxTokens ?? AI_MAX_TOKENS,
     thinking: { type: "adaptive" },
     output_config: { effort: opts.effort || AI_EFFORT },
     system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
+    messages: [{ role: "user", content: userContent }],
   } as unknown as Anthropic.MessageStreamParams);
 
   const text = res.content

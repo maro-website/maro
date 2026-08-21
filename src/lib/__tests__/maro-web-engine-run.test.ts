@@ -87,6 +87,23 @@ describe("runWebEngineInternalGeneration (mocked provider)", () => {
     expect(call?.user).toContain(fixture.engine.userPrompt);
   });
 
+  it("passes maroWeb reference images through the compiler to Claude", async () => {
+    const referenceImages = [
+      "https://project.supabase.co/storage/v1/object/public/generations/public/project-assets/user-1/brand.png",
+      "https://project.supabase.co/storage/v1/object/public/generations/public/project-assets/user-1/product.webp",
+    ];
+    await runWebEngineInternalGeneration({
+      body: webBody({ referenceImages }),
+      userId: "user-1",
+      claudeModel: "opus-4-8",
+      provider,
+    });
+
+    const call = provider.mock.calls[0]?.[0];
+    expect(call?.imageUrls).toEqual(referenceImages);
+    expect(call?.user).toContain("REFERENCE IMAGES (2 attached)");
+  });
+
   it("Fort brief lands in user message when enabled", async () => {
     const fixture = WEB_PARITY_FIXTURES.find((f) => f.id === "web-fort")!;
     await runWebEngineInternalGeneration({

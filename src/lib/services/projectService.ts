@@ -32,6 +32,7 @@ export function createProjectFromComposer(input: {
   fort?: FortPayload;
   maroPromptId?: string;
   workspaceId?: string;
+  referenceImages?: string[];
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -52,6 +53,20 @@ export function createProjectFromComposer(input: {
   if (input.fort?.enabled) p.fort = input.fort;
   if (input.maroPromptId) p.maroPromptId = input.maroPromptId;
   if (input.workspaceId) p.workspaceId = input.workspaceId;
+  if (input.referenceImages?.length) {
+    const createdAt = new Date().toISOString();
+    p.referenceImages = [...input.referenceImages];
+    p.assets = [
+      ...input.referenceImages.map((url, index): Asset => ({
+        id: uid("as"),
+        name: `reference-${index + 1}`,
+        url,
+        category: "other",
+        createdAt,
+      })),
+      ...p.assets,
+    ];
+  }
   return p;
 }
 

@@ -127,6 +127,11 @@ export async function maybeScheduleWebShadow(input: {
       userPrompt: input.body.userPrompt || input.body.goal || "",
       selections: input.selections,
       fort: input.fort,
+      attachments: input.body.referenceImages?.map((url, index) => ({
+        type: "image/reference",
+        name: `reference-${index + 1}`,
+        url,
+      })),
       useBrain: false,
       webRequest: input.body,
       legacySnapshot,

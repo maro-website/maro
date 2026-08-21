@@ -266,6 +266,11 @@ ${buildWebHtmlOutputContract({
 export function buildHtmlGenerateUser(req: AiGenerateRequest, brandLanguage?: string): string {
   const languageLine = webBusinessLanguageLine(req, brandLanguage);
   const brandLine = webBusinessBrandColorLineFromRequest(req);
+  const referenceBlock = req.referenceImages?.length
+    ? `\nREFERENCE IMAGES (${req.referenceImages.length} attached):\n${req.referenceImages
+        .map((url, index) => `- Reference ${index + 1}: ${url}`)
+        .join("\n")}\nTreat the attached images as authoritative visual references. Use them directly in the website where appropriate, and match their real brand, product, subject, and visual direction. Do not claim details that the images do not establish.\n`
+    : "";
   return `USER REQUEST (what the user typed):
 ${req.userPrompt || req.goal || "(none)"}
 
@@ -274,6 +279,7 @@ BUSINESS DETAILS:
 - Tagline: ${req.tagline || "(none)"}
 ${brandLine}- Email: ${req.email || "(none)"} · Phone: ${req.phone || "(none)"} · Location: ${req.location || "(none)"}
 ${languageLine}
+${referenceBlock}
 Design and build the full website now. Output ONLY the ===PAGE=== blocks.`;
 }
 

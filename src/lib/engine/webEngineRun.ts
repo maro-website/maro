@@ -12,6 +12,7 @@ import type { WebEngineFailureStage } from "./executionTelemetry";
 export type WebEngineProviderCall = (input: {
   system: string;
   user: string;
+  imageUrls?: string[];
   effort?: string;
   model: string;
 }) => Promise<{ text: string }>;
@@ -65,6 +66,11 @@ export async function runWebEngineInternalGeneration(input: {
         selections: input.selections,
         fort: input.fort,
         useBrain: false,
+        attachments: input.body.referenceImages?.map((url, index) => ({
+          type: "image/reference",
+          name: `reference-${index + 1}`,
+          url,
+        })),
         webRequest: input.body,
       },
       ctx
@@ -99,6 +105,7 @@ export async function runWebEngineInternalGeneration(input: {
     const result = await provider({
       system: mapped.claude.system,
       user: mapped.claude.user,
+      imageUrls: mapped.claude.imageUrls,
       effort: mapped.claude.effort ?? input.effort,
       model: mapped.claude.model ?? input.claudeModel,
     });

@@ -4,6 +4,7 @@ import type { SafeImageReferenceMeta } from "../imageCompile";
 export interface ClaudeAdapterRequest {
   system: string;
   user: string;
+  imageUrls?: string[];
   model: string;
   effort?: string;
   maxTokens?: number;

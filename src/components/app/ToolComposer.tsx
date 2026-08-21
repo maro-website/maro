@@ -33,6 +33,11 @@ import { defaultFortValues } from "@/lib/fort/schema";
 import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
 import { createProjectFromComposer, TYPE_TO_KIND } from "@/lib/services/projectService";
 import {
+  MAX_PROJECT_ASSET_FILE_BYTES,
+  projectAssetErrorMessage,
+  uploadProjectAssetDataUrl,
+} from "@/lib/services/projectAssetService";
+import {
   generateImages,
   InsufficientCreditsError,
   ImageGenerationError,
@@ -178,7 +183,9 @@ export function ToolComposer({
   creationsRef.current = creations;
 
   const isImage = tool.kind === "image";
+  const isWebsite = tool.kind === "website";
   const isAudio = tool.kind === "audio";
+  const canAttachImages = isImage || isWebsite;
   const [brainReady, setBrainReady] = React.useState(false);
   const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(false);
   // Temporarily down for technical reasons (distinct from "coming soon").
@@ -371,8 +378,13 @@ export function ToolComposer({
           toast("Format i pavlefshëm.");
           return;
         }
-        if (blob.size > 8 * 1024 * 1024) {
-          toast("Imazhi është shumë i madh (max 8MB).");
+        if (isWebsite && !/^image\/(?:png|jpe?g|webp)$/i.test(blob.type)) {
+          toast("Për maroWeb zgjidh PNG, JPG ose WebP.");
+          return;
+        }
+        const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : 8 * 1024 * 1024;
+        if (blob.size > maxBytes) {
+          toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 8}MB).`);
           return;
         }
         const reader = new FileReader();
@@ -390,11 +402,14 @@ export function ToolComposer({
         toast("S'munda ta ngarkoj imazhin.");
       }
     },
-    [toast]
+    [isWebsite, toast]
   );
 
   const addImageFiles = React.useCallback(
     (files: File[]) => {
+      if (isWebsite && files.some((file) => !/^image\/(?:png|jpe?g|webp)$/i.test(file.type))) {
+        toast("Për maroWeb zgjidh PNG, JPG ose WebP.");
+      }
       setAttachments((current) => {
         const room = MAX_ATTACHMENTS - current.length;
         if (room <= 0) {
@@ -402,11 +417,16 @@ export function ToolComposer({
           return current;
         }
         files
-          .filter((f) => f.type.startsWith("image/"))
+          .filter(
+            (f) =>
+              f.type.startsWith("image/") &&
+              (!isWebsite || /^image\/(?:png|jpe?g|webp)$/i.test(f.type))
+          )
           .slice(0, room)
           .forEach((f) => {
-            if (f.size > 8 * 1024 * 1024) {
-              toast("Imazhi është shumë i madh (max 8MB).");
+            const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : 8 * 1024 * 1024;
+            if (f.size > maxBytes) {
+              toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 8}MB).`);
               return;
             }
             const reader = new FileReader();
@@ -416,7 +436,7 @@ export function ToolComposer({
         return current;
       });
     },
-    [toast]
+    [isWebsite, toast]
   );
 
   const addFiles = (files: FileList | null) => {
@@ -426,7 +446,7 @@ export function ToolComposer({
 
   // Paste an image straight from the clipboard (Ctrl/Cmd+V) into attachments.
   const onPasteImages = (e: React.ClipboardEvent) => {
-    if (!isImage || !functional) return;
+    if (!canAttachImages || !functional) return;
     const files = Array.from(e.clipboardData?.items ?? [])
       .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
       .map((it) => it.getAsFile())
@@ -552,17 +572,29 @@ export function ToolComposer({
     if (tool.kind === "website") {
       const kind = (TYPE_TO_KIND[selections.type] ?? "business") as WebsiteKind;
       const speed = SPEED_TO_LEGACY[selections.speed] ?? "fast";
-      const project = createProjectFromComposer({
-        prompt: text,
-        websiteType: kind,
-        speed,
-        selections,
-        fort: fortPayload,
-        maroPromptId: promptAttach?.id,
-        workspaceId,
-      });
-      addProject(project);
-      router.push(`/projects/${project.id}/generating`);
+      setLoading(true);
+      try {
+        const referenceImages = attachments.length
+          ? await Promise.all(attachments.map((dataUrl) => uploadProjectAssetDataUrl(dataUrl)))
+          : undefined;
+        const project = createProjectFromComposer({
+          prompt: text,
+          websiteType: kind,
+          speed,
+          selections,
+          fort: fortPayload,
+          maroPromptId: promptAttach?.id,
+          workspaceId,
+          referenceImages,
+        });
+        addProject(project);
+        setPrompt("");
+        setAttachments([]);
+        router.push(`/projects/${project.id}/generating`);
+      } catch (error) {
+        toast(projectAssetErrorMessage(error));
+        setLoading(false);
+      }
       return;
     }
 
@@ -698,7 +730,7 @@ export function ToolComposer({
       ? audioPlaceholder
       : `Menoje edhe shkruje cka po don, ${tool.name} ta bon.`;
 
-  const dndEnabled = isImage && functional;
+  const dndEnabled = canAttachImages && functional;
   const hasFileDrag = (e: React.DragEvent) =>
     Array.from(e.dataTransfer?.types ?? []).includes("Files");
   const hasUrlDrag = (e: React.DragEvent) =>
@@ -923,12 +955,12 @@ export function ToolComposer({
             {/* Toolbar */}
             <div className="dock-toolbar">
               <div className="dock-toolbar-controls">
-              {isImage && (
+              {canAttachImages && (
                 <>
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="image/*"
+                    accept={isWebsite ? "image/png,image/jpeg,image/webp" : "image/*"}
                     multiple
                     className="hidden"
                     onChange={(e) => {

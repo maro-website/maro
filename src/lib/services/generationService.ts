@@ -206,6 +206,7 @@ export async function generateSite(
     selections: project.toolSelections,
     fort: project.fort,
     maroPrompt: project.maroPromptId ? { id: project.maroPromptId } : undefined,
+    referenceImages: project.referenceImages?.length ? [...project.referenceImages] : undefined,
     workspaceId: project.workspaceId,
   };
 

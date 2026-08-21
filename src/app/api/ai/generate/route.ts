@@ -7,8 +7,10 @@ import {
 } from "@/lib/ai/prompts";
 import { parseHtmlPages } from "@/lib/ai/htmlParse";
 import type { AiGenerateRequest } from "@/lib/ai/types";
+import { validateWebReferenceImages } from "@/lib/ai/webReferences";
 import {
   getAppSettings,
+  getUserFromToken,
   getProfileCredits,
   getPromptTemplate,
   incrementPromptUse,
@@ -68,6 +70,29 @@ export async function POST(req: Request) {
   }
   if (!body?.businessName?.trim() && !body?.userPrompt?.trim()) {
     return NextResponse.json({ error: "missing-business" }, { status: 400 });
+  }
+  const references = validateWebReferenceImages(body.referenceImages, {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    production: process.env.NODE_ENV === "production",
+  });
+  if (!references.ok) {
+    return NextResponse.json({ error: references.error }, { status: 400 });
+  }
+  body.referenceImages = references.images.length ? references.images : undefined;
+  if (body.referenceImages?.length && supabaseServerConfigured()) {
+    const referenceOwner = await getUserFromToken(bearer(req));
+    if (!referenceOwner) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const ownedReferences = validateWebReferenceImages(body.referenceImages, {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      production: process.env.NODE_ENV === "production",
+      expectedUserId: referenceOwner.id,
+    });
+    if (!ownedReferences.ok) {
+      return NextResponse.json({ error: ownedReferences.error }, { status: 400 });
+    }
+    body.referenceImages = ownedReferences.images;
   }
 
   const kind = (body.websiteType ?? "business") as WebsiteKind;
@@ -140,8 +165,13 @@ export async function POST(req: Request) {
         model: claudeModel,
         idempotencyKey: getIdempotencyKey(req, body.idempotencyKey),
         promptText: body.userPrompt || body.goal || "",
-        attachmentCount: 0,
-        metadata: { selections, kind, speed },
+        attachmentCount: body.referenceImages?.length ?? 0,
+        metadata: {
+          selections,
+          kind,
+          speed,
+          referenceImageCount: body.referenceImages?.length ?? 0,
+        },
       });
       userId = prep.userId;
       userEmail = prep.userEmail;
@@ -353,7 +383,13 @@ export async function POST(req: Request) {
           return;
         }
 
-        const { text } = await callClaudeText({ system, user, effort, model: claudeModel });
+        const { text } = await callClaudeText({
+          system,
+          user,
+          imageUrls: body.referenceImages,
+          effort,
+          model: claudeModel,
+        });
         send({ stage: 4 });
         const pages = parseHtmlPages(text);
         send({ stage: 5 });

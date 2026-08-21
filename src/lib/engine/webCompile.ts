@@ -40,6 +40,7 @@ export function buildWebUserContent(
     location: input.webRequest?.location,
     websiteType: resolveWebWebsiteType(input) as AiGenerateRequest["websiteType"],
     speed: input.webRequest?.speed,
+    referenceImages: input.webRequest?.referenceImages,
   };
 
   let user = buildHtmlGenerateUser(body);

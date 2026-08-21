@@ -225,6 +225,8 @@ export interface Project {
   fort?: import("@/lib/fort/types").FortPayload;
   /** maro Prompts: id of an attached curated prompt (hidden template). */
   maroPromptId?: string;
+  /** Uploaded visual references supplied when maroWeb generation started. */
+  referenceImages?: string[];
   language: LanguageCode;
   /** Customer brand color explicitly supplied for generation (never Maro UI fallback). */
   explicitBrandColor?: string;

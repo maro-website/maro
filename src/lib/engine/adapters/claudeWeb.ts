@@ -24,6 +24,9 @@ export function mapWebBriefToClaude(
     request: {
       system: systemParts.join("\n\n"),
       user: messages.userContent?.trim() || brief.primaryUserRequest!.trim(),
+      imageUrls: messages.attachments
+        .filter((attachment) => attachment.type.startsWith("image/") && attachment.url)
+        .map((attachment) => attachment.url as string),
       model: opts?.model ?? brief.model,
       effort: opts?.effort,
     },

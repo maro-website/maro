@@ -71,11 +71,17 @@ export function buildWebLegacySnapshot(input: {
     selections: input.selections,
     fortEnabled: input.fortEnabled,
     fortValues: input.fortEnabled ? input.body.fort?.values : undefined,
+    attachmentsMeta: input.body.referenceImages?.map((url, index) => ({
+      type: "image/reference",
+      name: `reference-${index + 1}`,
+      url,
+    })),
     renderedPreview: `${system}\n\n---\n\n${user}`,
     metadata: {
       businessName: input.body.businessName,
       language: input.body.language,
       category: input.body.category,
+      referenceImageCount: input.body.referenceImages?.length ?? 0,
     },
   };
 }

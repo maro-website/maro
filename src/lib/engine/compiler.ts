@@ -95,13 +95,23 @@ function buildTechnicalDirection(
   if (!tool) return undefined;
 
   const lines: string[] = [];
-  if ((attachments ?? []).some((a) => a.type.startsWith("image") || a.url?.startsWith("data:image/"))) {
-    lines.push(IMAGE_REFERENCE_PRESERVATION);
+  const hasImageAttachments = (attachments ?? []).some(
+    (a) => a.type.startsWith("image") || a.url?.startsWith("data:image/")
+  );
+  if (hasImageAttachments) {
+    lines.push(
+      toolId === "maro_web"
+        ? "Use the attached reference images as real website assets and authoritative visual direction where relevant."
+        : IMAGE_REFERENCE_PRESERVATION
+    );
   }
 
-  const textInstruction = buildImageTextInstruction(toolId, selections, {
-    hasReferences: hasImageReferenceAttachments(attachments),
-  });
+  const textInstruction =
+    toolId === "maro_web"
+      ? undefined
+      : buildImageTextInstruction(toolId, selections, {
+          hasReferences: hasImageReferenceAttachments(attachments),
+        });
   if (textInstruction) lines.push(textInstruction);
 
   for (const s of visibleSettings(tool, selections)) {
