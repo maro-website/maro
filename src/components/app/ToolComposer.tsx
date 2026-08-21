@@ -761,7 +761,7 @@ export function ToolComposer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-canvas/80 backdrop-blur-sm"
+            className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-canvas"
           >
             <div className="flex flex-col items-center gap-3 rounded-3xl bg-surface px-10 py-8 text-center">
               <span className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-2 text-ink">

@@ -40,11 +40,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {mounted &&
         createPortal(
-          <div className="pointer-events-none fixed bottom-5 left-1/2 z-[200] flex -translate-x-1/2 flex-col items-center gap-2">
+          <div className="pointer-events-none fixed bottom-[20px] left-1/2 z-[200] flex w-[calc(100%_-_40px)] max-w-md -translate-x-1/2 flex-col items-center gap-[10px]">
             {toasts.map((t) => (
               <div
                 key={t.id}
-                className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-2.5 animate-fade-up"
+                className="pointer-events-auto flex w-full items-center gap-[10px] rounded-maro16 bg-surface p-[20px] animate-fade-up"
               >
                 <span
                   className={cn(
@@ -59,9 +59,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 <span className="text-[13px] font-medium text-ink">{t.message}</span>
                 <button
                   onClick={() => setToasts((x) => x.filter((y) => y.id !== t.id))}
-                  className="ml-1 text-ink-3 hover:text-ink"
+                  className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}

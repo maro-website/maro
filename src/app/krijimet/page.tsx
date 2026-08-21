@@ -222,7 +222,7 @@ function KrijimetInner() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[220px] bg-aurora" />
 
         {/* Sticky toolbar */}
-        <div className="sticky top-0 z-10 bg-canvas/85 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="sticky top-0 z-10 bg-canvas px-[20px] py-[10px] lg:px-[30px]">
           <div className="flex items-center gap-3">
             <div className="flex flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2">
               <Search className="h-4 w-4 shrink-0 text-ink-3" />
@@ -361,14 +361,14 @@ function AssetCard({ row, index, onOpen }: { row: Row; index: number; onOpen: ()
 
       {/* Favourite marker */}
       {row.favourite && (
-        <span className="absolute right-10 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white backdrop-blur">
+        <span className="absolute right-10 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white">
           <Heart className="h-3.5 w-3.5 fill-current" />
         </span>
       )}
 
       {/* Hover menu */}
       <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="rounded-lg bg-black/45 backdrop-blur">
+        <div className="rounded-lg bg-black/45">
           <RowMenu row={row} />
         </div>
       </div>

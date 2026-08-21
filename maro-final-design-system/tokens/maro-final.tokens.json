@@ -29,6 +29,17 @@
     "navGap": { "$type": "dimension", "$value": "1.875rem" },
     "touchTarget": { "$type": "dimension", "$value": "2.75rem" }
   },
+  "spacing": {
+    "detail": { "$type": "dimension", "$value": "10px" },
+    "component": { "$type": "dimension", "$value": "20px" },
+    "section": { "$type": "dimension", "$value": "30px" }
+  },
+  "radius": {
+    "control": { "$type": "dimension", "$value": "12px" },
+    "field": { "$type": "dimension", "$value": "16px" },
+    "surface": { "$type": "dimension", "$value": "20px" },
+    "dialog": { "$type": "dimension", "$value": "24px" }
+  },
   "elevation": {
     "default": { "$type": "shadow", "$value": { "color": "#00000000", "offsetX": "0px", "offsetY": "0px", "blur": "0px", "spread": "0px" } }
   }

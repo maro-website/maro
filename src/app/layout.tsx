@@ -35,7 +35,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="w-full overflow-x-clip bg-canvas text-ink antialiased">
+      <body
+        data-maro-ui="final"
+        className="w-full overflow-x-clip bg-canvas text-ink antialiased"
+      >
         <ThemeProvider>
           <MaroProvider>
             <WorkspaceProvider>

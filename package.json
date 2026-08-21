@@ -10,7 +10,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sync:design-system": "node maro-design-system/scripts/sync-public.mjs"
+    "audit:ui": "node maro-final-design-system/scripts/audit-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

@@ -39,8 +39,8 @@ export function AccountSidebar({
   const workspacesActive = pathname.startsWith("/account/workspaces");
 
   return (
-    <aside className="hidden w-56 shrink-0 flex-col bg-surface/40 px-3 py-5 md:flex">
-      <div className="px-2 pb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
+    <aside className="m-[30px] mr-0 hidden w-60 shrink-0 flex-col self-start rounded-maro20 bg-surface p-[30px] md:flex">
+      <div className="pb-[20px] text-[13px] font-bold uppercase tracking-wider text-ink-3">
         Llogaria
       </div>
       {ACCOUNT_TABS.map((tab) => (
@@ -49,7 +49,7 @@ export function AccountSidebar({
           type="button"
           onClick={() => onSelect(tab.id)}
           className={cn(
-            "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] font-semibold transition-colors",
+            "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-left text-[13.5px] font-semibold transition-colors",
             active === tab.id ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
           )}
         >
@@ -59,11 +59,11 @@ export function AccountSidebar({
           <span className="min-w-0 flex-1 truncate">{tab.label}</span>
         </button>
       ))}
-      <div className="my-3 border-t border-line" />
+      <div className="my-[20px] border-t border-line" />
       <Link
         href="/account/workspaces"
         className={cn(
-          "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13.5px] font-semibold transition-colors",
+          "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-[13.5px] font-semibold transition-colors",
           workspacesActive ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
         )}
       >
@@ -87,7 +87,7 @@ export function AccountTabSelect({
     <select
       value={active}
       onChange={(e) => onSelect(parseAccountTab(e.target.value))}
-      className="mb-4 w-full rounded-xl bg-surface px-3 py-2.5 text-[14px] font-medium text-ink outline-none md:hidden"
+      className="mb-[20px] min-h-[52px] w-full rounded-maro16 bg-surface px-[20px] text-[16px] font-medium text-ink outline-none md:hidden"
     >
       {ACCOUNT_TABS.map((tab) => (
         <option key={tab.id} value={tab.id}>

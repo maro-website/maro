@@ -17,15 +17,15 @@ export function AppHeader() {
   React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
 
   return (
-    <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <div className="flex items-center gap-3">
+    <header className="maro-system-header sticky top-0 z-40 bg-canvas">
+      <div className="mx-auto flex h-full max-w-6xl items-center justify-between">
+        <div className="flex items-center gap-[10px]">
           <Link href="/" className="flex items-center">
             <Logo mobileWordOnly />
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-[10px]">
           <Link
             href="/"
             className="hidden items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-[13px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover sm:flex"

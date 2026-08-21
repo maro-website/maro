@@ -30,22 +30,22 @@ function WorkspacesListInner() {
 
   return (
     <AppShell showFooter>
-      <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8">
-        <h1 className="text-[28px] font-bold tracking-brand text-ink">Workspace-et</h1>
-        <p className="mt-2 text-[15px] text-ink-2">
+      <div className="maro-page-shell max-w-2xl">
+        <h1 className="maro-page-title">Workspace-et</h1>
+        <p className="maro-page-description text-[15px]">
           Menaxho workspace-et e maro. Mund të kesh deri në {MAX_WORKSPACES} workspace.
         </p>
 
         {!ready ? (
-          <p className="mt-8 text-ink-3">Duke ngarkuar…</p>
+          <p className="mt-[30px] text-ink-3">Duke ngarkuar…</p>
         ) : (
-          <ul className="mt-8 flex flex-col gap-2">
+          <ul className="maro-list mt-[30px]">
             {workspaces.map((ws) => (
               <li key={ws.id}>
                 <Link
                   href={`/account/workspaces/${ws.id}`}
                   className={cn(
-                    "flex items-center gap-3 rounded-maro16 bg-surface px-4 py-3 transition-colors hover:bg-surface-hover",
+                    "maro-list-row transition-colors hover:bg-surface-hover",
                     ws.id === activeWorkspace?.id && "border-brand/30"
                   )}
                 >
@@ -69,7 +69,7 @@ function WorkspacesListInner() {
         )}
 
         {workspaces.length >= MAX_WORKSPACES ? (
-          <p className="mt-6 text-[13px] text-ink-2">
+          <p className="mt-[30px] text-[13px] text-ink-2">
             Për më shumë se {MAX_WORKSPACES} workspace, na kontakto.
           </p>
         ) : (
@@ -77,7 +77,7 @@ function WorkspacesListInner() {
             type="button"
             onClick={onCreate}
             disabled={creating}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="maro-button mt-[30px]" data-variant="inverse"
           >
             <Plus className="h-4 w-4" />
             Shto workspace

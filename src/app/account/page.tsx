@@ -78,27 +78,22 @@ function AccountInner() {
       <div className="flex h-full min-w-0 overflow-x-clip max-lg:h-auto">
         <AccountSidebar active={active} onSelect={setTab} />
 
-        <div className="min-w-0 flex-1 overflow-y-auto scroll-thin px-5 py-8 sm:px-8 sm:py-10">
+        <div className="min-w-0 flex-1 overflow-y-auto scroll-thin px-[20px] py-[30px] lg:px-[30px]">
           <AccountTabSelect active={active} onSelect={setTab} />
 
-          <h1 className="text-[30px] font-light tracking-[-0.02em] text-ink">Llogaria</h1>
+          <h1 className="maro-page-title">Llogaria</h1>
 
           {active === "profile" && (
             <>
-              <div className="relative mt-6 overflow-hidden rounded-3xl bg-surface p-6 sm:p-7">
-                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-surface-2 blur-2xl" />
-                <div
-                  className="pointer-events-none absolute -bottom-12 right-16 h-24 w-24 rotate-12 rounded-2xl"
-                  style={{ background: "color-mix(in srgb, var(--c-teal) 22%, transparent)" }}
-                />
-                <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className="maro-panel relative mt-[30px] overflow-hidden">
+                <div className="relative flex flex-col items-start gap-[20px] sm:flex-row sm:items-center">
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="group relative h-20 w-20 shrink-0"
                     title="Ndrysho foton"
                   >
                     {user?.avatarUrl ? (
-                      <span className="block h-20 w-20 overflow-hidden rounded-full ring-2 ring-line">
+                      <span className="block h-20 w-20 overflow-hidden rounded-full">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
                       </span>
@@ -131,7 +126,7 @@ function AccountInner() {
                   <div className="min-w-0 flex-1">
                     <div className="text-[22px] font-bold tracking-[-0.01em] text-ink">{user?.name}</div>
                     <div className="truncate text-[13.5px] text-ink-3">{user?.email}</div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <div className="mt-[10px] flex flex-wrap items-center gap-[10px]">
                       <Badge tone="brand" className="capitalize">
                         Plani {user?.plan || "free"}
                       </Badge>
@@ -142,17 +137,17 @@ function AccountInner() {
                   </div>
                 </div>
 
-                <div className="relative mt-6 grid grid-cols-3 gap-3">
+                <div className="relative mt-[30px] grid grid-cols-1 gap-[10px] sm:grid-cols-3">
                   <StatChip label="Website" value={projects.length} />
                   <StatChip label="Imazhe" value={creations.length} />
                   <StatChip label="Kredite" value={credits} accent />
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-5 md:grid-cols-[1.5fr_1fr]">
-                <div className="rounded-2xl bg-surface p-6">
+              <div className="mt-[30px] grid gap-[30px] md:grid-cols-[1.5fr_1fr]">
+                <div className="maro-panel">
                   <div className="text-[14px] font-bold text-ink">Profili</div>
-                  <div className="mt-4 flex flex-col gap-4">
+                  <div className="mt-[20px] flex flex-col gap-[20px]">
                     <EditableField
                       label="Emri"
                       value={user?.name ?? ""}
@@ -180,7 +175,7 @@ function AccountInner() {
                   </div>
                 </div>
 
-                <div className="relative flex flex-col overflow-hidden rounded-2xl bg-surface p-6">
+                <div className="maro-panel relative flex flex-col overflow-hidden">
                   <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-2">
                     <Coins className="h-4 w-4 text-brand" /> maro Credits
                   </span>
@@ -190,7 +185,7 @@ function AccountInner() {
                   <div className="text-[12.5px] text-ink-3">kredite të disponueshme</div>
                   <button
                     onClick={() => router.push("/pricing")}
-                    className="mt-5 flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+                    className="maro-button mt-[20px]" data-variant="brand"
                   >
                     <Plus className="h-4 w-4" /> Shto
                   </button>
@@ -200,31 +195,31 @@ function AccountInner() {
           )}
 
           {active === "preferences" && (
-            <div className="mt-6">
+            <div className="mt-[30px]">
               <PreferencesSection />
             </div>
           )}
 
           {active === "security" && (
-            <div className="mt-6">
+            <div className="mt-[30px]">
               <SecuritySection />
             </div>
           )}
 
           {active === "billing" && (
-            <div className="mt-6">
+            <div className="mt-[30px]">
               <BillingSection />
             </div>
           )}
 
           {active === "orders" && (
-            <div className="mt-6">
+            <div className="mt-[30px]">
               <OrdersSection />
             </div>
           )}
 
           {active === "danger" && (
-            <div className="mt-6">
+            <div className="mt-[30px]">
               <DangerZone />
             </div>
           )}

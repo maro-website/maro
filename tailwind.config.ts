@@ -86,9 +86,10 @@ const config: Config = {
         maro20: "var(--maro-radius-20)",
         maro24: "var(--maro-radius-24)",
         maro32: "var(--maro-radius-32)",
-        xl: "0.875rem",
-        "2xl": "1.125rem",
-        "3xl": "1.5rem",
+        lg: "var(--maro-radius-12)",
+        xl: "var(--maro-radius-16)",
+        "2xl": "var(--maro-radius-20)",
+        "3xl": "var(--maro-radius-24)",
       },
       boxShadow: {
         float: "var(--maro-shadow-float)",

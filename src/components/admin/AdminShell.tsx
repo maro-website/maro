@@ -24,9 +24,9 @@ export function AdminShell({
   if (minimal) {
     return (
       <div className="min-h-screen bg-canvas">
-        <header className="bg-surface">
-          <div className="mx-auto flex max-w-[640px] items-center gap-3 px-4 py-4 sm:px-6">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-ink-inv">
+        <header className="maro-system-header bg-canvas">
+          <div className="mx-auto flex h-full max-w-[640px] items-center gap-[20px]">
+            <span className="grid h-11 w-11 place-items-center rounded-maro12 bg-ink text-ink-inv">
               <Shield className="h-4 w-4" />
             </span>
             <div>
@@ -35,7 +35,7 @@ export function AdminShell({
             </div>
           </div>
         </header>
-        <main key={pathname} className="mx-auto max-w-[640px] px-4 py-8 sm:px-6">
+        <main key={pathname} className="maro-page-shell max-w-[640px]">
           {children}
         </main>
       </div>
@@ -44,10 +44,10 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-40 bg-surface">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-ink-inv">
+      <header className="maro-system-header sticky top-0 z-40 bg-canvas">
+        <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-[20px]">
+          <div className="flex items-center gap-[20px]">
+            <span className="grid h-11 w-11 place-items-center rounded-maro12 bg-ink text-ink-inv">
               <Shield className="h-4 w-4" />
             </span>
             <div>
@@ -55,7 +55,7 @@ export function AdminShell({
               <div className="text-[11px] text-ink-3">{email}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[10px]">
             <Badge tone="brand" className="text-[10px]">
               {ACCESS_ROLE_LABELS[role]}
             </Badge>
@@ -69,7 +69,7 @@ export function AdminShell({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1400px] gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[240px_1fr]">
+      <div className="mx-auto grid max-w-[1400px] gap-[30px] px-[20px] py-[30px] lg:grid-cols-[240px_1fr] lg:px-[30px]">
         <AdminSidebar role={role} />
         <main key={pathname} className="min-w-0">
           {children}

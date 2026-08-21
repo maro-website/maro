@@ -27,8 +27,8 @@
 
 .maro-button {
   min-height: var(--maro-control-height-md);
-  gap: var(--maro-space-2);
-  padding-inline: var(--maro-space-5);
+  gap: var(--maro-gap-10);
+  padding-inline: var(--maro-gap-20);
   border-radius: var(--maro-radius-12);
   font-size: var(--maro-font-size-14);
   line-height: var(--maro-line-height-control);
@@ -43,7 +43,7 @@
 
 .maro-button[data-size="lg"] {
   min-height: var(--maro-control-height-lg);
-  padding-inline: var(--maro-space-6);
+  padding-inline: var(--maro-gap-30);
 }
 
 .maro-button[data-variant="inverse"] {
@@ -124,8 +124,8 @@
 
 .maro-chip {
   min-height: var(--maro-control-height-sm);
-  gap: var(--maro-space-2);
-  padding-inline: var(--maro-space-3);
+  gap: var(--maro-gap-10);
+  padding-inline: var(--maro-gap-20);
   border-radius: var(--maro-radius-12);
   color: var(--maro-color-text-primary);
   background: var(--maro-color-bg-surface);
@@ -215,7 +215,7 @@
 }
 
 .maro-card {
-  padding: var(--maro-space-6);
+  padding: var(--maro-gap-30);
 }
 
 .maro-card[data-interactive="true"] {
@@ -248,7 +248,7 @@
 .maro-menu {
   min-width: 13.75rem;
   max-width: 22rem;
-  padding: var(--maro-space-2);
+  padding: var(--maro-gap-30);
   border: 0;
   border-radius: var(--maro-radius-20);
   background: var(--maro-color-bg-surface);
@@ -260,8 +260,8 @@
   width: 100%;
   min-height: var(--maro-control-height-md);
   align-items: center;
-  gap: var(--maro-space-3);
-  padding-inline: var(--maro-space-3);
+  gap: var(--maro-gap-20);
+  padding-inline: 0;
   border: 0;
   border-radius: var(--maro-radius-12);
   color: var(--maro-color-text-primary);
@@ -285,8 +285,8 @@
   min-height: 11rem;
   display: flex;
   flex-direction: column;
-  gap: var(--maro-space-4);
-  padding: var(--maro-space-5) var(--maro-space-6) var(--maro-space-4);
+  gap: var(--maro-gap-20);
+  padding: var(--maro-gap-30);
   border: 0;
   border-radius: var(--maro-radius-20);
   background: var(--maro-color-bg-surface);
@@ -310,7 +310,7 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: var(--maro-space-2);
+  gap: var(--maro-gap-10);
 }
 
 .maro-composer__actions { margin-left: auto; }
@@ -556,14 +556,14 @@
 
   .maro-composer {
     min-height: 10.5rem;
-    gap: var(--maro-space-3);
-    padding: var(--maro-space-4);
+    gap: var(--maro-gap-20);
+    padding: var(--maro-gap-20);
     border-radius: var(--maro-radius-20);
   }
 
   .maro-composer__toolbar {
-    margin-inline: calc(var(--maro-space-4) * -1);
-    padding-inline: var(--maro-space-4);
+    margin-inline: calc(var(--maro-gap-20) * -1);
+    padding-inline: var(--maro-gap-20);
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scrollbar-width: none;

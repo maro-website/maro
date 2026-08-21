@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn";
 
 export function WizardTopBar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-lg">
+    <header className="maro-system-header sticky top-0 z-40 bg-canvas">
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5">
         <Link href="/krijimet" className="flex items-center">
           <Logo mobileWordOnly />

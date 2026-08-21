@@ -50,7 +50,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-maro24 bg-surface animate-scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-maro20",
+          "maro-dialog relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-maro24 bg-surface animate-scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-maro20",
           sizes[size],
           className
         )}
@@ -58,10 +58,10 @@ export function Modal({
         {!hideClose && (
           <button
             onClick={onClose}
-            className="absolute right-3.5 top-3.5 z-10 grid h-8 w-8 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+            className="absolute right-[20px] top-[20px] z-10 grid h-11 w-11 place-items-center rounded-maro12 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
             aria-label="Mbyll"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         )}
         {children}
@@ -81,15 +81,15 @@ export function ModalHeader({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="px-6 pt-6 pb-4">
+    <div className="px-[30px] pb-[20px] pt-[30px] pr-[74px]">
       {icon && (
-        <div className="mb-3.5 grid h-11 w-11 place-items-center rounded-2xl bg-surface-2 text-ink">
+        <div className="mb-[20px] grid h-11 w-11 place-items-center rounded-maro12 bg-surface-2 text-ink">
           {icon}
         </div>
       )}
       <h2 className="text-[18px] font-bold tracking-tight text-ink">{title}</h2>
       {description && (
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{description}</p>
+        <p className="mt-[10px] text-[13.5px] leading-relaxed text-ink-2">{description}</p>
       )}
     </div>
   );
@@ -97,7 +97,7 @@ export function ModalHeader({
 
 export function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-end gap-2.5 bg-surface-2/50 px-6 py-4">
+    <div className="flex items-center justify-end gap-[10px] px-[30px] pb-[30px] pt-[20px]">
       {children}
     </div>
   );

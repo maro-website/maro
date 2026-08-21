@@ -18,7 +18,7 @@ export function AppFooter({ className }: { className?: string }) {
   return (
     <footer
       className={cn(
-        "flex shrink-0 flex-col gap-3 bg-footer px-6 py-4 sm:flex-row sm:items-center sm:justify-between",
+        "flex shrink-0 flex-col gap-[20px] bg-footer px-[20px] py-[20px] sm:flex-row sm:items-center sm:justify-between lg:px-[30px]",
         className
       )}
     >
@@ -30,7 +30,7 @@ export function AppFooter({ className }: { className?: string }) {
           NRB {LEGAL_ENTITY.nrb} · {LEGAL_ADDRESS} · {LEGAL_ENTITY.phone}
         </p>
       </div>
-      <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <nav className="flex flex-wrap items-center gap-x-[20px] gap-y-[10px]">
         {FOOTER_LINKS.map((link) => (
           <Link
             key={link.href}

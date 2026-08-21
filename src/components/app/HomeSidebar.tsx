@@ -66,7 +66,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
+            className="absolute inset-0 bg-overlay"
             onClick={onClose}
           />
           <motion.div

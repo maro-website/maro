@@ -40,22 +40,22 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl bg-surface-2 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-maro20 bg-surface p-[30px] text-center",
         className
       )}
     >
       {icon && (
-        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-surface text-ink [&>svg]:h-6 [&>svg]:w-6">
+        <div className="mb-[20px] grid h-14 w-14 place-items-center rounded-maro16 bg-surface-2 text-ink [&>svg]:h-6 [&>svg]:w-6">
           {icon}
         </div>
       )}
       <h3 className="text-[16px] font-bold tracking-tight text-ink">{title}</h3>
       {description && (
-        <p className="mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-ink-2">
+        <p className="mt-[10px] max-w-sm text-[13.5px] leading-relaxed text-ink-2">
           {description}
         </p>
       )}
-      {action && <div className="mt-5">{action}</div>}
+      {action && <div className="mt-[20px]">{action}</div>}
     </div>
   );
 }
@@ -94,7 +94,7 @@ export function ColorInput({
   label?: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-surface px-2.5 py-2">
+    <div className="flex min-h-[52px] items-center gap-[10px] rounded-maro16 bg-surface px-[20px] py-[10px]">
       <label className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-lg">
         <span className="block h-full w-full" style={{ backgroundColor: value }} />
         <input

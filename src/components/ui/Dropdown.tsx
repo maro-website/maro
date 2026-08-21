@@ -55,16 +55,16 @@ export function Dropdown({
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-1.5 min-w-[184px] overflow-hidden rounded-2xl bg-surface p-1.5 animate-scale-in",
+            "maro-menu absolute z-50 mt-[10px] min-w-[240px] overflow-hidden animate-scale-in",
             align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"
           )}
         >
           {header && (
-            <div className="mb-1 bg-surface-2/80 px-2.5 pb-2 pt-1">{header}</div>
+            <div className="mb-[20px] rounded-maro16 bg-surface-2 p-[20px]">{header}</div>
           )}
           {items.map((item, i) =>
             item.divider ? (
-              <div key={i} className="my-1.5 h-px bg-line" />
+              <div key={i} className="my-[20px] h-px bg-line" />
             ) : (
               <button
                 key={i}
@@ -74,13 +74,13 @@ export function Dropdown({
                   item.onClick?.();
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors",
+                  "maro-menu__item",
                   item.danger
                     ? "text-danger hover:bg-danger/10"
                     : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                 )}
               >
-                {item.icon && <span className="shrink-0 [&>svg]:h-4 [&>svg]:w-4">{item.icon}</span>}
+                {item.icon && <span className="shrink-0 [&>svg]:h-5 [&>svg]:w-5">{item.icon}</span>}
                 {item.label}
               </button>
             )

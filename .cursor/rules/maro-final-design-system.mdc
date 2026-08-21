@@ -9,6 +9,7 @@ Before changing any Maro UI, read:
 1. `maro-final-design-system/README.md`
 2. `maro-final-design-system/tokens/maro-final.css`
 3. `maro-final-design-system/components/maro-final-primitives.css`
+4. `maro-final-design-system/components/maro-final-layouts.css`
 
 Non-negotiable rules:
 
@@ -24,6 +25,8 @@ Non-negotiable rules:
 - `maroFort` lives inside promptbox attributes/advanced controls. Do not reintroduce `maroBrain` as a primary UI label.
 - `maroLogo` stays a focused wizard with one decision per step.
 - Do not change auth, credits, billing, Supabase, routing, permissions, prompt compilation or generation behavior while making visual changes.
+- Use the 30/20/10 rhythm everywhere: 30px page/section, 20px component/group, 10px detail/action.
+- New pages start with `maro-page-shell`; group content with `maro-section` and `maro-panel`; use `maro-form-grid`, `maro-list`, and `maro-action-row` instead of inventing local layout values.
 
 Token authority:
 
@@ -31,4 +34,4 @@ Token authority:
 - Tooling/Figma mirror: `maro-final-design-system/tokens/maro-final.tokens.json`
 - Compatibility names in `src/styles/maro-compat.css` may map to final tokens but may not invent independent values.
 
-Before finishing a UI change, run `pnpm build` and inspect the affected page at desktop and mobile widths.
+Before finishing a UI change, run `pnpm audit:ui`, then `pnpm build`, and inspect the affected page at desktop and mobile widths.

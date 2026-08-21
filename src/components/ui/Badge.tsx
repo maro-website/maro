@@ -39,7 +39,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold",
+        "inline-flex min-h-9 items-center gap-[10px] rounded-maro12 px-[10px] py-1 text-[11.5px] font-semibold",
         s.className,
         className
       )}
@@ -69,7 +69,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex min-h-9 items-center gap-[10px] rounded-maro12 px-[10px] py-1 text-[11px] font-semibold",
         tones[tone],
         className
       )}

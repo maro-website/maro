@@ -321,7 +321,7 @@ function PromptCard({
               <Lightbulb className="h-8 w-8" />
             </div>
           )}
-          <span className="absolute left-2 top-2 rounded-full bg-scrim px-2.5 py-1 text-[12px] font-semibold text-on-scrim backdrop-blur">
+          <span className="absolute left-2 top-2 rounded-full bg-scrim px-2.5 py-1 text-[12px] font-semibold text-on-scrim">
             {item.category}
           </span>
           {/* Bottom overlay: code + tool + like */}
@@ -340,7 +340,7 @@ function PromptCard({
             e.stopPropagation();
             onAttach();
           }}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
+          className="grid h-11 w-11 place-items-center rounded-maro12 bg-black/40 text-white transition-colors hover:bg-black/55"
           aria-label="maro me këtë preset"
           title="maro me këtë preset"
         >
@@ -352,7 +352,7 @@ function PromptCard({
             e.stopPropagation();
             onLike();
           }}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition-colors hover:bg-black/55"
+          className="grid h-11 w-11 place-items-center rounded-maro12 bg-black/40 text-white transition-colors hover:bg-black/55"
           style={liked ? { color: "#ff5a7a" } : undefined}
           aria-label="Pëlqe"
         >

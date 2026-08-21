@@ -48,8 +48,8 @@ export function AdminSidebar({ role }: { role: AccessRole }) {
   }, [activeGroup]);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-2 lg:w-[240px]">
-      <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+    <aside className="flex w-full shrink-0 flex-col gap-[10px] lg:w-[240px]">
+      <div className="mb-[10px] px-[10px] text-[11px] font-semibold uppercase tracking-wider text-ink-3">
         Control Center
       </div>
       {ADMIN_NAV_GROUPS.map((group) => {
@@ -58,17 +58,17 @@ export function AdminSidebar({ role }: { role: AccessRole }) {
         const isOpen = openGroups[group.id] !== false;
 
         return (
-          <div key={group.id} className="rounded-maro16 bg-surface p-1.5">
+          <div key={group.id} className="rounded-maro16 bg-surface p-[10px]">
             <button
               type="button"
               onClick={() => setOpenGroups((s) => ({ ...s, [group.id]: !isOpen }))}
-              className="flex min-h-11 w-full items-center justify-between rounded-maro12 px-3 py-2 text-left text-[13px] font-semibold text-ink-2 hover:bg-surface-2"
+              className="flex min-h-11 w-full items-center justify-between gap-[10px] rounded-maro12 px-[10px] text-left text-[13px] font-semibold text-ink-2 hover:bg-surface-2"
             >
               {group.label}
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
             </button>
             {isOpen && (
-              <div className="mt-0.5 flex flex-col gap-0.5 pb-1">
+              <div className="mt-[10px] flex flex-col gap-[10px]">
                 {items.map((item) => {
                   const active = isAdminNavActive(pathname, item.href);
                   const Icon = item.icon;
@@ -77,7 +77,7 @@ export function AdminSidebar({ role }: { role: AccessRole }) {
                       key={item.href + item.label}
                       href={item.href}
                       className={cn(
-                        "flex min-h-11 items-center gap-2.5 rounded-maro12 px-3 py-2 text-[13px] font-semibold transition-colors",
+                        "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-[13px] font-semibold transition-colors",
                         active ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
                       )}
                     >

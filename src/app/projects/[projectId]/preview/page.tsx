@@ -60,7 +60,7 @@ function PreviewInner() {
   return (
     <AppShell hideFooter>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
-        <div className="flex shrink-0 items-center justify-between border-b border-line bg-canvas/90 px-4 py-2 backdrop-blur">
+        <div className="flex shrink-0 items-center justify-between gap-[10px] border-b border-line bg-canvas px-[20px] py-[10px] lg:px-[30px]">
           <button
             onClick={() => router.push(`/projects/${projectId}/editor`)}
             className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
