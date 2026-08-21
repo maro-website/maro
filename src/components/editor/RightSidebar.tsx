@@ -11,7 +11,8 @@ import { PagesPanel } from "./panels/PagesPanel";
 import { VersionsPanel } from "./panels/VersionsPanel";
 import { SeoPanel } from "./panels/SeoPanel";
 import { SourcePanel } from "./panels/SourcePanel";
-import { Code2, Palette, Type, ImageIcon, Files, History, Search } from "lucide-react";
+import { VisualEditPanel } from "./panels/VisualEditPanel";
+import { Code2, MousePointer2, Palette, Type, ImageIcon, Files, History, Search } from "lucide-react";
 
 const SECTION_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
   { key: "design", icon: Palette, label: "Design" },
@@ -23,8 +24,10 @@ const SECTION_TABS: { key: RightTab; icon: React.ElementType; label: string }[] 
 ];
 
 const HTML_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
+  { key: "edit", icon: MousePointer2, label: "Edito" },
   { key: "code", icon: Code2, label: "Kodi" },
   { key: "pages", icon: Files, label: "Faqet" },
+  { key: "versions", icon: History, label: "Versionet" },
 ];
 
 export function RightSidebar() {
@@ -42,6 +45,7 @@ export function RightSidebar() {
         <div className="flex h-11 items-center px-4 text-[13px] font-bold capitalize text-ink">
           {tabs.find((t) => t.key === activeTab)?.label}
         </div>
+        {activeTab === "edit" && <VisualEditPanel />}
         {activeTab === "code" && <SourcePanel />}
         {activeTab === "design" && <DesignPanel />}
         {activeTab === "content" && <ContentPanel />}

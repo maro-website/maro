@@ -137,6 +137,15 @@ describe("Batch S3 — payment order protection", () => {
 });
 
 describe("Batch S3 — route contracts", () => {
+  it("project asset uploads require auth, validation, quota and rate limiting", async () => {
+    const fs = await import("node:fs/promises");
+    const route = await fs.readFile("src/app/api/projects/assets/route.ts", "utf8");
+    expect(route).toContain("getUserFromToken");
+    expect(route).toContain("validateRasterUpload");
+    expect(route).toContain("FREE_PROJECT_ASSET_QUOTA_BYTES");
+    expect(route).toContain("enforceRateLimit");
+  });
+
   it("promo tracking uses server route instead of direct client insert", async () => {
     const fs = await import("node:fs/promises");
     const migration = await fs.readFile(

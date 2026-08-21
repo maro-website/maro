@@ -5,6 +5,10 @@ import { previewVars, buttonStyle } from "./theme";
 import { renderSection } from "./sections";
 import type { EditTarget } from "./Editable";
 import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
+import type {
+  HtmlEditorBridgeSelection,
+  HtmlElementSelection,
+} from "@/lib/editor/htmlVisualEditing";
 
 // Renders Claude-authored full HTML pages inside a sandboxed iframe. Supports
 // switching between multiple pages via a small top nav.
@@ -12,10 +16,16 @@ function HtmlPreview({
   project,
   fullHeight,
   onActivePageChange,
+  editMode,
+  htmlSelection,
+  onHtmlElementSelect,
 }: {
   project: Pick<Project, "htmlPages" | "activeHtmlPageId">;
   fullHeight: boolean;
   onActivePageChange?: (pageId: string) => void;
+  editMode: boolean;
+  htmlSelection?: HtmlElementSelection | null;
+  onHtmlElementSelect?: (selection: HtmlElementSelection) => void;
 }) {
   const pages = project.htmlPages ?? [];
   const activeId = project.activeHtmlPageId ?? pages[0]?.id;
@@ -50,6 +60,14 @@ function HtmlPreview({
           border: 0,
           height: fullHeight ? "calc(100dvh - 60px)" : "calc(100dvh - 150px)",
         }}
+        editable={editMode}
+        selectedPath={htmlSelection?.pageId === active.id ? htmlSelection.path : undefined}
+        onElementSelect={
+          onHtmlElementSelect
+            ? (selection: HtmlEditorBridgeSelection) =>
+                onHtmlElementSelect({ ...selection, pageId: active.id })
+            : undefined
+        }
       />
     </div>
   );
@@ -74,6 +92,8 @@ export interface WebsitePreviewProps {
   selected?: EditTarget | null;
   onSelect?: (t: EditTarget | null) => void;
   onActiveHtmlPageChange?: (pageId: string) => void;
+  htmlSelection?: HtmlElementSelection | null;
+  onHtmlElementSelect?: (selection: HtmlElementSelection) => void;
   className?: string;
   /** Fill more vertical space (used by the standalone preview page). */
   fullHeight?: boolean;
@@ -85,6 +105,8 @@ export function WebsitePreview({
   selected = null,
   onSelect,
   onActiveHtmlPageChange,
+  htmlSelection,
+  onHtmlElementSelect,
   className,
   fullHeight = false,
 }: WebsitePreviewProps) {
@@ -95,6 +117,9 @@ export function WebsitePreview({
         project={project}
         fullHeight={fullHeight}
         onActivePageChange={onActiveHtmlPageChange}
+        editMode={editMode}
+        htmlSelection={htmlSelection}
+        onHtmlElementSelect={onHtmlElementSelect}
       />
     );
   }

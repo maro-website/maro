@@ -6,14 +6,28 @@ import { PanelSection } from "./PanelKit";
 import { useToast } from "@/components/ui/Toast";
 import { timeAgo } from "@/lib/utils/format";
 import { History, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export function VersionsPanel() {
-  const { project, restoreVersion } = useEditor();
+  const { project, createVersion, restoreVersion } = useEditor();
   const { toast } = useToast();
-  const versions = [...project.versions].reverse();
+  const versions = [...project.versions].slice(-10).reverse();
 
   return (
     <PanelSection title="Historiku i versioneve">
+      <Button
+        size="sm"
+        className="mb-3 w-full"
+        onClick={() => {
+          createVersion("Ruajtje manuale");
+          toast("Versioni u ruajt");
+        }}
+      >
+        Ruaje versionin aktual
+      </Button>
+      <p className="mb-3 text-[10.5px] leading-relaxed text-ink-3">
+        Ruhen automatikisht vetëm 10 versionet e fundit.
+      </p>
       <div className="relative space-y-0.5 pl-1">
         {versions.map((v, i) => (
           <div key={v.id} className="group relative flex gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-surface-2">
@@ -24,17 +38,15 @@ export function VersionsPanel() {
             <div className="min-w-0 flex-1 pb-2">
               <div className="flex items-center gap-2">
                 <span className="truncate text-[13px] font-semibold text-ink">{v.label}</span>
-                {i === 0 && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-brand">Aktual</span>}
+                {i === 0 && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-brand">Më i fundit</span>}
               </div>
               <div className="text-[11.5px] text-ink-3">{timeAgo(v.createdAt)}</div>
-              {i !== 0 && (
-                <button
-                  onClick={() => { restoreVersion(v.id); toast("Versioni u rikthye"); }}
-                  className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-surface px-2 py-1 text-[11.5px] font-semibold text-ink-2 opacity-0 transition-all hover:bg-surface-2 hover:text-brand group-hover:opacity-100"
-                >
-                  <RotateCcw className="h-3 w-3" /> Rikthe
-                </button>
-              )}
+              <button
+                onClick={() => { restoreVersion(v.id); toast("Versioni u rikthye"); }}
+                className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-surface px-2 py-1 text-[11.5px] font-semibold text-ink-2 opacity-0 transition-all hover:bg-surface-2 hover:text-brand group-hover:opacity-100"
+              >
+                <RotateCcw className="h-3 w-3" /> Rikthe
+              </button>
             </div>
           </div>
         ))}

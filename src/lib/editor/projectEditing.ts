@@ -1,4 +1,6 @@
-import type { Asset, HtmlPage, Project, Theme, WebsitePage } from "@/lib/types";
+import type { Asset, HtmlPage, Project, Theme, Version, WebsitePage } from "@/lib/types";
+
+export const MAX_PROJECT_VERSIONS = 10;
 
 export interface EditorSnapshot {
   theme: Theme;
@@ -38,5 +40,44 @@ export function replaceHtmlPageSource(project: Project, pageId: string, html: st
     htmlPages: (project.htmlPages ?? []).map((page) =>
       page.id === pageId ? { ...page, html } : page
     ),
+  };
+}
+
+function versionSnapshot(project: Project): Version["snapshot"] {
+  return {
+    theme: structuredClone(project.theme),
+    pages: structuredClone(project.pages),
+    htmlPages: project.htmlPages ? structuredClone(project.htmlPages) : undefined,
+    activeHtmlPageId: project.activeHtmlPageId,
+  };
+}
+
+export function addProjectVersion(
+  project: Project,
+  input: { id: string; label: string; createdAt: string }
+): Project {
+  const version: Version = { ...input, snapshot: versionSnapshot(project) };
+  return {
+    ...project,
+    versions: [...project.versions, version].slice(-MAX_PROJECT_VERSIONS),
+  };
+}
+
+export function restoreProjectVersion(project: Project, versionId: string): Project {
+  const version = project.versions.find((item) => item.id === versionId);
+  if (!version) return project;
+
+  const htmlPages = version.snapshot.htmlPages
+    ? structuredClone(version.snapshot.htmlPages)
+    : project.htmlPages;
+
+  return {
+    ...project,
+    theme: structuredClone(version.snapshot.theme),
+    pages: structuredClone(version.snapshot.pages),
+    activePageId: version.snapshot.pages[0]?.id ?? project.activePageId,
+    htmlPages,
+    activeHtmlPageId:
+      version.snapshot.activeHtmlPageId ?? htmlPages?.[0]?.id ?? project.activeHtmlPageId,
   };
 }

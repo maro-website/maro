@@ -150,6 +150,31 @@ async function uploadStorageObject(
   }
 }
 
+/** Best-effort byte usage for a flat user-owned storage prefix. */
+export async function storagePrefixUsageBytes(prefix: string): Promise<number> {
+  const admin = getSupabaseAdmin();
+  const safePrefix = prefix.replace(/^\/+|\/+$/g, "");
+  let offset = 0;
+  let total = 0;
+
+  while (offset < 10_000) {
+    const { data, error } = await admin.storage.from(STORAGE_BUCKET).list(safePrefix, {
+      limit: 1000,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error || !data) throw new Error("storage-usage-unavailable");
+    for (const item of data) {
+      const size = (item.metadata as { size?: unknown } | null)?.size;
+      if (typeof size === "number" && Number.isFinite(size)) total += size;
+    }
+    if (data.length < 1000) break;
+    offset += data.length;
+  }
+
+  return total;
+}
+
 /** Resolve a stored ref/legacy URL to a client-usable URL (signed when private). */
 export async function resolveStoredAssetUrl(stored: string): Promise<string> {
   const { resolveAssetForClient } = await import("@/lib/storage/assets");

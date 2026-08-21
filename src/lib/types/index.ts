@@ -183,6 +183,9 @@ export interface Version {
   snapshot: {
     theme: Theme;
     pages: WebsitePage[];
+    /** HTML-mode checkpoint. Optional for backwards compatibility. */
+    htmlPages?: HtmlPage[];
+    activeHtmlPageId?: string;
   };
 }
 

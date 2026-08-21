@@ -8,7 +8,6 @@ import type {
   Asset,
   AssetCategory,
   SeoMeta,
-  Version,
   ChatMessage,
   SectionKind,
 } from "@/lib/types";
@@ -24,13 +23,20 @@ import { requestHtmlEdit, htmlEditErrorMessage } from "@/lib/services/htmlEditSe
 import { uid, slugify } from "@/lib/utils/format";
 import {
   applyEditorSnapshot,
+  addProjectVersion,
   createEditorSnapshot,
   replaceHtmlPageSource,
+  restoreProjectVersion,
   type EditorSnapshot,
 } from "@/lib/editor/projectEditing";
+import {
+  editHtmlElement,
+  type HtmlElementPatch,
+  type HtmlElementSelection,
+} from "@/lib/editor/htmlVisualEditing";
 
 export type Device = "desktop" | "tablet" | "mobile";
-export type RightTab = "code" | "design" | "content" | "assets" | "pages" | "versions" | "seo";
+export type RightTab = "edit" | "code" | "design" | "content" | "assets" | "pages" | "versions" | "seo";
 type SaveStatus = "saved" | "saving";
 
 interface EditorContextValue {
@@ -41,6 +47,8 @@ interface EditorContextValue {
   setRightTab: (t: RightTab) => void;
   selection: EditTarget | null;
   setSelection: (t: EditTarget | null) => void;
+  htmlSelection: HtmlElementSelection | null;
+  setHtmlSelection: (selection: HtmlElementSelection | null) => void;
   saveStatus: SaveStatus;
   canUndo: boolean;
   canRedo: boolean;
@@ -58,6 +66,7 @@ interface EditorContextValue {
   deletePage: (id: string) => void;
   setActiveHtmlPage: (id: string) => void;
   updateHtmlPage: (id: string, html: string) => void;
+  updateHtmlElement: (selection: HtmlElementSelection, patch: HtmlElementPatch) => void;
   // assets
   addAssets: (urls: string[], category: AssetCategory) => void;
   deleteAsset: (id: string) => void;
@@ -84,9 +93,10 @@ export function EditorProvider({
 
   const [device, setDevice] = React.useState<Device>("desktop");
   const [rightTab, setRightTab] = React.useState<RightTab>(
-    project.renderMode === "html" ? "code" : "design"
+    project.renderMode === "html" ? "edit" : "design"
   );
   const [selection, setSelectionState] = React.useState<EditTarget | null>(null);
+  const [htmlSelection, setHtmlSelectionState] = React.useState<HtmlElementSelection | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<SaveStatus>("saved");
   const [past, setPast] = React.useState<EditorSnapshot[]>([]);
   const [future, setFuture] = React.useState<EditorSnapshot[]>([]);
@@ -118,6 +128,20 @@ export function EditorProvider({
     setFuture([]);
   }, []);
 
+  const beginHtmlHistoryGroup = React.useCallback(
+    (pageId: string) => {
+      if (!htmlHistoryOpen.current || htmlHistoryPageId.current !== pageId) {
+        closeHtmlHistoryGroup();
+        recordHistory();
+        htmlHistoryOpen.current = true;
+        htmlHistoryPageId.current = pageId;
+      }
+      if (htmlHistoryTimer.current) clearTimeout(htmlHistoryTimer.current);
+      htmlHistoryTimer.current = setTimeout(closeHtmlHistoryGroup, 800);
+    },
+    [closeHtmlHistoryGroup, recordHistory]
+  );
+
   React.useEffect(
     () => () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -139,6 +163,7 @@ export function EditorProvider({
 
   const applySnapshot = React.useCallback(
     (snap: EditorSnapshot) => {
+      setHtmlSelectionState(null);
       updateProject(projectRef.current.id, (p) => applyEditorSnapshot(p, snap));
       markSaving();
     },
@@ -147,6 +172,7 @@ export function EditorProvider({
 
   const undo = React.useCallback(() => {
     closeHtmlHistoryGroup();
+    setHtmlSelectionState(null);
     setPast((p) => {
       if (p.length === 0) return p;
       const prev = p[p.length - 1];
@@ -158,6 +184,7 @@ export function EditorProvider({
 
   const redo = React.useCallback(() => {
     closeHtmlHistoryGroup();
+    setHtmlSelectionState(null);
     setFuture((f) => {
       if (f.length === 0) return f;
       const nxt = f[0];
@@ -170,6 +197,11 @@ export function EditorProvider({
   const setSelection = React.useCallback((t: EditTarget | null) => {
     setSelectionState(t);
     if (t) setRightTab("content");
+  }, []);
+
+  const setHtmlSelection = React.useCallback((next: HtmlElementSelection | null) => {
+    setHtmlSelectionState(next);
+    if (next) setRightTab("edit");
   }, []);
 
   // ---- theme ----
@@ -282,6 +314,7 @@ export function EditorProvider({
         return { ...p, activeHtmlPageId: id };
       });
       setSelectionState(null);
+      setHtmlSelectionState(null);
       markSaving();
     },
     [closeHtmlHistoryGroup, markSaving, updateProject]
@@ -289,19 +322,31 @@ export function EditorProvider({
 
   const updateHtmlPage = React.useCallback(
     (id: string, html: string) => {
-      if (!htmlHistoryOpen.current || htmlHistoryPageId.current !== id) {
-        closeHtmlHistoryGroup();
-        recordHistory();
-        htmlHistoryOpen.current = true;
-        htmlHistoryPageId.current = id;
-      }
-
-      if (htmlHistoryTimer.current) clearTimeout(htmlHistoryTimer.current);
-      htmlHistoryTimer.current = setTimeout(closeHtmlHistoryGroup, 800);
+      beginHtmlHistoryGroup(id);
+      setHtmlSelectionState(null);
       updateProject(projectRef.current.id, (p) => replaceHtmlPageSource(p, id, html));
       markSaving();
     },
-    [closeHtmlHistoryGroup, markSaving, recordHistory, updateProject]
+    [beginHtmlHistoryGroup, markSaving, updateProject]
+  );
+
+  const updateHtmlElement = React.useCallback(
+    (target: HtmlElementSelection, patch: HtmlElementPatch) => {
+      beginHtmlHistoryGroup(target.pageId);
+      updateProject(projectRef.current.id, (p) => {
+        const page = p.htmlPages?.find((item) => item.id === target.pageId);
+        if (!page) return p;
+        const html = editHtmlElement(page.html, target.path, target.tagName, patch);
+        return html === page.html ? p : replaceHtmlPageSource(p, target.pageId, html);
+      });
+      setHtmlSelectionState((current) =>
+        current && current.pageId === target.pageId && current.path.join(".") === target.path.join(".")
+          ? { ...current, ...patch }
+          : current
+      );
+      markSaving();
+    },
+    [beginHtmlHistoryGroup, markSaving, updateProject]
   );
 
   // ---- assets ----
@@ -340,31 +385,23 @@ export function EditorProvider({
 
   // ---- versions ----
   const createVersion = React.useCallback(
-    (label: string) =>
-      updateProject(projectRef.current.id, (p) => {
-        const v: Version = {
+    (label: string) => {
+      closeHtmlHistoryGroup();
+      updateProject(projectRef.current.id, (p) =>
+        addProjectVersion(p, {
           id: uid("ver"),
           label,
           createdAt: new Date().toISOString(),
-          snapshot: { theme: structuredClone(p.theme), pages: structuredClone(p.pages) },
-        };
-        return { ...p, versions: [...p.versions, v] };
-      }),
-    [updateProject]
+        })
+      );
+      markSaving();
+    },
+    [closeHtmlHistoryGroup, markSaving, updateProject]
   );
 
   const restoreVersion = React.useCallback(
     (id: string) =>
-      commit((p) => {
-        const v = p.versions.find((x) => x.id === id);
-        if (!v) return p;
-        return {
-          ...p,
-          theme: structuredClone(v.snapshot.theme),
-          pages: structuredClone(v.snapshot.pages),
-          activePageId: v.snapshot.pages[0]?.id ?? p.activePageId,
-        };
-      }),
+      commit((p) => restoreProjectVersion(p, id)),
     [commit]
   );
 
@@ -398,23 +435,21 @@ export function EditorProvider({
         recordHistory();
         updateProject(projectRef.current.id, (p) => {
           const mutated = result.mutate(p);
-          const v: Version = {
+          const versioned = addProjectVersion(mutated, {
             id: uid("ver"),
             label: result.versionLabel,
             createdAt: new Date().toISOString(),
-            snapshot: { theme: structuredClone(mutated.theme), pages: structuredClone(mutated.pages) },
-          };
+          });
           return {
-            ...mutated,
+            ...versioned,
             conversation: {
-              ...mutated.conversation,
-              messages: mutated.conversation.messages.map((m) =>
+              ...versioned.conversation,
+              messages: versioned.conversation.messages.map((m) =>
                 m.id === thinkingId ? { ...m, content: result.response, status: "done" } : m
               ),
             },
-            versions: [...mutated.versions, v],
             credits: [
-              ...mutated.credits,
+              ...versioned.credits,
               { id: uid("ct"), label: result.versionLabel, amount: -result.cost, reason: "ai-edit", createdAt: new Date().toISOString() },
             ],
           };
@@ -444,28 +479,39 @@ export function EditorProvider({
           .then((r) => {
             closeHtmlHistoryGroup();
             recordHistory();
-            updateProject(projectRef.current.id, (p) => ({
-              ...p,
-              htmlPages: (p.htmlPages ?? []).map((hp) =>
-                hp.id === r.pageId ? { ...hp, html: r.html } : hp
-              ),
-              conversation: {
-                ...p.conversation,
-                messages: p.conversation.messages.map((m) =>
-                  m.id === thinkingId ? { ...m, content: r.reply, status: "done" } : m
+            setHtmlSelectionState(null);
+            updateProject(projectRef.current.id, (p) => {
+              const mutated = {
+                ...p,
+                htmlPages: (p.htmlPages ?? []).map((hp) =>
+                  hp.id === r.pageId ? { ...hp, html: r.html } : hp
                 ),
-              },
-              credits: [
-                ...p.credits,
-                {
-                  id: uid("ct"),
-                  label: r.versionLabel,
-                  amount: -r.cost,
-                  reason: "ai-edit",
-                  createdAt: new Date().toISOString(),
+              };
+              const versioned = addProjectVersion(mutated, {
+                id: uid("ver"),
+                label: r.versionLabel,
+                createdAt: new Date().toISOString(),
+              });
+              return {
+                ...versioned,
+                conversation: {
+                  ...versioned.conversation,
+                  messages: versioned.conversation.messages.map((m) =>
+                    m.id === thinkingId ? { ...m, content: r.reply, status: "done" } : m
+                  ),
                 },
-              ],
-            }));
+                credits: [
+                  ...versioned.credits,
+                  {
+                    id: uid("ct"),
+                    label: r.versionLabel,
+                    amount: -r.cost,
+                    reason: "ai-edit",
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              };
+            });
             spendCredits(r.cost);
             markSaving();
             setSending(false);
@@ -507,6 +553,8 @@ export function EditorProvider({
     setRightTab,
     selection,
     setSelection,
+    htmlSelection,
+    setHtmlSelection,
     saveStatus,
     canUndo: past.length > 0,
     canRedo: future.length > 0,
@@ -522,6 +570,7 @@ export function EditorProvider({
     deletePage,
     setActiveHtmlPage,
     updateHtmlPage,
+    updateHtmlElement,
     addAssets,
     deleteAsset,
     updateSeo,

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import {
   AI_HTML_PREVIEW_SANDBOX,
@@ -52,6 +53,20 @@ describe("Batch S4 — AI preview isolation", () => {
     const doc = wrapAiPreviewDocument("<html><head></head><body><p>Hi</p></body></html>");
     expect(doc).toContain("Content-Security-Policy");
     expect(doc).toContain("frame-src 'none'");
+  });
+
+  it("injects the visual editor bridge only when explicitly requested", () => {
+    const html = "<html><head></head><body><h1>Hi</h1></body></html>";
+    const regular = wrapAiPreviewDocument(html);
+    const editable = wrapAiPreviewDocument(html, { channel: "test-channel", selectedPath: [1, 0] });
+
+    expect(regular).not.toContain("data-maro-editor-bridge");
+    expect(editable).toContain("data-maro-editor-bridge");
+    expect(editable).toContain("test-channel");
+    expect(AI_HTML_PREVIEW_SANDBOX).toBe("allow-scripts");
+    const bridgeScript = editable.match(/<script data-maro-editor-bridge>([\s\S]*?)<\/script>/)?.[1];
+    expect(bridgeScript).toBeTruthy();
+    expect(() => new vm.Script(bridgeScript!)).not.toThrow();
   });
 
   it("preview components use AiHtmlPreviewFrame", () => {

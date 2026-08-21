@@ -12,7 +12,15 @@ const WIDTHS: Record<string, number | "100%"> = {
 };
 
 export function DeviceCanvas() {
-  const { project, device, selection, setSelection, setActiveHtmlPage } = useEditor();
+  const {
+    project,
+    device,
+    selection,
+    setSelection,
+    htmlSelection,
+    setHtmlSelection,
+    setActiveHtmlPage,
+  } = useEditor();
   const width = WIDTHS[device];
 
   return (
@@ -34,6 +42,8 @@ export function DeviceCanvas() {
             editMode
             selected={selection}
             onSelect={setSelection}
+            htmlSelection={htmlSelection}
+            onHtmlElementSelect={setHtmlSelection}
             onActiveHtmlPageChange={setActiveHtmlPage}
           />
         </div>

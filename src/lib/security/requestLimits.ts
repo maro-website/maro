@@ -14,6 +14,8 @@ export const REQUEST_LIMITS = {
   /** maro Zo audio upload JSON (12 MiB client cap + base64 overhead). */
   jsonAiAudio: 16 * 1024 * 1024,
   jsonAvatar: 8 * 1024 * 1024,
+  /** Authenticated website asset upload (5 MiB decoded + base64 overhead). */
+  jsonProjectAsset: 8 * 1024 * 1024,
   jsonAdminUpload: 10 * 1024 * 1024,
   jsonCreateOrder: 32 * 1024,
   jsonTrack: 8 * 1024,

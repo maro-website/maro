@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Misc";
 import { useEditor, type Device } from "@/context/editor";
 import { cn } from "@/lib/utils/cn";
+import { useToast } from "@/components/ui/Toast";
 import {
   ArrowLeft,
   Undo2,
@@ -18,6 +19,8 @@ import {
   Download,
   Check,
   Loader2,
+  History,
+  Save,
 } from "lucide-react";
 
 const DEVICES: { key: Device; icon: React.ElementType; label: string }[] = [
@@ -28,7 +31,24 @@ const DEVICES: { key: Device; icon: React.ElementType; label: string }[] = [
 
 export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; onPreview: () => void }) {
   const router = useRouter();
-  const { project, device, setDevice, saveStatus, undo, redo, canUndo, canRedo } = useEditor();
+  const { toast } = useToast();
+  const {
+    project,
+    device,
+    setDevice,
+    saveStatus,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    createVersion,
+    setRightTab,
+  } = useEditor();
+
+  const save = () => {
+    createVersion("Ruajtje manuale");
+    toast("Website-i u ruajt si version.");
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between bg-canvas px-3">
@@ -97,6 +117,17 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
       </div>
 
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" icon={<Save className="h-4 w-4" />} onClick={save}>
+          Ruaje
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<History className="h-4 w-4" />}
+          onClick={() => setRightTab("versions")}
+        >
+          Versionet
+        </Button>
         <Button variant="ghost" size="sm" icon={<Eye className="h-4 w-4" />} onClick={onPreview}>
           Preview
         </Button>
