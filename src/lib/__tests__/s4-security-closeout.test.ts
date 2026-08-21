@@ -87,6 +87,24 @@ describe("Batch S4 — AI preview isolation", () => {
     expect(workspace).toContain("AiHtmlPreviewFrame");
     expect(workspace).not.toContain("allow-same-origin");
   });
+
+  it("renders generated sites through the isolated preview runtime", () => {
+    const frame = fs.readFileSync(
+      path.join(process.cwd(), "src/components/website-previews/AiHtmlPreviewFrame.tsx"),
+      "utf8"
+    );
+    const runtime = fs.readFileSync(
+      path.join(process.cwd(), "src/app/preview-runtime/route.ts"),
+      "utf8"
+    );
+    const config = fs.readFileSync(path.join(process.cwd(), "next.config.mjs"), "utf8");
+
+    expect(frame).toContain("/preview-runtime?channel=");
+    expect(frame).not.toContain("srcDoc=");
+    expect(runtime).toContain("https://cdn.tailwindcss.com");
+    expect(runtime).toContain("frame-ancestors 'self'");
+    expect(config).toContain("(?!preview-runtime(?:/|$))");
+  });
 });
 
 describe("Batch S4 — storage access model", () => {

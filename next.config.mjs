@@ -21,7 +21,10 @@ const nextConfig = {
   },
   async headers() {
     return [
-      { source: "/:path*", headers: baseHeaders },
+      // The preview runtime is an opaque, scripts-only iframe with its own
+      // deliberately isolated CSP. Applying the app CSP there would block the
+      // Tailwind browser compiler used by generated websites.
+      { source: "/:path((?!preview-runtime(?:/|$)).*)", headers: baseHeaders },
       { source: "/admin/:path*", headers: noStoreHeaders },
       { source: "/account/:path*", headers: noStoreHeaders },
       { source: "/sign-in", headers: noStoreHeaders },
