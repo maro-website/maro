@@ -4,14 +4,8 @@ import * as React from "react";
 import { useEditor } from "@/context/editor";
 import { cn } from "@/lib/utils/cn";
 import { MaroSymbol } from "@/components/ui/Logo";
-import { Sparkles, ArrowUp, PanelLeftClose, Loader2 } from "lucide-react";
-
-const SUGGESTIONS = [
-  "Bëje hero-n më premium",
-  "Shto një pricing section",
-  "Bëje website-in më minimal",
-  "Ndrysho stilin e butonave",
-];
+import { useSettings } from "@/lib/hooks/useSettings";
+import { Sparkles, ArrowUp, PanelLeftClose, Loader2, Coins } from "lucide-react";
 
 const THINKING_PHRASES = [
   "Po e analizoj kërkesën…",
@@ -38,6 +32,8 @@ function ThinkingBubble({ content }: { content: string }) {
 
 export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
   const { project, sendChat, sending } = useEditor();
+  const { pricing } = useSettings();
+  const editCost = pricing.editCost ?? 2;
   const [input, setInput] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const messages = project.conversation.messages;
@@ -116,20 +112,6 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
       </div>
 
       <div className="shrink-0 p-3">
-        {messages.length === 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => sendChat(s)}
-                disabled={sending}
-                className="rounded-full bg-surface px-2.5 py-1 text-[11.5px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:bg-line hover:text-ink disabled:opacity-50"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="flex items-end gap-2 rounded-xl bg-surface p-1.5 pl-3 transition-colors focus-within:ring-2 focus-within:ring-ink/10">
           <textarea
             value={input}
@@ -147,13 +129,18 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
           <button
             onClick={submit}
             disabled={!input.trim() || sending}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand text-white transition-all hover:bg-brand-hover disabled:opacity-40"
+            aria-label={`Dërgo ndryshimin, ${editCost} kredite`}
+            title={`Ky ndryshim me AI kushton ${editCost} kredite`}
+            className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand px-2 text-white transition-all hover:bg-brand-hover disabled:opacity-40"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+            <span className="h-4 w-px bg-white/30" />
+            <Coins className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-bold">{editCost}</span>
           </button>
         </div>
         <div className="mt-2 text-center text-[10.5px] text-ink-3">
-          AI actions përdorin kredite · edite manuale janë falas
+          AI: {editCost} kredite për ndryshim · editimet manuale janë falas
         </div>
       </div>
     </div>

@@ -388,15 +388,7 @@ function AssetThumb({ row }: { row: Row }) {
     );
   }
   if (row.media === "image" && row.creation.urls[0]) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={row.creation.urls[0]}
-        alt=""
-        loading="lazy"
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-      />
-    );
+    return <CreationImage src={row.creation.urls[0]} />;
   }
   return (
     <div className="grid h-full w-full place-items-center text-ink-3">
@@ -408,6 +400,31 @@ function AssetThumb({ row }: { row: Row }) {
         <FileText className="h-8 w-8" />
       )}
     </div>
+  );
+}
+
+function CreationImage({ src }: { src: string }) {
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => setFailed(false), [src]);
+
+  if (failed) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-surface-2 px-4 text-center text-ink-3">
+        <ImageIcon className="h-7 w-7" />
+        <span className="text-[11.5px] font-medium">Imazhi nuk është më i disponueshëm</span>
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+    />
   );
 }
 

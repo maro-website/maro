@@ -7,10 +7,13 @@
 export const AI_HTML_PREVIEW_SANDBOX = "allow-scripts";
 
 const PREVIEW_CSP =
-  "default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; " +
-  "style-src 'unsafe-inline' https://fonts.googleapis.com; " +
-  "font-src https://fonts.gstatic.com; img-src https: data: blob:; " +
+  "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; " +
+  "style-src 'unsafe-inline' https:; " +
+  "font-src https: data:; img-src https: data: blob:; " +
   "connect-src https:; media-src https: data: blob:; frame-src 'none'; object-src 'none'; base-uri 'none';";
+
+const PREVIEW_BASE_STYLE =
+  "<style data-maro-preview-base>html{min-width:0}html,body{margin:0;min-height:100%;width:100%}*,*::before,*::after{box-sizing:border-box}img,svg,video{max-width:100%}</style>";
 
 export interface AiPreviewEditorOptions {
   channel: string;
@@ -64,12 +67,13 @@ function clearSelected(){document.querySelectorAll('[data-maro-editor-selected]'
 function select(element){
   var path=pathFor(element);if(!path)return;clearSelected();element.setAttribute('data-maro-editor-selected','');
   var tag=element.tagName.toLowerCase();var kind=tag==='img'?'image':tag==='a'?'link':(['input','textarea','select'].indexOf(tag)>=0?'field':'text');
-  var text=(kind==='field'?(element.value||''):(element.innerText||element.textContent||'')).trim().slice(0,100000);
+  var text=(kind==='field'?(element.value||''):(element.innerText||element.textContent||'')).trim().slice(0,100000);var computed=window.getComputedStyle(element);
   window.parent.postMessage({source:'maro-preview-editor',channel:channel,type:'select',selection:{
     path:path,tagName:tag,kind:kind,text:text,
     href:element.getAttribute('href')||undefined,src:element.getAttribute('src')||undefined,
     alt:element.getAttribute('alt')||undefined,placeholder:element.getAttribute('placeholder')||undefined,
-    value:kind==='field'?(element.value||element.getAttribute('value')||''):undefined
+    value:kind==='field'?(element.value||element.getAttribute('value')||''):undefined,
+    styles:{color:computed.color,backgroundColor:computed.backgroundColor,fontFamily:computed.fontFamily,fontSize:computed.fontSize,fontWeight:computed.fontWeight,lineHeight:computed.lineHeight,letterSpacing:computed.letterSpacing,textAlign:computed.textAlign,paddingTop:computed.paddingTop,paddingRight:computed.paddingRight,paddingBottom:computed.paddingBottom,paddingLeft:computed.paddingLeft,borderRadius:computed.borderRadius,width:computed.width,height:computed.height,objectFit:computed.objectFit,opacity:computed.opacity}
   }},'*');
 }
 window.addEventListener('mouseover',function(event){var raw=event.target;if(!(raw instanceof Element))return;var target=raw.closest(selector);if(target)target.setAttribute('data-maro-editor-hover','');},true);
@@ -94,7 +98,7 @@ function injectEditorBridge(html: string, options?: AiPreviewEditorOptions): str
 export function wrapAiPreviewDocument(html: string, editor?: AiPreviewEditorOptions): string {
   const trimmed = html.trim();
   const hasDoc = /<html[\s>]/i.test(trimmed);
-  const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">`;
+  const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">${PREVIEW_BASE_STYLE}`;
 
   if (hasDoc) {
     if (/<head[\s>]/i.test(trimmed)) {

@@ -5,10 +5,88 @@ import { useEditor } from "@/context/editor";
 import { PanelSection, PanelLabel } from "./PanelKit";
 import { useToast } from "@/components/ui/Toast";
 import { projectAssetErrorMessage, uploadProjectAsset } from "@/lib/services/projectAssetService";
-import { ImageIcon, Link2, Loader2, MousePointer2, Type, Upload } from "lucide-react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  BoxSelect,
+  ImageIcon,
+  Link2,
+  Loader2,
+  MousePointer2,
+  Palette,
+  Type,
+  Upload,
+} from "lucide-react";
 
 const inputClass =
   "w-full rounded-lg bg-surface px-3 py-2 text-[12.5px] text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-brand/30";
+
+function pickerColor(value: string, fallback: string): string {
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
+  const parts = value.match(/^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)/i);
+  if (!parts) return fallback;
+  return `#${[parts[1], parts[2], parts[3]]
+    .map((part) => Number(part).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function numericCss(value: string): string {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? String(Math.round(parsed * 100) / 100) : "";
+}
+
+function ColorControl({
+  value,
+  fallback,
+  onChange,
+}: {
+  value: string;
+  fallback: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-surface px-2 py-1.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-brand/30">
+      <input
+        type="color"
+        value={pickerColor(value, fallback)}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-7 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
+      />
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-w-0 flex-1 bg-transparent font-mono text-[11.5px] text-ink outline-none"
+      />
+    </div>
+  );
+}
+
+function NumberControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="min-w-0">
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-3">{label}</span>
+      <div className="flex items-center rounded-lg bg-surface px-2 ring-1 ring-line focus-within:ring-2 focus-within:ring-brand/30">
+        <input
+          type="number"
+          step="0.5"
+          value={numericCss(value)}
+          onChange={(event) => onChange(event.target.value ? `${event.target.value}px` : "")}
+          className="min-w-0 flex-1 bg-transparent py-2 text-[12px] text-ink outline-none"
+        />
+        <span className="text-[10px] text-ink-3">px</span>
+      </div>
+    </label>
+  );
+}
 
 export function VisualEditPanel() {
   const { htmlSelection, updateHtmlElement, addAssets } = useEditor();
@@ -34,6 +112,8 @@ export function VisualEditPanel() {
 
   const patch = (value: Parameters<typeof updateHtmlElement>[1]) =>
     updateHtmlElement(htmlSelection, value);
+  const patchStyle = (name: keyof typeof htmlSelection.styles, value: string) =>
+    patch({ styles: { [name]: value } });
 
   const upload = async (file: File) => {
     setUploading(true);
@@ -157,6 +237,138 @@ export function VisualEditPanel() {
           </PanelSection>
         </>
       )}
+
+      <PanelSection>
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-ink">
+          <Palette className="h-4 w-4 text-brand" /> Pamja
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <PanelLabel>Teksti</PanelLabel>
+            <ColorControl
+              value={htmlSelection.styles.color}
+              fallback="#111111"
+              onChange={(value) => patchStyle("color", value)}
+            />
+          </div>
+          <div>
+            <PanelLabel>Sfondi</PanelLabel>
+            <ColorControl
+              value={htmlSelection.styles.backgroundColor}
+              fallback="#ffffff"
+              onChange={(value) => patchStyle("backgroundColor", value)}
+            />
+          </div>
+        </div>
+        <div className="mt-3">
+          <PanelLabel>Opacity</PanelLabel>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={Number.parseFloat(htmlSelection.styles.opacity) || 0}
+              onChange={(event) => patchStyle("opacity", event.target.value)}
+              className="min-w-0 flex-1 accent-brand"
+            />
+            <span className="w-10 text-right text-[11.5px] text-ink-2">
+              {Math.round((Number.parseFloat(htmlSelection.styles.opacity) || 0) * 100)}%
+            </span>
+          </div>
+        </div>
+      </PanelSection>
+
+      {htmlSelection.kind !== "image" && (
+        <PanelSection>
+          <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-ink">
+            <Type className="h-4 w-4 text-brand" /> Tipografia
+          </div>
+          <PanelLabel>Fonti</PanelLabel>
+          <input
+            list="maro-editor-fonts"
+            value={htmlSelection.styles.fontFamily}
+            onChange={(event) => patchStyle("fontFamily", event.target.value)}
+            className={inputClass}
+          />
+          <datalist id="maro-editor-fonts">
+            <option value="Inter, sans-serif" />
+            <option value="Manrope, sans-serif" />
+            <option value="DM Sans, sans-serif" />
+            <option value="Space Grotesk, sans-serif" />
+            <option value="Playfair Display, serif" />
+            <option value="Georgia, serif" />
+          </datalist>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <NumberControl label="Madhësia" value={htmlSelection.styles.fontSize} onChange={(v) => patchStyle("fontSize", v)} />
+            <label>
+              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-3">Pesha</span>
+              <select
+                value={htmlSelection.styles.fontWeight}
+                onChange={(event) => patchStyle("fontWeight", event.target.value)}
+                className={inputClass}
+              >
+                {[300, 400, 500, 600, 700, 800, 900].map((weight) => <option key={weight} value={weight}>{weight}</option>)}
+              </select>
+            </label>
+            <NumberControl label="Line height" value={htmlSelection.styles.lineHeight} onChange={(v) => patchStyle("lineHeight", v)} />
+            <NumberControl label="Hapësira" value={htmlSelection.styles.letterSpacing} onChange={(v) => patchStyle("letterSpacing", v)} />
+          </div>
+          <div className="mt-3">
+            <PanelLabel>Rreshtimi</PanelLabel>
+            <div className="grid grid-cols-3 rounded-lg bg-surface p-1 ring-1 ring-line">
+              {[
+                ["left", AlignLeft],
+                ["center", AlignCenter],
+                ["right", AlignRight],
+              ].map(([align, Icon]) => (
+                <button
+                  key={align as string}
+                  type="button"
+                  onClick={() => patchStyle("textAlign", align as string)}
+                  className={`grid h-8 place-items-center rounded-md ${htmlSelection.styles.textAlign === align ? "bg-surface-2 text-brand" : "text-ink-3 hover:text-ink"}`}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </PanelSection>
+      )}
+
+      <PanelSection>
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-ink">
+          <BoxSelect className="h-4 w-4 text-brand" /> Layout
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberControl label="Gjerësia" value={htmlSelection.styles.width} onChange={(v) => patchStyle("width", v)} />
+          <NumberControl label="Lartësia" value={htmlSelection.styles.height} onChange={(v) => patchStyle("height", v)} />
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <NumberControl label="Top" value={htmlSelection.styles.paddingTop} onChange={(v) => patchStyle("paddingTop", v)} />
+          <NumberControl label="Right" value={htmlSelection.styles.paddingRight} onChange={(v) => patchStyle("paddingRight", v)} />
+          <NumberControl label="Bottom" value={htmlSelection.styles.paddingBottom} onChange={(v) => patchStyle("paddingBottom", v)} />
+          <NumberControl label="Left" value={htmlSelection.styles.paddingLeft} onChange={(v) => patchStyle("paddingLeft", v)} />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <NumberControl label="Radius" value={htmlSelection.styles.borderRadius} onChange={(v) => patchStyle("borderRadius", v)} />
+          {htmlSelection.kind === "image" && (
+            <label>
+              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-3">Imazhi</span>
+              <select
+                value={htmlSelection.styles.objectFit}
+                onChange={(event) => patchStyle("objectFit", event.target.value)}
+                className={inputClass}
+              >
+                <option value="cover">Cover</option>
+                <option value="contain">Contain</option>
+                <option value="fill">Fill</option>
+                <option value="none">Origjinal</option>
+              </select>
+            </label>
+          )}
+        </div>
+      </PanelSection>
     </div>
   );
 }

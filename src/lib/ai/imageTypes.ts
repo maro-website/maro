@@ -27,6 +27,9 @@ export interface AiImageRequest {
 
 export interface AiImageResponse {
   images: string[]; // public URLs
+  /** Stable database/storage identities; display URLs may expire and change. */
+  generationId?: string;
+  storageRefs?: string[];
   creditsSpent: number;
   jobId?: string;
 }

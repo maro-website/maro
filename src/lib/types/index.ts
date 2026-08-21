@@ -48,6 +48,10 @@ export interface User {
 // (transcription) the result lives in `text`.
 export interface ImageCreation {
   id: string;
+  /** Canonical database id when this creation has been synced from the server. */
+  serverId?: string;
+  /** Stable storage references used to refresh expiring signed display URLs. */
+  storageRefs?: string[];
   /** Active workspace when the creation was saved locally. */
   workspaceId?: string;
   toolId: string;

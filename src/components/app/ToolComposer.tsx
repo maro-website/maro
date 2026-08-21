@@ -640,7 +640,9 @@ export function ToolComposer({
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
-        id: uid("img"),
+        id: res.generationId ?? uid("img"),
+        serverId: res.generationId,
+        storageRefs: res.storageRefs,
         workspaceId,
         toolId: tool.id,
         prompt: text,

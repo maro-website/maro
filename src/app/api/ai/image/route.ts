@@ -504,8 +504,9 @@ export async function POST(req: Request) {
           ? await resolveAssetListForClient(storedUrls)
           : b64s.map((b) => `data:image/png;base64,${b}`);
 
+        let generationId: string | null = null;
         if (userId) {
-          const generationId = await logGeneration({
+          generationId = await logGeneration({
             user_id: userId,
             user_email: userEmail,
             prompt: body.prompt,
@@ -596,6 +597,8 @@ export async function POST(req: Request) {
         send({
           ok: true,
           images: displayUrls,
+          generationId: generationId ?? undefined,
+          storageRefs: storedUrls,
           creditsSpent: cost,
           jobId: prep?.job.id,
         });

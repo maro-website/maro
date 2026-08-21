@@ -53,6 +53,10 @@ describe("Batch S4 — AI preview isolation", () => {
     const doc = wrapAiPreviewDocument("<html><head></head><body><p>Hi</p></body></html>");
     expect(doc).toContain("Content-Security-Policy");
     expect(doc).toContain("frame-src 'none'");
+    // Tailwind's browser compiler needs eval, but it remains confined to the
+    // opaque-origin scripts-only preview sandbox above.
+    expect(doc).toContain("script-src 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com");
+    expect(doc).toContain("data-maro-preview-base");
   });
 
   it("injects the visual editor bridge only when explicitly requested", () => {

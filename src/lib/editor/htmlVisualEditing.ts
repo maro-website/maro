@@ -1,5 +1,45 @@
 export type HtmlElementKind = "text" | "link" | "image" | "field";
 
+export interface HtmlElementStyles {
+  color: string;
+  backgroundColor: string;
+  fontFamily: string;
+  fontSize: string;
+  fontWeight: string;
+  lineHeight: string;
+  letterSpacing: string;
+  textAlign: string;
+  paddingTop: string;
+  paddingRight: string;
+  paddingBottom: string;
+  paddingLeft: string;
+  borderRadius: string;
+  width: string;
+  height: string;
+  objectFit: string;
+  opacity: string;
+}
+
+export const HTML_STYLE_KEYS: (keyof HtmlElementStyles)[] = [
+  "color",
+  "backgroundColor",
+  "fontFamily",
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "textAlign",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "borderRadius",
+  "width",
+  "height",
+  "objectFit",
+  "opacity",
+];
+
 export interface HtmlElementSelection {
   pageId: string;
   path: number[];
@@ -11,6 +51,7 @@ export interface HtmlElementSelection {
   alt?: string;
   placeholder?: string;
   value?: string;
+  styles: HtmlElementStyles;
 }
 
 export interface HtmlElementPatch {
@@ -20,6 +61,7 @@ export interface HtmlElementPatch {
   alt?: string;
   placeholder?: string;
   value?: string;
+  styles?: Partial<HtmlElementStyles>;
 }
 
 export interface HtmlEditorBridgeSelection extends Omit<HtmlElementSelection, "pageId"> {}
@@ -66,9 +108,13 @@ export function isHtmlEditorBridgeMessage(
     return false;
   }
 
-  return ["href", "src", "alt", "placeholder", "value"].every(
+  if (!["href", "src", "alt", "placeholder", "value"].every(
     (key) => selection[key] === undefined || boundedString(selection[key])
-  );
+  )) return false;
+
+  if (!selection.styles || typeof selection.styles !== "object") return false;
+  const styles = selection.styles as Record<string, unknown>;
+  return HTML_STYLE_KEYS.every((key) => boundedString(styles[key], 500));
 }
 
 function resolveElement(document: Document, path: number[]): Element | null {
@@ -131,6 +177,16 @@ export function editHtmlElement(
   if (patch.value !== undefined) {
     if (element.tagName.toLowerCase() === "textarea") element.textContent = patch.value;
     else element.setAttribute("value", patch.value);
+  }
+  if (patch.styles) {
+    const inlineStyle = (element as HTMLElement).style;
+    if (!inlineStyle) return html;
+    for (const key of HTML_STYLE_KEYS) {
+      const value = patch.styles[key];
+      if (value === undefined) continue;
+      if (value.trim()) inlineStyle[key] = value.trim();
+      else inlineStyle.removeProperty(key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`));
+    }
   }
 
   const doctype = /<!doctype\s+html/i.test(html) ? "<!DOCTYPE html>\n" : "";

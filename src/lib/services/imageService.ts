@@ -19,7 +19,7 @@ export class ImageGenerationError extends Error {
 }
 
 type ImageStreamPayload =
-  | { ok: true; images: string[]; creditsSpent?: number; jobId?: string }
+  | { ok: true; images: string[]; creditsSpent?: number; jobId?: string; generationId?: string; storageRefs?: string[] }
   | { ok: false; error?: string; detail?: string; refunded?: boolean; jobId?: string };
 
 async function readImageStream(res: Response): Promise<AiImageResponse> {
@@ -47,6 +47,8 @@ async function readImageStream(res: Response): Promise<AiImageResponse> {
             images: payload.images,
             creditsSpent: payload.creditsSpent ?? 0,
             jobId: payload.jobId,
+            generationId: payload.generationId,
+            storageRefs: payload.storageRefs,
           };
         }
         lastError = new ImageGenerationError(payload.error || "ai-failed", 502);

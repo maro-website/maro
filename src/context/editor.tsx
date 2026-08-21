@@ -341,7 +341,11 @@ export function EditorProvider({
       });
       setHtmlSelectionState((current) =>
         current && current.pageId === target.pageId && current.path.join(".") === target.path.join(".")
-          ? { ...current, ...patch }
+          ? {
+              ...current,
+              ...patch,
+              styles: patch.styles ? { ...current.styles, ...patch.styles } : current.styles,
+            }
           : current
       );
       markSaving();

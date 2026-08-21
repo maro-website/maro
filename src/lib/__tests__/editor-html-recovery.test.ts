@@ -102,10 +102,35 @@ describe("maroWeb HTML editor recovery", () => {
         tagName: "h1",
         kind: "text",
         text: "Hello",
+        styles: {
+          color: "rgb(0, 0, 0)",
+          backgroundColor: "rgba(0, 0, 0, 0)",
+          fontFamily: "Inter",
+          fontSize: "16px",
+          fontWeight: "400",
+          lineHeight: "24px",
+          letterSpacing: "0px",
+          textAlign: "left",
+          paddingTop: "0px",
+          paddingRight: "0px",
+          paddingBottom: "0px",
+          paddingLeft: "0px",
+          borderRadius: "0px",
+          width: "100px",
+          height: "24px",
+          objectFit: "fill",
+          opacity: "1",
+        },
       },
     };
 
     expect(isHtmlEditorBridgeMessage(message, "editor-1")).toBe(true);
+    expect(
+      isHtmlEditorBridgeMessage(
+        { ...message, selection: { ...message.selection, styles: undefined } },
+        "editor-1"
+      )
+    ).toBe(false);
     expect(isHtmlEditorBridgeMessage(message, "another-editor")).toBe(false);
     expect(
       isHtmlEditorBridgeMessage(
@@ -114,4 +139,5 @@ describe("maroWeb HTML editor recovery", () => {
       )
     ).toBe(false);
   });
+
 });

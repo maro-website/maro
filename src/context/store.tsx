@@ -19,6 +19,7 @@ import {
   updateMyCreation,
   deleteMyCreation,
 } from "@/lib/services/creationsService";
+import { mergeServerCreations } from "@/lib/creations/mergeCreations";
 import { uid } from "@/lib/utils/format";
 import { prefetchPublicSettings } from "@/lib/settings/publicSettings";
 import { resolveAccessRole, type AccessRole } from "@/lib/admin/permissions";
@@ -143,28 +144,10 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const syncServerCreations = useCallback(
     (scopeId: string) => {
       void fetchMyCreations().then((server) => {
-        if (server.length === 0) return;
+        if (server === null) return;
         setState((s) => {
           if (workspaceScopeRef.current !== scopeId) return s;
-          const byUrl = new Map<string, ImageCreation>();
-          for (const c of s.creations) {
-            const u = c.urls?.[0];
-            if (u) byUrl.set(u, c);
-          }
-          const merged = s.creations.map((c) => {
-            const u = c.urls?.[0];
-            const srv = u ? server.find((x) => x.urls?.[0] === u) : undefined;
-            return srv ? { ...c, favourite: srv.favourite, title: srv.title ?? c.title } : c;
-          });
-          const additions = server
-            .filter((srv) => {
-              const u = srv.urls?.[0];
-              return u && !byUrl.has(u);
-            })
-            .map((srv) => ({ ...srv, workspaceId: srv.workspaceId ?? scopeId }));
-          const next = [...additions, ...merged].sort((a, b) =>
-            (b.createdAt || "").localeCompare(a.createdAt || "")
-          );
+          const next = mergeServerCreations(s.creations, server, scopeId);
           writeJSON(creationsKey(scopeId), next);
           return { ...s, creations: next };
         });
@@ -463,7 +446,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     (id: string, title: string) => {
       setState((s) => {
         const target = s.creations.find((c) => c.id === id);
-        if (target) void updateMyCreation(target.urls?.[0], { title });
+        if (target) void updateMyCreation(target.urls?.[0], { title }, target.serverId);
         const creations = s.creations.map((c) =>
           c.id === id ? { ...c, title } : c
         );
@@ -478,7 +461,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       setState((s) => {
         const target = s.creations.find((c) => c.id === id);
-        if (target) void updateMyCreation(target.urls?.[0], { favourite: !target.favourite });
+        if (target) void updateMyCreation(target.urls?.[0], { favourite: !target.favourite }, target.serverId);
         const creations = s.creations.map((c) =>
           c.id === id ? { ...c, favourite: !c.favourite } : c
         );
@@ -493,7 +476,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       setState((s) => {
         const target = s.creations.find((c) => c.id === id);
-        if (target) void deleteMyCreation(target.urls?.[0]);
+        if (target) void deleteMyCreation(target.urls?.[0], target.serverId);
         const creations = s.creations.filter((c) => c.id !== id);
         persistCreations(creations);
         return { ...s, creations };
