@@ -3,6 +3,9 @@ import "server-only";
 /** Decoded raster image limit for user avatars and reference uploads (5 MiB). */
 export const MAX_USER_IMAGE_BYTES = 5 * 1024 * 1024;
 
+/** Private maroImazh/maroLogo references may be normal phone/design exports. */
+export const MAX_IMAGE_REFERENCE_BYTES = 25 * 1024 * 1024;
+
 /** Admin banner uploads may be slightly larger (8 MiB decoded). */
 export const MAX_ADMIN_RASTER_BYTES = 8 * 1024 * 1024;
 
@@ -31,7 +34,7 @@ export type UploadValidationResult =
 const DATA_URL_RE =
   /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i;
 
-function detectRasterKind(bytes: Buffer): AllowedRasterKind | null {
+export function detectRasterKind(bytes: Buffer): AllowedRasterKind | null {
   if (
     bytes.length >= 8 &&
     bytes[0] === 0x89 &&
@@ -60,13 +63,13 @@ function detectRasterKind(bytes: Buffer): AllowedRasterKind | null {
   return null;
 }
 
-function mimeForKind(kind: AllowedRasterKind): string {
+export function mimeForKind(kind: AllowedRasterKind): string {
   if (kind === "png") return "image/png";
   if (kind === "webp") return "image/webp";
   return "image/jpeg";
 }
 
-function extensionForKind(kind: AllowedRasterKind): "png" | "jpg" | "webp" {
+export function extensionForKind(kind: AllowedRasterKind): "png" | "jpg" | "webp" {
   if (kind === "png") return "png";
   if (kind === "webp") return "webp";
   return "jpg";
@@ -130,6 +133,31 @@ export function validateRasterUpload(input: {
     mime: mimeForKind(detected),
     extension: extensionForKind(detected),
     storageKey: buildStorageKey(input.storagePrefix, input.userId, extensionForKind(detected)),
+  };
+}
+
+export function validateRasterBytes(
+  bytes: Buffer,
+  maxBytes: number,
+  claimedMime?: string
+):
+  | { ok: true; bytes: Buffer; mediaType: AllowedRasterKind; mime: string; extension: "png" | "jpg" | "webp" }
+  | { ok: false; reason: string } {
+  if (!bytes.length) return { ok: false, reason: "invalid_file" };
+  if (bytes.length > maxBytes) return { ok: false, reason: "file_too_large" };
+  const detected = detectRasterKind(bytes);
+  if (!detected) return { ok: false, reason: "invalid_magic_bytes" };
+  if (claimedMime) {
+    const claimed = claimedKindFromMime(claimedMime);
+    if (!claimed) return { ok: false, reason: "unsupported_mime" };
+    if (claimed !== detected) return { ok: false, reason: "mime_mismatch" };
+  }
+  return {
+    ok: true,
+    bytes,
+    mediaType: detected,
+    mime: mimeForKind(detected),
+    extension: extensionForKind(detected),
   };
 }
 

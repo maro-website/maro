@@ -22,6 +22,13 @@ type ImageStreamPayload =
   | { ok: true; images: string[]; creditsSpent?: number; jobId?: string; generationId?: string; storageRefs?: string[] }
   | { ok: false; error?: string; detail?: string; refunded?: boolean; jobId?: string };
 
+export function serializeImageGenerationRequest(req: AiImageRequest, idempotencyKey: string): string {
+  if ((req.attachments ?? []).some((ref) => ref.startsWith("data:image/") || ref.startsWith("blob:"))) {
+    throw new ImageGenerationError("reference_not_uploaded", 400);
+  }
+  return JSON.stringify({ ...req, idempotencyKey });
+}
+
 async function readImageStream(res: Response): Promise<AiImageResponse> {
   if (!res.body) throw new ImageGenerationError("ai-failed", 502);
 
@@ -69,7 +76,7 @@ export async function generateImages(req: AiImageRequest): Promise<AiImageRespon
   const res = await fetch("/api/ai/image", {
     method: "POST",
     headers: aiFetchHeaders(token, idempotencyKey),
-    body: JSON.stringify({ ...req, idempotencyKey }),
+    body: serializeImageGenerationRequest(req, idempotencyKey),
   });
 
   if (res.status === 402) {

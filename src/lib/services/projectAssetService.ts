@@ -1,6 +1,7 @@
-import { getAccessToken } from "@/lib/supabase/client";
+import { getAccessToken, getSupabaseBrowser } from "@/lib/supabase/client";
 
 export const MAX_PROJECT_ASSET_FILE_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_REFERENCE_FILE_BYTES = 25 * 1024 * 1024;
 
 function fileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -12,6 +13,47 @@ function fileAsDataUrl(file: File): Promise<string> {
 }
 
 export type UploadedProjectAsset = { url: string; storageRef: string };
+
+async function directUploadPrivateImage(
+  file: File,
+  purpose: "project-asset" | "image-reference"
+): Promise<UploadedProjectAsset> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("unauthorized");
+  const prepare = await fetch("/api/projects/assets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "prepare", purpose, name: file.name, type: file.type, size: file.size }),
+  });
+  const prepared = (await prepare.json().catch(() => ({}))) as {
+    path?: string;
+    uploadToken?: string;
+    storageRef?: string;
+    error?: string;
+  };
+  if (!prepare.ok || !prepared.path || !prepared.uploadToken || !prepared.storageRef) {
+    throw new Error(prepared.error ?? "upload-failed");
+  }
+
+  const { error: uploadError } = await getSupabaseBrowser()
+    .storage.from("generations")
+    .uploadToSignedUrl(prepared.path, prepared.uploadToken, file, {
+      contentType: file.type,
+      cacheControl: "31536000",
+    });
+  if (uploadError) throw new Error("upload-failed");
+
+  const finalize = await fetch("/api/projects/assets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "finalize", purpose, storageRef: prepared.storageRef }),
+  });
+  const completed = (await finalize.json().catch(() => ({}))) as UploadedProjectAsset & { error?: string };
+  if (!finalize.ok || !completed.url || !completed.storageRef) {
+    throw new Error(completed.error ?? "upload-failed");
+  }
+  return completed;
+}
 
 export function legacyProjectAssetStorageRef(value: string): string | null {
   const marker = "/storage/v1/object/public/generations/public/project-assets/";
@@ -51,9 +93,22 @@ async function uploadProjectAssetDataUrlInternal(dataUrl: string): Promise<Uploa
 }
 
 export async function uploadProjectAsset(file: File): Promise<UploadedProjectAsset> {
-  if (!file.type.startsWith("image/")) throw new Error("invalid-file-type");
+  if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) throw new Error("invalid-file-type");
   if (file.size > MAX_PROJECT_ASSET_FILE_BYTES) throw new Error("file-too-large");
-  return uploadProjectAssetDataUrlInternal(await fileAsDataUrl(file));
+  return directUploadPrivateImage(file, "project-asset");
+}
+
+export async function uploadImageReference(file: File): Promise<UploadedProjectAsset> {
+  if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) throw new Error("invalid-file-type");
+  if (file.size > MAX_IMAGE_REFERENCE_FILE_BYTES) throw new Error("file-too-large");
+  return directUploadPrivateImage(file, "image-reference");
+}
+
+export async function uploadImageReferenceDataUrl(dataUrl: string, name = "reference"): Promise<UploadedProjectAsset> {
+  if (!/^data:image\/(?:png|jpe?g|webp);base64,/i.test(dataUrl)) throw new Error("invalid-file-type");
+  const blob = await (await fetch(dataUrl)).blob();
+  const extension = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
+  return uploadImageReference(new File([blob], `${name}.${extension}`, { type: blob.type }));
 }
 
 /** Upload a composer preview that has already been read as a data URL. */
@@ -80,7 +135,7 @@ export async function resolvePrivateAssetRefs(refs: string[]): Promise<Record<st
 export function projectAssetErrorMessage(error: unknown): string {
   const code = error instanceof Error ? error.message : "upload-failed";
   if (code === "file-too-large" || code === "file_too_large" || code === "too-large") {
-    return "Imazhi duhet të jetë maksimumi 5 MB.";
+    return "Imazhi është tepër i madh. Për referenca përdor një PNG, JPG ose WebP deri në 25 MB.";
   }
   if (
     code === "invalid-file-type" ||

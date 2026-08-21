@@ -103,7 +103,7 @@ export function toSafeAttachmentMeta(
       const mime = parseDataUrlMime(a) ?? "image";
       return { type: mime, url: "data-url" };
     }
-    if (a.startsWith("http")) return { type: "image", url: a };
+    if (a.startsWith("http") || a.startsWith("storage:generations/")) return { type: "image", url: a };
     return { type: "unknown" };
   });
 }

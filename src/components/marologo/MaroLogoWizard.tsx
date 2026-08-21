@@ -24,6 +24,7 @@ import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { Modal } from "@/components/ui/Modal";
 import { uid } from "@/lib/utils/format";
+import { projectAssetErrorMessage, uploadImageReferenceDataUrl } from "@/lib/services/projectAssetService";
 import type { ImageCreation } from "@/lib/types";
 import { MaroLogoIntro } from "./MaroLogoIntro";
 import { MaroLogoGenerating } from "./MaroLogoGenerating";
@@ -58,7 +59,13 @@ function reducer(state: MaroLogoAppState, action: Action): MaroLogoAppState {
   }
 }
 
-const IMG_ERRORS: Record<string, string> = { "no-key": "Gjenerimi nuk është i disponueshëm.", "ai-failed": "Gjenerimi dështoi. Provo përsëri.", empty: "Modeli nuk ktheu imazh." };
+const IMG_ERRORS: Record<string, string> = {
+  "no-key": "Gjenerimi nuk është i disponueshëm.",
+  "ai-failed": "Gjenerimi dështoi. Provo përsëri.",
+  empty: "Modeli nuk ktheu imazh.",
+  reference_not_uploaded: "Referenca nuk u ngarkua. Hiqe dhe provo përsëri.",
+  file_too_large: "Imazhi është tepër i madh. Përdor PNG, JPG ose WebP deri në 25 MB.",
+};
 
 export function MaroLogoWizard() {
   const router = useRouter();
@@ -122,7 +129,12 @@ export function MaroLogoWizard() {
     const fort = fortAvailable && fortActive && hasFort ? { enabled: true, values: fortValues } : undefined;
 
     try {
-      const res = await generateImages(buildGenerationRequest(state.wizard, state.references, fort));
+      const canonicalReferences = await Promise.all(
+        state.references.slice(0, 3).map(async (reference, index) =>
+          (await uploadImageReferenceDataUrl(reference.dataUrl, `maro-logo-reference-${index + 1}`)).storageRef
+        )
+      );
+      const res = await generateImages(buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences));
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"), serverId: res.generationId, storageRefs: res.storageRefs, workspaceId,
@@ -137,7 +149,7 @@ export function MaroLogoWizard() {
       dispatch({ type: "SET_PHASE", phase: 3 });
       if (err instanceof InsufficientCreditsError) { setShowBuy(true); toast("Nuk ke kredite të mjaftueshme.", "error"); }
       else if (err instanceof ImageGenerationError) toast(IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`, "error");
-      else toast("Gabim i papritur. Provo përsëri.", "error");
+      else toast(projectAssetErrorMessage(err), "error");
     } finally {
       generatingRef.current = false;
       setIsGenerating(false);

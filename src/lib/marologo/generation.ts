@@ -32,9 +32,10 @@ export function buildGenerationSelections(wizard: MaroLogoWizardState): Record<s
 export function buildGenerationRequest(
   wizard: MaroLogoWizardState,
   references: UploadedReference[],
-  fort?: FortPayload
+  fort?: FortPayload,
+  canonicalReferences?: string[]
 ): AiImageRequest {
-  const refs = references.slice(0, 3).map((r) => r.dataUrl);
+  const refs = (canonicalReferences ?? []).slice(0, 3);
   const brief = buildMaroLogoBrief(wizard, refs.length > 0);
 
   return {

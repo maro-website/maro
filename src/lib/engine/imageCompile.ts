@@ -172,7 +172,7 @@ export function resolveImageReferences(input: {
     }
     if (isUsableDataImage(raw)) {
       pushRef("user", raw, true);
-    } else if (raw.startsWith("http")) {
+    } else if (raw.startsWith("http") || raw.startsWith("storage:generations/")) {
       const fetched = input.fetchedUrls?.has(raw) ?? false;
       pushRef("user", raw, fetched);
     }
@@ -264,7 +264,7 @@ export function hasImageReferenceAttachments(
   attachments?: Array<string | CompileAttachmentMeta>
 ): boolean {
   return (attachments ?? []).some((a) => {
-    if (typeof a === "string") return a.startsWith("data:image/");
+    if (typeof a === "string") return a.startsWith("data:image/") || a.startsWith("storage:generations/");
     return a.type.startsWith("image") || (a.url?.startsWith("data:image/") ?? false);
   });
 }

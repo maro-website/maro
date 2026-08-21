@@ -7,7 +7,7 @@ export interface AiImageRequest {
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
-  /** Optional reference images as data URLs (used as extra prompt context). */
+  /** Canonical private `storage:generations/...` image references. */
   attachments?: string[];
   /** Product variant (e.g. logo package) — legacy. */
   variant?: string;

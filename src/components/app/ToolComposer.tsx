@@ -34,7 +34,9 @@ import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
 import { createProjectFromComposer, TYPE_TO_KIND } from "@/lib/services/projectService";
 import {
   MAX_PROJECT_ASSET_FILE_BYTES,
+  MAX_IMAGE_REFERENCE_FILE_BYTES,
   projectAssetErrorMessage,
+  uploadImageReferenceDataUrl,
   uploadProjectAssetDataUrl,
 } from "@/lib/services/projectAssetService";
 import {
@@ -93,6 +95,13 @@ const IMG_ERRORS: Record<string, string> = {
   "bad-tool": "Tool i pavlefshëm.",
   "http-524": "Gjenerimi zgjati shumë (Cloudflare timeout). Provo përsëri.",
   "http-504": "Gjenerimi zgjati shumë dhe u ndërpre. Provo përsëri.",
+  payload_too_large: "Referenca është tepër e madhe për t’u dërguar. Hiqe dhe ngarkoje përsëri që të ruhet privatisht.",
+  reference_not_uploaded: "Referenca nuk u ngarkua. Hiqe dhe provo ta ngarkosh përsëri.",
+  invalid_image_reference: "Referenca e imazhit nuk është e vlefshme.",
+  forbidden_reference: "Nuk ke qasje në këtë referencë private.",
+  reference_not_found: "Referenca nuk u gjet më. Ngarkoje përsëri.",
+  file_too_large: "Imazhi është tepër i madh. Përdor PNG, JPG ose WebP deri në 25 MB.",
+  unsupported_mime: "Formati nuk mbështetet. Përdor PNG, JPG ose WebP.",
 };
 
 const AUDIO_ERRORS: Record<string, string> = {
@@ -108,6 +117,7 @@ const AUDIO_ERRORS: Record<string, string> = {
 
 const MAX_ATTACHMENTS = 4;
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+const IMAGE_REFERENCE_TRANSFER_KEY = "maro:image-reference";
 
 const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   kadale: "slow",
@@ -157,6 +167,8 @@ export function ToolComposer({
   const [prompt, setPrompt] = React.useState("");
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
   const [attachments, setAttachments] = React.useState<string[]>([]);
+  const [attachmentStorageRefs, setAttachmentStorageRefs] = React.useState<Record<string, string>>({});
+  const [uploadingReferences, setUploadingReferences] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
@@ -244,6 +256,7 @@ export function ToolComposer({
     }
     setPrompt(draft);
     setAttachments([]);
+    setAttachmentStorageRefs({});
     setAudioInput(null);
     setFortActive(false);
     setFortModalOpen(false);
@@ -262,6 +275,24 @@ export function ToolComposer({
     }
     setPromptAttach(attach);
     saveLastTool(tool.id);
+
+    // maroLogo → maroImazh keeps the already-private generation identity. The
+    // signed URL is display-only and is never persisted as the reference.
+    if (tool.kind === "image" && tool.id !== "logo") {
+      try {
+        const transferred = sessionStorage.getItem(IMAGE_REFERENCE_TRANSFER_KEY);
+        if (transferred) {
+          const parsed = JSON.parse(transferred) as { storageRef?: string; previewUrl?: string };
+          if (parsed.storageRef?.startsWith("storage:generations/") && parsed.previewUrl) {
+            setAttachments([parsed.previewUrl]);
+            setAttachmentStorageRefs({ [parsed.previewUrl]: parsed.storageRef });
+          }
+          sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
+        }
+      } catch {
+        sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
+      }
+    }
 
     // Remix from Explore — pre-fill prompt
     try {
@@ -387,13 +418,13 @@ export function ToolComposer({
           toast("Format i pavlefshëm.");
           return;
         }
-        if (isWebsite && !/^image\/(?:png|jpe?g|webp)$/i.test(blob.type)) {
-          toast("Për maroWeb zgjidh PNG, JPG ose WebP.");
+        if (!/^image\/(?:png|jpe?g|webp)$/i.test(blob.type)) {
+          toast("Zgjidh një imazh PNG, JPG ose WebP.");
           return;
         }
-        const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : 8 * 1024 * 1024;
+        const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : MAX_IMAGE_REFERENCE_FILE_BYTES;
         if (blob.size > maxBytes) {
-          toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 8}MB).`);
+          toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 25}MB).`);
           return;
         }
         const reader = new FileReader();
@@ -416,8 +447,8 @@ export function ToolComposer({
 
   const addImageFiles = React.useCallback(
     (files: File[]) => {
-      if (isWebsite && files.some((file) => !/^image\/(?:png|jpe?g|webp)$/i.test(file.type))) {
-        toast("Për maroWeb zgjidh PNG, JPG ose WebP.");
+      if (files.some((file) => !/^image\/(?:png|jpe?g|webp)$/i.test(file.type))) {
+        toast("Zgjidh një imazh PNG, JPG ose WebP.");
       }
       setAttachments((current) => {
         const room = MAX_ATTACHMENTS - current.length;
@@ -428,14 +459,13 @@ export function ToolComposer({
         files
           .filter(
             (f) =>
-              f.type.startsWith("image/") &&
-              (!isWebsite || /^image\/(?:png|jpe?g|webp)$/i.test(f.type))
+              /^image\/(?:png|jpe?g|webp)$/i.test(f.type)
           )
           .slice(0, room)
           .forEach((f) => {
-            const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : 8 * 1024 * 1024;
+            const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : MAX_IMAGE_REFERENCE_FILE_BYTES;
             if (f.size > maxBytes) {
-              toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 8}MB).`);
+              toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 25}MB).`);
               return;
             }
             const reader = new FileReader();
@@ -608,6 +638,7 @@ export function ToolComposer({
     }
 
     const sentAttachments = attachments.length ? [...attachments] : undefined;
+    const sentAttachmentRefs = { ...attachmentStorageRefs };
     const maroId = uid("g");
     const now = new Date().toISOString();
     const labels = resolveGenerationLabels(tool, selections);
@@ -632,16 +663,25 @@ export function ToolComposer({
     ]);
     setPrompt("");
     setAttachments([]);
+    setAttachmentStorageRefs({});
     // Generation started — the maroFort pop-up is no longer needed on screen.
     setFortModalOpen(false);
     setLoading(true);
     try {
+      setUploadingReferences(Boolean(sentAttachments?.length));
+      const canonicalAttachments = sentAttachments?.length
+        ? [...new Set(await Promise.all(sentAttachments.map(async (preview, index) =>
+            sentAttachmentRefs[preview] ??
+            (await uploadImageReferenceDataUrl(preview, `maro-imazh-reference-${index + 1}`)).storageRef
+          )))]
+        : undefined;
+      setUploadingReferences(false);
       const res = await generateImages({
         toolId: tool.id as "logo" | "reklama",
         prompt: text,
         selections,
         quality: "high",
-        attachments: sentAttachments,
+        attachments: canonicalAttachments,
         fort: fortPayload,
         maroPrompt: maroPromptPayload,
         workspaceId,
@@ -680,6 +720,7 @@ export function ToolComposer({
         errMsg = IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`;
         toast(errMsg);
       } else {
+        errMsg = projectAssetErrorMessage(err);
         toast(errMsg);
       }
       setMessages((m) =>
@@ -688,9 +729,10 @@ export function ToolComposer({
         )
       );
     } finally {
+      setUploadingReferences(false);
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand]);
+  }, [prompt, tool, selections, attachments, attachmentStorageRefs, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
@@ -876,6 +918,10 @@ export function ToolComposer({
                 </div>
               ))}
             </div>
+          )}
+
+          {uploadingReferences && (
+            <div className="mb-2 text-[12.5px] font-medium text-ink-3">Duke ngarkuar referencat privatisht…</div>
           )}
 
           {isAudio && needsAudioInput && audioInput && (

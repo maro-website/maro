@@ -57,7 +57,7 @@ function parseDataUrlMime(value: string): string | undefined {
   return m?.[1];
 }
 
-/** Compile attachments preserve user data URLs; HTTP refs rely on fetchedUrls in map opts. */
+/** Compile attachments keep only lightweight identifiers; bytes stay route-local. */
 export function buildEngineCompileAttachments(attachments?: string[]): CompileAttachmentMeta[] {
   return (attachments ?? [])
     .filter((a): a is string => typeof a === "string")
@@ -66,6 +66,7 @@ export function buildEngineCompileAttachments(attachments?: string[]): CompileAt
         const mime = parseDataUrlMime(a) ?? "image/png";
         return { type: mime, url: a };
       }
+      if (a.startsWith("storage:generations/")) return { type: "image", url: a };
       if (a.startsWith("http")) return { type: "image", url: a };
       return { type: "unknown" };
     })

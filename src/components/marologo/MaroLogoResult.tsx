@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Download } from "lucide-react";
+import { Download, ImagePlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { CreationLightbox } from "@/components/app/cards";
 import type { ImageCreation } from "@/lib/types";
@@ -14,7 +15,9 @@ export function MaroLogoResult({
   onRestart: () => void;
 }) {
   const [lightbox, setLightbox] = React.useState(false);
+  const router = useRouter();
   const url = creation.urls[0];
+  const storageRef = creation.storageRefs?.[0];
 
   const download = () => {
     if (!url) return;
@@ -24,6 +27,15 @@ export function MaroLogoResult({
     a.target = "_blank";
     a.rel = "noopener";
     a.click();
+  };
+
+  const useInMaroImazh = () => {
+    if (!url || !storageRef?.startsWith("storage:generations/")) return;
+    sessionStorage.setItem(
+      "maro:image-reference",
+      JSON.stringify({ storageRef, previewUrl: url })
+    );
+    router.push("/imazh");
   };
 
   return (
@@ -43,6 +55,11 @@ export function MaroLogoResult({
         <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} onClick={download}>
           Shkarko
         </Button>
+        {storageRef?.startsWith("storage:generations/") && (
+          <Button type="button" variant="secondary" icon={<ImagePlus className="h-4 w-4" />} onClick={useInMaroImazh}>
+            Përdor në maroImazh
+          </Button>
+        )}
         <Button type="button" onClick={onRestart}>
           Maro logo tjetër
         </Button>

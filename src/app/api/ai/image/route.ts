@@ -3,6 +3,7 @@ import { IMAGE_MODEL, generateImages, editImages, hasOpenAiKey, OpenAIImageError
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import {
   getAppSettings,
+  getUserFromToken,
   getPromptTemplate,
   getWorkspaceBrand,
   getWorkspaceBrainProfile,
@@ -63,10 +64,16 @@ import {
   validateRasterUpload,
 } from "@/lib/security/uploadValidation";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { resolvePrivateImageReference, type ResolvedImageReference } from "@/lib/ai/imageReferences";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+
+function bearer(req: Request): string | null {
+  const header = req.headers.get("authorization") || req.headers.get("Authorization");
+  return header?.startsWith("Bearer ") ? header.slice(7) : header;
+}
 
 export async function POST(req: Request) {
   if (!hasOpenAiKey()) {
@@ -94,6 +101,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing-prompt" }, { status: 400 });
   }
 
+  const declaredAttachments = [...new Set(body.attachments ?? [])];
+  if (
+    declaredAttachments.length !== (body.attachments ?? []).length ||
+    declaredAttachments.length > IMAGE_PROVIDER_REF_LIMIT ||
+    declaredAttachments.some(
+      (value) =>
+        typeof value !== "string" ||
+        (!value.startsWith("storage:generations/") && !value.startsWith("data:image/"))
+    )
+  ) {
+    return NextResponse.json({ error: "invalid_image_reference" }, { status: 400 });
+  }
+  body.attachments = declaredAttachments;
+
+  // Resolve canonical private references before reserving credits. This keeps
+  // ownership/format failures out of the financial generation lifecycle.
+  const preResolved = new Map<string, ResolvedImageReference>();
+  if (declaredAttachments.some((value) => value.startsWith("storage:generations/"))) {
+    const referenceOwner = await getUserFromToken(bearer(req));
+    if (!referenceOwner) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    for (const storageRef of declaredAttachments) {
+      if (!storageRef.startsWith("storage:generations/")) continue;
+      try {
+        preResolved.set(storageRef, await resolvePrivateImageReference(storageRef, referenceOwner.id));
+      } catch (error) {
+        const code = (error as Error)?.message ?? "invalid_image_reference";
+        const status = code === "forbidden_reference" ? 403 : code === "reference_not_found" ? 404 : 400;
+        return NextResponse.json({ error: code }, { status });
+      }
+    }
+  }
+
   const settings = await getAppSettings();
   const selections = body.selections ?? {};
   if (tool.id === "logo" && body.fort?.enabled) {
@@ -115,9 +154,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const hasRefs = (body.attachments ?? []).some(
-    (a) => typeof a === "string" && a.startsWith("data:image/")
-  );
+  const hasRefs = (body.attachments ?? []).length > 0;
   if (hasRefs) {
     finalPrompt = `${finalPrompt}\n\n${tool.id === "logo" ? LOGO_REFERENCE_DIRECTION : "IMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition."}`;
   }
@@ -214,6 +251,15 @@ export async function POST(req: Request) {
 
   const refTracker = createImageReferenceTracker();
   const fetchedUrls: string[] = [];
+  const refs: string[] = [];
+  const resolvedDigests = new Set<string>();
+
+  const appendResolved = (resolved: ResolvedImageReference) => {
+    if (resolvedDigests.has(resolved.digest)) return false;
+    resolvedDigests.add(resolved.digest);
+    refs.push(resolved.dataUrl);
+    return true;
+  };
 
   for (const attachment of body.attachments ?? []) {
     if (typeof attachment !== "string") continue;
@@ -227,13 +273,19 @@ export async function POST(req: Request) {
       if (!validated.ok) {
         return NextResponse.json({ error: validated.reason }, { status: 400 });
       }
+      if (!refs.includes(attachment)) refs.push(attachment);
+      refTracker.recordAttempt("user", attachment, true);
+      continue;
     }
-    refTracker.recordAttempt("user", attachment);
+    if (attachment.startsWith("storage:generations/")) {
+      const resolved = preResolved.get(attachment);
+      if (!resolved) return NextResponse.json({ error: "reference_not_found" }, { status: 404 });
+      appendResolved(resolved);
+      fetchedUrls.push(attachment);
+      refTracker.recordAttempt("user", attachment, true);
+      continue;
+    }
   }
-
-  const refs = (body.attachments ?? []).filter(
-    (a) => typeof a === "string" && a.startsWith("data:image/")
-  );
 
   async function pushRefFromUrl(
     url: string,
@@ -241,6 +293,18 @@ export async function POST(req: Request) {
   ) {
     const u = url.trim();
     if (!u) return;
+    if (u.startsWith("storage:generations/") && userId) {
+      refTracker.recordAttempt(sourceType, u, false);
+      try {
+        const resolved = preResolved.get(u) ?? (await resolvePrivateImageReference(u, userId));
+        appendResolved(resolved);
+        refTracker.markUsable(u);
+        if (!fetchedUrls.includes(u)) fetchedUrls.push(u);
+      } catch {
+        /* inaccessible workspace reference stays unusable */
+      }
+      return;
+    }
     if (u.startsWith("data:image/")) {
       refTracker.recordAttempt(sourceType, u, true);
       if (!refs.includes(u)) refs.push(u);
@@ -261,7 +325,7 @@ export async function POST(req: Request) {
       const dataUrl = `data:${mime};base64,${b64}`;
       refTracker.markUsable(u);
       fetchedUrls.push(u);
-      refs.push(dataUrl);
+      if (!refs.includes(dataUrl)) refs.push(dataUrl);
     } catch {
       /* skip failed reference fetch — legacy falls back when none remain */
     }
