@@ -10,9 +10,10 @@ import { AssetsPanel } from "./panels/AssetsPanel";
 import { PagesPanel } from "./panels/PagesPanel";
 import { VersionsPanel } from "./panels/VersionsPanel";
 import { SeoPanel } from "./panels/SeoPanel";
-import { Palette, Type, ImageIcon, Files, History, Search } from "lucide-react";
+import { SourcePanel } from "./panels/SourcePanel";
+import { Code2, Palette, Type, ImageIcon, Files, History, Search } from "lucide-react";
 
-const TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
+const SECTION_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
   { key: "design", icon: Palette, label: "Design" },
   { key: "content", icon: Type, label: "Content" },
   { key: "assets", icon: ImageIcon, label: "Assets" },
@@ -21,32 +22,44 @@ const TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
   { key: "seo", icon: Search, label: "SEO" },
 ];
 
+const HTML_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
+  { key: "code", icon: Code2, label: "Kodi" },
+  { key: "pages", icon: Files, label: "Faqet" },
+];
+
 export function RightSidebar() {
-  const { rightTab, setRightTab } = useEditor();
+  const { project, rightTab, setRightTab } = useEditor();
+  const tabs = project.renderMode === "html" ? HTML_TABS : SECTION_TABS;
+  const activeTab = tabs.some((tab) => tab.key === rightTab) ? rightTab : tabs[0].key;
+
+  React.useEffect(() => {
+    if (activeTab !== rightTab) setRightTab(activeTab);
+  }, [activeTab, rightTab, setRightTab]);
 
   return (
     <div className="flex h-full">
       <div className="scroll-thin flex-1 overflow-y-auto bg-canvas">
         <div className="flex h-11 items-center px-4 text-[13px] font-bold capitalize text-ink">
-          {TABS.find((t) => t.key === rightTab)?.label}
+          {tabs.find((t) => t.key === activeTab)?.label}
         </div>
-        {rightTab === "design" && <DesignPanel />}
-        {rightTab === "content" && <ContentPanel />}
-        {rightTab === "assets" && <AssetsPanel />}
-        {rightTab === "pages" && <PagesPanel />}
-        {rightTab === "versions" && <VersionsPanel />}
-        {rightTab === "seo" && <SeoPanel />}
+        {activeTab === "code" && <SourcePanel />}
+        {activeTab === "design" && <DesignPanel />}
+        {activeTab === "content" && <ContentPanel />}
+        {activeTab === "assets" && <AssetsPanel />}
+        {activeTab === "pages" && <PagesPanel />}
+        {activeTab === "versions" && <VersionsPanel />}
+        {activeTab === "seo" && <SeoPanel />}
       </div>
 
       {/* Icon rail */}
       <div className="flex w-14 shrink-0 flex-col items-center gap-1 bg-surface py-3">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <Tooltip key={t.key} content={t.label} side="bottom">
             <button
               onClick={() => setRightTab(t.key)}
               className={cn(
                 "grid h-10 w-10 place-items-center rounded-xl transition-all",
-                rightTab === t.key ? "bg-surface-2 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink"
+                activeTab === t.key ? "bg-surface-2 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink"
               )}
             >
               <t.icon className="h-[18px] w-[18px]" />

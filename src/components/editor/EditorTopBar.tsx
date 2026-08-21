@@ -101,7 +101,7 @@ export function EditorTopBar({ onPublish, onPreview }: { onPublish: () => void; 
           Preview
         </Button>
         <Button size="sm" icon={<Download className="h-4 w-4" />} onClick={onPublish}>
-          Shkarko
+          Shkarkoje
         </Button>
       </div>
     </header>

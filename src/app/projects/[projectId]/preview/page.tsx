@@ -13,7 +13,7 @@ import { ArrowLeft, Download } from "lucide-react";
 function PreviewInner() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { ready, getProject } = useMaro();
+  const { ready, getProject, updateProject } = useMaro();
   const project = getProject(projectId);
 
   if (!ready) {
@@ -79,7 +79,11 @@ function PreviewInner() {
           )}
         </div>
         <div className="min-h-0 flex-1">
-          <WebsitePreview project={project} fullHeight />
+          <WebsitePreview
+            project={project}
+            fullHeight
+            onActiveHtmlPageChange={(pageId) => updateProject(project.id, { activeHtmlPageId: pageId })}
+          />
         </div>
       </div>
     </AppShell>

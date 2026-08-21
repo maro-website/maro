@@ -83,11 +83,9 @@ function EditorInner() {
               <DeviceCanvas />
             </div>
 
-            {project.renderMode !== "html" && (
-              <div className="w-[340px] shrink-0">
-                <RightSidebar />
-              </div>
-            )}
+            <div className="w-[340px] shrink-0">
+              <RightSidebar />
+            </div>
           </div>
         </div>
 

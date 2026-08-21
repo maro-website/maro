@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import type { Project } from "@/lib/types";
 import { previewVars, buttonStyle } from "./theme";
 import { renderSection } from "./sections";
@@ -12,14 +11,14 @@ import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewF
 function HtmlPreview({
   project,
   fullHeight,
+  onActivePageChange,
 }: {
   project: Pick<Project, "htmlPages" | "activeHtmlPageId">;
   fullHeight: boolean;
+  onActivePageChange?: (pageId: string) => void;
 }) {
   const pages = project.htmlPages ?? [];
-  const [activeId, setActiveId] = React.useState(
-    project.activeHtmlPageId ?? pages[0]?.id
-  );
+  const activeId = project.activeHtmlPageId ?? pages[0]?.id;
   const active = pages.find((p) => p.id === activeId) ?? pages[0];
   if (!active) return null;
 
@@ -30,7 +29,7 @@ function HtmlPreview({
           {pages.map((p) => (
             <button
               key={p.id}
-              onClick={() => setActiveId(p.id)}
+              onClick={() => onActivePageChange?.(p.id)}
               className={
                 "rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
                 (p.id === active.id
@@ -74,6 +73,7 @@ export interface WebsitePreviewProps {
   editMode?: boolean;
   selected?: EditTarget | null;
   onSelect?: (t: EditTarget | null) => void;
+  onActiveHtmlPageChange?: (pageId: string) => void;
   className?: string;
   /** Fill more vertical space (used by the standalone preview page). */
   fullHeight?: boolean;
@@ -84,12 +84,19 @@ export function WebsitePreview({
   editMode = false,
   selected = null,
   onSelect,
+  onActiveHtmlPageChange,
   className,
   fullHeight = false,
 }: WebsitePreviewProps) {
   // Max-quality HTML mode: render Claude's document in a sandboxed iframe.
   if (project?.renderMode === "html" && project.htmlPages?.length) {
-    return <HtmlPreview project={project} fullHeight={fullHeight} />;
+    return (
+      <HtmlPreview
+        project={project}
+        fullHeight={fullHeight}
+        onActivePageChange={onActiveHtmlPageChange}
+      />
+    );
   }
 
   // Defensive: during Fast Refresh / transient states the project or its pages

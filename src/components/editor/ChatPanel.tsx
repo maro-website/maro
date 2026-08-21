@@ -72,8 +72,17 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
             <div className="flex items-start gap-2.5">
               <MaroSymbol className="mt-0.5 h-6 w-6" />
               <p className="text-[13px] leading-relaxed text-ink-2">
-                Website-i është gati. Mundesh me më tregu çka dëshiron me ndryshu, ose kliko direkt
-                mbi elementet në website.
+                {project.renderMode === "html" ? (
+                  <>
+                    Website-i është gati. Një ndryshim me maro AI kushton njësoj si gjenerimi i një website-i të ri.
+                    Për ndryshime të vogla, të sugjerojmë <strong>Kodi</strong> në të djathtë — editimet manuale janë falas.
+                  </>
+                ) : (
+                  <>
+                    Website-i është gati. Mundesh me më tregu çka dëshiron me ndryshu, ose kliko direkt mbi elementet
+                    në website.
+                  </>
+                )}
               </p>
             </div>
           </div>

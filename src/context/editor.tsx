@@ -22,17 +22,16 @@ import {
 } from "@/lib/services/aiEditService";
 import { requestHtmlEdit, htmlEditErrorMessage } from "@/lib/services/htmlEditService";
 import { uid, slugify } from "@/lib/utils/format";
+import {
+  applyEditorSnapshot,
+  createEditorSnapshot,
+  replaceHtmlPageSource,
+  type EditorSnapshot,
+} from "@/lib/editor/projectEditing";
 
 export type Device = "desktop" | "tablet" | "mobile";
-export type RightTab = "design" | "content" | "assets" | "pages" | "versions" | "seo";
+export type RightTab = "code" | "design" | "content" | "assets" | "pages" | "versions" | "seo";
 type SaveStatus = "saved" | "saving";
-
-interface Snapshot {
-  theme: Theme;
-  pages: WebsitePage[];
-  assets: Asset[];
-  activePageId: string;
-}
 
 interface EditorContextValue {
   project: Project;
@@ -57,6 +56,8 @@ interface EditorContextValue {
   renamePage: (id: string, name: string) => void;
   duplicatePage: (id: string) => void;
   deletePage: (id: string) => void;
+  setActiveHtmlPage: (id: string) => void;
+  updateHtmlPage: (id: string, html: string) => void;
   // assets
   addAssets: (urls: string[], category: AssetCategory) => void;
   deleteAsset: (id: string) => void;
@@ -72,15 +73,6 @@ interface EditorContextValue {
 
 const EditorContext = React.createContext<EditorContextValue | null>(null);
 
-function snapshot(p: Project): Snapshot {
-  return {
-    theme: structuredClone(p.theme),
-    pages: structuredClone(p.pages),
-    assets: structuredClone(p.assets),
-    activePageId: p.activePageId,
-  };
-}
-
 export function EditorProvider({
   project,
   children,
@@ -91,13 +83,18 @@ export function EditorProvider({
   const { updateProject, spendCredits } = useMaro();
 
   const [device, setDevice] = React.useState<Device>("desktop");
-  const [rightTab, setRightTab] = React.useState<RightTab>("design");
+  const [rightTab, setRightTab] = React.useState<RightTab>(
+    project.renderMode === "html" ? "code" : "design"
+  );
   const [selection, setSelectionState] = React.useState<EditTarget | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<SaveStatus>("saved");
-  const [past, setPast] = React.useState<Snapshot[]>([]);
-  const [future, setFuture] = React.useState<Snapshot[]>([]);
+  const [past, setPast] = React.useState<EditorSnapshot[]>([]);
+  const [future, setFuture] = React.useState<EditorSnapshot[]>([]);
   const [sending, setSending] = React.useState(false);
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const htmlHistoryTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const htmlHistoryOpen = React.useRef(false);
+  const htmlHistoryPageId = React.useRef<string | null>(null);
 
   const projectRef = React.useRef(project);
   projectRef.current = project;
@@ -108,51 +105,67 @@ export function EditorProvider({
     saveTimer.current = setTimeout(() => setSaveStatus("saved"), 650);
   }, []);
 
+  const closeHtmlHistoryGroup = React.useCallback(() => {
+    if (htmlHistoryTimer.current) clearTimeout(htmlHistoryTimer.current);
+    htmlHistoryTimer.current = null;
+    htmlHistoryOpen.current = false;
+    htmlHistoryPageId.current = null;
+  }, []);
+
+  const recordHistory = React.useCallback(() => {
+    const before = createEditorSnapshot(projectRef.current);
+    setPast((items) => [...items.slice(-40), before]);
+    setFuture([]);
+  }, []);
+
+  React.useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (htmlHistoryTimer.current) clearTimeout(htmlHistoryTimer.current);
+    },
+    []
+  );
+
   // Apply a mutation, recording history for undo/redo.
   const commit = React.useCallback(
     (mutate: (p: Project) => Project) => {
-      const before = snapshot(projectRef.current);
-      setPast((p) => [...p.slice(-40), before]);
-      setFuture([]);
+      closeHtmlHistoryGroup();
+      recordHistory();
       updateProject(projectRef.current.id, (p) => mutate(p));
       markSaving();
     },
-    [updateProject, markSaving]
+    [closeHtmlHistoryGroup, recordHistory, updateProject, markSaving]
   );
 
   const applySnapshot = React.useCallback(
-    (snap: Snapshot) => {
-      updateProject(projectRef.current.id, (p) => ({
-        ...p,
-        theme: snap.theme,
-        pages: snap.pages,
-        assets: snap.assets,
-        activePageId: snap.activePageId,
-      }));
+    (snap: EditorSnapshot) => {
+      updateProject(projectRef.current.id, (p) => applyEditorSnapshot(p, snap));
       markSaving();
     },
     [updateProject, markSaving]
   );
 
   const undo = React.useCallback(() => {
+    closeHtmlHistoryGroup();
     setPast((p) => {
       if (p.length === 0) return p;
       const prev = p[p.length - 1];
-      setFuture((f) => [snapshot(projectRef.current), ...f]);
+      setFuture((f) => [createEditorSnapshot(projectRef.current), ...f]);
       applySnapshot(prev);
       return p.slice(0, -1);
     });
-  }, [applySnapshot]);
+  }, [applySnapshot, closeHtmlHistoryGroup]);
 
   const redo = React.useCallback(() => {
+    closeHtmlHistoryGroup();
     setFuture((f) => {
       if (f.length === 0) return f;
       const nxt = f[0];
-      setPast((p) => [...p, snapshot(projectRef.current)]);
+      setPast((p) => [...p, createEditorSnapshot(projectRef.current)]);
       applySnapshot(nxt);
       return f.slice(1);
     });
-  }, [applySnapshot]);
+  }, [applySnapshot, closeHtmlHistoryGroup]);
 
   const setSelection = React.useCallback((t: EditTarget | null) => {
     setSelectionState(t);
@@ -261,6 +274,36 @@ export function EditorProvider({
     [commit]
   );
 
+  const setActiveHtmlPage = React.useCallback(
+    (id: string) => {
+      closeHtmlHistoryGroup();
+      updateProject(projectRef.current.id, (p) => {
+        if (p.activeHtmlPageId === id || !p.htmlPages?.some((page) => page.id === id)) return p;
+        return { ...p, activeHtmlPageId: id };
+      });
+      setSelectionState(null);
+      markSaving();
+    },
+    [closeHtmlHistoryGroup, markSaving, updateProject]
+  );
+
+  const updateHtmlPage = React.useCallback(
+    (id: string, html: string) => {
+      if (!htmlHistoryOpen.current || htmlHistoryPageId.current !== id) {
+        closeHtmlHistoryGroup();
+        recordHistory();
+        htmlHistoryOpen.current = true;
+        htmlHistoryPageId.current = id;
+      }
+
+      if (htmlHistoryTimer.current) clearTimeout(htmlHistoryTimer.current);
+      htmlHistoryTimer.current = setTimeout(closeHtmlHistoryGroup, 800);
+      updateProject(projectRef.current.id, (p) => replaceHtmlPageSource(p, id, html));
+      markSaving();
+    },
+    [closeHtmlHistoryGroup, markSaving, recordHistory, updateProject]
+  );
+
   // ---- assets ----
   const addAssets = React.useCallback(
     (urls: string[], category: AssetCategory) =>
@@ -351,9 +394,8 @@ export function EditorProvider({
       setSending(true);
 
       const apply = (result: AiEditResult) => {
-        const before = snapshot(projectRef.current);
-        setPast((pp) => [...pp.slice(-40), before]);
-        setFuture([]);
+        closeHtmlHistoryGroup();
+        recordHistory();
         updateProject(projectRef.current.id, (p) => {
           const mutated = result.mutate(p);
           const v: Version = {
@@ -400,6 +442,8 @@ export function EditorProvider({
       if (projectRef.current.renderMode === "html") {
         requestHtmlEdit(prompt, projectRef.current)
           .then((r) => {
+            closeHtmlHistoryGroup();
+            recordHistory();
             updateProject(projectRef.current.id, (p) => ({
               ...p,
               htmlPages: (p.htmlPages ?? []).map((hp) =>
@@ -452,7 +496,7 @@ export function EditorProvider({
           apply(interpretPrompt(prompt));
         });
     },
-    [sending, updateProject, spendCredits, markSaving]
+    [sending, updateProject, spendCredits, markSaving, closeHtmlHistoryGroup, recordHistory]
   );
 
   const value: EditorContextValue = {
@@ -476,6 +520,8 @@ export function EditorProvider({
     renamePage,
     duplicatePage,
     deletePage,
+    setActiveHtmlPage,
+    updateHtmlPage,
     addAssets,
     deleteAsset,
     updateSeo,

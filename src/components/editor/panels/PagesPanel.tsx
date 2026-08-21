@@ -19,10 +19,48 @@ const PAGE_PRESETS = [
 ];
 
 export function PagesPanel() {
-  const { project, setActivePage, addPage, renamePage, duplicatePage, deletePage } = useEditor();
+  const { project, setActivePage, setActiveHtmlPage, addPage, renamePage, duplicatePage, deletePage } = useEditor();
   const [adding, setAdding] = React.useState(false);
   const [renaming, setRenaming] = React.useState<string | null>(null);
   const [renameVal, setRenameVal] = React.useState("");
+
+  if (project.renderMode === "html") {
+    const htmlPages = project.htmlPages ?? [];
+    const activeId = project.activeHtmlPageId ?? htmlPages[0]?.id;
+
+    return (
+      <PanelSection title="Faqet HTML">
+        <div className="space-y-1">
+          {htmlPages.map((page) => {
+            const active = page.id === activeId;
+            return (
+              <button
+                key={page.id}
+                type="button"
+                onClick={() => setActiveHtmlPage(page.id)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+                  active ? "bg-surface-2" : "hover:bg-surface-2"
+                )}
+              >
+                <FileText className={cn("h-4 w-4 shrink-0", active ? "text-brand" : "text-ink-3")} />
+                <div className="min-w-0 flex-1">
+                  <div className={cn("truncate text-[13.5px] font-semibold", active ? "text-brand" : "text-ink")}>
+                    {page.name}
+                  </div>
+                  <div className="truncate text-[11px] text-ink-3">/{page.slug}</div>
+                </div>
+                {active && <Check className="h-4 w-4 shrink-0 text-brand" />}
+              </button>
+            );
+          })}
+          {htmlPages.length === 0 && (
+            <p className="py-6 text-center text-[13px] text-ink-3">Nuk ka faqe HTML.</p>
+          )}
+        </div>
+      </PanelSection>
+    );
+  }
 
   return (
     <div>
