@@ -1,53 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
-import { Megaphone, type LucideIcon } from "lucide-react";
-
-const HUB_TILE_PREVIEWS: Record<string, string> = {
-  imazh: "/images/hub/marketing-stack.png",
-};
+import { ToolIcon } from "@/components/app/OptionIcon";
+import { Sparkles } from "lucide-react";
 
 export function HubToolTile({
   label,
   toolId,
-  icon,
   href,
+  backgroundImage,
   locked,
-  id,
 }: {
   label: string;
-  toolId?: string;
-  icon?: LucideIcon;
+  toolId: string;
   href: string;
+  backgroundImage: string;
   locked?: boolean;
-  id?: string;
 }) {
-  const Icon = icon ?? Megaphone;
-  const previewUrl = id ? HUB_TILE_PREVIEWS[id] : undefined;
-
   const inner = (
     <div className="maro-hub-tile" data-locked={locked || undefined}>
-      {previewUrl && !locked && (
-        <div className="maro-hub-tile__preview" aria-hidden>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt="" />
-        </div>
-      )}
-      <div className="maro-hub-tile__icon-area">
-        {toolId ? (
-          <ToolIcon toolId={toolId} fallback={Icon} className="h-14 w-14 text-[var(--maro-blue-soft-icon)] group-hover:text-white" />
-        ) : (
-          <MaroIcon name="prompts" fallback={Icon} className="h-14 w-14 text-[var(--maro-blue-soft-icon)] group-hover:text-white" />
-        )}
+      <div className="maro-hub-tile__preview" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={backgroundImage} alt="" />
       </div>
-      <span className="maro-hub-tile__label">{label}</span>
+      <div className="maro-hub-tile__icon-area">
+        <ToolIcon toolId={toolId} fallback={Sparkles} className="h-14 w-14 text-[var(--maro-blue-soft-icon)]" />
+      </div>
+      <div className="maro-hub-tile__copy">
+        <span className="maro-hub-tile__label">{label}</span>
+        {locked && <span className="maro-hub-tile__status">së shpejti</span>}
+      </div>
     </div>
   );
 
-  if (locked) return inner;
+  if (locked) {
+    return (
+      <div className="maro-hub-tile-shell" aria-disabled="true">
+        {inner}
+      </div>
+    );
+  }
+
   return (
-    <Link href={href} className="group shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+    <Link href={href} className="maro-hub-tile-shell group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
       {inner}
     </Link>
   );

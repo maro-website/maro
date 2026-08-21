@@ -3,6 +3,7 @@ import {
   getSupabaseAdmin,
   getUserFromToken,
   supabaseServerConfigured,
+  resolveAssetForClient,
 } from "@/lib/supabase/server";
 import type { PromptItem } from "@/lib/prompts/types";
 
@@ -33,7 +34,12 @@ export async function GET(req: Request) {
       .eq("active", true)
       .order("created_at", { ascending: false })
       .limit(500);
-    items = (data ?? []) as PromptItem[];
+    items = await Promise.all((data ?? []).map(async (row) => ({
+      ...(row as PromptItem),
+      featured_url: row.featured_url
+        ? await resolveAssetForClient(row.featured_url as string)
+        : null,
+    })));
   } catch {
     return NextResponse.json({ items: [], liked: [] });
   }

@@ -16,6 +16,7 @@ import {
 import {
   getPublicStorageUrl,
   isPublicAssetPath,
+  PUBLIC_STORAGE_BUCKET,
   STORAGE_BUCKET,
   toStorageRef,
 } from "@/lib/storage/assets";
@@ -120,7 +121,8 @@ export async function uploadAdminSvg(
   return uploadStorageObject(storageKey, svgBytes, "image/svg+xml");
 }
 
-// Upload validated raster bytes. Public-prefix paths return a public URL; private paths return a storage ref.
+// Upload validated raster bytes. Public-prefix paths use the dedicated public
+// bucket; private generated assets remain in the private generations bucket.
 export async function uploadValidatedImage(
   bytes: Buffer,
   storageKey: string,
@@ -137,12 +139,13 @@ async function uploadStorageObject(
   try {
     const admin = getSupabaseAdmin();
     const path = storageKey.replace(/^\/+/, "");
+    const bucket = isPublicAssetPath(path) ? PUBLIC_STORAGE_BUCKET : STORAGE_BUCKET;
     const { error } = await admin.storage
-      .from(STORAGE_BUCKET)
+      .from(bucket)
       .upload(path, bytes, { contentType, upsert: false });
     if (error) return null;
     if (isPublicAssetPath(path)) {
-      return (await getPublicStorageUrl(path)) ?? null;
+      return (await getPublicStorageUrl(path, PUBLIC_STORAGE_BUCKET)) ?? null;
     }
     return toStorageRef(path);
   } catch {
@@ -154,11 +157,12 @@ async function uploadStorageObject(
 export async function storagePrefixUsageBytes(prefix: string): Promise<number> {
   const admin = getSupabaseAdmin();
   const safePrefix = prefix.replace(/^\/+|\/+$/g, "");
+  const bucket = isPublicAssetPath(safePrefix) ? PUBLIC_STORAGE_BUCKET : STORAGE_BUCKET;
   let offset = 0;
   let total = 0;
 
   while (offset < 10_000) {
-    const { data, error } = await admin.storage.from(STORAGE_BUCKET).list(safePrefix, {
+    const { data, error } = await admin.storage.from(bucket).list(safePrefix, {
       limit: 1000,
       offset,
       sortBy: { column: "name", order: "asc" },
@@ -203,6 +207,17 @@ export async function uploadGeneratedAudio(
   if (!validated.ok) return null;
   const storageKey = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp3`;
   return uploadStorageObject(storageKey, validated.bytes, "audio/mpeg");
+}
+
+export async function uploadWebThumbnail(userId: string, generationId: string, bytes: Buffer): Promise<string | null> {
+  const path = `${userId}/web-thumbnails/${generationId}.jpg`;
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(path, bytes, {
+    contentType: "image/jpeg",
+    upsert: true,
+    cacheControl: "31536000",
+  });
+  return error ? null : toStorageRef(path, STORAGE_BUCKET);
 }
 
 // Atomically spend credits via the SQL function. Returns the new balance, or -1

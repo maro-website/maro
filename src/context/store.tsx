@@ -23,6 +23,10 @@ import { mergeServerCreations } from "@/lib/creations/mergeCreations";
 import { uid } from "@/lib/utils/format";
 import { prefetchPublicSettings } from "@/lib/settings/publicSettings";
 import { resolveAccessRole, type AccessRole } from "@/lib/admin/permissions";
+import {
+  legacyProjectAssetStorageRef,
+  resolvePrivateAssetRefs,
+} from "@/lib/services/projectAssetService";
 
 interface MaroState {
   ready: boolean;
@@ -138,6 +142,17 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       projects = projects.filter((p) => !LEGACY_SEED_IDS.has(p.id));
     }
 
+    projects = projects.map((project) => ({
+      ...project,
+      referenceImages: project.referenceImages?.map(
+        (value) => legacyProjectAssetStorageRef(value) ?? value
+      ),
+      assets: project.assets.map((asset) => ({
+        ...asset,
+        storageRef: asset.storageRef ?? legacyProjectAssetStorageRef(asset.url) ?? undefined,
+      })),
+    }));
+    writeJSON(projectsKey(workspaceId), projects);
     return { projects, creations };
   }, []);
 
@@ -155,6 +170,44 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     },
     []
   );
+
+  const refreshPrivateProjectAssets = useCallback((scopeId: string, snapshot: Project[]) => {
+    const refs = [...new Set(snapshot.flatMap((project) => [
+      project.thumbnailStorageRef,
+      ...project.assets.map((asset) => asset.storageRef),
+    ]).filter((value): value is string => Boolean(value)))];
+    if (!refs.length) return;
+    void resolvePrivateAssetRefs(refs).then((resolved) => {
+      if (!Object.keys(resolved).length) return;
+      setState((s) => {
+        if (workspaceScopeRef.current !== scopeId) return s;
+        const projects = s.projects.map((project) => {
+          const replacements = new Map<string, string>();
+          const assets = project.assets.map((asset) => {
+            const fresh = asset.storageRef ? resolved[asset.storageRef] : undefined;
+            if (!fresh || fresh === asset.url) return asset;
+            replacements.set(asset.url, fresh);
+            return { ...asset, url: fresh };
+          });
+          const thumbnailUrl = project.thumbnailStorageRef
+            ? resolved[project.thumbnailStorageRef] ?? project.thumbnailUrl
+            : project.thumbnailUrl;
+          const htmlPages = replacements.size && project.htmlPages
+            ? project.htmlPages.map((page) => ({
+                ...page,
+                html: [...replacements].reduce(
+                  (html, [previous, fresh]) => html.split(previous).join(fresh),
+                  page.html
+                ),
+              }))
+            : project.htmlPages;
+          return { ...project, assets, thumbnailUrl, htmlPages };
+        });
+        writeJSON(projectsKey(scopeId), projects);
+        return { ...s, projects };
+      });
+    });
+  }, []);
 
   const setWorkspaceScope = useCallback(
     (workspaceId: string | null) => {
@@ -176,6 +229,19 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     },
     [loadScopedData, syncServerCreations]
   );
+
+  useEffect(() => {
+    const scopeId = state.activeWorkspaceScope;
+    if (!supabaseConfigured || !state.session?.user || !scopeId) return;
+    refreshPrivateProjectAssets(scopeId, state.projects);
+    const interval = window.setInterval(
+      () => refreshPrivateProjectAssets(scopeId, readJSON<Project[]>(projectsKey(scopeId), [])),
+      45 * 60_000
+    );
+    return () => window.clearInterval(interval);
+    // Project mutations persist stable refs; refreshes are keyed to auth/workspace lifecycle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.activeWorkspaceScope, state.session?.user?.id, refreshPrivateProjectAssets]);
 
   // ---- projects (workspace-scoped localStorage) ----
   const persistProjects = useCallback((projects: Project[]) => {
@@ -429,6 +495,26 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!supabaseConfigured || !userId || !workspaceScopeRef.current) return;
     syncServerCreations(workspaceScopeRef.current);
+  }, [userId, syncServerCreations]);
+
+  // Signed private media URLs last one hour. Refresh them before expiry and
+  // whenever the tab returns to the foreground or an image reports a failure.
+  useEffect(() => {
+    if (!supabaseConfigured || !userId) return;
+    const refresh = () => {
+      const scopeId = workspaceScopeRef.current;
+      if (scopeId) syncServerCreations(scopeId);
+    };
+    const interval = window.setInterval(refresh, 45 * 60_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("maro:asset-error", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("maro:asset-error", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [userId, syncServerCreations]);
 
   const addCreation = useCallback(

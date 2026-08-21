@@ -9,6 +9,7 @@ import { resolveAspectBox } from "@/lib/design/aspectRatio";
 import { getTool } from "@/lib/tools/registry";
 import { initials, timeAgo } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { StableImage } from "@/components/app/StableImage";
 import type { Project, ImageCreation } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -49,8 +50,7 @@ function CreationThumb({ creation, className }: { creation: ImageCreation; class
   const media = mediaOf(creation);
   if (media === "image") {
     return creation.urls[0] ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={creation.urls[0]} alt="" className={cn("h-full w-full object-cover", className)} />
+      <StableImage src={creation.urls[0]} alt="" className={cn("h-full w-full object-cover", className)} />
     ) : null;
   }
   return (

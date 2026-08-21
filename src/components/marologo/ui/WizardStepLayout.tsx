@@ -31,7 +31,7 @@ export function WizardStepLayout({
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between text-[12px] font-semibold text-ink-3">
           <span>maroLogo</span>
-          <span>Hapi {step} prej 5</span>
+          <span>Hapi {step} prej 3</span>
         </div>
         <MaroLogoProgress
           currentStep={step}

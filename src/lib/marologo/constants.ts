@@ -84,14 +84,46 @@ export const BRAND_TRAITS = [
   "Youthful",
 ] as const;
 
-export const MAX_TRAITS = 5;
+export const MAX_TRAITS = 3;
 
 export const LOGO_TYPES = [
   { value: "wordmark", label: "Wordmark" },
   { value: "symbol", label: "Symbol" },
   { value: "symbol_wordmark", label: "Symbol + Wordmark" },
-  { value: "maro_decides", label: "Leja maro le t'vendos" },
+  { value: "maro_decides", label: "Maro vendos" },
 ] as const;
+
+export const CONCEPT_INTENTS = [
+  { value: "maro_decides", label: "Maro vendos", description: "Zgjedh prioritetin nga konteksti i brendit." },
+  { value: "meaning", label: "Meaning First", description: "Ideja dhe domethënia udhëheqin formën." },
+  { value: "typography", label: "Typography First", description: "Emri dhe shkronjat janë ideja kryesore." },
+  { value: "symbol", label: "Symbol First", description: "Një shenjë e dallueshme udhëheq sistemin." },
+] as const;
+
+export const VISUAL_STYLE_OPTIONS = [
+  { value: "maro_decides", label: "Maro vendos" },
+  { value: "minimal_intelligent", label: "Minimal & intelligent" },
+  { value: "bold_distinctive", label: "Bold & distinctive" },
+  { value: "elegant_refined", label: "Elegant & refined" },
+  { value: "playful_friendly", label: "Playful & friendly" },
+  { value: "organic_human", label: "Organic & human" },
+  { value: "technical_precise", label: "Technical & precise" },
+  { value: "editorial_expressive", label: "Editorial & expressive" },
+] as const;
+
+export const PRESENTATION_MODES = [
+  { value: "bw", label: "Black & White", description: "Teston formën dhe njohshmërinë pa ndihmën e ngjyrës." },
+  { value: "color", label: "Color", description: "Prezantim i pastër i identitetit me paletën e brendit." },
+  { value: "mockup", label: "Logo Mockup", description: "Një aplikim premium, i zgjedhur sipas biznesit." },
+  { value: "bento", label: "Bento Grid", description: "Një sistem koheziv identiteti në një pamje.", recommended: true },
+] as const;
+
+export const PRESENTATION_LABELS: Record<string, string> = {
+  bw: "Black & White",
+  color: "Color",
+  mockup: "Logo Mockup",
+  bento: "Bento Grid",
+};
 
 export const SYMBOL_DIRECTIONS = [
   "Literal",

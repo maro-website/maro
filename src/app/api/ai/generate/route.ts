@@ -15,6 +15,7 @@ import {
   getPromptTemplate,
   incrementPromptUse,
   logGeneration,
+  resolveAssetListForClient,
   resolveWorkspaceId,
   supabaseServerConfigured,
 } from "@/lib/supabase/server";
@@ -40,6 +41,7 @@ import {
 } from "@/lib/engine/executionTelemetry";
 import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { issueThumbnailCaptureToken } from "@/lib/generation/thumbnailToken";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +95,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: ownedReferences.error }, { status: 400 });
     }
     body.referenceImages = ownedReferences.images;
+    body.referenceImages = await resolveAssetListForClient(body.referenceImages);
   }
 
   const kind = (body.websiteType ?? "business") as WebsiteKind;
@@ -374,10 +377,20 @@ export async function POST(req: Request) {
             });
           }
           if (maroPromptId) await incrementPromptUse(maroPromptId);
+          const thumbnailToken = generationId && userId && workspaceId && engineResult.pages[0]?.html
+            ? issueThumbnailCaptureToken({
+                generationId,
+                userId,
+                workspaceId,
+                html: engineResult.pages[0].html,
+              })
+            : undefined;
           send({
             ok: true,
             pages: engineResult.pages,
             creditsSpent: cost,
+            generationId: generationId ?? undefined,
+            thumbnailToken,
             jobId: prep?.job.id,
           });
           return;
@@ -422,8 +435,9 @@ export async function POST(req: Request) {
           });
           return;
         }
+        let generationId: string | null = null;
         if (userId) {
-          const generationId = await logGeneration({
+          generationId = await logGeneration({
             user_id: userId,
             user_email: userEmail,
             prompt: body.userPrompt || body.goal || "",
@@ -473,7 +487,17 @@ export async function POST(req: Request) {
           }
         }
         if (maroPromptId) await incrementPromptUse(maroPromptId);
-        send({ ok: true, pages, creditsSpent: cost, jobId: prep?.job.id });
+        const thumbnailToken = generationId && userId && workspaceId && pages[0]?.html
+          ? issueThumbnailCaptureToken({ generationId, userId, workspaceId, html: pages[0].html })
+          : undefined;
+        send({
+          ok: true,
+          pages,
+          creditsSpent: cost,
+          generationId: generationId ?? undefined,
+          thumbnailToken,
+          jobId: prep?.job.id,
+        });
       } catch (err) {
         console.error("[ai/generate] failed:", err);
         let refunded = false;

@@ -105,10 +105,18 @@ export function runGeneration(opts: {
 export interface GeneratedSite {
   htmlPages: HtmlPage[];
   activeHtmlPageId: string;
+  generationId?: string;
+  thumbnailToken?: string;
 }
 
 type GenerateStreamPayload =
-  | { ok: true; pages: AiGenerateHtmlResponse["pages"]; creditsSpent?: number }
+  | {
+      ok: true;
+      pages: AiGenerateHtmlResponse["pages"];
+      creditsSpent?: number;
+      generationId?: string;
+      thumbnailToken?: string;
+    }
   | {
       ok: false;
       error?: string;
@@ -164,7 +172,12 @@ async function readGenerateStream(
         }
         if ("ok" in payload && payload.ok) {
           const site = pagesToSite(payload.pages);
-          return { ...site, creditsSpent: payload.creditsSpent ?? 0 };
+          return {
+            ...site,
+            creditsSpent: payload.creditsSpent ?? 0,
+            generationId: payload.generationId,
+            thumbnailToken: payload.thumbnailToken,
+          };
         }
         if ("ok" in payload && !payload.ok) {
           lastError = new GenerationError(
@@ -242,6 +255,36 @@ export async function generateSite(
     throw new GenerationError(code, res.status, code === "no-key", j.detail, j.refunded ?? false);
   }
 
-  const data = (await res.json()) as AiGenerateHtmlResponse & { creditsSpent?: number };
-  return { ...pagesToSite(data.pages), creditsSpent: data.creditsSpent ?? 0 };
+  const data = (await res.json()) as AiGenerateHtmlResponse & {
+    creditsSpent?: number;
+    generationId?: string;
+    thumbnailToken?: string;
+  };
+  return {
+    ...pagesToSite(data.pages),
+    creditsSpent: data.creditsSpent ?? 0,
+    generationId: data.generationId,
+    thumbnailToken: data.thumbnailToken,
+  };
+}
+
+export async function generateWebsiteThumbnail(input: {
+  generationId: string;
+  html: string;
+  captureToken: string;
+}): Promise<{ url: string; storageRef: string } | null> {
+  try {
+    const token = await getAccessToken();
+    if (!token) return null;
+    const response = await fetch("/api/projects/thumbnail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { url?: string; storageRef?: string };
+    return payload.url && payload.storageRef ? { url: payload.url, storageRef: payload.storageRef } : null;
+  } catch {
+    return null;
+  }
 }

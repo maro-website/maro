@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
+import { formatCredits } from "@/lib/credits/format";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
@@ -452,7 +453,7 @@ function StatsTab({
           <div className="text-[13px] font-bold text-ink">T├½ ardhura nga zbulimet</div>
           <div className="mt-2 flex items-center gap-1.5 text-[26px] font-extrabold text-ink">
             <Coins className="h-5 w-5 text-brand" />
-            {(analytics?.creditsFromReveals ?? 0).toLocaleString()}
+            {formatCredits(analytics?.creditsFromReveals ?? 0)}
           </div>
           <div className="mt-3 pt-3">
             <Field label="Kosto e zbulimit (kredite)">

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
-import { AnnouncementBanner } from "@/components/app/AnnouncementBanner";
+import { PlatformNotices } from "@/components/app/PlatformNotices";
 import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { GenerationCard, type GenerationCardMessage } from "@/components/app/GenerationCard";
 import { GalleryMasonry } from "@/components/app/GalleryMasonry";
@@ -16,7 +16,7 @@ import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
 import { FortPanel } from "@/components/fort/FortPanel";
-import { FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
+import { BrainPill, FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
@@ -114,6 +114,15 @@ const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   normal: "fast",
   fast: "2x",
 };
+
+function noticeModuleId(toolId: string): string {
+  if (toolId === "reklama" || toolId === "maro_imazh") return "maroImazh";
+  if (toolId === "logo" || toolId === "maro_logo") return "maroLogo";
+  if (toolId === "website" || toolId === "web") return "maroWeb";
+  if (toolId === "filma") return "maroFilma";
+  if (toolId === "audio" || toolId === "zo") return "maroZo";
+  return toolId;
+}
 
 type ChatMessage = GenerationCardMessage & { role: "generation" };
 
@@ -847,9 +856,9 @@ export function ToolComposer({
       </div>
 
       {!isReadOnlyView && (
-      <div className="relative z-20 shrink-0 bg-transparent max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 shrink-0 bg-canvas max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto w-full max-w-[var(--layout-composer-max)] px-4 pb-4 pt-2 lg:pb-6">
-          <AnnouncementBanner toolId={tool.id} />
+          <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
           {attachments.length > 0 && (
             <div className="mb-2.5 flex flex-wrap gap-2">
@@ -885,16 +894,7 @@ export function ToolComposer({
 
           {(fortAvailable || promptAttach || (isImage && brainReady)) && !loading && (
             <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
-              {isImage && brainReady && (
-                <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-surface-2 px-4 text-[13px] font-semibold text-ink-2">
-                  <Switch
-                    checked={useWorkspaceBrand}
-                    onChange={setUseWorkspaceBrand}
-                    aria-label="Përdor identitetin e workspace-it"
-                  />
-                  Identiteti
-                </label>
-              )}
+              {isImage && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
               {fortAvailable && (
                 <FortPill
                   active={fortActive}

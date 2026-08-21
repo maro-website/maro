@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
+import { formatCredits } from "@/lib/credits/format";
 import { CheckCircle2 } from "lucide-react";
 
 interface OrderDetails {
@@ -68,7 +69,7 @@ function OrderSuccessPageInner() {
                   Paketa
                 </p>
                 <p className="mt-1 text-[15px] font-semibold text-ink">
-                  {order.label} · {formatEur(order.priceEur)} · {order.credits.toLocaleString("de-DE")}{" "}
+                  {order.label} · {formatEur(order.priceEur)} · {formatCredits(order.credits)}{" "}
                   kredite
                 </p>
               </>
@@ -81,7 +82,7 @@ function OrderSuccessPageInner() {
 
         <p className="mt-6 text-[14px] text-ink-2">
           Balanca aktuale:{" "}
-          <strong className="text-ink">{credits.toLocaleString("de-DE")} kredite</strong>
+          <strong className="text-ink">{formatCredits(credits)} kredite</strong>
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">

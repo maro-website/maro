@@ -68,7 +68,7 @@ interface EditorContextValue {
   updateHtmlPage: (id: string, html: string) => void;
   updateHtmlElement: (selection: HtmlElementSelection, patch: HtmlElementPatch) => void;
   // assets
-  addAssets: (urls: string[], category: AssetCategory) => void;
+  addAssets: (urls: string[], category: AssetCategory, storageRefs?: string[]) => void;
   deleteAsset: (id: string) => void;
   // seo
   updateSeo: (pageId: string, patch: Partial<SeoMeta>) => void;
@@ -355,7 +355,7 @@ export function EditorProvider({
 
   // ---- assets ----
   const addAssets = React.useCallback(
-    (urls: string[], category: AssetCategory) =>
+    (urls: string[], category: AssetCategory, storageRefs?: string[]) =>
       commit((p) => ({
         ...p,
         assets: [
@@ -363,6 +363,7 @@ export function EditorProvider({
             id: uid("as"),
             name: `upload-${p.assets.length + i + 1}.jpg`,
             url,
+            storageRef: storageRefs?.[i],
             category,
             createdAt: new Date().toISOString(),
           })),

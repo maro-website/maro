@@ -46,7 +46,8 @@ import {
   createImageReferenceTracker,
   toSafeAttachmentMeta,
 } from "@/lib/engine/imageReferenceTracker";
-import { IMAGE_PROVIDER_REF_LIMIT, buildImageTextInstruction } from "@/lib/engine/imageCompile";
+import { IMAGE_PROVIDER_REF_LIMIT, LOGO_REFERENCE_DIRECTION, buildImageTextInstruction } from "@/lib/engine/imageCompile";
+import { reconcileLogoFortValues } from "@/lib/marologo/fortReconciliation";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
 import { resolveImageExecutionContext } from "@/lib/engine/imageExecution";
 import { runImageEngineInternalGeneration } from "@/lib/engine/imageEngineRun";
@@ -95,6 +96,12 @@ export async function POST(req: Request) {
 
   const settings = await getAppSettings();
   const selections = body.selections ?? {};
+  if (tool.id === "logo" && body.fort?.enabled) {
+    body.fort = {
+      ...body.fort,
+      values: reconcileLogoFortValues(selections, body.fort.values ?? {}),
+    };
+  }
   let finalPrompt = composeToolPrompt(tool, selections, settings.tool_prompts ?? {}, body.prompt);
 
   let maroPromptId: string | undefined;
@@ -112,7 +119,7 @@ export async function POST(req: Request) {
     (a) => typeof a === "string" && a.startsWith("data:image/")
   );
   if (hasRefs) {
-    finalPrompt = `${finalPrompt}\n\nIMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.`;
+    finalPrompt = `${finalPrompt}\n\n${tool.id === "logo" ? LOGO_REFERENCE_DIRECTION : "IMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition."}`;
   }
 
   const textSetting = tool.settings.find((s) => s.id === "text");

@@ -1,21 +1,15 @@
 "use client";
 
+import * as React from "react";
+import { ChevronDown } from "lucide-react";
 import { Field, Input, Textarea } from "@/components/ui/Input";
+import { cn } from "@/lib/utils/cn";
 import { WizardStepLayout } from "../ui/WizardStepLayout";
 import { SearchableSelect } from "../ui/SearchableSelect";
-import { UsageMultiSelect } from "../ui/UsageMultiSelect";
 import { INDUSTRIES, INDUSTRY_OTHER } from "@/lib/marologo/constants";
 import type { MaroLogoWizardState, WizardStep } from "@/lib/marologo/types";
 
-export function StepBrand({
-  step,
-  highestStepReached,
-  wizard,
-  errors,
-  onChange,
-  onNext,
-  onStepClick,
-}: {
+export function StepBrand({ step, highestStepReached, wizard, errors, onChange, onNext, onStepClick }: {
   step: WizardStep;
   highestStepReached: WizardStep;
   wizard: MaroLogoWizardState;
@@ -24,61 +18,42 @@ export function StepBrand({
   onNext: () => void;
   onStepClick?: (step: WizardStep) => void;
 }) {
+  const [contextOpen, setContextOpen] = React.useState(false);
+
   return (
-    <WizardStepLayout
-      step={step}
-      highestStepReached={highestStepReached}
-      title="01 - Brendi"
-      nextLabel="Vazhdo - Hapi 2: Drejtimi"
-      nextDisabled={Object.keys(errors).length > 0}
-      onNext={onNext}
-      onStepClick={onStepClick}
-    >
+    <WizardStepLayout step={step} highestStepReached={highestStepReached} title="Tregoja brendin." nextLabel="Vazhdo te drejtimi kreativ" nextDisabled={Object.keys(errors).length > 0} onNext={onNext} onStepClick={onStepClick}>
+      <p className="-mt-5 text-center text-[15px] leading-relaxed text-ink-3">
+        Dy përgjigje të mira mjaftojnë. Maro e nxjerr pjesën tjetër nga konteksti.
+      </p>
+
       <Field label="Emri i brendit *" hint={errors.name}>
-        <Input
-          value={wizard.brand.name}
-          onChange={(e) => onChange({ name: e.target.value })}
-          placeholder="NICE"
-          className="marologo-card h-[52px] border-0 bg-surface"
-        />
+        <Input value={wizard.brand.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="p.sh. Luma" className="marologo-card h-[56px] border-0 bg-surface" autoFocus />
       </Field>
 
-      <Field label="A ka slogan?" hint={errors.slogan}>
-        <Input
-          value={wizard.brand.slogan}
-          onChange={(e) => onChange({ slogan: e.target.value })}
-          placeholder="Opcionale"
-          className="marologo-card h-[52px] border-0 bg-surface"
-        />
+      <Field label="Çka bën brendi? *" hint={errors.description}>
+        <Textarea value={wizard.brand.description} onChange={(e) => onChange({ description: e.target.value })} rows={4} placeholder="p.sh. Platformë SaaS që ua thjeshton financat bizneseve të vogla." className="marologo-card min-h-[132px] border-0 bg-surface" />
       </Field>
 
-      <Field label="Çka bon brendi? *" hint={errors.description}>
-        <Textarea
-          value={wizard.brand.description}
-          onChange={(e) => onChange({ description: e.target.value })}
-          rows={4}
-          placeholder="Agjension kreativ që merret me branding, web, video dhe marketing."
-          className="marologo-card min-h-[160px] border-0 bg-surface"
-        />
-      </Field>
+      <div className="rounded-maro16 bg-surface px-5">
+        <button type="button" onClick={() => setContextOpen((open) => !open)} className="flex min-h-[56px] w-full items-center justify-between text-left" aria-expanded={contextOpen}>
+          <span>
+            <span className="block text-[14px] font-semibold text-ink">Shto kontekst</span>
+            <span className="block text-[12px] text-ink-3">Audienca, industria ose slogani — opsionale</span>
+          </span>
+          <ChevronDown className={cn("h-4 w-4 text-ink-3 transition-transform", contextOpen && "rotate-180")} />
+        </button>
 
-      <div className="grid grid-cols-1 gap-[20px] md:grid-cols-2">
-        <SearchableSelect
-          label="Industria *"
-          options={INDUSTRIES}
-          value={wizard.brand.industry}
-          onChange={(v) => onChange({ industry: v })}
-          otherTrigger={INDUSTRY_OTHER}
-          otherValue={wizard.brand.industryOther}
-          onOtherChange={(v) => onChange({ industryOther: v })}
-          otherLabel="Shkruaj industrinë"
-          error={errors.industry || errors.industryOther}
-        />
-        <UsageMultiSelect
-          value={wizard.brand.usage}
-          onChange={(usage) => onChange({ usage })}
-          error={errors.usage}
-        />
+        {contextOpen && (
+          <div className="space-y-5 border-t border-line py-5">
+            <Field label="Për kë është ky brend?" hint={errors.audience}>
+              <Textarea value={wizard.brand.audience} onChange={(e) => onChange({ audience: e.target.value })} rows={2} placeholder="p.sh. Themelues jo-teknikë të bizneseve të vogla" className="marologo-card border-0 bg-canvas" />
+            </Field>
+            <SearchableSelect label="Industria" options={INDUSTRIES} value={wizard.brand.industry} onChange={(industry) => onChange({ industry })} otherTrigger={INDUSTRY_OTHER} otherValue={wizard.brand.industryOther} onOtherChange={(industryOther) => onChange({ industryOther })} otherLabel="Shkruaj industrinë" error={errors.industryOther} />
+            <Field label="Slogani" hint={errors.slogan}>
+              <Input value={wizard.brand.slogan} onChange={(e) => onChange({ slogan: e.target.value })} placeholder="Opsionale" className="marologo-card h-[52px] border-0 bg-canvas" />
+            </Field>
+          </div>
+        )}
       </div>
     </WizardStepLayout>
   );

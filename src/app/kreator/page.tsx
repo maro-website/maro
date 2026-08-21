@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { formatCredits } from "@/lib/credits/format";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/app/AppShell";
 import { useMaro } from "@/context/store";
@@ -201,7 +202,7 @@ function CreatorDashboard() {
           <StatCard
             icon={Coins}
             label="Kredite të shitura"
-            value={(stats?.creditsSold ?? 0).toLocaleString("de-DE")}
+            value={formatCredits(stats?.creditsSold ?? 0)}
             delay={0.2}
           />
           <StatCard

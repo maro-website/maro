@@ -8,6 +8,7 @@
 .env*.local
 next-env.d.ts
 .vercel
+/supabase/.temp
 *.tsbuildinfo
 
 # local one-off diagnostic scripts (read .env.local)

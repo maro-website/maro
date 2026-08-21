@@ -6,6 +6,7 @@ import { createProjectFromComposer } from "@/lib/services/projectService";
 const SUPABASE_URL = "https://project.supabase.co";
 const referenceUrl = (name: string) =>
   `${SUPABASE_URL}/storage/v1/object/public/generations/public/project-assets/user-1/${name}.png`;
+const privateReference = (name: string) => `storage:generations/user-1/project-assets/${name}.png`;
 
 describe("maroWeb reference image validation", () => {
   it("accepts only uploaded project assets and removes duplicates", () => {
@@ -14,7 +15,10 @@ describe("maroWeb reference image validation", () => {
       { supabaseUrl: SUPABASE_URL, production: true }
     );
 
-    expect(result).toEqual({ ok: true, images: [referenceUrl("one"), referenceUrl("two")] });
+    expect(result).toEqual({
+      ok: true,
+      images: [privateReference("one"), privateReference("two")],
+    });
   });
 
   it("rejects arbitrary URLs, data URLs, and more than four references", () => {
@@ -39,6 +43,23 @@ describe("maroWeb reference image validation", () => {
   it("rejects project assets owned by a different user", () => {
     expect(
       validateWebReferenceImages([referenceUrl("private-brand")], {
+        supabaseUrl: SUPABASE_URL,
+        production: true,
+        expectedUserId: "user-2",
+      })
+    ).toEqual({ ok: false, error: "invalid_references" });
+  });
+
+  it("accepts canonical private refs only for their owner", () => {
+    expect(
+      validateWebReferenceImages([privateReference("brand")], {
+        supabaseUrl: SUPABASE_URL,
+        production: true,
+        expectedUserId: "user-1",
+      })
+    ).toEqual({ ok: true, images: [privateReference("brand")] });
+    expect(
+      validateWebReferenceImages([privateReference("brand")], {
         supabaseUrl: SUPABASE_URL,
         production: true,
         expectedUserId: "user-2",

@@ -18,10 +18,11 @@ describe("User-facing RC — terminology", () => {
     expect(getTool("prompte")?.name).toBe("maroPresets");
   });
 
-  it("top nav uses maroZo not maroAudio", () => {
-    const labels = TOP_BAR_DESTINATIONS.map((d) => d.label);
-    expect(labels).toContain("maroZo");
-    expect(labels).not.toContain("maroAudio");
+  it("uses maroAudio publicly while preserving the canonical legacy tool id", () => {
+    const audio = TOP_BAR_DESTINATIONS.find((destination) => destination.id === "audio");
+    expect(audio?.label).toBe("maroAudio");
+    expect(audio?.route).toBe("/audio");
+    expect(audio?.toolId).toBe("zo");
   });
 });
 

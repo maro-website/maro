@@ -1,49 +1,31 @@
 "use client";
 
-import {
-  summarizeLogoType,
-  summarizeSymbol,
-  summarizeTypography,
-} from "@/lib/marologo/briefBuilder";
+import { summarizeLogoType, summarizePresentation, summarizeTypography } from "@/lib/marologo/briefBuilder";
 import { resolveIndustry } from "@/lib/marologo/validation";
+import { VISUAL_STYLE_OPTIONS } from "@/lib/marologo/constants";
 import type { MaroLogoWizardState } from "@/lib/marologo/types";
 
 export function MiniReview({ wizard }: { wizard: MaroLogoWizardState }) {
-  const symbol = summarizeSymbol(wizard);
+  const industry = resolveIndustry(wizard);
   const rows = [
-    { label: "Direction", value: wizard.direction.traits.join(", ") || "—" },
-    { label: "Logo Type", value: summarizeLogoType(wizard) },
-    ...(symbol ? [{ label: "Symbol", value: symbol }] : []),
+    { label: "Personality", value: wizard.direction.traits.join(", ") || "Maro vendos" },
+    { label: "Logo type", value: summarizeLogoType(wizard) },
+    { label: "Visual style", value: VISUAL_STYLE_OPTIONS.find((item) => item.value === wizard.look.visualStyle)?.label ?? "Maro decides" },
     { label: "Typography", value: summarizeTypography(wizard) },
-    {
-      label: "Color",
-      value:
-        wizard.look.colors.mode === "maro_decides"
-          ? "Maro decides"
-          : wizard.look.colors.values.join(", ") || "—",
-    },
-    { label: "Avoid", value: wizard.logo.avoid.trim() || "—" },
+    { label: "Color", value: wizard.presentation.mode === "bw" ? "Black & white" : wizard.look.colors.mode === "maro_decides" ? "Maro vendos" : wizard.look.colors.values.join(", ") },
+    { label: "Presentation", value: summarizePresentation(wizard) },
   ];
 
   return (
-    <div className="space-y-[20px]">
-      <span className="marologo-field-label block">Mini-Review: Logo Brief</span>
+    <div className="space-y-3">
+      <span className="marologo-field-label block">Brief-i yt</span>
       <div className="marologo-card p-5">
-        <div className="mb-4">
-          <p className="text-[12px] font-medium text-ink-3">Emri</p>
+        <div className="mb-5">
           <p className="text-[28px] font-extrabold tracking-brand text-ink">{wizard.brand.name.trim()}</p>
-          {wizard.brand.slogan.trim() && (
-            <p className="mt-1 text-[14px] text-ink-2">{wizard.brand.slogan.trim()}</p>
-          )}
-          <p className="mt-1 text-[14px] text-ink-2">{resolveIndustry(wizard)}</p>
+          <p className="mt-1 text-[13px] text-ink-3">{industry.startsWith("Infer") ? "Maro e nxjerr nga përshkrimi" : industry}</p>
         </div>
-        <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
-          {rows.map((row) => (
-            <div key={row.label}>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-ink-3">{row.label}</p>
-              <p className="mt-0.5 text-[14px] font-medium text-ink">{row.value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
+          {rows.map((row) => <div key={row.label}><p className="text-[10px] font-semibold uppercase tracking-wide text-ink-3">{row.label}</p><p className="mt-0.5 text-[13px] font-medium text-ink">{row.value}</p></div>)}
         </div>
       </div>
     </div>

@@ -4,9 +4,18 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 /** Primary object store — private by default (migration 0035). */
 export const STORAGE_BUCKET = "generations";
+export const PUBLIC_STORAGE_BUCKET = "maro-public";
 
 /** Prefix for intentionally public assets (explore publishes, admin UI assets). */
 export const PUBLIC_ASSET_PREFIX = "public/";
+
+const INTENTIONALLY_PUBLIC_PREFIXES = [
+  "public/explore/",
+  "public/avatars/",
+  "public/presets/",
+  "admin-icons/",
+  "admin-ads/",
+] as const;
 
 /** Signed URL lifetime for private user assets shown in the app UI (1 hour). */
 export const PRIVATE_ASSET_TTL_SECONDS = 3600;
@@ -34,7 +43,8 @@ export function parseStorageRef(value: string): StoredAssetRef | null {
 }
 
 export function isPublicAssetPath(path: string): boolean {
-  return path.startsWith(PUBLIC_ASSET_PREFIX) || path.startsWith("admin-icons/") || path.startsWith("admin-ads/");
+  const normalized = path.replace(/^\/+/, "");
+  return INTENTIONALLY_PUBLIC_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
 export function privateUserAssetPath(userId: string, filename: string): string {
@@ -83,7 +93,7 @@ export async function signStoragePath(
   }
 }
 
-export async function getPublicStorageUrl(path: string, bucket = STORAGE_BUCKET): Promise<string | null> {
+export async function getPublicStorageUrl(path: string, bucket = PUBLIC_STORAGE_BUCKET): Promise<string | null> {
   try {
     const admin = getSupabaseAdmin();
     const { data } = admin.storage.from(bucket).getPublicUrl(path.replace(/^\/+/, ""));
@@ -99,18 +109,17 @@ export async function resolveAssetForClient(stored: string): Promise<string> {
 
   const ref = parseStorageRef(stored);
   if (ref) {
-    if (isPublicAssetPath(ref.path)) {
+    if (ref.bucket === PUBLIC_STORAGE_BUCKET) {
       return (await getPublicStorageUrl(ref.path, ref.bucket)) ?? stored;
     }
-    return (await signStoragePath(ref.path, PRIVATE_ASSET_TTL_SECONDS, ref.bucket)) ?? stored;
+    const ttl = isPublicAssetPath(ref.path) ? EXPLORE_PUBLIC_TTL_SECONDS : PRIVATE_ASSET_TTL_SECONDS;
+    return (await signStoragePath(ref.path, ttl, ref.bucket)) ?? stored;
   }
 
   const legacyPath = extractPathFromSupabasePublicUrl(stored) ?? extractPathFromSupabaseSignedUrl(stored);
   if (legacyPath) {
-    if (isPublicAssetPath(legacyPath)) {
-      return (await getPublicStorageUrl(legacyPath)) ?? stored;
-    }
-    return (await signStoragePath(legacyPath)) ?? stored;
+    const ttl = isPublicAssetPath(legacyPath) ? EXPLORE_PUBLIC_TTL_SECONDS : PRIVATE_ASSET_TTL_SECONDS;
+    return (await signStoragePath(legacyPath, ttl)) ?? stored;
   }
 
   return stored;
@@ -129,9 +138,11 @@ export async function copyToPublicExploreAsset(input: {
     const admin = getSupabaseAdmin();
     const ext = input.extension ?? input.sourcePath.split(".").pop() ?? "png";
     const dest = publicExploreAssetPath(input.slug, `asset.${ext}`);
-    const { error } = await admin.storage.from(STORAGE_BUCKET).copy(input.sourcePath, dest);
+    const { data: source, error: downloadError } = await admin.storage.from(STORAGE_BUCKET).download(input.sourcePath);
+    if (downloadError || !source) return null;
+    const { error } = await admin.storage.from(PUBLIC_STORAGE_BUCKET).upload(dest, source, { upsert: true });
     if (error) return null;
-    return (await getPublicStorageUrl(dest)) ?? null;
+    return (await getPublicStorageUrl(dest, PUBLIC_STORAGE_BUCKET)) ?? null;
   } catch {
     return null;
   }
@@ -147,9 +158,7 @@ export async function publishStoredUrlToExplore(input: {
     extractStoragePathFromClientUrl(input.storedUrl) ??
     null;
   if (!sourcePath || isPublicAssetPath(sourcePath)) {
-    if (sourcePath && isPublicAssetPath(sourcePath)) {
-      return getPublicStorageUrl(sourcePath);
-    }
+    if (sourcePath && isPublicAssetPath(sourcePath)) return resolveAssetForClient(input.storedUrl);
     return input.storedUrl.startsWith("http") ? input.storedUrl : null;
   }
   return copyToPublicExploreAsset({

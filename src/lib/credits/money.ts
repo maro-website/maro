@@ -1,3 +1,5 @@
+import { formatCredits } from "@/lib/credits/format";
+
 /** Single source of truth for credit purchase pricing (EUR). */
 
 export const LIST_PRICE_CENTI_CREDIT = 9;
@@ -143,7 +145,7 @@ export function getCheckoutItem(itemId: string): {
       credits: topup.credits,
       priceEur: topup.priceEur,
       priceCents: Math.round(topup.priceEur * 100),
-      label: `${topup.credits.toLocaleString("de-DE")} kredite`,
+      label: `${formatCredits(topup.credits)} kredite`,
     };
   }
   void plan;

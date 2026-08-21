@@ -1,4 +1,5 @@
 import "server-only";
+import { formatCredits } from "@/lib/credits/format";
 import { LEGAL_ADDRESS, LEGAL_ENTITY } from "@/components/legal/legal-config";
 import { formatEur } from "@/lib/credits/money";
 import {
@@ -90,7 +91,7 @@ export function buildInvoiceHtml(order: CreditOrderRow): string {
       <tbody>
         <tr>
           <td>${o.label}${o.itemId ? ` (${o.itemId})` : ""}</td>
-          <td>${o.credits.toLocaleString("de-DE")}</td>
+          <td>${formatCredits(o.credits)}</td>
           <td style="text-align:right;">${formatEur(o.priceEur)}</td>
         </tr>
       </tbody>

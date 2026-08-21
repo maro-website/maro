@@ -20,7 +20,7 @@ const DEMO_CONTESTS = [
     slug: "maro-krijues-1",
     title: "maro Krijues #1",
     description: "Krijo vizualin më të mirë me maro Imazh dhe fito kredite.",
-    prize_label: "10,000 kredite në pool",
+    prize_label: "10000 kredite në pool",
     prize_credits: 10000,
     cover_url: null,
     status: "open",

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
@@ -143,7 +144,7 @@ export function OrdersSection() {
                   <td className="py-3.5 pr-4">
                     <div className="font-semibold text-ink">{o.label}</div>
                     <div className="text-[12px] text-ink-3">
-                      {o.credits.toLocaleString("de-DE")} kr
+                      {formatCredits(o.credits)} kr
                       {o.provider ? ` · ${o.provider}` : ""}
                     </div>
                   </td>

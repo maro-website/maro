@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
+import { formatCredits } from "@/lib/credits/format";
 import { paymentMode } from "@/lib/config/features";
 import {
   LegalConsentCheckbox,
@@ -211,7 +212,7 @@ function CheckoutPageInner() {
           <p className="text-[13px] font-semibold uppercase tracking-wider text-ink-3">Porosia</p>
           <p className="mt-2 text-[18px] font-semibold text-ink">{item.label}</p>
           <p className="mt-1 text-[14px] text-ink-2">
-            {item.credits.toLocaleString("de-DE")} kredite · {formatEur(item.priceEur)}
+            {formatCredits(item.credits)} kredite · {formatEur(item.priceEur)}
           </p>
         </div>
 

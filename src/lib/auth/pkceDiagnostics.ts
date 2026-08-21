@@ -22,7 +22,7 @@ export function isSupabasePkceVerifierCookieName(name: string): boolean {
 }
 
 export function requestHasPkceVerifierCookie(
-  cookies: ReadonlyArray<{ name: string }>
+  cookies: ReadonlyArray<{ name: string; value?: string }>
 ): boolean {
   return cookies.some((cookie) => isSupabasePkceVerifierCookieName(cookie.name));
 }

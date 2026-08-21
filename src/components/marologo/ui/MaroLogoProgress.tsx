@@ -12,8 +12,8 @@ export function MaroLogoProgress({
   onStepClick?: (step: WizardStep) => void;
 }) {
   return (
-    <div className="maro-progress-steps" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={5}>
-      {([1, 2, 3, 4, 5] as WizardStep[]).map((step) => {
+    <div className="maro-progress-steps" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={3}>
+      {([1, 2, 3] as WizardStep[]).map((step) => {
         const active = step === currentStep;
         const reachable = step <= highestStepReached;
 

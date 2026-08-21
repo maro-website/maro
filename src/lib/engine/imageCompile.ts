@@ -19,6 +19,10 @@ import { getRegistryToolId } from "./toolRegistry";
 export const IMAGE_REFERENCE_PRESERVATION =
   "IMPORTANT: Use the provided reference image(s) as the main subject/product. Keep the product's real shape, colors, label and proportions faithful; integrate it naturally and prominently into the composition.";
 
+/** Logo references express taste/context and must not trigger product-copy behavior. */
+export const LOGO_REFERENCE_DIRECTION =
+  "IMPORTANT: Treat the supplied reference image(s) as design context and evidence of taste, not as a product that must be copied. Extract relevant visual principles, preserve an existing brand asset only when explicitly requested, and never trace or recreate another logo.";
+
 /** Text OFF when no reference images are in play — prohibit newly generated copy only. */
 export const IMAGE_TEXT_OFF_NO_REFERENCE =
   "Do not add any text, headlines, captions, labels, letters, words, numbers or watermarks to the generated image.";
@@ -298,7 +302,7 @@ export function assembleImageFlatPrompt(parts: {
   }
 
   if (hasImageReferenceAttachments(parts.attachments)) {
-    finalPrompt = `${finalPrompt}\n\n${IMAGE_REFERENCE_PRESERVATION}`;
+    finalPrompt = `${finalPrompt}\n\n${parts.toolId === "maro_logo" ? LOGO_REFERENCE_DIRECTION : IMAGE_REFERENCE_PRESERVATION}`;
   }
 
   const hasReferences = hasImageReferencesForTextOff({

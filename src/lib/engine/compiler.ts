@@ -11,7 +11,7 @@ import {
   defaultSelections,
   findOption,
   getTool,
-  optionKey,
+  resolveOptionPrompt,
   visibleSettings,
   type ToolSelections,
 } from "@/lib/tools/registry";
@@ -73,7 +73,7 @@ function buildOptionFragments(
   const parts: string[] = [];
   for (const s of visibleSettings(tool, selections)) {
     const optId = selections[s.id] ?? s.default;
-    const frag = toolPrompts[optionKey(registryId, s.id, optId)];
+    const frag = resolveOptionPrompt(toolPrompts, registryId, s.id, optId);
     if (frag?.trim()) parts.push(frag.trim());
   }
   return parts.join("\n\n");
@@ -81,6 +81,7 @@ function buildOptionFragments(
 
 import {
   IMAGE_REFERENCE_PRESERVATION,
+  LOGO_REFERENCE_DIRECTION,
   buildImageTextInstruction,
   hasImageReferenceAttachments,
 } from "./imageCompile";
@@ -102,7 +103,9 @@ function buildTechnicalDirection(
     lines.push(
       toolId === "maro_web"
         ? "Use the attached reference images as real website assets and authoritative visual direction where relevant."
-        : IMAGE_REFERENCE_PRESERVATION
+        : toolId === "maro_logo"
+          ? LOGO_REFERENCE_DIRECTION
+          : IMAGE_REFERENCE_PRESERVATION
     );
   }
 

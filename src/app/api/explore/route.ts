@@ -4,6 +4,7 @@ import {
   getUserFromToken,
   supabaseServerConfigured,
   publishStoredUrlToExplore,
+  resolveAssetForClient,
 } from "@/lib/supabase/server";
 import { getTool } from "@/lib/tools/registry";
 
@@ -21,7 +22,17 @@ function slugify(): string {
 }
 
 const SELECT_FULL =
-  "id, user_id, tool_id, prompt, url, author, author_avatar, created_at, slug, like_count, remix_count, featured, remix_of";
+  "id, user_id, tool_id, prompt, url, author, created_at, slug, like_count, remix_count, featured, remix_of";
+const SELECT_LEGACY =
+  "id, user_id, tool_id, prompt, url, author, created_at, slug, like_count, remix_count, featured, remix_of";
+
+async function resolveExploreRow<T extends Record<string, unknown> | null>(row: T): Promise<T> {
+  if (!row) return row;
+  const resolved = { ...row };
+  if (typeof row.url === "string") resolved.url = await resolveAssetForClient(row.url);
+  if (typeof row.author_avatar === "string") resolved.author_avatar = await resolveAssetForClient(row.author_avatar);
+  return resolved as T;
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -36,14 +47,14 @@ export async function GET(req: Request) {
   if (slug) {
     try {
       const { data } = await admin.from("public_creations").select(SELECT_FULL).eq("slug", slug).maybeSingle();
-      return NextResponse.json({ item: data ?? null });
+      return NextResponse.json({ item: await resolveExploreRow(data ?? null) });
     } catch {
       const { data } = await admin
         .from("public_creations")
-        .select("id, tool_id, prompt, url, author, author_avatar, created_at")
+        .select(SELECT_LEGACY)
         .eq("slug", slug)
         .maybeSingle();
-      return NextResponse.json({ item: data ?? null });
+      return NextResponse.json({ item: await resolveExploreRow(data ?? null) });
     }
   }
 
@@ -78,18 +89,18 @@ export async function GET(req: Request) {
       }
     }
 
-    const items = (data ?? []).map((row) => ({
-      ...row,
+    const items = await Promise.all((data ?? []).map(async (row) => ({
+      ...(await resolveExploreRow(row)),
       liked: likedSet.has(row.id as string),
-    }));
+    })));
     return NextResponse.json({ items });
   } catch {
     const { data } = await admin
       .from("public_creations")
-      .select("id, tool_id, prompt, url, author, author_avatar, created_at")
+      .select(SELECT_LEGACY)
       .order("created_at", { ascending: false })
       .limit(90);
-    return NextResponse.json({ items: data ?? [] });
+    return NextResponse.json({ items: await Promise.all((data ?? []).map(resolveExploreRow)) });
   }
 }
 

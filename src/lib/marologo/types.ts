@@ -1,38 +1,20 @@
 export type LogoTypeValue = "wordmark" | "symbol" | "symbol_wordmark" | "maro_decides";
 
+export type ConceptIntent = "meaning" | "typography" | "symbol" | "maro_decides";
+
+export type PresentationMode = "bw" | "color" | "mockup" | "bento";
+
 export type ColorMode = "custom" | "maro_decides";
 
-export type CreativeFreedom = "precise" | "balanced" | "wild";
-
-export type NegativeSpaceValue = "normal" | "explore";
-
-export type ConstructionValue = "freeform" | "grid_based";
-
-export type SliderValue = 1 | 2 | 3 | 4 | 5;
-
-export interface DirectionSliders {
-  simpleExpressive: SliderValue;
-  classicModern: SliderValue;
-  friendlySerious: SliderValue;
-  accessiblePremium: SliderValue;
-  safeExperimental: SliderValue;
-}
-
-export interface TypographyControls {
-  thinBold: SliderValue;
-  softSharp: SliderValue;
-  compactWide: SliderValue;
-}
-
-export interface LookAdvanced {
-  simplicity: SliderValue;
-  geometry: SliderValue;
-  personality: SliderValue;
-  timelessness: SliderValue;
-  symmetry: SliderValue;
-  negativeSpace: NegativeSpaceValue;
-  construction: ConstructionValue;
-}
+export type VisualStyle =
+  | "maro_decides"
+  | "minimal_intelligent"
+  | "bold_distinctive"
+  | "elegant_refined"
+  | "playful_friendly"
+  | "organic_human"
+  | "technical_precise"
+  | "editorial_expressive";
 
 export interface MaroLogoWizardState {
   brand: {
@@ -41,32 +23,28 @@ export interface MaroLogoWizardState {
     description: string;
     industry: string;
     industryOther: string;
-    usage: string[];
+    audience: string;
   };
   direction: {
     traits: string[];
-    sliders: DirectionSliders;
-    audience: string;
   };
   logo: {
     type: LogoTypeValue;
+    conceptIntent: ConceptIntent;
     symbolMeaning: string;
-    symbolDirection: string;
     mustInclude: string;
     avoid: string;
   };
   look: {
+    visualStyle: VisualStyle;
     typography: string;
-    typographyControls: TypographyControls;
     colors: {
       mode: ColorMode;
       values: string[];
     };
-    advanced: LookAdvanced;
   };
-  finish: {
-    creativeFreedom: CreativeFreedom;
-    confirmed: boolean;
+  presentation: {
+    mode: PresentationMode;
   };
 }
 
@@ -76,7 +54,7 @@ export interface UploadedReference {
   dataUrl: string;
 }
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type WizardStep = 1 | 2 | 3;
 
 export type WizardPhase = "intro" | WizardStep | "generating" | "result";
 

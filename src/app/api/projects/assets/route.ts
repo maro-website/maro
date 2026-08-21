@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getUserFromToken,
+  resolveAssetForClient,
   storagePrefixUsageBytes,
   supabaseServerConfigured,
   uploadValidatedImage,
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
   const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonProjectAsset);
   if (!parsed.ok) return parsed.response;
   const body = parsed.body as { dataUrl?: string };
-  const storagePrefix = "public/project-assets";
+  const storagePrefix = `${user.id}/project-assets`;
   const validated = validateRasterUpload({
     dataUrl: typeof body.dataUrl === "string" ? body.dataUrl : "",
     maxBytes: MAX_USER_IMAGE_BYTES,
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const usage = await storagePrefixUsageBytes(`${storagePrefix}/${user.id}`);
+    const usage = await storagePrefixUsageBytes(storagePrefix);
     if (usage + validated.bytes.length > FREE_PROJECT_ASSET_QUOTA_BYTES) {
       return NextResponse.json(
         { error: "storage_quota_exceeded", quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES },
@@ -71,7 +72,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "storage-usage-unavailable" }, { status: 503 });
   }
 
-  const url = await uploadValidatedImage(validated.bytes, validated.storageKey, validated.mime);
-  if (!url) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
-  return NextResponse.json({ url, quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES });
+  // validateRasterUpload appends the owner once more for generic upload routes.
+  // Keep the private bucket's first segment canonical and avoid persisting a
+  // signed URL as the asset identity.
+  const filename = validated.storageKey.split("/").at(-1);
+  if (!filename) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
+  const storageKey = `${storagePrefix}/${filename}`;
+  const storageRef = await uploadValidatedImage(validated.bytes, storageKey, validated.mime);
+  if (!storageRef) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
+  const url = await resolveAssetForClient(storageRef);
+  return NextResponse.json({ url, storageRef, quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES });
 }

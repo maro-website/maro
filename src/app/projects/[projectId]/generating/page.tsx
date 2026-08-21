@@ -13,6 +13,7 @@ import {
   InsufficientCreditsError,
   GenerationError,
   type GeneratedSite,
+  generateWebsiteThumbnail,
 } from "@/lib/services/generationService";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -55,8 +56,19 @@ function GeneratingInner() {
         renderMode: "html",
         htmlPages: result.htmlPages,
         activeHtmlPageId: result.activeHtmlPageId,
+        generationId: result.generationId,
       };
     });
+    const home = result?.htmlPages[0];
+    if (result?.generationId && result.thumbnailToken && home?.html) {
+      void generateWebsiteThumbnail({
+        generationId: result.generationId,
+        html: home.html,
+        captureToken: result.thumbnailToken,
+      }).then((thumbnail) => {
+        if (thumbnail) updateProject(projectId, { thumbnailUrl: thumbnail.url, thumbnailStorageRef: thumbnail.storageRef });
+      });
+    }
     setActive(GENERATION_STAGES.length - 1);
     setDone(true);
   }, [projectId, updateProject]);

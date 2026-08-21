@@ -15,7 +15,7 @@ export function LogoTypeCards({
   onChange: (v: LogoTypeValue) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {LOGO_TYPES.map((opt) => {
         const active = value === opt.value;
         return (
@@ -26,8 +26,8 @@ export function LogoTypeCards({
             onClick={() => onChange(opt.value as LogoTypeValue)}
             className="flex flex-col gap-[10px] text-left"
           >
-            <span className="marologo-card relative grid aspect-[3/2] w-full place-items-center transition-colors hover:bg-surface-hover">
-              <span className="marologo-checkbox absolute left-[20px] top-[20px]" data-checked={active || undefined}>
+            <span className={cn("marologo-card relative grid aspect-[3/2] w-full place-items-center transition-colors hover:bg-surface-hover", active && "ring-2 ring-brand")}>
+              <span className="marologo-checkbox absolute left-[12px] top-[12px]" data-checked={active || undefined}>
                 {active && <Check className="h-4 w-4" strokeWidth={3} />}
               </span>
               <LogoTypePreview type={opt.value as LogoTypeValue} />

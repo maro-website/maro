@@ -7,51 +7,22 @@ export const DEFAULT_WIZARD_STATE: MaroLogoWizardState = {
     description: "",
     industry: "",
     industryOther: "",
-    usage: [],
-  },
-  direction: {
-    traits: [],
-    sliders: {
-      simpleExpressive: 3,
-      classicModern: 3,
-      friendlySerious: 3,
-      accessiblePremium: 3,
-      safeExperimental: 3,
-    },
     audience: "",
   },
+  direction: { traits: [] },
   logo: {
-    type: "symbol",
+    type: "maro_decides",
+    conceptIntent: "maro_decides",
     symbolMeaning: "",
-    symbolDirection: "No preference",
     mustInclude: "",
     avoid: "",
   },
   look: {
+    visualStyle: "maro_decides",
     typography: "maro_decides",
-    typographyControls: {
-      thinBold: 3,
-      softSharp: 3,
-      compactWide: 3,
-    },
-    colors: {
-      mode: "maro_decides",
-      values: [],
-    },
-    advanced: {
-      simplicity: 3,
-      geometry: 3,
-      personality: 3,
-      timelessness: 3,
-      symmetry: 3,
-      negativeSpace: "normal",
-      construction: "freeform",
-    },
+    colors: { mode: "maro_decides", values: [] },
   },
-  finish: {
-    creativeFreedom: "balanced",
-    confirmed: false,
-  },
+  presentation: { mode: "bento" },
 };
 
 export const INITIAL_APP_STATE: MaroLogoAppState = {

@@ -20,6 +20,8 @@ export interface BrainBrandSection {
   businessModel: string;
   salesChannel: SalesChannel;
   logoUrl: string | null;
+  /** Stable private object identity when the logo is uploaded to Maro storage. */
+  logoStorageRef?: string | null;
   channels: BrainChannel[];
 }
 
@@ -66,6 +68,7 @@ export interface WorkspaceSource {
   /** Comma-separated keywords used to match user prompts. */
   keywords: string;
   fileUrl: string;
+  storageRef?: string;
   mimeType?: string | null;
   createdAt: string;
 }

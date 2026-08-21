@@ -12,6 +12,7 @@ import { useMaro } from "@/context/store";
 import { TOP_BAR_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
+import { formatCredits } from "@/lib/credits/format";
 import { Coins, Menu, Megaphone } from "lucide-react";
 
 function ModuleNavIcon({
@@ -56,7 +57,7 @@ export function AppTopNav({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
   };
 
   return (
-    <header className="z-30 flex h-[var(--maro-shell-header-height)] shrink-0 items-center gap-3 bg-transparent px-3 sm:px-4 lg:gap-[var(--nav-gap)] lg:px-[30px]">
+    <header className="z-30 flex h-[var(--maro-shell-header-height)] shrink-0 items-center gap-3 bg-canvas px-3 sm:px-4 lg:gap-[var(--nav-gap)] lg:px-[30px]">
       <div className="flex min-w-0 items-center gap-2 lg:gap-[var(--nav-gap)]">
         {onOpenDrawer && (
           <button
@@ -116,7 +117,7 @@ export function AppTopNav({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
             aria-label={`${credits} kredite`}
           >
             <MaroIcon name="coins" fallback={Coins} className="h-4 w-4 text-brand" />
-            <span className="tabular-nums text-brand">{credits.toLocaleString("de-DE")}</span>
+            <span className="tabular-nums text-brand">{formatCredits(credits)}</span>
             <span className="hidden text-ink-2 sm:inline">kredite</span>
           </Link>
         )}

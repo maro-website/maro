@@ -6,6 +6,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { adminAuthHeaders } from "@/lib/admin/clientFetch";
 import { timeAgo } from "@/lib/utils/format";
+import { formatCredits } from "@/lib/credits/format";
 
 interface OverviewData {
   memberships: { active: number; renewalWindow: number; expired: number; total: number };
@@ -39,15 +40,15 @@ export default function CommerceOverviewPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Active memberships", value: data.memberships.active },
-              { label: "Renewal window", value: data.memberships.renewalWindow },
-              { label: "Expired", value: data.memberships.expired },
-              { label: "Credits granted", value: data.credits.granted },
-              { label: "Credits spent", value: data.credits.spent },
+              { label: "Active memberships", value: data.memberships.active, creditCount: false },
+              { label: "Renewal window", value: data.memberships.renewalWindow, creditCount: false },
+              { label: "Expired", value: data.memberships.expired, creditCount: false },
+              { label: "Credits granted", value: data.credits.granted, creditCount: true },
+              { label: "Credits spent", value: data.credits.spent, creditCount: true },
             ].map((kpi) => (
               <div key={kpi.label} className="rounded-xl border border-line bg-surface p-4">
                 <p className="text-[11px] font-semibold uppercase text-ink-3">{kpi.label}</p>
-                <p className="mt-2 text-[28px] font-light text-ink">{kpi.value.toLocaleString("de-DE")}</p>
+                <p className="mt-2 text-[28px] font-light text-ink">{kpi.creditCount ? formatCredits(kpi.value) : kpi.value.toLocaleString("de-DE")}</p>
               </div>
             ))}
           </div>
@@ -59,7 +60,7 @@ export default function CommerceOverviewPage() {
                 {data.recentPlanPurchases.map((o) => (
                   <li key={o.id} className="flex justify-between gap-2 text-ink-2">
                     <span>
-                      {o.orderKind} · {o.itemId} · {o.credits} cr
+                      {o.orderKind} · {o.itemId} · {formatCredits(o.credits)} cr
                     </span>
                     <span className="shrink-0 text-ink-3">
                       €{(o.amountCents / 100).toFixed(2)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
@@ -77,7 +78,7 @@ export default function CommerceOverviewPage() {
               <ul className="mt-3 space-y-2 text-[13px]">
                 {data.recentTopups.map((o) => (
                   <li key={o.id} className="flex justify-between gap-2 text-ink-2">
-                    <span>{o.credits} credits</span>
+                    <span>{formatCredits(o.credits)} credits</span>
                     <span className="text-ink-3">
                       €{(o.amountCents / 100).toFixed(2)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
                     </span>

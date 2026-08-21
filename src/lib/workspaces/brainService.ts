@@ -4,6 +4,7 @@ import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/br
 import { normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
 import { getSupabaseBrowser, supabaseConfigured, getAccessToken } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
+import { resolvePrivateAssetRefs } from "@/lib/services/projectAssetService";
 
 const LOCAL_BRAIN_KEY = "maro:ws-brain";
 const LOCAL_SOURCES_KEY = "maro:ws-sources";
@@ -58,6 +59,13 @@ export async function fetchBrainProfile(
       if (!profile.brand.logoUrl && data.brand_logo_url) {
         profile.brand.logoUrl = data.brand_logo_url as string;
       }
+      const logoRef = profile.brand.logoStorageRef ||
+        (profile.brand.logoUrl?.startsWith("storage:generations/") ? profile.brand.logoUrl : null);
+      if (logoRef) {
+        const resolved = await resolvePrivateAssetRefs([logoRef]);
+        profile.brand.logoStorageRef = logoRef;
+        profile.brand.logoUrl = resolved[logoRef] ?? profile.brand.logoUrl;
+      }
       return profile;
     }
   }
@@ -70,16 +78,23 @@ export async function saveBrainProfile(
   profile: WorkspaceBrainProfile
 ): Promise<void> {
   const normalized = normalizeBrainProfile(profile);
-  writeLocalBrain(workspaceId, normalized);
+  const persisted = normalizeBrainProfile({
+    ...normalized,
+    brand: {
+      ...normalized.brand,
+      logoUrl: normalized.brand.logoStorageRef ?? normalized.brand.logoUrl,
+    },
+  });
+  writeLocalBrain(workspaceId, persisted);
 
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
     await supabase
       .from("workspaces")
       .update({
-        brain_profile: normalized,
+        brain_profile: persisted,
         brand_name: normalized.brand.name || null,
-        brand_logo_url: normalized.brand.logoUrl,
+        brand_logo_url: persisted.brand.logoUrl,
       })
       .eq("id", workspaceId)
       .eq("owner_id", userId);
@@ -99,15 +114,23 @@ export async function fetchWorkspaceSources(
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
     if (data) {
-      return data.map((r) => ({
+      const items = data.map((r) => ({
         id: r.id,
         workspaceId: r.workspace_id,
         name: r.name,
         keywords: r.keywords ?? "",
         fileUrl: r.file_url,
+        storageRef: typeof r.file_url === "string" && r.file_url.startsWith("storage:generations/")
+          ? r.file_url
+          : undefined,
         mimeType: r.mime_type,
         createdAt: r.created_at,
       }));
+      const refs = items.map((item) => item.storageRef).filter((value): value is string => Boolean(value));
+      const resolved = await resolvePrivateAssetRefs(refs);
+      return items.map((item) => item.storageRef && resolved[item.storageRef]
+        ? { ...item, fileUrl: resolved[item.storageRef] }
+        : item);
     }
   }
   return readLocalSources(workspaceId);
@@ -184,24 +207,27 @@ export async function deleteWorkspaceSource(
   );
 }
 
-/** Upload image data URL to storage; returns public URL or original data URL on fallback. */
-export async function uploadSourceImage(dataUrl: string): Promise<string> {
-  if (!dataUrl.startsWith("data:image/")) return dataUrl;
+/** Upload workspace media to private storage; the stable ref is persisted. */
+export async function uploadSourceImage(
+  dataUrl: string,
+  workspaceId: string
+): Promise<{ url: string; storageRef: string } | null> {
+  if (!dataUrl.startsWith("data:image/")) return null;
   const token = await getAccessToken();
-  if (!token) return dataUrl;
+  if (!token) return null;
   try {
-    const res = await fetch("/api/avatar", {
+    const res = await fetch("/api/workspaces/assets", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ dataUrl }),
+      body: JSON.stringify({ dataUrl, workspaceId }),
     });
-    if (!res.ok) return dataUrl;
-    const j = (await res.json()) as { url?: string };
-    return j.url ?? dataUrl;
+    if (!res.ok) return null;
+    const j = (await res.json()) as { url?: string; storageRef?: string };
+    return j.url && j.storageRef ? { url: j.url, storageRef: j.storageRef } : null;
   } catch {
-    return dataUrl;
+    return null;
   }
 }

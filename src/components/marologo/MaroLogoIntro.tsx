@@ -13,7 +13,7 @@ export function MaroLogoIntro({ onStart }: { onStart: () => void }) {
       </div>
       <h1 className="marologo-step-title mb-5">Logoja nis me ni ide.</h1>
       <p className="max-w-lg text-[16px] leading-relaxed text-ink-2">
-        Pesë hapa të qartë. Na trego për brendin, drejtimin dhe ndjenjën — maro e kthen brief-in në identitet.
+        Një brief i shkurtër. Na trego çka bën brendi dhe si duhet me u ndi — Maro i merr vendimet tjera kreative.
       </p>
       <Button
         type="button"
@@ -22,7 +22,7 @@ export function MaroLogoIntro({ onStart }: { onStart: () => void }) {
       >
         Nise brief-in
       </Button>
-      <p className="mt-5 text-[12px] text-ink-3">Emri · Drejtimi · Forma · Pamja · Finalizimi</p>
+      <p className="mt-5 text-[12px] text-ink-3">Brendi · Drejtimi · Prezantimi</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { formatCredits } from "@/lib/credits/format";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal, ModalHeader, ModalFooter } from "@/components/ui/Modal";
@@ -30,12 +31,12 @@ export function BuyCreditsModal({
         <div className="rounded-maro12 bg-surface-2 p-4">
           <div className="flex items-center justify-between text-[13.5px]">
             <span className="text-ink-2">Kreditet e tua</span>
-            <span className="font-bold text-ink">{credits.toLocaleString("de-DE")}</span>
+            <span className="font-bold text-ink">{formatCredits(credits)}</span>
           </div>
           {typeof needed === "number" && (
             <div className="mt-2 flex items-center justify-between text-[13.5px]">
               <span className="text-ink-2">Nevojiten</span>
-              <span className="font-bold text-brand">{needed.toLocaleString("de-DE")}</span>
+              <span className="font-bold text-brand">{formatCredits(needed)}</span>
             </div>
           )}
         </div>

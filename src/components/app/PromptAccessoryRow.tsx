@@ -4,7 +4,19 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { cn } from "@/lib/utils/cn";
-import { Flame, Lock, X } from "lucide-react";
+import { BrainCircuit, Flame, Lock, X } from "lucide-react";
+
+export function BrainPill({ active, onToggle }: { active: boolean; onToggle: (next: boolean) => void }) {
+  return (
+    <button type="button" onClick={() => onToggle(!active)} className="fort-pill" title="Përdor kontekstin e maroBrain">
+      <BrainCircuit className="h-3.5 w-3.5" />
+      <span>maroBrain</span>
+      <span role="switch" aria-checked={active} className={cn("relative ml-0.5 inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors", active ? "bg-white/25" : "bg-black/15")}>
+        <motion.span layout transition={{ type: "spring", stiffness: 520, damping: 32 }} className={cn("block h-3 w-3 rounded-full bg-white", active ? "translate-x-3" : "translate-x-0")} />
+      </span>
+    </button>
+  );
+}
 
 export function FortPill({
   active,

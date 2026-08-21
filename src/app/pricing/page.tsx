@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
+import { formatCredits } from "@/lib/credits/format";
 import { Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -303,7 +304,7 @@ function PricingPageInner() {
                     )}
                   >
                     <p className="text-[24px] font-bold tracking-brand text-ink">
-                      {tier.credits.toLocaleString("de-DE")}
+                      {formatCredits(tier.credits)}
                     </p>
                     <p className="text-[13px] text-ink-3">kredite</p>
                     <p className="mt-4 text-[22px] font-semibold text-ink">{formatEur(tier.priceEur)}</p>

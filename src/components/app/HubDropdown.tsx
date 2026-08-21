@@ -16,7 +16,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
   if (hub) {
     return <Home className={cn("shrink-0", className)} />;
   }
-  const known = ["history", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "maro-fort", "idea"];
+  const known = ["history", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "maro-brain", "maro-fort", "idea"];
   if (known.includes(name)) {
     return <MaroIcon src={iconSrc(`${name}.svg`)} className={className} />;
   }
@@ -152,7 +152,7 @@ export function HubDropdown() {
                 <div className="mt-[30px]">
                   {HUB_MENU_DESTINATIONS.map((item) => {
                     const active = isNavActive(pathname, item);
-                    const isSeparatorBefore = item.id === "fort";
+                    const isSeparatorBefore = item.id === "brain";
                     const content = (
                       <>
                         <NavIcon
@@ -189,7 +189,7 @@ export function HubDropdown() {
                           </Link>
                         )}
                         {item.id === "hub" && <div className="h-[20px]" aria-hidden />}
-                        {item.id === "fort" && <div className="my-[20px] h-px bg-line" />}
+                        {item.id === "brain" && <div className="my-[20px] h-px bg-line" />}
                       </React.Fragment>
                     );
                   })}

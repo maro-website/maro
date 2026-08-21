@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { Project } from "@/lib/types";
 import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
+import { StableImage } from "@/components/app/StableImage";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Spinner } from "@/components/ui/Misc";
@@ -39,7 +40,9 @@ export function ProjectCard({
               <span className="text-[13px] font-medium text-ink-2">Duke ndërtuar website...</span>
             </div>
           ) : (
-            <PreviewThumb project={project} height={188} />
+            project.thumbnailUrl
+              ? <StableImage src={project.thumbnailUrl} alt={`Preview i ${project.name}`} className="h-full w-full object-cover object-top" />
+              : <PreviewThumb project={project} height={188} />
           )}
           <div className="absolute left-3 top-3">
             <StatusBadge status={project.status} />

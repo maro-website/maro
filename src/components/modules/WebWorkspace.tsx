@@ -4,12 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { ToolComposer } from "@/components/app/ToolComposer";
 import { ModuleHero } from "@/components/modules/ModuleHero";
-import { InspirationCarousel } from "@/components/modules/InspirationCarousel";
-import { WEB_INSPIRATION } from "@/lib/modules/web/inspiration";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import type { Project } from "@/lib/types";
 import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
+import { StableImage } from "@/components/app/StableImage";
 import { Eye, Pencil, RefreshCw, X } from "lucide-react";
 
 function projectPreviewHtml(project: Project): string | null {
@@ -56,10 +55,8 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
         title="Prej idesë, direkt në website."
         subtitle="Përshkruaje çka të duhet. Maro e ndërton strukturën, dizajnin dhe kodin për ty."
       />
-      <InspirationCarousel items={WEB_INSPIRATION} />
-
       {recentProjects.length > 0 && (
-        <section className="mx-auto mt-6 w-full max-w-[var(--module-content-max)] px-4 sm:px-0">
+        <section className="mx-auto mt-4 w-full max-w-[var(--module-content-max)] px-4 sm:px-0">
           <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-3">
             Website-et e fundit
           </h2>
@@ -74,6 +71,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
                 }}
                 className="rounded-maro16 bg-surface p-4 text-left transition-colors hover:bg-surface-2"
               >
+                {p.thumbnailUrl && <StableImage src={p.thumbnailUrl} alt="" className="mb-3 aspect-video w-full rounded-maro12 object-cover object-top" />}
                 <div className="truncate text-[14px] font-semibold text-ink">
                   {p.businessName || p.name}
                 </div>

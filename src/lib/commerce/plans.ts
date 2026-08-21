@@ -1,4 +1,5 @@
 import "server-only";
+import { formatCredits } from "@/lib/credits/format";
 
 import type { MaroPlanId } from "@/lib/credits/money";
 import { LIST_PRICE_CENTI_CREDIT, PLAN_PACKAGES, TOPUP_TIERS, type CheckoutItemId } from "@/lib/credits/money";
@@ -214,7 +215,7 @@ export async function resolveCheckoutItem(
       credits: topup.credits,
       priceCents: topup.price_cents,
       currency: topup.currency,
-      label: `${topup.credits.toLocaleString("de-DE")} kredite`,
+      label: `${formatCredits(topup.credits)} kredite`,
     };
   }
 

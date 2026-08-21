@@ -92,6 +92,8 @@ export interface Asset {
   id: string;
   name: string;
   url: string;
+  /** Stable private object identity; `url` is a refreshable display URL. */
+  storageRef?: string;
   category: AssetCategory;
   createdAt: string;
 }
@@ -209,6 +211,8 @@ export interface CreditTransaction {
 
 export interface Project {
   id: string;
+  /** Canonical generation row used for persistent screenshot association. */
+  generationId?: string;
   /** Active workspace when the project was created. */
   workspaceId?: string;
   name: string;
@@ -252,6 +256,9 @@ export interface Project {
   versions: Version[];
   credits: CreditTransaction[];
   previewUrl: string;
+  /** Persisted 16:9 website screenshot served from Maro storage. */
+  thumbnailUrl?: string;
+  thumbnailStorageRef?: string;
   publishedUrl?: string;
   createdAt: string;
   updatedAt: string;

@@ -170,7 +170,7 @@ export function BrainWorkspace() {
           {loading ? (
             <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>
           ) : tab === "brand" ? (
-            <BrandTab profile={profile} setProfile={setProfile} />
+            <BrandTab profile={profile} setProfile={setProfile} workspaceId={workspaceId!} />
           ) : tab === "target" ? (
             <TargetTab profile={profile} setProfile={setProfile} />
           ) : tab === "goal" ? (
@@ -223,10 +223,13 @@ function textareaCls() {
 function BrandTab({
   profile,
   setProfile,
+  workspaceId,
 }: {
   profile: WorkspaceBrainProfile;
   setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>;
+  workspaceId: string;
 }) {
+  const { toast } = useToast();
   const b = profile.brand;
   const setBrand = (patch: Partial<typeof b>) =>
     setProfile((p) => ({ ...p, brand: { ...p.brand, ...patch } }));
@@ -321,9 +324,16 @@ function BrandTab({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) return;
+                if (!file || !workspaceId) return;
                 const reader = new FileReader();
-                reader.onload = () => setBrand({ logoUrl: reader.result as string });
+                reader.onload = async () => {
+                  const uploaded = await uploadSourceImage(String(reader.result ?? ""), workspaceId);
+                  if (!uploaded) {
+                    toast("Logo nuk u ngarkua. Provo përsëri.");
+                    return;
+                  }
+                  setBrand({ logoUrl: uploaded.url, logoStorageRef: uploaded.storageRef });
+                };
                 reader.readAsDataURL(file);
               }}
             />
@@ -547,13 +557,14 @@ function SourcesTab({
     }
     setBusy(true);
     try {
-      const url = await uploadSourceImage(fileUrl);
+      const uploaded = await uploadSourceImage(fileUrl, workspaceId);
+      if (!uploaded) throw new Error("upload-failed");
       await addWorkspaceSource({
         userId,
         workspaceId,
         name: name.trim(),
         keywords: keywords.trim(),
-        fileUrl: url,
+        fileUrl: uploaded.storageRef,
       });
       setName("");
       setKeywords("");

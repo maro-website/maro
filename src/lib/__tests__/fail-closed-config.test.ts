@@ -67,6 +67,7 @@ describe("Batch S2 — Supabase fail-closed", () => {
     expect(isSupabaseServerConfigured()).toBe(false);
     const deny = denyProtectedOperationWithoutSupabase(false);
     expect(deny.denied).toBe(true);
+    if (!deny.denied) throw new Error("expected production request to fail closed");
     expect(deny.response.status).toBe(503);
   });
 

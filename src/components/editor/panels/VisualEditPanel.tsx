@@ -118,9 +118,9 @@ export function VisualEditPanel() {
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const url = await uploadProjectAsset(file);
-      addAssets([url], "other");
-      patch({ src: url });
+      const uploaded = await uploadProjectAsset(file);
+      addAssets([uploaded.url], "other", [uploaded.storageRef]);
+      patch({ src: uploaded.url });
       toast("Imazhi u zëvendësua.");
     } catch (error) {
       toast(projectAssetErrorMessage(error));

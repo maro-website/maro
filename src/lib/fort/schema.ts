@@ -522,55 +522,15 @@ const LOGO_SCHEMA: FortModuleSchema = {
   id: "logo",
   sections: [
     {
-      id: "brand",
-      label: "Brendi",
-      order: 1,
-      fields: [
-        {
-          id: "brandName",
-          type: "text",
-          label: "Emri i brendit",
-          required: true,
-          briefSection: "brand",
-          priority: 75,
-          order: 1,
-        },
-        {
-          id: "tagline",
-          type: "text",
-          label: "Slogani",
-          briefSection: "brand",
-          priority: 35,
-          order: 2,
-        },
-        {
-          id: "industry",
-          type: "select",
-          label: "Industria",
-          options: [
-            opt("restaurant", "Restorant / kafe"),
-            opt("tech", "Teknologji"),
-            opt("fashion", "Modë"),
-            opt("beauty", "Bukuri"),
-            opt("construction", "Ndërtim"),
-            opt("finance", "Financa"),
-            opt("other", "Tjetër"),
-          ],
-          briefSection: "brand",
-          priority: 40,
-          order: 3,
-        },
-      ],
-    },
-    {
       id: "style",
-      label: "Stili",
-      order: 2,
+      label: "Arkitektura & forma",
+      order: 1,
       fields: [
         {
           id: "logoStyle",
           type: "select",
-          label: "Lloji i logos",
+          label: "Arkitekturë eksperte",
+          description: "Aplikohet kur Standard është në ‘Maro vendos’; zgjedhja eksplicite në Standard ka përparësi.",
           options: [
             opt("wordmark", "Wordmark (tekst)"),
             opt("lettermark", "Lettermark (inicialet)"),
@@ -578,7 +538,6 @@ const LOGO_SCHEMA: FortModuleSchema = {
             opt("combination", "Kombinim"),
             opt("emblem", "Emblemë"),
           ],
-          default: "combination",
           briefSection: "creative",
           priority: 55,
           order: 1,
@@ -586,7 +545,8 @@ const LOGO_SCHEMA: FortModuleSchema = {
         {
           id: "aesthetic",
           type: "multiselect",
-          label: "Estetika",
+          label: "Sinjale dytësore estetike",
+          description: "Nuanca shtesë; drejtimi eksplicit i Standardit ka përparësi.",
           options: [
             opt("modern", "Modern"),
             opt("classic", "Klasik"),
@@ -596,10 +556,36 @@ const LOGO_SCHEMA: FortModuleSchema = {
             opt("tech", "Tech"),
             opt("organic", "Organik"),
           ],
-          maxSelect: 3,
+          maxSelect: 2,
           briefSection: "creative",
           priority: 45,
           order: 2,
+        },
+        {
+          id: "distinctiveness",
+          type: "slider",
+          label: "Dallueshmëria",
+          description: "Sa larg normave vizuale të kategorisë mund të shkojë identiteti.",
+          sliderMin: "E sigurt",
+          sliderMax: "Shumë e veçantë",
+          briefSection: "creative",
+          priority: 50,
+          order: 3,
+        },
+        {
+          id: "formLanguage",
+          type: "select",
+          label: "Gjuha e formës",
+          options: [
+            opt("organic", "Organike / e lirë"),
+            opt("geometric", "Gjeometrike"),
+            opt("grid", "E ndërtuar në grid"),
+            opt("negative-space", "Negative space"),
+            opt("typographic", "E ndërtuar nga shkronjat"),
+          ],
+          briefSection: "creative",
+          priority: 45,
+          order: 4,
         },
         {
           id: "colorApproach",
@@ -613,23 +599,22 @@ const LOGO_SCHEMA: FortModuleSchema = {
           ],
           briefSection: "creative",
           priority: 40,
-          order: 3,
+          order: 5,
         },
         {
           id: "primaryColor",
           type: "color",
           label: "Ngjyra kryesore",
-          default: "#253FDA",
           briefSection: "creative",
           priority: 35,
-          order: 4,
+          order: 6,
         },
       ],
     },
     {
       id: "symbolism",
       label: "Simbolika",
-      order: 3,
+      order: 2,
       fields: [
         {
           id: "symbolIdeas",
@@ -654,7 +639,7 @@ const LOGO_SCHEMA: FortModuleSchema = {
     {
       id: "technical",
       label: "Teknike",
-      order: 4,
+      order: 3,
       fields: [
         {
           id: "usage",
@@ -697,7 +682,16 @@ const BASE_SCHEMAS: Record<FortModuleId, FortModuleSchema> = {
 
 // Each module ends with the shared universal section.
 function withUniversal(schema: FortModuleSchema): FortModuleSchema {
-  return { ...schema, sections: [...schema.sections, UNIVERSAL_SECTION] };
+  if (schema.id !== "logo") return { ...schema, sections: [...schema.sections, UNIVERSAL_SECTION] };
+  // Standard owns required/avoid and the brand truth. Logo Fort keeps only
+  // controls that add expert value without duplicating the short brief.
+  const logoUniversal: FortSectionSchema = {
+    ...UNIVERSAL_SECTION,
+    fields: UNIVERSAL_SECTION.fields
+      .filter((field) => ["creativeFreedom", "referenceStrength"].includes(field.id))
+      .map((field) => field.id === "referenceStrength" ? { ...field, default: undefined } : field),
+  };
+  return { ...schema, sections: [...schema.sections, logoUniversal] };
 }
 
 function applyFieldOverride(

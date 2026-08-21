@@ -37,6 +37,21 @@ export function validateWebReferenceImages(
     if (typeof raw !== "string" || raw.length === 0 || raw.length > 2048) {
       return { ok: false, error: "invalid_references" };
     }
+    if (raw.startsWith("storage:generations/")) {
+      const path = raw.slice("storage:generations/".length);
+      const segments = path.split("/");
+      if (
+        segments.length < 3 ||
+        segments[1] !== "project-assets" ||
+        !segments.at(-1) ||
+        path.includes("..") ||
+        (options.expectedUserId && segments[0] !== options.expectedUserId)
+      ) {
+        return { ok: false, error: "invalid_references" };
+      }
+      if (!normalized.includes(raw)) normalized.push(raw);
+      continue;
+    }
     try {
       const url = new URL(raw);
       if (
@@ -50,13 +65,15 @@ export function validateWebReferenceImages(
       ) {
         return { ok: false, error: "invalid_references" };
       }
+      const legacyPath = decodeURIComponent(url.pathname.slice(marker.length));
+      const [owner, ...rest] = legacyPath.split("/");
       if (options.expectedUserId) {
-        const owner = decodeURIComponent(url.pathname.slice(marker.length)).split("/")[0];
         if (owner !== options.expectedUserId) {
           return { ok: false, error: "invalid_references" };
         }
       }
-      if (!normalized.includes(url.href)) normalized.push(url.href);
+      const stableRef = `storage:generations/${owner}/project-assets/${rest.join("/")}`;
+      if (!normalized.includes(stableRef)) normalized.push(stableRef);
     } catch {
       return { ok: false, error: "invalid_references" };
     }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { AppTopNav } from "@/components/app/AppTopNav";
+import { PlatformNotices } from "@/components/app/PlatformNotices";
 import { NavDrawer } from "@/components/app/NavDrawer";
 import { AppFooter } from "@/components/app/AppFooter";
 import { STUDIO_ROUTES } from "@/lib/nav/destinations";
@@ -40,7 +41,8 @@ export function AppShell({
     hideFooter !== true && (showFooter === true || STUDIO_ROUTES.has(pathname));
 
   return (
-    <div className="maro-app-shell maro-dotted-canvas flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden">
+    <div className="maro-app-shell flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-canvas">
+      <PlatformNotices placement="global" moduleId={moduleForPath(pathname)} />
       <AppTopNav onOpenDrawer={() => setDrawer(true)} />
       <NavDrawer open={drawer} onClose={() => setDrawer(false)} />
 
@@ -67,4 +69,13 @@ export function AppShell({
       </main>
     </div>
   );
+}
+
+function moduleForPath(pathname: string): string {
+  if (pathname.startsWith("/imazh")) return "maroImazh";
+  if (pathname.startsWith("/marologo") || pathname.startsWith("/logo")) return "maroLogo";
+  if (pathname.startsWith("/web") || pathname.startsWith("/projects")) return "maroWeb";
+  if (pathname.startsWith("/filma")) return "maroFilma";
+  if (pathname.startsWith("/audio") || pathname.startsWith("/zo")) return "maroZo";
+  return "platform";
 }

@@ -26,7 +26,12 @@ export function detectBriefConflicts(input: {
 }): ConflictNote[] {
   const notes: ConflictNote[] = [];
   const user = input.userPrompt ?? "";
-  const fortColor = String(input.fortValues.colorDirection ?? input.fortValues.colorPalette ?? "");
+  const fortColor = String(
+    input.fortValues.colorDirection ??
+      input.fortValues.colorPalette ??
+      input.fortValues.colorApproach ??
+      ""
+  );
 
   if (COLOR_KEYWORDS.monochrome.test(user) && /vibrant|colorful|bold/i.test(fortColor)) {
     notes.push({
