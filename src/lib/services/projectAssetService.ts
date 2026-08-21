@@ -132,6 +132,27 @@ export async function resolvePrivateAssetRefs(refs: string[]): Promise<Record<st
   return payload.urls ?? {};
 }
 
+export async function resolvePrivateAssetRefsStrict(refs: string[]): Promise<Record<string, string>> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("unauthorized");
+  if (refs.length === 0) return {};
+  const response = await fetch("/api/media/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ refs }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    urls?: Record<string, string>;
+    error?: string;
+  };
+  if (!response.ok) throw new Error(payload.error ?? "preview-resolve-failed");
+  const urls = payload.urls ?? {};
+  if (refs.some((ref) => !/^https?:\/\//i.test(urls[ref] ?? ""))) {
+    throw new Error("preview-resolve-failed");
+  }
+  return urls;
+}
+
 export function projectAssetErrorMessage(error: unknown): string {
   const code = error instanceof Error ? error.message : "upload-failed";
   if (code === "file-too-large" || code === "file_too_large" || code === "too-large") {

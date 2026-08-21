@@ -10,6 +10,7 @@ import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { PlatformNotices } from "@/components/app/PlatformNotices";
 import { OptionIcon, MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { GenerationCard, type GenerationCardMessage } from "@/components/app/GenerationCard";
+import { StableImage } from "@/components/app/StableImage";
 import { GalleryMasonry } from "@/components/app/GalleryMasonry";
 import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
@@ -36,9 +37,12 @@ import {
   MAX_PROJECT_ASSET_FILE_BYTES,
   MAX_IMAGE_REFERENCE_FILE_BYTES,
   projectAssetErrorMessage,
-  uploadImageReferenceDataUrl,
   uploadProjectAssetDataUrl,
 } from "@/lib/services/projectAssetService";
+import {
+  uploadOrResolvePrivateAttachment,
+  type PrivateImageAttachment,
+} from "@/lib/services/privateImageAttachment";
 import {
   generateImages,
   InsufficientCreditsError,
@@ -76,6 +80,8 @@ import {
   Eraser,
   Wrench,
   ImagePlus,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -136,6 +142,15 @@ function noticeModuleId(toolId: string): string {
 
 type ChatMessage = GenerationCardMessage & { role: "generation" };
 
+function readImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("file-read-failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function ToolComposer({
   toolId,
   layout = "conversation",
@@ -167,7 +182,7 @@ export function ToolComposer({
   const [prompt, setPrompt] = React.useState("");
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
   const [attachments, setAttachments] = React.useState<string[]>([]);
-  const [attachmentStorageRefs, setAttachmentStorageRefs] = React.useState<Record<string, string>>({});
+  const [privateImageAttachments, setPrivateImageAttachments] = React.useState<PrivateImageAttachment[]>([]);
   const [uploadingReferences, setUploadingReferences] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
@@ -201,7 +216,10 @@ export function ToolComposer({
   const audioFileRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const creationsRef = React.useRef(creations);
+  const privateImageAttachmentsRef = React.useRef(privateImageAttachments);
+  const attachmentUploadPromises = React.useRef(new Map<string, Promise<PrivateImageAttachment>>());
   creationsRef.current = creations;
+  privateImageAttachmentsRef.current = privateImageAttachments;
 
   const isImage = tool.kind === "image";
   const isWebsite = tool.kind === "website";
@@ -256,7 +274,7 @@ export function ToolComposer({
     }
     setPrompt(draft);
     setAttachments([]);
-    setAttachmentStorageRefs({});
+    setPrivateImageAttachments([]);
     setAudioInput(null);
     setFortActive(false);
     setFortModalOpen(false);
@@ -284,8 +302,21 @@ export function ToolComposer({
         if (transferred) {
           const parsed = JSON.parse(transferred) as { storageRef?: string; previewUrl?: string };
           if (parsed.storageRef?.startsWith("storage:generations/") && parsed.previewUrl) {
-            setAttachments([parsed.previewUrl]);
-            setAttachmentStorageRefs({ [parsed.previewUrl]: parsed.storageRef });
+            const transferredAttachment: PrivateImageAttachment = {
+              id: uid("att"),
+              name: "maroLogo",
+              storageRef: parsed.storageRef,
+              previewUrl: parsed.previewUrl,
+              status: "uploading",
+            };
+            setPrivateImageAttachments([transferredAttachment]);
+            void uploadOrResolvePrivateAttachment(transferredAttachment).then((next) => {
+              setPrivateImageAttachments((current) => current.map((item) => item.id === next.id ? next : item));
+            }).catch(() => {
+              setPrivateImageAttachments((current) => current.map((item) => item.id === transferredAttachment.id
+                ? { ...item, status: "preview-error", error: "Pamja private nuk u hap. Provo përsëri." }
+                : item));
+            });
           }
           sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
         }
@@ -409,6 +440,100 @@ export function ToolComposer({
     });
   };
 
+  const startPrivateAttachmentUpload = React.useCallback(
+    (attachment: PrivateImageAttachment): Promise<PrivateImageAttachment> => {
+      const existing = attachmentUploadPromises.current.get(attachment.id);
+      if (existing) return existing;
+      setPrivateImageAttachments((current) => current.map((item) => item.id === attachment.id
+        ? { ...item, status: "uploading", error: undefined }
+        : item));
+      const promise = uploadOrResolvePrivateAttachment(attachment)
+        .then((next) => {
+          setPrivateImageAttachments((current) => current.map((item) => item.id === next.id ? next : item));
+          return next;
+        })
+        .catch((error) => {
+          const failed: PrivateImageAttachment = attachment.storageRef
+            ? {
+                ...attachment,
+                status: "preview-error",
+                error: "Pamja private nuk u hap. Provo përsëri.",
+              }
+            : {
+                ...attachment,
+                status: "upload-error",
+                error: projectAssetErrorMessage(error),
+              };
+          setPrivateImageAttachments((current) => current.map((item) => item.id === failed.id ? failed : item));
+          throw error;
+        })
+        .finally(() => attachmentUploadPromises.current.delete(attachment.id));
+      attachmentUploadPromises.current.set(attachment.id, promise);
+      return promise;
+    },
+    []
+  );
+
+  const queuePrivateImageFiles = React.useCallback(
+    async (files: File[]) => {
+      const currentCount = privateImageAttachmentsRef.current.length;
+      const room = MAX_ATTACHMENTS - currentCount;
+      if (room <= 0) {
+        toast(`Maksimumi ${MAX_ATTACHMENTS} imazhe.`);
+        return;
+      }
+      const accepted = files
+        .filter((file) => {
+          if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) {
+            toast("Zgjidh një imazh PNG, JPG ose WebP.");
+            return false;
+          }
+          if (file.size > MAX_IMAGE_REFERENCE_FILE_BYTES) {
+            toast("Imazhi është shumë i madh (max 25MB)." );
+            return false;
+          }
+          return true;
+        })
+        .slice(0, room);
+      const queued = await Promise.all(accepted.map(async (file): Promise<PrivateImageAttachment> => {
+        const sourceDataUrl = await readImageFile(file);
+        return {
+          id: uid("att"),
+          name: file.name,
+          previewUrl: sourceDataUrl,
+          sourceDataUrl,
+          status: user ? "uploading" : "pending",
+        };
+      }));
+      if (!queued.length) return;
+      setPrivateImageAttachments((current) => [...current, ...queued]);
+      if (user) {
+        await Promise.allSettled(queued.map((attachment) => startPrivateAttachmentUpload(attachment)));
+      }
+    },
+    [startPrivateAttachmentUpload, toast, user]
+  );
+
+  const refreshPrivateAttachmentPreview = React.useCallback(async (id: string) => {
+    const attachment = privateImageAttachmentsRef.current.find((item) => item.id === id);
+    if (!attachment?.storageRef) return false;
+    try {
+      const next = await startPrivateAttachmentUpload({ ...attachment, status: "uploading" });
+      return next.status === "ready";
+    } catch {
+      return false;
+    }
+  }, [startPrivateAttachmentUpload]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    for (const attachment of privateImageAttachmentsRef.current) {
+      if (attachment.status === "pending" && attachment.sourceDataUrl) {
+        void startPrivateAttachmentUpload(attachment).catch(() => undefined);
+      }
+    }
+  }, [startPrivateAttachmentUpload, user]);
+
   const addImageUrl = React.useCallback(
     async (url: string) => {
       try {
@@ -427,6 +552,11 @@ export function ToolComposer({
           toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 25}MB).`);
           return;
         }
+        if (isImage) {
+          const extension = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
+          await queuePrivateImageFiles([new File([blob], `reference.${extension}`, { type: blob.type })]);
+          return;
+        }
         const reader = new FileReader();
         reader.onload = () => {
           setAttachments((a) => {
@@ -442,11 +572,15 @@ export function ToolComposer({
         toast("S'munda ta ngarkoj imazhin.");
       }
     },
-    [isWebsite, toast]
+    [isImage, isWebsite, queuePrivateImageFiles, toast]
   );
 
   const addImageFiles = React.useCallback(
     (files: File[]) => {
+      if (isImage) {
+        void queuePrivateImageFiles(files);
+        return;
+      }
       if (files.some((file) => !/^image\/(?:png|jpe?g|webp)$/i.test(file.type))) {
         toast("Zgjidh një imazh PNG, JPG ose WebP.");
       }
@@ -475,7 +609,7 @@ export function ToolComposer({
         return current;
       });
     },
-    [isWebsite, toast]
+    [isImage, isWebsite, queuePrivateImageFiles, toast]
   );
 
   const addFiles = (files: FileList | null) => {
@@ -637,8 +771,8 @@ export function ToolComposer({
       return;
     }
 
-    const sentAttachments = attachments.length ? [...attachments] : undefined;
-    const sentAttachmentRefs = { ...attachmentStorageRefs };
+    const sentPrivateAttachments = privateImageAttachments.length ? [...privateImageAttachments] : undefined;
+    const sentAttachments = sentPrivateAttachments?.map((attachment) => attachment.previewUrl);
     const maroId = uid("g");
     const now = new Date().toISOString();
     const labels = resolveGenerationLabels(tool, selections);
@@ -662,18 +796,19 @@ export function ToolComposer({
       ...m,
     ]);
     setPrompt("");
-    setAttachments([]);
-    setAttachmentStorageRefs({});
+    setPrivateImageAttachments([]);
     // Generation started — the maroFort pop-up is no longer needed on screen.
     setFortModalOpen(false);
     setLoading(true);
     try {
       setUploadingReferences(Boolean(sentAttachments?.length));
-      const canonicalAttachments = sentAttachments?.length
-        ? [...new Set(await Promise.all(sentAttachments.map(async (preview, index) =>
-            sentAttachmentRefs[preview] ??
-            (await uploadImageReferenceDataUrl(preview, `maro-imazh-reference-${index + 1}`)).storageRef
-          )))]
+      const canonicalAttachments = sentPrivateAttachments?.length
+        ? [...new Set(await Promise.all(sentPrivateAttachments.map(async (attachment) => {
+            if (attachment.storageRef) return attachment.storageRef;
+            const uploaded = await startPrivateAttachmentUpload(attachment);
+            if (!uploaded.storageRef) throw new Error("upload-failed");
+            return uploaded.storageRef;
+          })))]
         : undefined;
       setUploadingReferences(false);
       const res = await generateImages({
@@ -732,12 +867,16 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, attachmentStorageRefs, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand]);
+  }, [prompt, tool, selections, attachments, privateImageAttachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
-    : Boolean(prompt.trim());
+    : Boolean(prompt.trim()) && (
+        !isImage ||
+        !user ||
+        privateImageAttachments.every((attachment) => Boolean(attachment.storageRef))
+      );
 
   const onGenerate = () => {
     if (!functional) {
@@ -902,14 +1041,57 @@ export function ToolComposer({
         <div className="mx-auto w-full max-w-[var(--layout-composer-max)] px-4 pb-4 pt-2 lg:pb-6">
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
-          {attachments.length > 0 && (
-            <div className="mb-2.5 flex flex-wrap gap-2">
-              {attachments.map((src, i) => (
-                <div key={i} className="relative h-16 w-16 overflow-hidden rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="h-full w-full object-cover" />
+          {(isImage ? privateImageAttachments.length : attachments.length) > 0 && (
+            <div className="mb-2.5">
+            <div className="flex flex-wrap gap-2">
+              {(isImage ? privateImageAttachments : attachments.map((previewUrl, index) => ({
+                id: `legacy-${index}`,
+                name: "",
+                previewUrl,
+                status: "ready" as const,
+              }))).map((attachment, i) => (
+                <div key={attachment.id} className="relative h-16 w-16 overflow-hidden rounded-xl bg-surface-2">
+                  {isImage ? (
+                    <StableImage
+                      src={attachment.previewUrl}
+                      alt={attachment.name}
+                      className="h-full w-full object-cover"
+                      refreshKey={("storageRef" in attachment ? attachment.storageRef : undefined) ?? attachment.id}
+                      onRefresh={("storageRef" in attachment && attachment.storageRef)
+                        ? () => refreshPrivateAttachmentPreview(attachment.id)
+                        : undefined}
+                      onTerminalError={() => setPrivateImageAttachments((current) => current.map((item) =>
+                        item.id === attachment.id
+                          ? { ...item, status: "decode-error", error: "Imazhi u ngarkua, por nuk mund të shfaqet." }
+                          : item
+                      ))}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={attachment.previewUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                  {isImage && attachment.status === "uploading" && (
+                    <span className="absolute inset-0 grid place-items-center bg-scrim/45 text-on-scrim" aria-label="Duke ngarkuar">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </span>
+                  )}
+                  {isImage && (attachment.status === "upload-error" || attachment.status === "preview-error" || attachment.status === "decode-error") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (attachment.storageRef) void refreshPrivateAttachmentPreview(attachment.id);
+                        else void startPrivateAttachmentUpload(attachment).catch(() => undefined);
+                      }}
+                      className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-scrim/80 px-1 py-1 text-[9px] font-semibold text-on-scrim"
+                      title={attachment.error}
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" /> Provo përsëri
+                    </button>
+                  )}
                   <button
-                    onClick={() => setAttachments((a) => a.filter((_, j) => j !== i))}
+                    onClick={() => isImage
+                      ? setPrivateImageAttachments((current) => current.filter((item) => item.id !== attachment.id))
+                      : setAttachments((a) => a.filter((_, j) => j !== i))}
                     className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-scrim text-on-scrim"
                     aria-label="Hiq"
                   >
@@ -917,6 +1099,20 @@ export function ToolComposer({
                   </button>
                 </div>
               ))}
+            </div>
+            {isImage && privateImageAttachments.some((attachment) => attachment.error) && (
+              <div className="mt-1.5 space-y-1 text-[11.5px] text-danger" role="alert">
+                {privateImageAttachments.filter((attachment) => attachment.error).map((attachment) => (
+                  <div key={`${attachment.id}-error`}>
+                    {attachment.status === "upload-error"
+                      ? `Ngarkimi dështoi: ${attachment.error}`
+                      : attachment.status === "preview-error"
+                        ? `Imazhi u ngarkua, por pamja private nuk u hap. Provo përsëri.`
+                        : `Imazhi u ngarkua, por nuk mund të shfaqet. Provo përsëri.`}
+                  </div>
+                ))}
+              </div>
+            )}
             </div>
           )}
 
@@ -1018,7 +1214,7 @@ export function ToolComposer({
                   />
                   <IconBtn
                     onClick={() => fileRef.current?.click()}
-                    disabled={attachments.length >= MAX_ATTACHMENTS}
+                    disabled={(isImage ? privateImageAttachments.length : attachments.length) >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
                     <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5 text-white" />
