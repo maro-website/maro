@@ -20,7 +20,7 @@ const HUB_TOOLS = [
 /** Hub home — greeting, credits, tool tiles, marketing banner, promo cards. */
 export function HomeHub({ firstName }: { firstName?: string }) {
   return (
-    <div className="flex min-h-full w-full flex-col items-center bg-hub-page px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:pb-32 lg:pt-28">
+    <div className="flex min-h-full w-full flex-col items-center px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:pb-32 lg:pt-28">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

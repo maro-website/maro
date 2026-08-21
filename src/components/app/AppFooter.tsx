@@ -18,7 +18,7 @@ export function AppFooter({ className }: { className?: string }) {
   return (
     <footer
       className={cn(
-        "flex shrink-0 flex-col gap-[20px] bg-footer px-[20px] py-[20px] sm:flex-row sm:items-center sm:justify-between lg:px-[30px]",
+        "flex shrink-0 flex-col gap-[20px] bg-transparent px-[20px] py-[20px] sm:flex-row sm:items-center sm:justify-between lg:px-[30px]",
         className
       )}
     >

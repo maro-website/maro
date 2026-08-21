@@ -40,7 +40,7 @@ export function AppShell({
     hideFooter !== true && (showFooter === true || STUDIO_ROUTES.has(pathname));
 
   return (
-    <div className="maro-app-shell flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-canvas">
+    <div className="maro-app-shell maro-dotted-canvas flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden">
       <AppTopNav onOpenDrawer={() => setDrawer(true)} />
       <NavDrawer open={drawer} onClose={() => setDrawer(false)} />
 

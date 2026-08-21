@@ -847,7 +847,7 @@ export function ToolComposer({
       </div>
 
       {!isReadOnlyView && (
-      <div className="relative z-20 shrink-0 bg-canvas max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 shrink-0 bg-transparent max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto w-full max-w-[var(--layout-composer-max)] px-4 pb-4 pt-2 lg:pb-6">
           <AnnouncementBanner toolId={tool.id} />
 
