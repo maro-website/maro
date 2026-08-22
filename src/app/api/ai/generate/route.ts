@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
 import { resolveWebModel } from "@/lib/ai/webModels";
+import { wrapPresetRecommendation } from "@/lib/presets/model";
 import {
   buildHtmlGenerateSystem,
   buildHtmlGenerateUser,
@@ -126,10 +127,12 @@ export async function POST(req: Request) {
 
   // maro Prompts: prepend the hidden curated template (fetched server-side).
   let maroPromptId: string | undefined;
+  let presetPromptText: string | undefined;
   if (body.maroPrompt?.id) {
-    const tpl = await getPromptTemplate(body.maroPrompt.id);
+    const tpl = await getPromptTemplate(body.maroPrompt.id, "website");
     if (tpl?.full_prompt?.trim()) {
-      extraPrompt = extraPrompt ? `${tpl.full_prompt.trim()}\n\n${extraPrompt}` : tpl.full_prompt.trim();
+      presetPromptText = wrapPresetRecommendation(tpl.full_prompt);
+      extraPrompt = extraPrompt ? `${presetPromptText}\n\n${extraPrompt}` : presetPromptText;
       maroPromptId = body.maroPrompt.id;
     }
   }
@@ -269,6 +272,8 @@ export async function POST(req: Request) {
             fort: body.fort,
             claudeModel,
             effort,
+            presetId: maroPromptId,
+            presetPrompt: presetPromptText,
           });
 
           if (!engineResult.ok) {

@@ -7,6 +7,7 @@ export interface InspirationItem {
   preset?: {
     id: string;
     code: string;
+    tool: "imazh";
     targetTool: string;
   };
 }
@@ -21,8 +22,10 @@ export function presetAttachFromItem(item: InspirationItem) {
   return {
     id: item.preset.id,
     code: item.preset.code,
+    tool: item.preset.tool,
     targetTool: item.preset.targetTool,
     thumbnailUrl: item.imageUrl,
+    config: { version: 1 as const },
   };
 }
 

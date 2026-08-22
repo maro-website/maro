@@ -49,6 +49,7 @@ import {
 } from "@/lib/engine/imageReferenceTracker";
 import { IMAGE_PROVIDER_REF_LIMIT, LOGO_REFERENCE_DIRECTION, buildImageTextInstruction } from "@/lib/engine/imageCompile";
 import { reconcileLogoFortValues } from "@/lib/marologo/fortReconciliation";
+import { wrapPresetRecommendation } from "@/lib/presets/model";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
 import { resolveImageExecutionContext } from "@/lib/engine/imageExecution";
 import { runImageEngineInternalGeneration } from "@/lib/engine/imageEngineRun";
@@ -146,9 +147,9 @@ export async function POST(req: Request) {
   let maroPromptId: string | undefined;
   let presetPromptText: string | undefined;
   if (body.maroPrompt?.id) {
-    const tpl = await getPromptTemplate(body.maroPrompt.id);
+    const tpl = await getPromptTemplate(body.maroPrompt.id, tool.id);
     if (tpl?.full_prompt?.trim()) {
-      presetPromptText = tpl.full_prompt.trim();
+      presetPromptText = wrapPresetRecommendation(tpl.full_prompt);
       finalPrompt = `${presetPromptText}\n\n${finalPrompt}`;
       maroPromptId = body.maroPrompt.id;
     }

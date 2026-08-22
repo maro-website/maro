@@ -9,7 +9,7 @@ import {
   MARO_PRESET_MIME,
   presetAttachFromItem,
 } from "@/lib/modules/imazh/inspiration";
-import { fetchPrompts } from "@/lib/services/promptsService";
+import { fetchPromptDetail, fetchPrompts } from "@/lib/services/promptsService";
 import type { PromptAttach } from "@/lib/prompts/types";
 import type { PromptItem } from "@/lib/prompts/types";
 import { ToolComposer } from "@/components/app/ToolComposer";
@@ -27,6 +27,7 @@ function promptToCarouselItem(p: PromptItem): InspirationItem {
     preset: {
       id: p.id,
       code: p.code,
+      tool: "imazh",
       targetTool: p.target_tool,
     },
   };
@@ -52,6 +53,10 @@ export function ImazhWorkspace({ toolId }: { toolId: string }) {
 
   const onPresetSelect = React.useCallback((attach: PromptAttach) => {
     setPromptAttach(attach);
+    void fetchPromptDetail(attach.id).then((detail) => {
+      if (detail.tool !== "imazh" || detail.target_tool !== IMAZH_TARGET_TOOL) return;
+      setPromptAttach({ ...attach, title: detail.title, tool: "imazh", config: detail.config });
+    }).catch(() => undefined);
   }, []);
 
   const headerSlot = (

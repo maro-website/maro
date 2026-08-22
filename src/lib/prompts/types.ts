@@ -1,22 +1,11 @@
-// Shared, client-safe types for maroPresets (curated preset catalog).
-// No server-only imports here.
+// Shared, client-safe types for the canonical maroPresets catalog.
+import type { PresetConfig, PresetTool } from "@/lib/presets/model";
 
-// Fixed category list shown as chips in the search bar + admin dropdown.
 export const PROMPT_CATEGORIES = [
-  "Restaurant",
-  "Dental",
-  "Coffee",
-  "Drinks",
-  "Beauty",
-  "Real Estate",
-  "Automotive",
-  "Fashion",
-  "Barber",
-  "Shoes",
-  "Accessories",
+  "Restaurant", "Dental", "Coffee", "Drinks", "Beauty", "Real Estate",
+  "Automotive", "Fashion", "Barber", "Shoes", "Accessories",
 ] as const;
 
-/** Preset library groupings (marketing + general). */
 export const PRESET_CATEGORIES = [
   { id: "all", label: "Të gjitha" },
   { id: "product", label: "Product shot" },
@@ -28,33 +17,43 @@ export const PRESET_CATEGORIES = [
 
 export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
-// Tools a curated prompt can target (single tool per prompt). Mirrors the
-// functional generation tools; audio/video are excluded.
-export const PROMPT_TARGET_TOOLS: { id: string; label: string }[] = [
-  { id: "logo", label: "maro Brand" },
-  { id: "reklama", label: "maro Imazh" },
-  { id: "website", label: "maro Web" },
+export const PROMPT_TARGET_TOOLS: { id: "reklama" | "logo" | "website"; label: string; tool: PresetTool }[] = [
+  { id: "reklama", label: "maroImazh", tool: "imazh" },
+  { id: "logo", label: "maroLogo", tool: "logo" },
+  { id: "website", label: "maroWeb", tool: "web" },
 ];
 
-// Public metadata shipped to the browser. NEVER includes `full_prompt`.
+/** Lightweight browse shape. Hidden master prompts and tool config are omitted. */
 export interface PromptItem {
   id: string;
   code: string;
+  tool: PresetTool;
+  target_tool: string;
+  title: string;
+  slug: string;
+  description: string;
   category: string;
   featured_url: string | null;
   keywords: string[];
-  target_tool: string;
-  reveal_count: number;
+  featured: boolean;
+  sort_order: number;
+  access_level: "free" | "premium";
   use_count: number;
   created_at: string;
-  /** Set per-request for the signed-in user. */
   liked?: boolean;
 }
 
-// Admin-only shape (includes the hidden prompt + active flag).
-export interface AdminPromptItem extends PromptItem {
+/** Fetched only when a preset is opened/used. Never includes full_prompt. */
+export interface PromptDetail extends PromptItem {
+  config: PresetConfig;
+}
+
+export interface AdminPromptItem extends PromptDetail {
   full_prompt: string;
   active: boolean;
+  status: "draft" | "published" | "disabled" | "archived";
+  updated_at: string;
+  reveal_count: number;
 }
 
 export interface PromptAnalytics {
@@ -69,13 +68,24 @@ export interface PromptAnalytics {
 }
 
 export const DEFAULT_PROMPT_REVEAL_COST = 10;
-
-// Session key used to hand a chosen prompt off to a tool's composer.
 export const PROMPT_ATTACH_KEY = "maro:promptAttach";
 
 export interface PromptAttach {
   id: string;
   code: string;
+  title?: string;
+  tool: PresetTool;
   targetTool: string;
   thumbnailUrl?: string | null;
+  config: PresetConfig;
+}
+
+export interface PresetCategoryItem {
+  id: string;
+  tool: PresetTool;
+  slug: string;
+  label: string;
+  description: string;
+  sortOrder: number;
+  active: boolean;
 }

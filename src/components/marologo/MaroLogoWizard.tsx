@@ -26,6 +26,8 @@ import { Modal } from "@/components/ui/Modal";
 import { uid } from "@/lib/utils/format";
 import { projectAssetErrorMessage, uploadImageReferenceDataUrl } from "@/lib/services/projectAssetService";
 import type { ImageCreation } from "@/lib/types";
+import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
+import type { LogoPresetConfig } from "@/lib/presets/model";
 import { MaroLogoIntro } from "./MaroLogoIntro";
 import { MaroLogoGenerating } from "./MaroLogoGenerating";
 import { MaroLogoResult } from "./MaroLogoResult";
@@ -42,6 +44,7 @@ type Action =
   | { type: "PATCH_LOOK"; patch: Partial<MaroLogoWizardState["look"]> }
   | { type: "PATCH_PRESENTATION"; mode: PresentationMode }
   | { type: "SET_REFERENCES"; references: UploadedReference[] }
+  | { type: "APPLY_PRESET"; config: LogoPresetConfig }
   | { type: "RESET" };
 
 function reducer(state: MaroLogoAppState, action: Action): MaroLogoAppState {
@@ -54,6 +57,25 @@ function reducer(state: MaroLogoAppState, action: Action): MaroLogoAppState {
     case "PATCH_LOOK": return { ...state, wizard: { ...state.wizard, look: { ...state.wizard.look, ...action.patch } } };
     case "PATCH_PRESENTATION": return { ...state, wizard: { ...state.wizard, presentation: { mode: action.mode } } };
     case "SET_REFERENCES": return { ...state, references: action.references };
+    case "APPLY_PRESET": {
+      const config = action.config;
+      return {
+        ...state,
+        phase: 1,
+        wizard: {
+          ...state.wizard,
+          direction: { traits: config.traits ?? state.wizard.direction.traits },
+          logo: {
+            ...state.wizard.logo,
+            type: config.logoType ?? state.wizard.logo.type,
+            conceptIntent: config.conceptIntent ?? state.wizard.logo.conceptIntent,
+            symbolMeaning: config.creativeDirection ?? state.wizard.logo.symbolMeaning,
+          },
+          look: { ...state.wizard.look, visualStyle: config.visualStyle ?? state.wizard.look.visualStyle },
+          presentation: { mode: config.presentationMode ?? state.wizard.presentation.mode },
+        },
+      };
+    }
     case "RESET": return { ...INITIAL_APP_STATE, wizard: structuredClone(DEFAULT_WIZARD_STATE) };
     default: return state;
   }
@@ -78,6 +100,7 @@ export function MaroLogoWizard() {
   const [fortActive, setFortActive] = React.useState(false);
   const [fortModalOpen, setFortModalOpen] = React.useState(false);
   const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
+  const [presetAttach, setPresetAttach] = React.useState<PromptAttach | null>(null);
   const generatingRef = React.useRef(false);
   const pendingGenerateRef = React.useRef(false);
 
@@ -97,6 +120,20 @@ export function MaroLogoWizard() {
     const saved = loadFortValues("logo") as Record<string, FortValue>;
     setFortValues({ ...defaults, ...saved });
   }, [fortConfig]);
+
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(PROMPT_ATTACH_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as PromptAttach;
+      sessionStorage.removeItem(PROMPT_ATTACH_KEY);
+      if (parsed?.tool !== "logo" || parsed.targetTool !== "logo") return;
+      setPresetAttach(parsed);
+      dispatch({ type: "APPLY_PRESET", config: parsed.config as LogoPresetConfig });
+    } catch {
+      sessionStorage.removeItem(PROMPT_ATTACH_KEY);
+    }
+  }, []);
 
   const goToStep = (step: WizardStep) => {
     if (step > state.highestStepReached) return;
@@ -134,7 +171,7 @@ export function MaroLogoWizard() {
           (await uploadImageReferenceDataUrl(reference.dataUrl, `maro-logo-reference-${index + 1}`)).storageRef
         )
       );
-      const res = await generateImages(buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences));
+      const res = await generateImages(buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences, presetAttach?.id));
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"), serverId: res.generationId, storageRefs: res.storageRefs, workspaceId,
@@ -154,7 +191,7 @@ export function MaroLogoWizard() {
       generatingRef.current = false;
       setIsGenerating(false);
     }
-  }, [state.wizard, state.references, user, credits, cost, fortAvailable, fortActive, hasFort, fortValues, spendCredits, addCreation, workspaceId, toast]);
+  }, [state.wizard, state.references, user, credits, cost, fortAvailable, fortActive, hasFort, fortValues, presetAttach, spendCredits, addCreation, workspaceId, toast]);
 
   const onAuthDone = () => { setShowAuth(false); if (pendingGenerateRef.current) { pendingGenerateRef.current = false; setTimeout(() => void runGenerate(), 400); } };
   const openFort = () => { if (!hasFort) { router.push("/pricing"); return; } setFortModalOpen(true); };
@@ -164,6 +201,12 @@ export function MaroLogoWizard() {
 
   return (
     <div className="marologo-page flex-1 overflow-y-auto">
+      {presetAttach && state.phase !== "generating" && state.phase !== "result" && (
+        <div className="mx-auto mt-4 flex w-[min(1040px,calc(100%-32px))] items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-2">
+          <span><strong className="text-ink">{presetAttach.title ?? presetAttach.code}</strong> po përdoret si drejtim fillestar. Çdo zgjedhje që ndryshon ti ka përparësi.</span>
+          <button type="button" onClick={() => setPresetAttach(null)} className="shrink-0 font-bold text-ink-3 hover:text-ink">Hiqe</button>
+        </div>
+      )}
       {state.phase === "intro" && <MaroLogoIntro onStart={() => dispatch({ type: "SET_PHASE", phase: 1 })} />}
       {state.phase === 1 && <StepBrand step={1} highestStepReached={state.highestStepReached} wizard={state.wizard} errors={stepErrors} onChange={(patch) => dispatch({ type: "PATCH_BRAND", patch })} onNext={() => advanceFromStep(1)} onStepClick={goToStep} />}
       {state.phase === 2 && <StepDirection step={2} highestStepReached={state.highestStepReached} wizard={state.wizard} references={state.references} errors={stepErrors} onChangeTraits={(traits) => dispatch({ type: "PATCH_DIRECTION", patch: { traits } })} onChangeLogo={(patch) => dispatch({ type: "PATCH_LOGO", patch })} onChangeLook={(patch) => dispatch({ type: "PATCH_LOOK", patch })} onChangeReferences={(references) => dispatch({ type: "SET_REFERENCES", references })} onMaxTraits={() => toast("Zgjedh maksimum 3 tipare.", "info")} onToast={(message) => toast(message, "error")} onNext={() => advanceFromStep(2)} onStepClick={goToStep} />}

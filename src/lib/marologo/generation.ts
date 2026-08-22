@@ -33,7 +33,8 @@ export function buildGenerationRequest(
   wizard: MaroLogoWizardState,
   references: UploadedReference[],
   fort?: FortPayload,
-  canonicalReferences?: string[]
+  canonicalReferences?: string[],
+  presetId?: string
 ): AiImageRequest {
   const refs = (canonicalReferences ?? []).slice(0, 3);
   const brief = buildMaroLogoBrief(wizard, refs.length > 0);
@@ -44,6 +45,7 @@ export function buildGenerationRequest(
     selections: buildGenerationSelections(wizard),
     attachments: refs.length ? refs : undefined,
     fort,
+    maroPrompt: presetId ? { id: presetId } : undefined,
     quality: "high",
     n: 1,
   };

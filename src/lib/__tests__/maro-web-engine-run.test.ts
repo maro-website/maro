@@ -120,6 +120,21 @@ describe("runWebEngineInternalGeneration (mocked provider)", () => {
     expect(call?.system).not.toContain(WEB_PARITY_MARKERS.fortHeader);
   });
 
+  it("keeps the preset recommendation in the internal Engine path", async () => {
+    await runWebEngineInternalGeneration({
+      body: webBody({ userPrompt: "Use a white background" }),
+      userId: "user-1",
+      claudeModel: "opus-4-8",
+      presetId: "preset-dark",
+      presetPrompt: "PRESET CREATIVE RECOMMENDATION (LOWER PRIORITY)\nDark minimal website\nFollow the explicit user brief on conflict.",
+      provider,
+    });
+
+    const call = provider.mock.calls[0]?.[0];
+    expect(call?.system).toContain("Dark minimal website");
+    expect(call?.user).toContain("Use a white background");
+  });
+
   it("compiler failure: provider call count = 0", async () => {
     const { loadCompileContext } = await import("@/lib/engine/storage");
     vi.mocked(loadCompileContext).mockRejectedValueOnce(new Error("compile_context_failed"));

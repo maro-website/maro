@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
 import { listPresetCategories, upsertPresetCategory, ensurePresetCategoriesSeeded } from "@/lib/presets/categories";
 import { supabaseServerConfigured } from "@/lib/supabase/server";
+import { isPresetTool } from "@/lib/presets/model";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,11 +15,14 @@ export async function GET(req: Request) {
   const auth = await requirePermission(req, "presets.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const categories = await listPresetCategories(true);
+  const url = new URL(req.url);
+  const requestedTool = url.searchParams.get("tool");
+  const tool = isPresetTool(requestedTool) ? requestedTool : undefined;
+  const categories = await listPresetCategories(true, tool);
   if (categories.length === 0) {
-    await ensurePresetCategoriesSeeded();
+    await ensurePresetCategoriesSeeded(tool ?? "imazh");
   }
-  const refreshed = categories.length === 0 ? await listPresetCategories(true) : categories;
+  const refreshed = categories.length === 0 ? await listPresetCategories(true, tool) : categories;
   return NextResponse.json({ categories: refreshed });
 }
 
@@ -29,19 +33,20 @@ export async function POST(req: Request) {
   const auth = await requirePermission(req, "presets.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  let body: { id?: string; slug?: string; label?: string; description?: string; sortOrder?: number; active?: boolean };
+  let body: { id?: string; tool?: string; slug?: string; label?: string; description?: string; sortOrder?: number; active?: boolean };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
 
-  if (!body.slug?.trim() || !body.label?.trim()) {
+  if (!isPresetTool(body.tool) || !body.slug?.trim() || !body.label?.trim()) {
     return NextResponse.json({ error: "slug_and_label_required" }, { status: 400 });
   }
 
   const category = await upsertPresetCategory({
     id: body.id,
+    tool: body.tool,
     slug: body.slug,
     label: body.label,
     description: body.description,

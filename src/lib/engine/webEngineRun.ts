@@ -14,6 +14,8 @@ export type WebEngineProviderCall = (input: {
   user: string;
   imageUrls?: string[];
   effort?: string;
+  presetId?: string;
+  presetPrompt?: string;
   model: string;
 }) => Promise<{ text: string }>;
 
@@ -45,6 +47,8 @@ export async function runWebEngineInternalGeneration(input: {
   fort?: { enabled: boolean; values: Record<string, unknown> };
   claudeModel: string;
   effort?: string;
+  presetId?: string;
+  presetPrompt?: string;
   provider?: WebEngineProviderCall;
 }): Promise<WebEngineRunResult> {
   const started = Date.now();
@@ -66,6 +70,8 @@ export async function runWebEngineInternalGeneration(input: {
         selections: input.selections,
         fort: input.fort,
         useBrain: false,
+        presetId: input.presetId,
+        presetPrompt: input.presetPrompt,
         attachments: input.body.referenceImages?.map((url, index) => ({
           type: "image/reference",
           name: `reference-${index + 1}`,

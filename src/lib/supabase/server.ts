@@ -321,15 +321,17 @@ export async function hasFort(userId: string): Promise<boolean> {
 // Returns null if missing/inactive. The `full_prompt` NEVER reaches the client
 // except through the paid reveal endpoint.
 export async function getPromptTemplate(
-  id: string
+  id: string,
+  expectedTargetTool?: string
 ): Promise<{ full_prompt: string; target_tool: string } | null> {
   try {
     const { data, error } = await getSupabaseAdmin()
       .from("maro_prompts")
-      .select("full_prompt, target_tool, active")
+      .select("full_prompt, target_tool, active, status")
       .eq("id", id)
       .single();
-    if (error || !data || data.active === false) return null;
+    if (error || !data || data.active === false || data.status !== "published") return null;
+    if (expectedTargetTool && data.target_tool !== expectedTargetTool) return null;
     return {
       full_prompt: (data.full_prompt as string) ?? "",
       target_tool: (data.target_tool as string) ?? "",

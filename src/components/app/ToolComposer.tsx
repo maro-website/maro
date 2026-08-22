@@ -49,6 +49,7 @@ import {
   ImageGenerationError,
 } from "@/lib/services/imageService";
 import { generateAudio, AudioGenerationError } from "@/lib/services/audioService";
+import { fetchPromptDetail } from "@/lib/services/promptsService";
 import {
   findOption,
   getTool,
@@ -63,6 +64,7 @@ import {
 import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tools/selections";
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
+import { presetInitialPrompt, presetSelections, presetToolFromTarget } from "@/lib/presets/model";
 import { MARO_IMAGE_URL_MIME, MARO_PRESET_MIME } from "@/lib/modules/imazh/inspiration";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
@@ -263,7 +265,8 @@ export function ToolComposer({
 
   React.useEffect(() => {
     // Reload when the tool changes (e.g. client-side nav between tools).
-    setSelections(loadToolSelections(tool));
+    const savedSelections = loadToolSelections(tool);
+    setSelections(savedSelections);
     // Pull a prompt drafted on the Hub, if any.
     let draft = "";
     try {
@@ -272,7 +275,6 @@ export function ToolComposer({
     } catch {
       /* ignore */
     }
-    setPrompt(draft);
     setAttachments([]);
     setPrivateImageAttachments([]);
     setAudioInput(null);
@@ -285,12 +287,19 @@ export function ToolComposer({
       const raw = sessionStorage.getItem(PROMPT_ATTACH_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as PromptAttach;
-        if (parsed?.targetTool === tool.id) attach = parsed;
+        if (parsed?.targetTool === tool.id && parsed.tool === presetToolFromTarget(tool.id)) attach = parsed;
         sessionStorage.removeItem(PROMPT_ATTACH_KEY);
       }
     } catch {
       /* ignore */
     }
+    const presetConfig = attach?.config ?? { version: 1 as const };
+    const nextSelections = attach
+      ? { ...savedSelections, ...presetSelections(attach.tool, presetConfig) }
+      : savedSelections;
+    setSelections(nextSelections);
+    if (attach) saveToolSelections(tool.id, nextSelections);
+    setPrompt(draft || (attach ? presetInitialPrompt(attach.tool, presetConfig) : ""));
     setPromptAttach(attach);
     saveLastTool(tool.id);
 
@@ -367,7 +376,7 @@ export function ToolComposer({
     setMessages(seeded);
     // Re-seed whenever the tool OR the ?open= target changes (clicking another
     // recent card while already on the same tool page).
-  }, [tool, openId]);
+  }, [tool, openId, setPromptAttach]);
 
   // Keep the conversation scrolled to the newest message (top of feed).
   React.useEffect(() => {
@@ -957,7 +966,13 @@ export function ToolComposer({
     if (presetRaw) {
       try {
         const parsed = JSON.parse(presetRaw) as PromptAttach;
-        if (parsed?.targetTool === tool.id) setPromptAttach(parsed);
+        if (parsed?.targetTool === tool.id && parsed.tool === presetToolFromTarget(tool.id)) {
+          setPromptAttach(parsed);
+          void fetchPromptDetail(parsed.id).then((detail) => {
+            if (detail.target_tool !== tool.id || detail.tool !== parsed.tool) return;
+            setPromptAttach({ ...parsed, title: detail.title, config: detail.config });
+          }).catch(() => undefined);
+        }
       } catch {
         /* ignore */
       }

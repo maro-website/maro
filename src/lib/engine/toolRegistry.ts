@@ -43,7 +43,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     route: "/marologo",
     usesBrain: false,
     usesFort: true,
-    presetSupport: false,
+    presetSupport: true,
     functional: true,
     comingSoon: false,
     brainSections: [],
