@@ -1,6 +1,6 @@
 import {
   resolvePrivateAssetRefsStrict,
-  uploadImageReferenceDataUrl,
+  uploadImageReference,
 } from "@/lib/services/projectAssetService";
 
 export type PrivateImageAttachmentStatus =
@@ -18,7 +18,8 @@ export type PrivateImageAttachment = {
   storageRef?: string;
   /** Display-only local data URL or short-lived signed URL. */
   previewUrl: string;
-  sourceDataUrl?: string;
+  /** Original browser file used by the existing signed-upload flow. */
+  sourceFile?: File;
   status: PrivateImageAttachmentStatus;
   error?: string;
 };
@@ -30,8 +31,8 @@ export async function uploadOrResolvePrivateAttachment(
   let storageRef = attachment.storageRef;
   let fallbackPreview = attachment.previewUrl;
   if (!storageRef) {
-    if (!attachment.sourceDataUrl) throw new Error("upload-failed");
-    const uploaded = await uploadImageReferenceDataUrl(attachment.sourceDataUrl, attachment.name);
+    if (!attachment.sourceFile) throw new Error("upload-failed");
+    const uploaded = await uploadImageReference(attachment.sourceFile);
     storageRef = uploaded.storageRef;
     fallbackPreview = uploaded.url;
   }
@@ -41,7 +42,7 @@ export async function uploadOrResolvePrivateAttachment(
       ...attachment,
       storageRef,
       previewUrl: resolved[storageRef],
-      sourceDataUrl: undefined,
+      sourceFile: undefined,
       status: "ready",
       error: undefined,
     };
@@ -50,10 +51,9 @@ export async function uploadOrResolvePrivateAttachment(
       ...attachment,
       storageRef,
       previewUrl: fallbackPreview,
-      sourceDataUrl: undefined,
+      sourceFile: undefined,
       status: "preview-error",
       error: "Pamja private nuk u hap. Provo përsëri.",
     };
   }
 }
-

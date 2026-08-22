@@ -496,12 +496,12 @@ export function ToolComposer({
         })
         .slice(0, room);
       const queued = await Promise.all(accepted.map(async (file): Promise<PrivateImageAttachment> => {
-        const sourceDataUrl = await readImageFile(file);
+        const localPreviewUrl = await readImageFile(file);
         return {
           id: uid("att"),
           name: file.name,
-          previewUrl: sourceDataUrl,
-          sourceDataUrl,
+          previewUrl: localPreviewUrl,
+          sourceFile: file,
           status: user ? "uploading" : "pending",
         };
       }));
@@ -528,7 +528,7 @@ export function ToolComposer({
   React.useEffect(() => {
     if (!user) return;
     for (const attachment of privateImageAttachmentsRef.current) {
-      if (attachment.status === "pending" && attachment.sourceDataUrl) {
+      if (attachment.status === "pending" && attachment.sourceFile) {
         void startPrivateAttachmentUpload(attachment).catch(() => undefined);
       }
     }
