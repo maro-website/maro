@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AuthGate } from "@/components/dashboard/AuthGate";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
+import { StableImage } from "@/components/app/StableImage";
+import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
 import { useMaro } from "@/context/store";
 import {
   GENERATION_STAGES,
@@ -16,20 +18,25 @@ import {
   generateWebsiteThumbnail,
 } from "@/lib/services/generationService";
 import { cn } from "@/lib/utils/cn";
+import { findOption, getTool } from "@/lib/tools/registry";
 import {
   Check,
-  ArrowRight,
-  Sparkles,
   AlertTriangle,
+  BrainCircuit,
+  Cpu,
   Coins,
   Eye,
-  Globe,
+  Flame,
+  Gauge,
+  Lightbulb,
+  Monitor,
+  Pencil,
 } from "lucide-react";
 
 function GeneratingInner() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { ready, getProject, updateProject } = useMaro();
+  const { ready, user, getProject, updateProject } = useMaro();
   const project = getProject(projectId);
 
   const [active, setActive] = React.useState(-1);
@@ -126,139 +133,181 @@ function GeneratingInner() {
 
   const prompt = project?.prompt || project?.goal || project?.businessName || "";
   const pageCount = project?.htmlPages?.length ?? project?.pages?.length ?? 0;
+  const websiteTool = getTool("website");
+  const selectionLabel = (settingId: string) => {
+    const setting = websiteTool?.settings.find((item) => item.id === settingId);
+    if (!setting) return undefined;
+    const optionId = project?.toolSelections?.[settingId] ?? setting.default;
+    return findOption(setting, optionId)?.label;
+  };
+  const modelLabel = selectionLabel("model");
+  const typeLabel = selectionLabel("type");
+  const speedLabel = selectionLabel("speed");
+  const firstHtml = project?.htmlPages?.[0]?.html;
 
   return (
     <AppShell>
       <div className="flex h-full flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-          <div className="mx-auto w-full max-w-2xl space-y-5 px-5 py-8 sm:py-12">
-            {/* User message */}
-            {prompt && (
-              <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand px-4 py-3 text-[15px] leading-relaxed text-brand-fg">
-                  {prompt}
-                </div>
-              </div>
-            )}
-
-            {/* Assistant */}
-            <div className="flex gap-3">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-2 text-ink">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1 space-y-3">
-                {genError ? (
-                  <ErrorCard
-                    code={genError}
-                    detail={genDetail}
-                    refunded={genRefunded}
-                    onRetry={() => window.location.reload()}
-                  />
-                ) : creditError !== null ? (
-                  <CreditCard needed={creditError} onBack={() => router.push("/web")} />
+          <main className="mx-auto w-full max-w-[76rem] px-4 py-7 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+            <article className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {user?.avatarUrl ? (
+                  <StableImage src={user.avatarUrl} alt={user.name} className="h-10 w-10 rounded-maro12 object-cover" />
                 ) : (
-                  <>
-                    <div className="text-[15px] font-semibold text-ink">
-                      {done ? "Faqja jote u maru." : <RotatingHeading />}
-                    </div>
-                    <StepList active={active} done={done} />
-                    <AnimatePresence>
-                      {done && project && (
-                        <ResultCard
-                          name={project.businessName}
-                          color={project.theme?.primaryColor ?? "#0f1419"}
-                          pages={pageCount}
-                          creditsSpent={creditsSpent}
-                          onOpen={() => router.push(`/projects/${projectId}/editor`)}
-                          onPreview={() => router.push(`/projects/${projectId}/preview`)}
-                        />
-                      )}
-                    </AnimatePresence>
-                  </>
+                  <span className="grid h-10 w-10 place-items-center rounded-maro12 bg-ink text-[13px] font-bold text-white">
+                    {(user?.name || "M").slice(0, 2).toUpperCase()}
+                  </span>
                 )}
+                {project?.fort?.enabled && <GenerationMeta icon={Flame} label="maroFort" accent />}
+                {project?.brain && <GenerationMeta icon={BrainCircuit} label="maroBrain" accent />}
+                {project?.maroPromptId && <GenerationMeta icon={Lightbulb} label="maroPreset" />}
+                {modelLabel && <GenerationMeta icon={Cpu} label={modelLabel} />}
+                {typeLabel && <GenerationMeta icon={Monitor} label={typeLabel} />}
+                {speedLabel && <GenerationMeta icon={Gauge} label={speedLabel} />}
+                <time className="ml-auto text-[12px] font-medium text-ink-3">
+                  {project?.createdAt ? new Date(project.createdAt).toLocaleString("sq-AL") : ""}
+                </time>
               </div>
-            </div>
-          </div>
+
+              {prompt && (
+                <div className="rounded-maro16 bg-surface px-5 py-4 sm:px-7 sm:py-6">
+                  <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-ink sm:text-[16px]">
+                    {prompt}
+                  </p>
+                </div>
+              )}
+
+              {genError ? (
+                <ErrorCard
+                  code={genError}
+                  detail={genDetail}
+                  refunded={genRefunded}
+                  onRetry={() => window.location.reload()}
+                />
+              ) : creditError !== null ? (
+                <CreditCard needed={creditError} onBack={() => router.push("/web")} />
+              ) : (
+                <>
+                  <WebGenerationTimeline active={active} done={done} />
+                  <AnimatePresence>
+                    {done && project && (
+                      <ResultCard
+                        name={project.businessName}
+                        thumbnailUrl={project.thumbnailUrl}
+                        html={firstHtml}
+                        pages={pageCount}
+                        creditsSpent={creditsSpent}
+                        onOpen={() => router.push(`/projects/${projectId}/editor`)}
+                        onPreview={() => router.push(`/projects/${projectId}/preview`)}
+                      />
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+            </article>
+          </main>
         </div>
       </div>
     </AppShell>
   );
 }
 
-const HEADINGS = [
-  "Po e mendoj strukturën e faqes…",
-  "Po e maroj faqen tënde me Claude Opus 5…",
-  "Po shkruaj HTML & CSS premium…",
-  "Po i rregulloj detajet e dizajnit…",
-  "Pothuajse gati…",
-];
-
-function RotatingHeading() {
-  const [i, setI] = React.useState(0);
-  React.useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % HEADINGS.length), 3200);
-    return () => clearInterval(t);
-  }, []);
-  return <>{HEADINGS[i]}</>;
+function GenerationMeta({
+  icon: Icon,
+  label,
+  accent = false,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-10 shrink-0 items-center gap-2 rounded-maro12 px-3.5 text-[13px] font-semibold",
+        accent ? "bg-generate text-generate-fg" : "bg-surface text-ink"
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {label}
+    </span>
+  );
 }
 
-function StepList({ active, done }: { active: number; done: boolean }) {
+const WEB_TIMELINE_STEPS = [
+  { number: "01", label: "Përmbledhja e kërkesës", live: "maro po hulumton" },
+  { number: "02", label: "Përpunimi i kërkesës", live: "maro pe përpunon" },
+  { number: "03", label: "maro e maron", live: "maro pe maron" },
+  { number: "04", label: "Dora e fundit", live: "maro pe përfundon" },
+  { number: "✓", label: "u maru", live: "u maru" },
+];
+
+function WebGenerationTimeline({ active, done }: { active: number; done: boolean }) {
+  const current = done
+    ? WEB_TIMELINE_STEPS.length - 1
+    : Math.min(3, Math.max(0, Math.floor((Math.max(active, 0) * 4) / GENERATION_STAGES.length)));
+
   return (
-    <div className="rounded-2xl bg-surface p-2">
-      {GENERATION_STAGES.map((stage, i) => {
-        const isDone = i < active || done;
-        const isActive = i === active && !done;
-        return (
-          <div
-            key={stage.key}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2 transition-colors",
-              isActive && "bg-surface-2"
-            )}
-          >
-            <span
-              className={cn(
-                "grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all",
-                isDone
-                  ? "bg-brand text-brand-fg"
-                  : isActive
-                  ? "bg-surface-2 text-ink"
-                  : "border-line-strong text-ink-3"
+    <section className="rounded-maro20 bg-surface px-5 py-6 sm:px-7 sm:py-8" aria-label="Progresi i website-it">
+      <div className="mb-6 inline-flex items-center gap-2 rounded-maro12 bg-ink px-3.5 py-2 text-[13px] font-semibold text-white" aria-live="polite">
+        {done ? <Check className="h-4 w-4" /> : <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />}
+        {WEB_TIMELINE_STEPS[current].live}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5 sm:gap-0">
+        {WEB_TIMELINE_STEPS.map((step, index) => {
+          const reached = index <= current;
+          const complete = done || index < current;
+          const isFinal = index === WEB_TIMELINE_STEPS.length - 1;
+          return (
+            <div key={step.number} className="relative flex min-w-0 items-center gap-3 sm:block">
+              {index < WEB_TIMELINE_STEPS.length - 1 && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute left-[calc(50%+1.35rem)] right-[calc(-50%+1.35rem)] top-5 hidden h-px sm:block",
+                    complete ? "bg-ink" : "bg-line-strong"
+                  )}
+                />
               )}
-            >
-              {isDone ? (
-                <Check className="h-3 w-3" />
-              ) : isActive ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse-soft" />
-              ) : (
-                <span className="h-1 w-1 rounded-full bg-current" />
-              )}
-            </span>
-            <span
-              className={cn(
-                "text-[14px] transition-colors",
-                isDone || isActive ? "font-medium text-ink" : "text-ink-3"
-              )}
-            >
-              {stage.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+              <span
+                className={cn(
+                  "relative z-10 grid h-10 min-w-10 place-items-center rounded-maro12 px-2 text-[13px] font-bold transition-colors sm:mx-auto",
+                  reached ? "bg-ink text-white" : "bg-surface-2 text-ink-3",
+                  done && isFinal && "bg-success text-white"
+                )}
+              >
+                {step.number}
+              </span>
+              <span
+                className={cn(
+                  "min-w-0 text-[12px] font-semibold leading-tight sm:mt-3 sm:block sm:px-2 sm:text-center",
+                  reached ? "text-ink" : "text-ink-3"
+                )}
+              >
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
 function ResultCard({
   name,
-  color,
+  thumbnailUrl,
+  html,
   pages,
   creditsSpent,
   onOpen,
   onPreview,
 }: {
   name: string;
-  color: string;
+  thumbnailUrl?: string;
+  html?: string;
   pages: number;
   creditsSpent?: number;
   onOpen: () => void;
@@ -269,37 +318,31 @@ function ResultCard({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="overflow-hidden rounded-2xl bg-surface"
+      className="mx-auto max-w-4xl pt-2"
     >
-      {/* Mini browser mockup */}
-      <div className="relative h-36 overflow-hidden" style={{ background: color }}>
-        <div className="absolute inset-x-0 top-0 flex h-8 items-center gap-1.5 bg-black/10 px-3">
-          <span className="h-2 w-2 rounded-full bg-white/60" />
-          <span className="h-2 w-2 rounded-full bg-white/60" />
-          <span className="h-2 w-2 rounded-full bg-white/60" />
-        </div>
-        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-          <Globe className="h-6 w-6 text-white/90" />
-          <div className="mt-2 text-[16px] font-extrabold tracking-[-0.02em] text-white">
-            {name}
+      <div className="aspect-video w-full overflow-hidden rounded-maro20 bg-surface-2 p-2 sm:p-3">
+        {thumbnailUrl ? (
+          <StableImage src={thumbnailUrl} alt={`Pamja e website-it ${name}`} className="h-full w-full rounded-maro16 object-cover object-top" />
+        ) : html ? (
+          <AiHtmlPreviewFrame title={`Preview ${name}`} html={html} className="h-full w-full rounded-maro16 bg-white" />
+        ) : (
+          <div className="grid h-full place-items-center rounded-maro16 bg-surface text-[13px] font-medium text-ink-3">
+            Duke përgatitur thumbnail-in…
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 p-4">
-        <div>
-          <div className="text-[14.5px] font-semibold text-ink">{name}</div>
-          <div className="text-[12.5px] text-ink-3">
-            {pages} {pages === 1 ? "faqe" : "faqe"} · gati për editim
-            {creditsSpent ? ` · ${creditsSpent} kredite` : ""}
-          </div>
+      <div className="mt-4 text-center">
+        <div className="text-[14px] font-semibold text-ink">{name}</div>
+        <div className="mt-1 text-[12px] text-ink-3">
+          {pages} {pages === 1 ? "faqe" : "faqe"} · gati për editim{creditsSpent ? ` · ${creditsSpent} kredite` : ""}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" icon={<Eye className="h-4 w-4" />} onClick={onPreview}>
-            Preview
-          </Button>
-          <Button size="sm" iconRight={<ArrowRight className="h-4 w-4" />} onClick={onOpen}>
+        <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+          <Button icon={<Pencil className="h-4 w-4" />} onClick={onOpen}>
             Editor
+          </Button>
+          <Button icon={<Eye className="h-4 w-4" />} onClick={onPreview}>
+            Preview
           </Button>
         </div>
       </div>
@@ -332,7 +375,7 @@ function ErrorCard({
   onRetry: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+    <div className="rounded-maro20 bg-danger/10 p-5" role="alert">
       <div className="flex items-center gap-2 text-[15px] font-semibold text-ink">
         <AlertTriangle className="h-5 w-5 text-danger" /> Gjenerimi dështoi
       </div>

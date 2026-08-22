@@ -33,6 +33,7 @@ export function createProjectFromComposer(input: {
   maroPromptId?: string;
   workspaceId?: string;
   referenceImages?: string[];
+  brain?: boolean;
 }): Project {
   const name = deriveName(input.prompt);
   const p = makeProject({
@@ -53,6 +54,7 @@ export function createProjectFromComposer(input: {
   if (input.fort?.enabled) p.fort = input.fort;
   if (input.maroPromptId) p.maroPromptId = input.maroPromptId;
   if (input.workspaceId) p.workspaceId = input.workspaceId;
+  if (input.brain) p.brain = true;
   if (input.referenceImages?.length) {
     const createdAt = new Date().toISOString();
     p.referenceImages = [...input.referenceImages];

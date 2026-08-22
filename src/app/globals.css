@@ -274,32 +274,36 @@ body {
   flex-shrink: 0;
 }
 
-/* Prompt dock toolbar — individual pills in one scrollable row */
+/* Prompt dock toolbar — every control stays visible. Desktop uses one row when
+   it fits; narrower viewports recompose onto additional rows with the same
+   10px rhythm instead of clipping or collapsing controls. */
 .dock-toolbar {
   display: flex;
   min-width: 0;
+  width: 100%;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--maro-space-2);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.dock-toolbar::-webkit-scrollbar {
-  display: none;
+  gap: var(--maro-gap-10);
 }
 .dock-toolbar-controls {
   display: flex;
   min-width: 0;
   flex: 1;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--maro-space-2);
+  gap: var(--maro-gap-10);
 }
 .dock-toolbar-actions {
   display: flex;
+  margin-left: auto;
   flex-shrink: 0;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--maro-space-2);
+  gap: var(--maro-gap-10);
+}
+
+.prompt-accessory-row > * {
+  flex-shrink: 0;
 }
 
 .dock-pill {
@@ -315,6 +319,28 @@ body {
 .dock-control {
   --switch-track: var(--surface-selected);
   --switch-knob: var(--maro-white);
+}
+
+@media (max-width: 47.999rem) {
+  .dock-toolbar,
+  .dock-toolbar-controls,
+  .dock-toolbar-actions {
+    gap: var(--maro-gap-10);
+  }
+
+  .dock-toolbar-controls {
+    flex-basis: 100%;
+  }
+
+  .dock-toolbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .prompt-accessory-row {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
 }
 
 .logo-lockup-light {

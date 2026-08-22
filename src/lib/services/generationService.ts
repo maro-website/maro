@@ -221,6 +221,7 @@ export async function generateSite(
     maroPrompt: project.maroPromptId ? { id: project.maroPromptId } : undefined,
     referenceImages: project.referenceImages?.length ? [...project.referenceImages] : undefined,
     workspaceId: project.workspaceId,
+    useBrain: project.brain === true,
   };
 
   const token = await getAccessToken();

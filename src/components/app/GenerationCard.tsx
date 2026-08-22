@@ -3,8 +3,8 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
-import { MaroBuildingLoader, MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
+import { AlertCircle, BrainCircuit, Check, Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
+import { MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
@@ -43,7 +43,7 @@ function MetaPill({
   icon: Icon,
   children,
 }: {
-  variant: "fort" | "muted";
+  variant: "fort" | "brain" | "muted";
   icon?: LucideIcon;
   children: React.ReactNode;
 }) {
@@ -53,7 +53,9 @@ function MetaPill({
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold",
         variant === "fort"
           ? "bg-fort-pill text-white"
-          : "bg-meta-pill text-ink"
+          : variant === "brain"
+            ? "bg-generate text-generate-fg"
+            : "bg-meta-pill text-ink"
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
@@ -87,10 +89,19 @@ function GenerationImageBox({
   if (status === "error") {
     return (
       <div
-        className="mx-auto w-full overflow-hidden rounded-maro16 bg-surface px-4 py-6 text-center text-[14px] text-danger"
+        className="relative mx-auto grid w-full overflow-hidden rounded-maro16 bg-danger/10 px-6 py-8 text-center text-danger"
         style={{ aspectRatio: ratio, maxWidth: maxW }}
+        role="alert"
       >
-        {error || "Gabim gjenerimi."}
+        <div className="m-auto max-w-sm">
+          <span className="mx-auto grid h-11 w-11 place-items-center rounded-maro12 bg-danger text-white">
+            <AlertCircle className="h-5 w-5" />
+          </span>
+          <div className="mt-4 text-[15px] font-bold text-ink">Gjenerimi dështoi</div>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-danger">
+            {error || "Gabim gjenerimi. Provo përsëri."}
+          </p>
+        </div>
       </div>
     );
   }
@@ -113,7 +124,12 @@ function GenerationImageBox({
 
       {status === "thinking" && (
         <div className="absolute inset-0 grid place-items-center">
-          <MaroBuildingLoader size={44} />
+          <div className="flex flex-col items-center gap-3 text-[13px] font-semibold text-ink-3">
+            <span className="grid h-11 w-11 place-items-center rounded-maro12 bg-ink text-white">
+              <MaroBuildingSpinner className="h-5 w-5 brightness-0 invert" />
+            </span>
+            <span>maro po maron</span>
+          </div>
         </div>
       )}
 
@@ -144,6 +160,7 @@ export type GenerationCardMessage = {
   text: string;
   attachments?: string[];
   fort?: boolean;
+  brain?: boolean;
   promptCode?: string;
   format?: string;
   size?: string;
@@ -174,13 +191,14 @@ export function GenerationCard({
     fallbackFormatLabel(message.format ?? message.creation?.format, message.size ?? message.creation?.size);
   const modelLabel = message.modelLabel ?? message.creation?.modelLabel;
   const speedLabel = message.speedLabel ?? message.creation?.speedLabel;
+  const brain = message.brain ?? message.creation?.brain;
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2.5"
     >
       {/* Header — attribute pills like mockup */}
       <div className="flex flex-wrap items-center gap-2">
@@ -188,6 +206,11 @@ export function GenerationCard({
         {message.fort && (
           <MetaPill variant="fort" icon={Flame}>
             maroFort
+          </MetaPill>
+        )}
+        {brain && (
+          <MetaPill variant="brain" icon={BrainCircuit}>
+            maroBrain
           </MetaPill>
         )}
         {message.promptCode && (
@@ -216,7 +239,7 @@ export function GenerationCard({
       </div>
 
       {/* Prompt */}
-      <div className="rounded-maro16 bg-surface px-5 py-4">
+      <div className="rounded-maro16 bg-surface px-5 py-4 sm:px-6 sm:py-5">
         {message.attachments && message.attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {message.attachments.map((src, i) => (
@@ -225,18 +248,30 @@ export function GenerationCard({
             ))}
           </div>
         )}
-        <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{message.text}</p>
+        <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-ink">{message.text}</p>
       </div>
 
-      {/* Building status + image result */}
+      {/* One stable result box carries all three states: loading, success and error. */}
       {!isAudio && !isText && (
         <>
-          {message.status === "thinking" && (
-            <div className="flex items-center gap-2 px-1 text-[13px] font-semibold text-ink-3">
-              <MaroBuildingSpinner />
-              maro pe maron
-            </div>
-          )}
+          <div className="mt-2.5 flex items-center gap-2 px-0.5 text-[13px] font-semibold text-ink-3" aria-live="polite">
+            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-white">
+              {message.status === "thinking" ? (
+                <MaroBuildingSpinner className="h-4 w-4 brightness-0 invert" />
+              ) : message.status === "done" ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <AlertCircle className="h-4 w-4" />
+              )}
+            </span>
+            <span>
+              {message.status === "thinking"
+                ? "maro po maron"
+                : message.status === "done"
+                  ? "maro e maroi"
+                  : "maro s’mujti me maru"}
+            </span>
+          </div>
           <GenerationImageBox
             format={message.format}
             size={message.size ?? message.creation?.size}

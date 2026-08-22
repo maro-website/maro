@@ -68,6 +68,8 @@ export interface ImageCreation {
   /** User's reaction to their own creation. */
   reaction?: "like" | "dislike";
   fort?: boolean;
+  /** Whether workspace maroBrain brand context was used for this generation. */
+  brain?: boolean;
   promptCode?: string;
   format?: string;
   /** Display label e.g. "9:16", "1:1". */
@@ -235,6 +237,8 @@ export interface Project {
   maroPromptId?: string;
   /** Uploaded visual references supplied when maroWeb generation started. */
   referenceImages?: string[];
+  /** Whether workspace maroBrain context was requested for this website. */
+  brain?: boolean;
   language: LanguageCode;
   /** Customer brand color explicitly supplied for generation (never Maro UI fallback). */
   explicitBrandColor?: string;

@@ -161,6 +161,7 @@
   /* Reference-locked layout */
   --maro-layout-module-max: 70rem;
   --maro-layout-composer-max: 55rem;
+  --maro-layout-promptbox-max: 82rem;
   --maro-layout-hero-subtitle-max: 32.625rem;
   --maro-carousel-card-width: clamp(8.75rem, 18vw, 11rem);
   --maro-carousel-card-height: clamp(8.75rem, 18vw, 11rem);

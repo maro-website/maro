@@ -140,6 +140,7 @@
   /* Layout tokens */
   --layout-module-max: var(--maro-layout-module-max);
   --layout-composer-max: var(--maro-layout-composer-max);
+  --layout-promptbox-max: var(--maro-layout-promptbox-max);
   --layout-hero-subtitle-max: var(--maro-layout-hero-subtitle-max);
   --carousel-card-w: var(--maro-carousel-card-width);
   --carousel-card-h: var(--maro-carousel-card-height);

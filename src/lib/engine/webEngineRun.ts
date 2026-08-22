@@ -69,7 +69,7 @@ export async function runWebEngineInternalGeneration(input: {
         userPrompt: input.body.userPrompt || input.body.goal || "",
         selections: input.selections,
         fort: input.fort,
-        useBrain: false,
+        useBrain: input.body.useBrain === true,
         presetId: input.presetId,
         presetPrompt: input.presetPrompt,
         attachments: input.body.referenceImages?.map((url, index) => ({

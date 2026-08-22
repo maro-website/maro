@@ -76,6 +76,8 @@ export interface AiGenerateRequest {
   referenceImages?: string[];
   /** Workspace that owns this generation (frozen at insert time). */
   workspaceId?: string;
+  /** Apply the configured workspace maroBrain context when the active pipeline supports it. */
+  useBrain?: boolean;
   /** Client idempotency key to prevent duplicate charges on retry. */
   idempotencyKey?: string;
 }

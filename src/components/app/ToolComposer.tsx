@@ -364,6 +364,7 @@ export function ToolComposer({
             modelLabel: c.modelLabel,
             speedLabel: c.speedLabel,
             fort: c.fort,
+            brain: c.brain,
             promptCode: c.promptCode,
             createdAt: c.createdAt,
             status: "done",
@@ -768,6 +769,7 @@ export function ToolComposer({
           maroPromptId: promptAttach?.id,
           workspaceId,
           referenceImages,
+          brain: brainReady && useWorkspaceBrand,
         });
         addProject(project);
         setPrompt("");
@@ -792,6 +794,7 @@ export function ToolComposer({
         text,
         attachments: sentAttachments,
         fort: Boolean(fortPayload),
+        brain: brainReady && useWorkspaceBrand,
         promptCode: promptAttach?.code,
         format: labels.format,
         size: labels.size,
@@ -846,6 +849,7 @@ export function ToolComposer({
         modelLabel: labels.modelLabel,
         speedLabel: labels.speedLabel,
         fort: Boolean(fortPayload),
+        brain: brainReady && useWorkspaceBrand,
         promptCode: promptAttach?.code,
         createdAt: now,
       };
@@ -1053,7 +1057,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-canvas max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto w-full max-w-[var(--layout-composer-max)] px-4 pb-4 pt-2 lg:pb-6">
+        <div className="mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6">
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
           {(isImage ? privateImageAttachments.length : attachments.length) > 0 && (
@@ -1149,9 +1153,9 @@ export function ToolComposer({
             </div>
           )}
 
-          {(fortAvailable || promptAttach || (isImage && brainReady)) && !loading && (
-            <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
-              {isImage && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
+          {(fortAvailable || promptAttach || (canAttachImages && brainReady)) && !loading && (
+            <div className="prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5">
+              {canAttachImages && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
               {fortAvailable && (
                 <FortPill
                   active={fortActive}
@@ -1642,6 +1646,9 @@ function SettingSelect({
   const current = findOption(setting, value) ?? setting.options[0];
   const Icon = setting.icon;
   const currentId = current?.id ?? value;
+  const compactLabel = setting.id === "format"
+    ? ({ "ig-post": "4:5", "ig-story": "9:16", "fb-post": "1:1", "yt-thumb": "16:9" } as Record<string, string>)[currentId] ?? current?.label
+    : current?.label;
 
   const place = React.useCallback(() => {
     const el = btnRef.current;
@@ -1674,7 +1681,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-dock-pill shrink-0"
+        className="maro-dock-pill max-w-none shrink-0"
         title={setting.label}
       >
         <OptionIcon
@@ -1685,7 +1692,7 @@ function SettingSelect({
           fallback={Icon}
           className="h-5 w-5 shrink-0"
         />
-        <span className="maro-dock-pill__label">{current?.label}</span>
+        <span className="maro-dock-pill__label">{compactLabel}</span>
         <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
       </button>
       {typeof document !== "undefined" &&
