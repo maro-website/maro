@@ -315,7 +315,7 @@
 
 .maro-composer__actions { margin-left: auto; }
 
-/* Top navigation: each item owns 30px of space on both sides. */
+/* Top navigation: each item owns 20px of space on both sides. */
 .maro-nav {
   display: flex;
   min-width: 0;
@@ -341,12 +341,12 @@
   flex-shrink: 0;
   align-items: center;
   gap: var(--maro-gap-10);
-  padding: var(--maro-space-2) var(--maro-gap-30);
+  padding: var(--maro-space-2) var(--maro-gap-20);
   border: 0;
   border-radius: var(--maro-radius-16);
   color: var(--maro-color-text-primary);
   background: transparent;
-  font-size: var(--maro-font-size-16);
+  font-size: var(--maro-font-size-14);
   font-weight: var(--maro-font-weight-semibold);
   text-decoration: none;
   transition:
