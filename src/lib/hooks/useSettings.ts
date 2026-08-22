@@ -24,17 +24,9 @@ interface SettingsState {
 }
 
 function initialSettingsState(): SettingsState {
-  const cached = readCachedPublicSettings();
-  if (cached) {
-    return {
-      pricing: cached.pricing,
-      masterPrompt: "",
-      toolPrompts: {},
-      fortConfig: cached.fort_config,
-      toolOptionIcons: cached.tool_option_icons,
-      loading: true,
-    };
-  }
+  // This initializer also runs during SSR, where localStorage is unavailable.
+  // Keep it deterministic so the client hydrates the same tree. Cached values
+  // are applied in the layout effect below before the browser paints.
   return {
     pricing: DEFAULT_PRICING,
     masterPrompt: "",

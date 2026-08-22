@@ -44,13 +44,8 @@ export function PlatformNotices({
   React.useEffect(() => {
     void load();
     const interval = window.setInterval(() => void load(), 30_000);
-    const refresh = () => void load();
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
     };
   }, [load]);
 

@@ -497,8 +497,10 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     syncServerCreations(workspaceScopeRef.current);
   }, [userId, syncServerCreations]);
 
-  // Signed private media URLs last one hour. Refresh them before expiry and
-  // whenever the tab returns to the foreground or an image reports a failure.
+  // Signed private media URLs last one hour. Refresh them before expiry or
+  // when an image reports a failure. Do not sync on focus/visibility changes:
+  // returning to a browser tab must not kick off a global context update while
+  // the user has an unfinished form open.
   useEffect(() => {
     if (!supabaseConfigured || !userId) return;
     const refresh = () => {
@@ -506,14 +508,10 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       if (scopeId) syncServerCreations(scopeId);
     };
     const interval = window.setInterval(refresh, 45 * 60_000);
-    window.addEventListener("focus", refresh);
     window.addEventListener("maro:asset-error", refresh);
-    document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("focus", refresh);
       window.removeEventListener("maro:asset-error", refresh);
-      document.removeEventListener("visibilitychange", refresh);
     };
   }, [userId, syncServerCreations]);
 
@@ -585,8 +583,13 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   const profile = state.profile;
   const avatarUrl =
     (state.session?.user?.user_metadata?.avatar_url as string | undefined) || undefined;
-  const baseUser = profileToUser(profile);
-  const user = baseUser ? { ...baseUser, avatarUrl } : null;
+  // Keep the public user object stable across unrelated store updates (for
+  // example creation/media sync). Workspace effects depend on this identity;
+  // recreating it on every provider render caused unnecessary reload cascades.
+  const user = useMemo(() => {
+    const baseUser = profileToUser(profile);
+    return baseUser ? { ...baseUser, avatarUrl } : null;
+  }, [profile, avatarUrl]);
   const value = useMemo<MaroContextValue>(
     () => ({
       ready: state.ready,

@@ -10,6 +10,12 @@ export function buildContentSecurityPolicy(options = {}) {
   if (!isProduction) {
     connectHosts.push("ws://localhost:*", "http://localhost:*");
   }
+  const scriptSources = ["'self'", "'unsafe-inline'"];
+  // Next.js React Refresh evaluates the updated module graph in development.
+  // Without this development-only source, HMR fails and falls back to a full
+  // page reload, which clears unfinished form state. Production stays strict.
+  if (!isProduction) scriptSources.push("'unsafe-eval'");
+  scriptSources.push("https://challenges.cloudflare.com");
 
   const parts = [
     "default-src 'self'",
@@ -17,7 +23,7 @@ export function buildContentSecurityPolicy(options = {}) {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
+    `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: https://${supabaseHost} https://images.unsplash.com https://picsum.photos`,
     "font-src 'self' data:",
