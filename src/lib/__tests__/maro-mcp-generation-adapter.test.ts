@@ -33,6 +33,8 @@ describe("maroMCP canonical maroImazh adapter", () => {
         selections: { format: "yt-thumb", text: "off" },
       });
       expect(body).not.toHaveProperty("workspaceId");
+      expect(body).not.toHaveProperty("maroPrompt");
+      expect(body).not.toHaveProperty("attachments");
       return adapter.stream(async (send: (payload: Record<string, unknown>) => void) => {
         send({
           ok: true,

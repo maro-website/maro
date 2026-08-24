@@ -14,12 +14,11 @@ import {
   uploadGeneratedImage,
   resolveAssetListForClient,
 } from "@/lib/supabase/server";
-import { buildWorkspaceBrandBrief } from "@/lib/workspaces/brand";
 import {
-  buildBrainBrief,
   buildMatchedSourcesBrief,
   matchSourcesByPrompt,
 } from "@/lib/workspaces/brainProfile";
+import { resolveCanonicalMaroImageBrandContext } from "@/lib/maro-imazh/brandContext";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import {
   prepareGeneration,
@@ -46,7 +45,13 @@ import {
   createImageReferenceTracker,
   toSafeAttachmentMeta,
 } from "@/lib/engine/imageReferenceTracker";
-import { IMAGE_PROVIDER_REF_LIMIT, LOGO_REFERENCE_DIRECTION, buildImageTextInstruction } from "@/lib/engine/imageCompile";
+import {
+  BRAND_CONTEXT_FIDELITY_DIRECTION,
+  IMAGE_PROVIDER_REF_LIMIT,
+  LOGO_REFERENCE_DIRECTION,
+  WORKSPACE_BRAND_ASSET_DIRECTION,
+  buildImageTextInstruction,
+} from "@/lib/engine/imageCompile";
 import { reconcileLogoFortValues } from "@/lib/marologo/fortReconciliation";
 import { wrapPresetRecommendation } from "@/lib/presets/model";
 import { maybeScheduleImageShadow } from "@/lib/engine/productionShadow";
@@ -290,9 +295,9 @@ export async function executeMaroImageApplication<T>(
   async function pushRefFromUrl(
     url: string,
     sourceType: "workspace_brain" | "matched_source" = "workspace_brain"
-  ) {
+  ): Promise<boolean> {
     const u = url.trim();
-    if (!u) return;
+    if (!u) return false;
     if (u.startsWith("storage:generations/") && userId) {
       refTracker.recordAttempt(sourceType, u, false);
       try {
@@ -300,34 +305,37 @@ export async function executeMaroImageApplication<T>(
         appendResolved(resolved);
         refTracker.markUsable(u);
         if (!fetchedUrls.includes(u)) fetchedUrls.push(u);
+        return true;
       } catch {
         /* inaccessible workspace reference stays unusable */
+        return false;
       }
-      return;
     }
     if (u.startsWith("data:image/")) {
       refTracker.recordAttempt(sourceType, u, true);
       if (!refs.includes(u)) refs.push(u);
-      return;
+      return true;
     }
-    if (!u.startsWith("http")) return;
+    if (!u.startsWith("http")) return false;
     const safe = validateOutboundHttpUrl(u);
     if (!safe.ok) {
       refTracker.recordAttempt(sourceType, u, false);
-      return;
+      return false;
     }
     refTracker.recordAttempt(sourceType, u, false);
     try {
       const res = await fetch(safe.url.toString(), { redirect: "error" });
-      if (!res.ok) return;
+      if (!res.ok) return false;
       const mime = res.headers.get("content-type") || "image/png";
       const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
       const dataUrl = `data:${mime};base64,${b64}`;
       refTracker.markUsable(u);
       fetchedUrls.push(u);
       if (!refs.includes(dataUrl)) refs.push(dataUrl);
+      return true;
     } catch {
       /* skip failed reference fetch — legacy falls back when none remain */
+      return false;
     }
   }
 
@@ -337,39 +345,70 @@ export async function executeMaroImageApplication<T>(
   let brainLogoUrl: string | undefined;
   let matchedSourceUrls: string[] = [];
   let brandOnly = false;
+  let automaticBrandAssetUsable = false;
+  let canonicalBrandContext: ReturnType<typeof resolveCanonicalMaroImageBrandContext> | null = null;
 
   if (body.useWorkspaceBrand && userId && workspaceId) {
-    const brain = await getWorkspaceBrainProfile(userId, workspaceId);
-    const brand = await getWorkspaceBrand(userId, workspaceId);
-    if (brain) {
-      brainBrief = buildBrainBrief(brain);
-      finalPrompt = `${finalPrompt}\n\n${brainBrief}`;
+    const [brain, brand] = await Promise.all([
+      getWorkspaceBrainProfile(userId, workspaceId),
+      getWorkspaceBrand(userId, workspaceId),
+    ]);
+    canonicalBrandContext = resolveCanonicalMaroImageBrandContext({
+      workspaceId,
+      brain,
+      brand,
+    });
+
+    if (canonicalBrandContext.source === "maro_brain" && brain) {
+      brainBrief = canonicalBrandContext.brainBrief;
+      if (brainBrief) finalPrompt = `${finalPrompt}\n\n${brainBrief}`;
+      workspaceBrandBrief = canonicalBrandContext.workspaceBrandBrief;
+      if (workspaceBrandBrief) finalPrompt = `${finalPrompt}\n\n${workspaceBrandBrief}`;
       const sources = await getWorkspaceSources(userId, workspaceId);
       const matched = matchSourcesByPrompt(body.prompt, sources);
       if (matched.length) {
         matchedSourcesBrief = buildMatchedSourcesBrief(matched);
         matchedSourceUrls = matched.map((s) => s.fileUrl).filter(Boolean);
         finalPrompt = `${finalPrompt}\n\n${matchedSourcesBrief}`;
-        for (const s of matched) await pushRefFromUrl(s.fileUrl, "matched_source");
+        for (const s of matched) {
+          automaticBrandAssetUsable =
+            (await pushRefFromUrl(s.fileUrl, "matched_source")) || automaticBrandAssetUsable;
+        }
       }
-      if (brain.brand.logoUrl) {
-        brainLogoUrl = brain.brand.logoUrl;
-        await pushRefFromUrl(brain.brand.logoUrl, "workspace_brain");
+      if (canonicalBrandContext.logoUrl) {
+        brainLogoUrl = canonicalBrandContext.logoUrl;
+        automaticBrandAssetUsable =
+          (await pushRefFromUrl(canonicalBrandContext.logoUrl, "workspace_brain")) ||
+          automaticBrandAssetUsable;
       }
-    } else if (brand) {
-      workspaceBrandBrief = buildWorkspaceBrandBrief(brand);
+    } else if (canonicalBrandContext.source === "workspace_brand") {
+      workspaceBrandBrief = canonicalBrandContext.workspaceBrandBrief;
       brandOnly = true;
-      finalPrompt = `${finalPrompt}\n\n${workspaceBrandBrief}`;
-      if (brand.logoUrl) {
-        brainLogoUrl = brand.logoUrl;
-        await pushRefFromUrl(brand.logoUrl, "workspace_brain");
+      if (workspaceBrandBrief) finalPrompt = `${finalPrompt}\n\n${workspaceBrandBrief}`;
+      if (canonicalBrandContext.logoUrl) {
+        brainLogoUrl = canonicalBrandContext.logoUrl;
+        automaticBrandAssetUsable =
+          (await pushRefFromUrl(canonicalBrandContext.logoUrl, "workspace_brain")) ||
+          automaticBrandAssetUsable;
       }
+    }
+
+    if (canonicalBrandContext.configured) {
+      finalPrompt = `${finalPrompt}\n\n${BRAND_CONTEXT_FIDELITY_DIRECTION}`;
+    }
+    if (automaticBrandAssetUsable) {
+      finalPrompt = `${finalPrompt}\n\n${WORKSPACE_BRAND_ASSET_DIRECTION}`;
     }
   }
 
   if (textSetting && textOffDeferred) {
     const instruction = buildImageTextInstruction("maro_imazh", selections, {
       hasReferences: refs.length > 0,
+      referenceRole: declaredAttachments.length
+        ? "user_product"
+        : automaticBrandAssetUsable
+          ? "workspace_brand_asset"
+          : "none",
     });
     if (instruction) finalPrompt = `${finalPrompt}\n\n${instruction}`;
   }
@@ -384,16 +423,24 @@ export async function executeMaroImageApplication<T>(
   if (prep) {
     await stampJobExecutionTelemetry(
       prep.job.id,
-      buildInitialExecutionTelemetry({
-        configuredPipeline: execution.configuredPipeline,
-        effectiveExecution: execution.label,
-        internalCanary: execution.internalCanary,
-        model: IMAGE_MODEL,
-        module: tool.id,
-        provider: "openai",
-        compiler: execution.mode === "engine_internal" ? "maro_engine_v1" : "legacy",
-        operation: execution.mode === "engine_internal" ? inferredOperation : null,
-      })
+      {
+        ...buildInitialExecutionTelemetry({
+          configuredPipeline: execution.configuredPipeline,
+          effectiveExecution: execution.label,
+          internalCanary: execution.internalCanary,
+          model: IMAGE_MODEL,
+          module: tool.id,
+          provider: "openai",
+          compiler: execution.mode === "engine_internal" ? "maro_engine_v1" : "legacy",
+          operation: execution.mode === "engine_internal" ? inferredOperation : null,
+        }),
+        ...(canonicalBrandContext?.telemetry ?? {}),
+        brand_reference_role: automaticBrandAssetUsable
+          ? "workspace_brand_asset"
+          : declaredAttachments.length
+            ? "user_product"
+            : "none",
+      }
     );
   }
 

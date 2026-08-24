@@ -2,6 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   IMAGE_PARITY_MARKERS,
   IMAGE_TEXT_OFF_WITH_REFERENCE,
+  IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET,
+  WORKSPACE_BRAND_ASSET_DIRECTION,
 } from "@/lib/engine/imageCompile";
 import {
   compileImazhFixture,
@@ -126,6 +128,12 @@ describe("runImageEngineInternalGeneration (mocked provider)", () => {
     });
 
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.providerRequest.prompt).toContain(WORKSPACE_BRAND_ASSET_DIRECTION);
+      expect(result.providerRequest.prompt).toContain(IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET);
+      expect(result.providerRequest.prompt).not.toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
+      expect(result.finalPrompt).toBe(result.providerRequest.prompt);
+    }
     expect(edit).toHaveBeenCalledTimes(1);
     expect(generate).not.toHaveBeenCalled();
   });

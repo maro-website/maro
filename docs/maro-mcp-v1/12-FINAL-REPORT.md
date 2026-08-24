@@ -1,94 +1,92 @@
 # maroMCP v1 implementation report
 
-## A. OAuth result
+## A. Real private ChatGPT E2E
 
-The OAuth code path, consent UI, ES256/JWKS verification, protected-resource
-metadata, bearer challenges, and resource-bound custom access-token hook are
-implemented. Migrations 0045 and 0046 are applied and the hook is enabled.
-The final live OAuth authorization-code flow awaits owner enablement of the
-Supabase OAuth Server and DCR.
+- OAuth authorization and consent: PASS.
+- MCP connection: PASS.
+- `get_maro_account`: PASS; resolved Erzen and Fleet & Miles.
+- `generate_maro_image` execution: PASS.
+- HTTPS image rendering inside ChatGPT: PASS.
+- Initial brand-context fidelity: FAIL; the image showed an unrelated SADOER
+  consumer product.
+- Canonical brand-context correction and regression coverage: PASS.
+- Final post-fix visual retest: pending one owner-visible ChatGPT generation.
 
-## B. Supabase compatibility
+## B. Root cause
 
-- PKCE: S256 advertised.
-- DCR: supported after dashboard enablement.
-- Issuer: verified.
-- JWKS/signing: verified ES256.
-- Resource: exact canonical `https://maro.al/api/mcp`.
-- Audience: custom hook installed and enabled; live minted-token proof pending.
-- Scopes: standard identity scopes; Maro application permissions are signed
-  custom claims.
-- Consent: production page is live at `https://maro.al/oauth/consent`.
+Fleet & Miles' canonical workspace, maroBrain profile, workspace brand colors,
+logo and sources are correctly owned, populated and free of SADOER data. The
+only SADOER occurrence found in repository/database scope is a separate Beauty
+catalog preset (`MP-MMATFV`). MCP does not send a `maroPrompt` id, so that
+preset was not selected by the MCP adapter.
 
-## C. Production deployment
+The real defect was in shared maroImazh reference semantics: an automatic
+maroBrain workspace logo was sent to the image provider through the same
+reference/text-preservation semantics used for a user-supplied product image.
+That semantic path explicitly discussed products, labels and packaging. For a
+generic “my active brand” request it allowed the image provider to reinterpret
+an identity asset as an unrelated consumer-product campaign instead of treating
+the workspace context as authoritative.
 
-Commit `5987ad8ac1075d4a9248d5173a9ffcfdf872e36d` was fast-forwarded to
-`origin/main` with explicit owner approval. Railway production deployment
-`6055163713` completed successfully in `spectacular-magic / production` on
-2026-08-24. No force push or history rewrite was used.
+## C. Fix
 
-## D. MCP implementation
+- Canonical request-local brand resolution now selects real maroBrain first and
+  falls back to the owned workspace brand only when Brain is unconfigured.
+- maroBrain and workspace brand/color briefs are merged instead of dropping
+  workspace colors when Brain exists.
+- Automatic workspace identity/assets and user-supplied product references now
+  have distinct prompt semantics.
+- A transport-independent brand-fidelity assertion makes the active workspace
+  brand, category, audience, offering and restrictions authoritative.
+- Engine image persistence records the exact provider request prompt, not an
+  earlier debug preview.
+- Safe job telemetry records only hashed workspace/brand/context fingerprints,
+  context source, compiler path and reference role; it never stores context or
+  compiled prompt in MCP output.
 
-Production exposes `/api/mcp` using the official TypeScript SDK, stateless
-Streamable HTTP, a 15-second keepalive, a 64-KiB body limit, and dual OAuth
-challenge signaling.
+## D. Fleet & Miles canonical context
 
-## E. Production endpoint validation
+Production data confirms Fleet & Miles as the owned active workspace with a
+configured Automotive maroBrain profile, detailed B2B fleet/reservation
+management description, rent-a-car target audience, goals, positioning,
+content rules, workspace colors, valid identity asset, and owned reference
+sources. No SADOER/hair-care terms occur in its Brain, brand or sources.
 
-- Maro home, `/imazh`, and `/oauth/consent`: HTTP 200.
-- Root and path-specific Protected Resource Metadata: HTTP 200 with exact
-  resource and issuer.
-- Missing bearer token: HTTP 401 `AUTH_REQUIRED` with correct
-  `WWW-Authenticate` metadata URL.
-- Invalid bearer token: HTTP 401 `AUTH_INVALID` with reconnect challenge.
-- MCP initialize: HTTP 200, protocol `2025-06-18`, server `maro-mcp` v1.0.0.
-- tools/list: exactly `get_maro_account` and `generate_maro_image` with strict
-  schemas, annotations, and auth metadata.
-- CORS preflight: HTTP 204 with expected headers.
-- Existing image API remains protected: unauthenticated request returns 401.
+## E. Compiler and parity
 
-## F. MCP Inspector
+Production is configured as maroImazh `shadow` with
+`prompt_compiler_v2=false`; provider execution therefore uses the legacy
+compiler while Engine compiles in shadow. Website UI and MCP both enter the
+same `executeMaroImageApplication` boundary and now resolve identical canonical
+brand/reference semantics before provider invocation.
 
-Official MCP Inspector connected to `https://maro.al/api/mcp`. Initialize and
-tools/list passed. Missing-token and invalid-token calls returned the expected
-OAuth MCP errors and runtime `mcp/www_authenticate` metadata. Authenticated
-calls await OAuth Server/DCR enablement.
+## F. Isolation and privacy
 
-## G. Tools and image generation
+Regression tests cover owner/workspace isolation, active workspace switching,
+generic active-brand grounding, absence of stale request context, UI/MCP
+provider-input parity, automatic-brand-asset semantics and telemetry privacy.
+Compiled prompts remain service-role-only and are never returned through MCP.
 
-Exactly two tools are exposed. The generation tool resolves the authenticated
-Maro actor and active owned workspace, then reuses the canonical maroImazh
-compiler, credit, provider, storage, persistence, settlement, and signed-URL
-pipeline.
+## G. Credits
 
-## H. Credits and idempotency
+The pre-fix E2E account balance was confirmed, but no matching new MCP job,
+generation row or storage object was present in the queried production records;
+therefore an exact-once charge cannot be truthfully attributed to that visible
+ChatGPT image from database evidence. The existing ledger invariants still
+enforce one charge per job. The post-fix retest will be audited by its new MCP
+idempotency key, job, generation and single charge row.
 
-The existing exact-once lifecycle is reused. MCP retries derive a deterministic
-idempotency key from OAuth client identity and JSON-RPC call id; a new call id
-is a new intentional generation.
+## H. Automated verification
 
-## I. Prompt privacy
-
-Migration 0045, strict tool inputs, and allowlisted tool outputs prevent normal
-users and MCP clients from reading compiled prompts. Adversarial regression
-tests pass.
-
-## J. Automated verification
-
-- Targeted MCP: 24/24 passed.
-- Full suite: 556 passed, 11 skipped, 567 total; 54 files passed.
+- Targeted brand/MCP/image suite: 72 passed.
+- Full suite: 562 passed, 11 skipped, 573 total; 55 files passed and one
+  integration file skipped.
 - TypeScript: passed.
-- Production build: passed with one pre-existing hook-dependency warning in
-  `src/components/app/cards.tsx:491`.
+- Production build: passed. The only warning is the pre-existing React hook
+  dependency warning in `src/components/app/cards.tsx:491`.
 
-## K. ChatGPT readiness
+## I. ChatGPT status
 
-`READY FOR ONE-TIME OAUTH/CHATGPT SETUP`. Production transport and discovery
-are healthy. The only remaining gate is the owner-operated Supabase OAuth
-enablement and private ChatGPT connection in `11-MANUAL-ACTIONS.md`.
+`PRIVATE E2E NEEDS ONE FINAL VISUAL RETEST`
 
-## L. Git status
-
-Implementation and deployment-report commits are on `feat/maro-mcp-v1` and
-were integrated into `main` only by fast-forward. The active GitHub account is
-`maro-website`.
+See `11-MANUAL-ACTIONS.md` after the fixed Railway deployment succeeds.

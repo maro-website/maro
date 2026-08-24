@@ -47,6 +47,16 @@ export interface GenerationExecutionTelemetry {
   fort_enabled?: boolean | null;
   brain_used?: boolean | null;
   preset_present?: boolean | null;
+  /** Safe canonical brand-context proof; hashes only, never prompt/profile text. */
+  context_source?: "maro_brain" | "workspace_brand" | "none" | null;
+  context_configured?: boolean | null;
+  context_workspace_hash?: string | null;
+  context_brand_hash?: string | null;
+  context_fingerprint?: string | null;
+  context_brand_name_present?: boolean | null;
+  context_category_present?: boolean | null;
+  context_description_present?: boolean | null;
+  brand_reference_role?: "workspace_brand_asset" | "user_product" | "none" | null;
   /** ISO timestamp when execution decision + initial stamp were persisted. */
   execution_started_at?: string | null;
 }

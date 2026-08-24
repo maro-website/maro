@@ -245,7 +245,9 @@ export async function runImageEngineInternalGeneration(input: {
     };
   }
 
-  const finalPrompt = brief.renderedProviderPrompt ?? req.prompt;
+  // Persist exactly what the image provider received. The Engine mapper can
+  // refine reference-role semantics beyond the generic debug preview.
+  const finalPrompt = req.prompt;
 
   return {
     ok: true,

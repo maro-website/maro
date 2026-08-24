@@ -57,7 +57,7 @@ these passed until recorded with a real OAuth grant.
 ## Final local verification
 
 - Targeted MCP: 24/24 passed.
-- Full suite: 556 passed, 11 skipped, 567 total; 54 files passed, 1 integration file skipped.
+- Full suite after the brand-context correction: 562 passed, 11 skipped, 573 total; 55 files passed, 1 integration file skipped.
 - TypeScript: passed with `tsc --noEmit`.
 - Production build: passed; it includes all MCP/PRM/consent routes. One pre-existing React hook dependency warning remains in `src/components/app/cards.tsx:491`.
 - Official MCP Inspector: production tools/list passed; missing-token and invalid-token calls returned the expected OAuth MCP errors. Authenticated calls remain blocked by disabled live OAuth.

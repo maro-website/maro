@@ -4,6 +4,8 @@ import {
   IMAGE_PARITY_MARKERS,
   IMAGE_TEXT_OFF_NO_REFERENCE,
   IMAGE_TEXT_OFF_WITH_REFERENCE,
+  IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET,
+  WORKSPACE_BRAND_ASSET_DIRECTION,
   buildImageTextInstruction,
   buildImageTextOffInstruction,
   buildLegacyImageProviderRequest,
@@ -96,7 +98,7 @@ describe("maroImazh Text OFF semantics", () => {
     expect(engineProvider.prompt).not.toContain(IMAGE_TEXT_OFF_NO_REFERENCE);
   });
 
-  it("C: Text OFF + workspace_brain reference uses the same preservation semantics", () => {
+  it("C: Text OFF + workspace_brain reference uses identity semantics, not product packaging", () => {
     const brainProfile = {
       ...SAMPLE_WEB_BRAIN_PROFILE,
       brand: { ...SAMPLE_WEB_BRAIN_PROFILE.brand, logoUrl: SAMPLE_IMAZ_DATA_URL },
@@ -123,10 +125,14 @@ describe("maroImazh Text OFF semantics", () => {
       brainLogoUrl: SAMPLE_IMAZ_DATA_URL,
     });
 
-    expect(legacyProvider.prompt).toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
-    expect(engineProvider.prompt).toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
-    expect(legacyProvider.prompt).toContain("packaging typography");
-    expect(engineProvider.prompt).toContain("packaging typography");
+    expect(legacyProvider.prompt).toContain(IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET);
+    expect(engineProvider.prompt).toContain(IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET);
+    expect(legacyProvider.prompt).toContain(WORKSPACE_BRAND_ASSET_DIRECTION);
+    expect(engineProvider.prompt).toContain(WORKSPACE_BRAND_ASSET_DIRECTION);
+    expect(legacyProvider.prompt).not.toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
+    expect(engineProvider.prompt).not.toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
+    expect(legacyProvider.prompt).not.toContain("packaging typography");
+    expect(engineProvider.prompt).not.toContain("packaging typography");
   });
 
   it("D: Text OFF does not activate selected font typography", () => {
