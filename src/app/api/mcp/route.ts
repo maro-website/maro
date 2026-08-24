@@ -17,7 +17,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+    "Authorization, Content-Type, Idempotency-Key, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
   "Access-Control-Expose-Headers":
     "WWW-Authenticate, MCP-Protocol-Version, MCP-Session-Id",
 };

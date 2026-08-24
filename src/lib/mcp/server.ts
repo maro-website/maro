@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -124,10 +124,17 @@ function invalidRequest(message = "Kërkesa e tool-it nuk është e vlefshme."):
   return outcomeToResult(outcome);
 }
 
-function idempotencyKey(actor: MaroMcpActor, requestId: string | number): string {
+function idempotencyKey(actor: MaroMcpActor, sourceRequest: Request): string {
   const clientDigest = createHash("sha256").update(actor.clientId).digest("hex").slice(0, 20);
-  const safeRequest = String(requestId).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 72);
-  return `mcp-${clientDigest}-${safeRequest}`;
+  // JSON-RPC request ids are only correlation ids within a connection. The
+  // ChatGPT stateless transport can reuse `0` for separate intentional calls,
+  // so it must never be the financial idempotency boundary. Honor an explicit
+  // HTTP idempotency key when a client supplies one; otherwise create a fresh
+  // invocation nonce for this non-idempotent tool call.
+  const explicit = sourceRequest.headers.get("idempotency-key")?.trim();
+  const invocation = explicit && explicit.length <= 256 ? explicit : randomUUID();
+  const invocationDigest = createHash("sha256").update(invocation).digest("hex").slice(0, 32);
+  return `mcp-${clientDigest}-${invocationDigest}`;
 }
 
 export function createMaroMcpServer(input: {
@@ -190,7 +197,7 @@ export function createMaroMcpServer(input: {
     } as never;
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (!input.auth.ok) return authFailure(input.auth);
     const actor = input.auth.actor;
 
@@ -209,7 +216,7 @@ export function createMaroMcpServer(input: {
         await generateImage({
           actor,
           args: parsed.data,
-          idempotencyKey: idempotencyKey(actor, extra.requestId),
+          idempotencyKey: idempotencyKey(actor, input.request),
           sourceRequest: input.request,
         })
       );

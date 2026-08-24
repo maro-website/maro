@@ -18,12 +18,14 @@ async function protocolCall(input: {
   body: Record<string, unknown>;
   auth?: MaroMcpAuthResult;
   handlers?: Parameters<typeof createMaroMcpServer>[0]["handlers"];
+  headers?: Record<string, string>;
 }) {
   const request = new Request("https://maro.al/api/mcp", {
     method: "POST",
     headers: {
       "content-type": "application/json",
       accept: "application/json, text/event-stream",
+      ...input.headers,
     },
     body: JSON.stringify(input.body),
   });
@@ -156,7 +158,7 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(json.result.content[0].text).toContain("INVALID_REQUEST");
   });
 
-  it("passes a deterministic retry key and no hidden context to generation", async () => {
+  it("does not reuse a JSON-RPC correlation id as a financial idempotency key", async () => {
     const generateImage = vi.fn().mockResolvedValue({
       ok: true,
       text: "Generated",
@@ -178,7 +180,7 @@ describe("maroMCP Streamable HTTP protocol", () => {
     });
     const body = {
       jsonrpc: "2.0",
-      id: "retry-7",
+      id: 0,
       method: "tools/call",
       params: {
         name: "generate_maro_image",
@@ -197,10 +199,41 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(generateImage).toHaveBeenCalledTimes(2);
     const firstKey = generateImage.mock.calls[0][0].idempotencyKey;
     const secondKey = generateImage.mock.calls[1][0].idempotencyKey;
-    expect(firstKey).toBe(secondKey);
+    expect(firstKey).not.toBe(secondKey);
     expect(generateImage.mock.calls[0][0].args).toEqual({
       request: "Premium campaign",
       aspect_ratio: "landscape",
     });
+  });
+
+  it("honors an explicit idempotency key for a real transport retry", async () => {
+    const generateImage = vi.fn().mockResolvedValue({
+      ok: true,
+      text: "Generated",
+      structuredContent: {
+        asset_url: "https://cdn.maro.al/image.png",
+        media_type: "image/png",
+        aspect_ratio: "portrait",
+        url_expires_in_seconds: 3600,
+      },
+    });
+    const body = {
+      jsonrpc: "2.0",
+      id: 0,
+      method: "tools/call",
+      params: {
+        name: "generate_maro_image",
+        arguments: { request: "Premium campaign" },
+      },
+    };
+    const headers = { "idempotency-key": "transport-retry-123" };
+
+    await protocolCall({ auth: validAuth, handlers: { generateImage }, body, headers });
+    await protocolCall({ auth: validAuth, handlers: { generateImage }, body, headers });
+
+    const firstKey = generateImage.mock.calls[0][0].idempotencyKey;
+    const secondKey = generateImage.mock.calls[1][0].idempotencyKey;
+    expect(firstKey).toBe(secondKey);
+    expect(firstKey).not.toContain("transport-retry-123");
   });
 });

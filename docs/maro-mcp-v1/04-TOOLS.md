@@ -33,6 +33,6 @@ media type, aspect ratio, URL expiry seconds, and optional credits spent. The
 tool omits storage refs, internal generation/job ids, prompt layers,
 provider/model configuration, and hidden compiler output.
 
-Annotations: `readOnlyHint=false`, `destructiveHint=false`, `idempotentHint=false`, `openWorldHint=true`. The call spends credits, writes job/generation/storage state, and calls an external image provider; a new intentional call is not idempotent. Network retry of the same MCP request id is financially idempotent.
+Annotations: `readOnlyHint=false`, `destructiveHint=false`, `idempotentHint=false`, `openWorldHint=true`. The call spends credits, writes job/generation/storage state, and calls an external image provider; a new intentional call is not idempotent. JSON-RPC ids are correlation-only and may be reused by stateless clients. A client that needs transport-retry deduplication supplies an HTTP `Idempotency-Key`, which is hashed and scoped to the connected OAuth client.
 
 Permission: signed application claim `image:generate`, followed by all canonical Maro business controls.
