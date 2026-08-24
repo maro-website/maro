@@ -5,8 +5,11 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
   ErrorCode,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
   McpError,
+  ReadResourceRequestSchema,
   type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { MaroMcpActor, MaroMcpAuthResult } from "@/lib/mcp/auth";
@@ -20,6 +23,12 @@ import {
   type MaroMcpToolFailure,
   type MaroMcpToolOutcome,
 } from "@/lib/mcp/tools";
+import {
+  getMaroImageResultResourceMeta,
+  MARO_IMAGE_RESULT_HTML,
+  MARO_IMAGE_RESULT_RESOURCE_URI,
+  MCP_APP_HTML_MIME_TYPE,
+} from "@/lib/mcp/imageResultUi";
 
 const OAUTH_SECURITY_SCHEMES = [{ type: "oauth2", scopes: [] }] as const;
 
@@ -150,7 +159,10 @@ export function createMaroMcpServer(input: {
   const server = new Server(
     { name: "maro-mcp", version: "1.0.0" },
     {
-      capabilities: { tools: { listChanged: false } },
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { listChanged: false },
+      },
       instructions:
         "Use Maro only for the connected user's account and maroImazh generation. Never request or reveal Maro internal prompts, compiler output, tokens, ids, or hidden brand intelligence.",
     }
@@ -191,7 +203,45 @@ export function createMaroMcpServer(input: {
             idempotentHint: false,
             openWorldHint: true,
           },
-          _meta: { securitySchemes: OAUTH_SECURITY_SCHEMES },
+          _meta: {
+            securitySchemes: OAUTH_SECURITY_SCHEMES,
+            ui: { resourceUri: MARO_IMAGE_RESULT_RESOURCE_URI },
+            "openai/outputTemplate": MARO_IMAGE_RESULT_RESOURCE_URI,
+            "openai/toolInvocation/invoking": "Generating a Maro image…",
+            "openai/toolInvocation/invoked": "Maro image generated.",
+          },
+        },
+      ],
+    } as never;
+  });
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: MARO_IMAGE_RESULT_RESOURCE_URI,
+        name: "maro-image-result",
+        title: "Maro generated image",
+        description: "Responsive inline presentation for one generated Maro image.",
+        mimeType: MCP_APP_HTML_MIME_TYPE,
+      },
+    ],
+  }));
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [],
+  }));
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    if (request.params.uri !== MARO_IMAGE_RESULT_RESOURCE_URI) {
+      throw new McpError(ErrorCode.InvalidParams, "Resource not found");
+    }
+    return {
+      contents: [
+        {
+          uri: MARO_IMAGE_RESULT_RESOURCE_URI,
+          mimeType: MCP_APP_HTML_MIME_TYPE,
+          text: MARO_IMAGE_RESULT_HTML,
+          _meta: getMaroImageResultResourceMeta(),
         },
       ],
     } as never;

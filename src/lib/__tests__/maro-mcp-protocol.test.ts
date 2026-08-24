@@ -60,6 +60,7 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(response.status).toBe(200);
     expect(json.result.serverInfo).toEqual({ name: "maro-mcp", version: "1.0.0" });
     expect(json.result.capabilities.tools).toBeDefined();
+    expect(json.result.capabilities.resources).toBeDefined();
   });
 
   it("discovers only the two V1 tools with auth metadata and accurate annotations", async () => {
@@ -82,6 +83,59 @@ describe("maroMCP Streamable HTTP protocol", () => {
     });
     expect(tools[1].inputSchema.properties).not.toHaveProperty("workspace_id");
     expect(tools[1].inputSchema.additionalProperties).toBe(false);
+    expect(tools[1]._meta.ui.resourceUri).toBe("ui://maro/image-result-v1.html");
+    expect(tools[1]._meta["openai/outputTemplate"]).toBe(
+      "ui://maro/image-result-v1.html"
+    );
+  });
+
+  it("serves the generated-image MCP Apps resource with a narrow image CSP", async () => {
+    const listed = await protocolCall({
+      body: { jsonrpc: "2.0", id: 20, method: "resources/list", params: {} },
+    });
+    expect(listed.json.result.resources).toEqual([
+      expect.objectContaining({
+        uri: "ui://maro/image-result-v1.html",
+        mimeType: "text/html;profile=mcp-app",
+      }),
+    ]);
+
+    const read = await protocolCall({
+      body: {
+        jsonrpc: "2.0",
+        id: 21,
+        method: "resources/read",
+        params: { uri: "ui://maro/image-result-v1.html" },
+      },
+    });
+    const resource = read.json.result.contents[0];
+    expect(resource).toMatchObject({
+      uri: "ui://maro/image-result-v1.html",
+      mimeType: "text/html;profile=mcp-app",
+      _meta: {
+        ui: {
+          prefersBorder: true,
+          csp: { connectDomains: [] },
+        },
+      },
+    });
+    expect(resource._meta.ui.csp.resourceDomains).toHaveLength(1);
+    expect(resource._meta.ui.csp.resourceDomains[0]).toMatch(/^https:\/\//);
+    expect(resource.text).toContain("ui/notifications/tool-result");
+    expect(resource.text).toContain("window.openai.toolOutput");
+    expect(resource.text).toContain("output.asset_url");
+    expect(resource.text).not.toContain("service_role");
+    expect(resource.text).not.toContain("storageRefs");
+
+    const templates = await protocolCall({
+      body: {
+        jsonrpc: "2.0",
+        id: 22,
+        method: "resources/templates/list",
+        params: {},
+      },
+    });
+    expect(templates.json.result.resourceTemplates).toEqual([]);
   });
 
   it("returns runtime OAuth metadata for a missing bearer token", async () => {

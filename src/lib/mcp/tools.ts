@@ -220,9 +220,9 @@ export async function generateMaroImageTool(input: {
   };
   if (creditsSpent !== undefined) structuredContent.credits_spent = creditsSpent;
 
-  // MCP image blocks carry base64 bytes plus an explicit MIME type. ChatGPT
-  // can render this block inline; a URL inside text/structuredContent is only
-  // model-readable data and is normally presented as a link.
+  // Keep a standards-compliant raw MCP image block for non-UI hosts. ChatGPT's
+  // plugin surface renders the primary result through the MCP Apps resource
+  // attached to this tool and hydrates it from structuredContent.asset_url.
   const storageRefs = Array.isArray(outcome.payload.storageRefs)
     ? outcome.payload.storageRefs.filter((value): value is string => typeof value === "string")
     : [];
