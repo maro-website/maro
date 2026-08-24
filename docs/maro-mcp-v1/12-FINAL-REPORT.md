@@ -42,11 +42,13 @@ Migration 0045, strict inputs and allowlisted outputs prevent normal users/MCP f
 
 ## I. Railway/tunnel test
 
-No linked staging/CLI was found. Local Next protocol passed. A read-only
-production check on 2026-08-24 confirmed that `/api/mcp`, the path-specific PRM,
-and `/oauth/consent` all still return 404. Railway HTTPS/buffering/long
-generation was not tested because push/deploy was prohibited and OAuth is
-disabled.
+Commit `b0557d628dbf266f30fd72eaed4acc742850c726` was pushed only to
+`origin/feat/maro-mcp-v1`. The feature-branch push did not trigger a Railway
+deployment. GitHub deployment history identifies the existing live target as
+`spectacular-magic / production`; it remains on `main` and was not touched. No
+Railway CLI link or token exists locally, so Project Settings → Environments
+must be inspected manually before creating an isolated staging/PR environment.
+Local Next protocol passed. The production routes remain unchanged and 404.
 
 ## J. MCP Inspector
 
@@ -76,12 +78,14 @@ See final Git status/report; all changes remain only in the isolated worktree.
 
 ## P. Git status
 
-Branch `feat/maro-mcp-v1`; no push and no merge.
+Branch `feat/maro-mcp-v1`; commit
+`b0557d628dbf266f30fd72eaed4acc742850c726` pushed to
+`origin/feat/maro-mcp-v1`. No merge, force-push, or production deployment.
 
 ## Q. Single recommended next step
 
-The next live-E2E gate is deployment of this isolated branch to the canonical
-Maro endpoint. It remains deferred while the instruction **do not push, merge,
-or publish** is active. The database migrations and Custom Access Token Hook are
-already complete. After deployment is separately authorized and completed,
-enable OAuth Server/DCR with authorization path `/oauth/consent`.
+Open Railway project `spectacular-magic` → Project Settings → Environments and
+return a screenshot showing whether an isolated staging environment or PR
+Environments is available. Do not deploy production. Once isolation is proven,
+deploy the pushed feature branch there, establish the exact staging audience,
+then enable OAuth Server/DCR with authorization path `/oauth/consent`.

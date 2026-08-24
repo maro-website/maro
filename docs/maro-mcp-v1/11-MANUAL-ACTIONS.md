@@ -25,29 +25,40 @@ Exact files in `supabase/migrations/`.
 Erzen confirmed that `0045_generation_prompt_privacy.sql` and
 `0046_maro_mcp_oauth_claims.sql` were both applied successfully, in order.
 
-## Action 2 — deploy this branch to the canonical private-test endpoint ⏸ deferred
+## Action 2 — create an isolated Railway private-test endpoint ⏳ dashboard gate
 
 **Where**
 
-Existing Railway Maro service/deployment workflow.
+Railway project `spectacular-magic` (`cb4c8dcc-712d-459d-b01c-96ae9ad29814`).
 
 **Do**
 
-Deploy the reviewed `feat/maro-mcp-v1` changes so `https://maro.al/oauth/consent`, both PRM routes, and `https://maro.al/api/mcp` are live. This requires a separate authorization because this pass was explicitly prohibited from pushing/merging.
+Open Railway Project Settings → Environments and confirm whether either an
+isolated persistent staging environment or PR Environments is enabled. Do not
+deploy over the existing `spectacular-magic / production` environment.
 
-**Current constraint**
+**Current result**
 
-The active instruction is **do not push, merge, or publish**. No Railway deploy
-or public tunnel may be created under that constraint. This is now the hard gate
-for live OAuth and private ChatGPT E2E.
+Commit `b0557d628dbf266f30fd72eaed4acc742850c726` was pushed only to
+`origin/feat/maro-mcp-v1`. GitHub history proves that the existing Railway
+service deploys `main` to `spectacular-magic / production`; the feature-branch
+push did not trigger a Railway deployment. No Railway CLI link or token exists
+locally, so the project's isolated-environment setting must be checked in the
+dashboard before proceeding.
 
 Read-only production verification on 2026-08-24 returned 404 for all three
 required routes: `/api/mcp`,
 `/.well-known/oauth-protected-resource/api/mcp`, and `/oauth/consent`.
 
-**Value**
+**Values after an isolated hostname exists**
 
-Railway variable: `MARO_MCP_RESOURCE_URL=https://maro.al/api/mcp`.
+- Staging MCP URL: `https://<isolated-host>/api/mcp`
+- Staging `MARO_MCP_RESOURCE_URL`: exactly the staging MCP URL
+- Production MCP URL remains `https://maro.al/api/mcp`
+
+The Supabase access-token hook must mint exactly the same single audience as
+the environment under test. Do not accept both audiences and do not enable
+OAuth until the isolated hostname is known and the hook transition is prepared.
 
 **Why**
 
@@ -55,7 +66,9 @@ Supabase's authorization UI is Site URL + `/oauth/consent`; ChatGPT needs public
 
 **Send back**
 
-Deployment URL/commit and HTTP status for the consent route, PRM, and unauthenticated MCP challenge. Do not send environment values or tokens.
+Screenshot of Project Settings → Environments showing either the existing
+staging environment or the PR Environments setting. Do not send variables or
+tokens and do not press a production deploy button.
 
 ## Action 3 — enable the Custom Access Token Hook ✅ completed 2026-08-24
 
