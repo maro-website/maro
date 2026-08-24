@@ -108,7 +108,7 @@ function authFailure(auth: MaroMcpAuthResult, insufficientPermission = false): C
 function outcomeToResult(outcome: MaroMcpToolOutcome): CallToolResult {
   if (outcome.ok) {
     return {
-      content: [{ type: "text", text: outcome.text }],
+      content: outcome.content ?? [{ type: "text", text: outcome.text }],
       structuredContent: outcome.structuredContent,
     };
   }

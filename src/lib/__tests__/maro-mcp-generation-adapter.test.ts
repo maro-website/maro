@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const executeMaroImageApplication = vi.hoisted(() => vi.fn());
+const resolvePrivateImageContent = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/maro-imazh/applicationService", () => ({
   executeMaroImageApplication,
 }));
 vi.mock("@/lib/commerce/entitlements", () => ({ resolveEntitlements: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ getMaroAccountSummary: vi.fn() }));
+vi.mock("@/lib/ai/imageReferences", () => ({ resolvePrivateImageContent }));
 
 import { generateMaroImageTool } from "@/lib/mcp/tools";
 
@@ -19,7 +21,13 @@ const actor = {
 };
 
 describe("maroMCP canonical maroImazh adapter", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolvePrivateImageContent.mockResolvedValue({
+      data: "iVBORw0KGgoAAAANSUhEUg==",
+      mimeType: "image/png",
+    });
+  });
 
   it("calls the canonical service with active workspace only and sanitizes the result", async () => {
     executeMaroImageApplication.mockImplementation(async (request, body, adapter) => {
@@ -59,16 +67,58 @@ describe("maroMCP canonical maroImazh adapter", () => {
 
     expect(result).toMatchObject({
       ok: true,
+      content: [
+        {
+          type: "image",
+          data: "iVBORw0KGgoAAAANSUhEUg==",
+          mimeType: "image/png",
+        },
+        { type: "text" },
+      ],
       structuredContent: {
         media_type: "image/png",
         aspect_ratio: "landscape",
         credits_spent: 5,
       },
     });
+    expect(resolvePrivateImageContent).toHaveBeenCalledOnce();
+    expect(resolvePrivateImageContent).toHaveBeenCalledWith(
+      "storage:generations/user-1/a.png",
+      "user-1"
+    );
+    expect(executeMaroImageApplication).toHaveBeenCalledOnce();
     expect(JSON.stringify(result)).not.toContain("data:image");
     expect(JSON.stringify(result)).not.toContain("storage:generations");
     expect(JSON.stringify(result)).not.toContain("final_prompt");
     expect(JSON.stringify(result)).not.toContain("must-not-leak");
+  });
+
+  it("keeps the signed-link success path when inline image hydration fails", async () => {
+    resolvePrivateImageContent.mockRejectedValue(new Error("reference_not_found"));
+    executeMaroImageApplication.mockImplementation(async (_request, _body, adapter) =>
+      adapter.stream(async (send: (payload: Record<string, unknown>) => void) => {
+        send({
+          ok: true,
+          images: ["https://project.supabase.co/storage/v1/object/sign/generations/a.png"],
+          storageRefs: ["storage:generations/user-1/a.png"],
+          creditsSpent: 6,
+        });
+      })
+    );
+
+    const result = await generateMaroImageTool({
+      actor: { ...actor, permissions: [...actor.permissions] },
+      args: { request: "Premium cinematic campaign" },
+      idempotencyKey: "mcp-key-inline-fallback",
+      sourceRequest: new Request("https://maro.al/api/mcp"),
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      content: [{ type: "text" }],
+      structuredContent: { credits_spent: 6 },
+    });
+    expect(executeMaroImageApplication).toHaveBeenCalledOnce();
   });
 
   it.each([

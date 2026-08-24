@@ -160,6 +160,15 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const generateImage = vi.fn().mockResolvedValue({
       ok: true,
       text: "Generated",
+      content: [
+        {
+          type: "image",
+          data: "iVBORw0KGgoAAAANSUhEUg==",
+          mimeType: "image/png",
+          annotations: { audience: ["user", "assistant"], priority: 1 },
+        },
+        { type: "text", text: "Generated" },
+      ],
       structuredContent: {
         asset_url: "https://cdn.maro.al/image.png",
         media_type: "image/png",
@@ -179,6 +188,12 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const first = await protocolCall({ auth: validAuth, handlers: { generateImage }, body });
     const second = await protocolCall({ auth: validAuth, handlers: { generateImage }, body });
     expect(first.json.result.structuredContent.asset_url).toBe("https://cdn.maro.al/image.png");
+    expect(first.json.result.content[0]).toMatchObject({
+      type: "image",
+      data: "iVBORw0KGgoAAAANSUhEUg==",
+      mimeType: "image/png",
+    });
+    expect(first.json.result.content[1]).toEqual({ type: "text", text: "Generated" });
     expect(generateImage).toHaveBeenCalledTimes(2);
     const firstKey = generateImage.mock.calls[0][0].idempotencyKey;
     const secondKey = generateImage.mock.calls[1][0].idempotencyKey;

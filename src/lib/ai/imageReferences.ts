@@ -20,6 +20,11 @@ export type ResolvedImageReference = {
   normalized: boolean;
 };
 
+export type ResolvedImageContent = {
+  data: string;
+  mimeType: string;
+};
+
 function ownedPrivateReference(value: string, userId: string) {
   const ref = parseStorageRef(value);
   if (!ref || ref.bucket !== STORAGE_BUCKET) return null;
@@ -72,4 +77,20 @@ export async function resolvePrivateImageReference(
     mime: output.mime,
     normalized: output.normalized,
   };
+}
+
+/**
+ * Resolve an owned private image into the standard MCP ImageContent payload.
+ * The storage reference and signed URL stay out of the image block itself.
+ */
+export async function resolvePrivateImageContent(
+  storageRef: string,
+  userId: string
+): Promise<ResolvedImageContent> {
+  const resolved = await resolvePrivateImageReference(storageRef, userId);
+  const prefix = `data:${resolved.mime};base64,`;
+  if (!resolved.dataUrl.startsWith(prefix)) throw new Error("invalid_image_content");
+  const data = resolved.dataUrl.slice(prefix.length);
+  if (!data) throw new Error("invalid_image_content");
+  return { data, mimeType: resolved.mime };
 }

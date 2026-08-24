@@ -26,7 +26,12 @@ Strict input:
 
 Defaults: portrait, no text, one image, current image model, normal speed. The adapter maps these only to existing maroImazh settings. It always sets `useWorkspaceBrand=true` and never supplies a workspace id.
 
-Safe output: `asset_url` (HTTPS signed URL), `media_type=image/png`, aspect ratio, URL expiry seconds, and optional credits spent. It omits base64, storage refs, internal generation/job ids, prompt layers, provider/model configuration, and hidden compiler output.
+Safe output: a standard MCP `image` content block (`data` as base64 plus
+`mimeType=image/png`) for host-native inline rendering, followed by concise
+text. `structuredContent` retains `asset_url` (HTTPS signed fallback URL),
+media type, aspect ratio, URL expiry seconds, and optional credits spent. The
+tool omits storage refs, internal generation/job ids, prompt layers,
+provider/model configuration, and hidden compiler output.
 
 Annotations: `readOnlyHint=false`, `destructiveHint=false`, `idempotentHint=false`, `openWorldHint=true`. The call spends credits, writes job/generation/storage state, and calls an external image provider; a new intentional call is not idempotent. Network retry of the same MCP request id is financially idempotent.
 
