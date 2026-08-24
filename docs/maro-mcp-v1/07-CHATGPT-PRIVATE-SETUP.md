@@ -9,7 +9,7 @@ Confirm all return the expected values over HTTPS:
 
 1. `GET https://maro.al/.well-known/oauth-protected-resource/api/mcp` → resource `https://maro.al/api/mcp`, Supabase issuer.
 2. `GET https://maro.al/api/mcp` without token → 401 with `WWW-Authenticate` pointing to that PRM.
-3. `GET https://pbhzobqpavkuttdipjaq.supabase.co/.well-known/oauth-authorization-server/auth/v1` → discovery with authorization/token/registration endpoints and `S256`.
+3. `GET https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1/.well-known/oauth-authorization-server` → discovery with authorization/token/registration endpoints and `S256`.
 4. MCP Inspector initialize/list tools → exactly `get_maro_account` and `generate_maro_image`.
 5. OAuth test token → `iss` exact Supabase issuer, `aud=https://maro.al/api/mcp`, `client_id`, `maro_mcp=true`, both Maro permissions. Do not paste the token into documentation/chat.
 
@@ -38,6 +38,7 @@ When the first protected tool is used, ChatGPT should open Supabase OAuth, Maro 
 
 The protected canonical endpoint is live on Railway production. This is a
 private Developer Mode connection, not marketplace or public-directory
-publication.
+publication. The real private connection, OAuth consent, account tool,
+generation transport and HTTPS image rendering have passed.
 
 Official source: https://developers.openai.com/plugins/deploy/connect-chatgpt

@@ -10,6 +10,8 @@
 - Initial brand-context fidelity: FAIL; the image showed an unrelated SADOER
   consumer product.
 - Canonical brand-context correction and regression coverage: PASS.
+- Railway production deployment `6055614648`: PASS.
+- Post-deploy PRM/OAuth/MCP/CORS/consent smoke suite: PASS.
 - Final post-fix visual retest: pending one owner-visible ChatGPT generation.
 
 ## B. Root cause
@@ -89,4 +91,4 @@ idempotency key, job, generation and single charge row.
 
 `PRIVATE E2E NEEDS ONE FINAL VISUAL RETEST`
 
-See `11-MANUAL-ACTIONS.md` after the fixed Railway deployment succeeds.
+See `11-MANUAL-ACTIONS.md` for the single post-deploy visual retest.

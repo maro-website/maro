@@ -45,14 +45,15 @@ On 2026-08-24, the Railway production deployment returned:
 
 Official MCP Inspector connected to the production URL and passed initialize
 and tools/list. Missing-token and invalid-token calls returned the expected
-OAuth MCP errors. Railway deployment `6055163713` completed successfully.
+OAuth MCP errors. Railway deployment `6055614648` for the canonical
+brand-context correction completed successfully.
 
 ## Remaining measured tests
 
-Live minted-token claims, authenticated Inspector/account/generation calls,
-signed asset rendering, and private ChatGPT Developer Mode require the owner to
-enable the Supabase OAuth Server/DCR and authorize the connection. Do not claim
-these passed until recorded with a real OAuth grant.
+The real private ChatGPT flow has passed OAuth authorization/consent, MCP
+connection, authenticated account resolution, generation transport and HTTPS
+image rendering. The only remaining measured test is one owner-visible
+post-fix visual fidelity check for Fleet & Miles; see `11-MANUAL-ACTIONS.md`.
 
 ## Final local verification
 
@@ -60,4 +61,7 @@ these passed until recorded with a real OAuth grant.
 - Full suite after the brand-context correction: 562 passed, 11 skipped, 573 total; 55 files passed, 1 integration file skipped.
 - TypeScript: passed with `tsc --noEmit`.
 - Production build: passed; it includes all MCP/PRM/consent routes. One pre-existing React hook dependency warning remains in `src/components/app/cards.tsx:491`.
-- Official MCP Inspector: production tools/list passed; missing-token and invalid-token calls returned the expected OAuth MCP errors. Authenticated calls remain blocked by disabled live OAuth.
+- OAuth discovery: issuer, authorization, token, dynamic-registration endpoints
+  and PKCE `S256` passed in production.
+- Official MCP Inspector: production tools/list passed; missing-token and
+  invalid-token calls returned the expected OAuth MCP errors.
