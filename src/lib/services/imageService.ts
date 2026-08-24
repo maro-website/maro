@@ -20,7 +20,7 @@ export class ImageGenerationError extends Error {
 
 type ImageStreamPayload =
   | { ok: true; images: string[]; creditsSpent?: number; jobId?: string; generationId?: string; storageRefs?: string[] }
-  | { ok: false; error?: string; detail?: string; refunded?: boolean; jobId?: string };
+  | { ok: false; error?: string; refunded?: boolean; jobId?: string };
 
 export function serializeImageGenerationRequest(req: AiImageRequest, idempotencyKey: string): string {
   if ((req.attachments ?? []).some((ref) => ref.startsWith("data:image/") || ref.startsWith("blob:"))) {

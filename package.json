@@ -21,6 +21,7 @@
     "@fontsource/inter": "^5.2.5",
     "@fontsource/manrope": "^5.2.5",
     "@fontsource/playfair-display": "^5.2.5",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.6",
@@ -36,7 +37,8 @@
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
     "standardwebhooks": "^1.0.0",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

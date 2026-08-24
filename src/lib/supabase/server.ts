@@ -353,12 +353,74 @@ export async function incrementPromptUse(id: string): Promise<void> {
 
 export async function getActiveWorkspaceId(userId: string): Promise<string | null> {
   try {
-    const { data } = await getSupabaseAdmin()
+    const admin = getSupabaseAdmin();
+    const { data: profile } = await admin
       .from("profiles")
       .select("active_workspace_id")
       .eq("id", userId)
       .maybeSingle();
-    return (data?.active_workspace_id as string | undefined) ?? null;
+    const activeId = (profile?.active_workspace_id as string | undefined) ?? null;
+
+    if (activeId) {
+      const { data: ownedActive } = await admin
+        .from("workspaces")
+        .select("id")
+        .eq("id", activeId)
+        .eq("owner_id", userId)
+        .maybeSingle();
+      if (ownedActive?.id) return ownedActive.id as string;
+    }
+
+    // Repair a stale/foreign profile preference deterministically with the
+    // user's first owned workspace. MCP callers never supply workspace ids.
+    const { data: fallback } = await admin
+      .from("workspaces")
+      .select("id")
+      .eq("owner_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const fallbackId = (fallback?.id as string | undefined) ?? null;
+    if (fallbackId && fallbackId !== activeId) {
+      await admin.from("profiles").update({ active_workspace_id: fallbackId }).eq("id", userId);
+    }
+    return fallbackId;
+  } catch {
+    return null;
+  }
+}
+
+export interface MaroAccountSummary {
+  displayName: string;
+  activeWorkspaceName: string | null;
+}
+
+/** Safe account identity for first-party integrations; never returns ids/email. */
+export async function getMaroAccountSummary(userId: string): Promise<MaroAccountSummary | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const [{ data: profile }, workspaceId] = await Promise.all([
+      admin.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+      getActiveWorkspaceId(userId),
+    ]);
+    if (!profile) return null;
+
+    let activeWorkspaceName: string | null = null;
+    if (workspaceId) {
+      const { data: workspace } = await admin
+        .from("workspaces")
+        .select("name")
+        .eq("id", workspaceId)
+        .eq("owner_id", userId)
+        .maybeSingle();
+      activeWorkspaceName = (workspace?.name as string | undefined)?.trim() || null;
+    }
+
+    return {
+      displayName: (profile.full_name as string | undefined)?.trim() || "Përdorues Maro",
+      activeWorkspaceName,
+    };
   } catch {
     return null;
   }
@@ -478,26 +540,39 @@ export async function logGeneration(entry: {
   fort?: Record<string, unknown>;
   workspace_id?: string;
 }): Promise<string | null> {
+  const { final_prompt, ...publicEntry } = entry;
   try {
     const workspace_id =
       entry.workspace_id ?? (await getActiveWorkspaceId(entry.user_id)) ?? undefined;
     const { data } = await getSupabaseAdmin()
       .from("generations")
-      .insert({ ...entry, workspace_id })
+      .insert({ ...publicEntry, final_prompt: null, workspace_id })
       .select("id")
       .single();
-    return (data?.id as string) ?? null;
+    const generationId = (data?.id as string) ?? null;
+    if (generationId && final_prompt.trim()) {
+      const { error } = await getSupabaseAdmin()
+        .from("generation_internal_prompts")
+        .upsert({ generation_id: generationId, compiled_prompt: final_prompt });
+      if (error) {
+        console.error("[generation] internal prompt observability write failed", {
+          generationId,
+          code: error.code,
+        });
+      }
+    }
+    return generationId;
   } catch {
     // Retry without the newer columns (selections/fort/workspace) in case a
     // migration has not been applied yet — logging is best-effort.
     try {
-      const { selections: _s, fort: _f, workspace_id: _w, ...rest } = entry;
+      const { selections: _s, fort: _f, workspace_id: _w, ...rest } = publicEntry;
       void _s;
       void _f;
       void _w;
       const { data } = await getSupabaseAdmin()
         .from("generations")
-        .insert(rest)
+        .insert({ ...rest, final_prompt: null })
         .select("id")
         .single();
       return (data?.id as string) ?? null;
