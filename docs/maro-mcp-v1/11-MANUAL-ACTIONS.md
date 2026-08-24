@@ -1,141 +1,92 @@
 # ACTION NEEDED FROM ERZEN
 
-These are external dashboard/deployment actions. Complete in order. Do not enable OAuth before migrations 0045/0046 and the consent route are deployed together.
+Production code, database migrations, the JWT claims hook, Railway deployment,
+public endpoint checks, and unauthenticated MCP Inspector checks are complete.
+The remaining work is one owner-operated setup sequence because it changes
+Supabase OAuth settings and connects the owner's private ChatGPT account.
 
-## Action 1 — deploy database migrations ✅ completed 2026-08-24
+Complete this checklist in order. Do not send access tokens, refresh tokens,
+JWTs, client secrets, or Supabase secrets.
 
-**Where**
-
-The established Supabase migration pipeline for project `pbhzobqpavkuttdipjaq`; if no pipeline is available: Supabase Dashboard → SQL Editor.
-
-**Do**
-
-Apply `0045_generation_prompt_privacy.sql`, verify success, then apply `0046_maro_mcp_oauth_claims.sql`. Do not reverse the order.
-
-**Value**
-
-Exact files in `supabase/migrations/`.
-
-**Why**
-
-0045 closes the compiled-prompt leak before MCP; 0046 creates the resource-bound OAuth claim hook.
-
-**Result**
-
-Erzen confirmed that `0045_generation_prompt_privacy.sql` and
-`0046_maro_mcp_oauth_claims.sql` were both applied successfully, in order.
-
-## Action 2 — create an isolated Railway private-test endpoint ⏳ dashboard gate
+## 1 — Verify the Supabase Site URL
 
 **Where**
 
-Railway project `spectacular-magic` (`cb4c8dcc-712d-459d-b01c-96ae9ad29814`).
+Supabase project `pbhzobqpavkuttdipjaq` → Authentication → URL Configuration.
 
 **Do**
 
-Open Railway Project Settings → Environments and confirm whether either an
-isolated persistent staging environment or PR Environments is enabled. Do not
-deploy over the existing `spectacular-magic / production` environment.
+Confirm the Site URL. If it differs, set it to the exact value below and save.
+Do not remove existing redirect URLs.
 
-**Current result**
+**Exact value**
 
-Commit `b0557d628dbf266f30fd72eaed4acc742850c726` was pushed only to
-`origin/feat/maro-mcp-v1`. GitHub history proves that the existing Railway
-service deploys `main` to `spectacular-magic / production`; the feature-branch
-push did not trigger a Railway deployment. No Railway CLI link or token exists
-locally, so the project's isolated-environment setting must be checked in the
-dashboard before proceeding.
-
-Read-only production verification on 2026-08-24 returned 404 for all three
-required routes: `/api/mcp`,
-`/.well-known/oauth-protected-resource/api/mcp`, and `/oauth/consent`.
-
-**Values after an isolated hostname exists**
-
-- Staging MCP URL: `https://<isolated-host>/api/mcp`
-- Staging `MARO_MCP_RESOURCE_URL`: exactly the staging MCP URL
-- Production MCP URL remains `https://maro.al/api/mcp`
-
-The Supabase access-token hook must mint exactly the same single audience as
-the environment under test. Do not accept both audiences and do not enable
-OAuth until the isolated hostname is known and the hook transition is prepared.
+`https://maro.al`
 
 **Why**
 
-Supabase's authorization UI is Site URL + `/oauth/consent`; ChatGPT needs public HTTPS Streamable HTTP.
+Supabase combines the Site URL with the OAuth Authorization Path to open the
+Maro consent page.
 
-**Send back**
-
-Screenshot of Project Settings → Environments showing either the existing
-staging environment or the PR Environments setting. Do not send variables or
-tokens and do not press a production deploy button.
-
-## Action 3 — enable the Custom Access Token Hook ✅ completed 2026-08-24
+## 2 — Enable the Supabase OAuth server for MCP
 
 **Where**
 
-Supabase Dashboard → Authentication → Hooks → Custom Access Token → Postgres function.
+Supabase project `pbhzobqpavkuttdipjaq` → Authentication → OAuth Server.
 
 **Do**
 
-Select and enable `public.maro_mcp_custom_access_token_hook`.
+1. Enable OAuth 2.1 Server.
+2. Set Authorization Path to `/oauth/consent`.
+3. Enable Dynamic Client Registration.
+4. Keep explicit user consent required if that option is shown.
+5. Save the settings.
 
-**Value**
+Do not create a fixed/manual OAuth client for ChatGPT. Do not rotate JWT keys.
+Keep the existing ES256 signing key. Keep Authentication → Auth Hooks →
+Customize Access Token enabled on
+`public.maro_mcp_custom_access_token_hook`.
 
-Function: `public.maro_mcp_custom_access_token_hook`.
+**Expected identifiers**
 
-**Why**
+- Issuer: `https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1`
+- Discovery: `https://pbhzobqpavkuttdipjaq.supabase.co/.well-known/oauth-authorization-server/auth/v1`
+- Consent page: `https://maro.al/oauth/consent`
+- MCP resource/audience: `https://maro.al/api/mcp`
 
-It changes only OAuth-server tokens from default `aud=authenticated` to the exact Maro MCP audience and signed application permissions.
+After saving, open the discovery URL. It must return JSON instead of 404.
 
-**Result**
-
-Dashboard evidence confirms that the Customize Access Token (JWT) Claims hook
-is **ENABLED** with type `Postgres function`, schema `public`, and function
-`maro_mcp_custom_access_token_hook`.
-
-## Action 4 — enable Supabase OAuth 2.1 and DCR
+## 3 — Create and connect the private ChatGPT plugin
 
 **Where**
 
-Supabase Dashboard → Authentication → OAuth Server.
+ChatGPT → Settings → Security and login → Developer mode; then ChatGPT
+Plugins → plus.
 
 **Do**
 
-Enable OAuth 2.1 Server; set Authorization Path; enable Dynamic Client Registration. Keep explicit consent required. Do not rotate JWT keys.
+1. Enable Developer mode.
+2. Create a plugin with name `Maro (private)`.
+3. Use description `Private maroImazh generation for my connected Maro account.`
+4. Choose the public endpoint connection and enter `https://maro.al/api/mcp`.
+5. Create it and confirm ChatGPT discovers exactly `get_maro_account` and
+   `generate_maro_image`.
+6. Connect it, complete Maro login if requested, and approve the Maro consent
+   page. ChatGPT should register itself through DCR; do not pre-register or
+   guess a callback URL.
+7. In a new chat, add the Maro connection and run the prompts in
+   `08-OPENAI-TEST-CASES.md`, beginning with the account prompt and then one
+   generation prompt.
 
-**Value**
+## Send back once
 
-- Authorization Path: `/oauth/consent`
-- Dynamic Client Registration: enabled
-- Existing signing algorithm: keep `ES256`
+Send one reply containing:
 
-**Why**
+- whether the Supabase discovery URL returns JSON;
+- whether ChatGPT shows the plugin as connected;
+- the two discovered tool names;
+- the account-test outcome;
+- the generation-test outcome and whether the returned HTTPS image renders;
+- the exact visible error text if any step fails.
 
-Live discovery is currently 404. ChatGPT needs DCR, PKCE and Maro consent; ES256 is already correct.
-
-**Send back**
-
-Screenshot/status of OAuth Server, Authorization Path and DCR toggles, plus the JSON field names (not secrets) from `https://pbhzobqpavkuttdipjaq.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
-
-## Action 5 — authorize the final private ChatGPT test
-
-**Where**
-
-ChatGPT → Settings → Security and login → Developer mode → ChatGPT Plugins → plus.
-
-**Do**
-
-Follow `07-CHATGPT-PRIVATE-SETUP.md` with URL `https://maro.al/api/mcp`, connect through Maro consent, then run `08-OPENAI-TEST-CASES.md`.
-
-**Value**
-
-Name `Maro (private)`; endpoint `https://maro.al/api/mcp`.
-
-**Why**
-
-ChatGPT account interaction and final consent require the owner.
-
-**Send back**
-
-Connection status, discovered tool names, exact OAuth error if any, and test outcomes. Never send access/refresh tokens.
+Screenshots are useful but optional. Never send tokens or secrets.

@@ -1,6 +1,7 @@
 # Private ChatGPT setup
 
-Do these steps only after every action in `11-MANUAL-ACTIONS.md` is complete and live discovery/token checks pass.
+Do these steps as the final part of the single owner sequence in
+`11-MANUAL-ACTIONS.md`, after OAuth Server and DCR are enabled.
 
 ## Endpoint checks
 
@@ -27,12 +28,16 @@ Per current OpenAI instructions:
 9. URL: `https://maro.al/api/mcp`.
 10. Create the connection and verify the two tools/annotations.
 
-Supabase currently lacks the issuer-identification flag needed for ChatGPT's stable callback. DCR should register ChatGPT's callback-ID-specific redirect URI automatically. Do not pre-register or guess a callback while DCR works. If ChatGPT shows a callback/registration error, copy the exact callback URI and OAuth error, not any token.
+DCR should register ChatGPT's callback-specific redirect URI automatically. Do
+not pre-register or guess a callback while DCR works. If ChatGPT shows a
+callback/registration error, copy the exact visible error, not any token.
 
 When the first protected tool is used, ChatGPT should open Supabase OAuth, Maro login if needed, then `/oauth/consent?authorization_id=...`. Approve with **Connect**. ChatGPT exchanges the PKCE code and retries the tool with the access token.
 
-## Tunnel decision
+## Deployment status
 
-Secure MCP Tunnel is not the first path for this repository because Supabase composes consent from Maro's configured Site URL, and the fixed token audience is the canonical Maro resource. A tunnel would still need the consent route available at the configured Maro site and could create a resource-host mismatch. No Railway staging service/project or CLI link was present locally. The reliable next private test is therefore the protected canonical HTTPS endpoint after an authorized deployment; it is not a marketplace/public-directory publication.
+The protected canonical endpoint is live on Railway production. This is a
+private Developer Mode connection, not marketplace or public-directory
+publication.
 
 Official source: https://developers.openai.com/plugins/deploy/connect-chatgpt

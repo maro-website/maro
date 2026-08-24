@@ -32,9 +32,27 @@ On 2026-08-24, Next.js dev on port 3006 returned:
 - unauthenticated tools/call with HTTP challenge header and runtime `mcp/www_authenticate`;
 - `/oauth/consent?authorization_id=test` rendered 200.
 
+## Production protocol check
+
+On 2026-08-24, the Railway production deployment returned:
+
+- both Protected Resource Metadata endpoints: 200 with exact resource/issuer;
+- missing and invalid bearer requests: 401 with the expected OAuth challenges;
+- MCP initialize: 200 over Streamable HTTP/SSE, protocol `2025-06-18`;
+- tools/list: exactly the two intended tools and auth metadata;
+- CORS preflight: 204;
+- consent route: 200.
+
+Official MCP Inspector connected to the production URL and passed initialize
+and tools/list. Missing-token and invalid-token calls returned the expected
+OAuth MCP errors. Railway deployment `6055163713` completed successfully.
+
 ## Remaining measured tests
 
-Live OAuth, authenticated account/generation, Inspector authenticated calls, Railway buffering/keepalive, signed asset rendering, and ChatGPT Developer Mode require the manual Supabase enablement/migrations first. Do not claim these passed until recorded with a real minted token.
+Live minted-token claims, authenticated Inspector/account/generation calls,
+signed asset rendering, and private ChatGPT Developer Mode require the owner to
+enable the Supabase OAuth Server/DCR and authorize the connection. Do not claim
+these passed until recorded with a real OAuth grant.
 
 ## Final local verification
 
@@ -42,4 +60,4 @@ Live OAuth, authenticated account/generation, Inspector authenticated calls, Rai
 - Full suite: 556 passed, 11 skipped, 567 total; 54 files passed, 1 integration file skipped.
 - TypeScript: passed with `tsc --noEmit`.
 - Production build: passed; it includes all MCP/PRM/consent routes. One pre-existing React hook dependency warning remains in `src/components/app/cards.tsx:491`.
-- Official MCP Inspector: tools/list passed; missing-token and invalid-token calls returned the expected OAuth MCP errors. Authenticated calls remain blocked by disabled live OAuth.
+- Official MCP Inspector: production tools/list passed; missing-token and invalid-token calls returned the expected OAuth MCP errors. Authenticated calls remain blocked by disabled live OAuth.
