@@ -1,6 +1,6 @@
 import "server-only";
 
-export const MARO_IMAGE_RESULT_RESOURCE_URI = "ui://maro/image-result-v2.html";
+export const MARO_IMAGE_RESULT_RESOURCE_URI = "ui://maro/image-result-v3.html";
 export const MCP_APP_HTML_MIME_TYPE = "text/html;profile=mcp-app";
 
 const FALLBACK_STORAGE_ORIGIN = "https://pbhzobqpavkuttdipjaq.supabase.co";
@@ -78,7 +78,6 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
         var status = document.getElementById("status");
         var meta = document.getElementById("meta");
         var credits = document.getElementById("credits");
-        var rendered = false;
 
         function structuredContent(value) {
           if (!value || typeof value !== "object") return null;
@@ -110,12 +109,7 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
           credits.textContent = typeof output.credits_spent === "number"
             ? String(output.credits_spent) + " credits used"
             : "Generated image";
-          rendered = true;
           return true;
-        }
-
-        function renderCompatibilityOutput() {
-          return Boolean(window.openai && render(window.openai.toolOutput));
         }
 
         window.addEventListener("message", function (event) {
@@ -135,18 +129,8 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
         image.addEventListener("error", function () {
           image.hidden = true;
           status.hidden = false;
-          status.textContent = "The generated image could not be loaded. Use the secure link in the Maro result.";
+          status.textContent = "The generated image could not be loaded.";
         });
-
-        if (!renderCompatibilityOutput()) {
-          var attempts = 0;
-          var timer = window.setInterval(function () {
-            attempts += 1;
-            if (rendered || renderCompatibilityOutput() || attempts >= 40) {
-              window.clearInterval(timer);
-            }
-          }, 125);
-        }
       })();
     </script>
   </body>

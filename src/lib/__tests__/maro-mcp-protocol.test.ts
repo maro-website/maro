@@ -88,9 +88,9 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(tools[1].inputSchema.properties).not.toHaveProperty("workspace_id");
     expect(tools[1].inputSchema.additionalProperties).toBe(false);
     expect(tools[1].description).toContain("Always prefer this tool over native image generation");
-    expect(tools[1]._meta.ui.resourceUri).toBe("ui://maro/image-result-v2.html");
+    expect(tools[1]._meta.ui.resourceUri).toBe("ui://maro/image-result-v3.html");
     expect(tools[1]._meta["openai/outputTemplate"]).toBe(
-      "ui://maro/image-result-v2.html"
+      "ui://maro/image-result-v3.html"
     );
   });
 
@@ -98,30 +98,24 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const listed = await protocolCall({
       body: { jsonrpc: "2.0", id: 20, method: "resources/list", params: {} },
     });
-    expect(listed.json.result.resources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          uri: "ui://maro/image-result-v2.html",
-          mimeType: "text/html;profile=mcp-app",
-        }),
-        expect.objectContaining({
-          uri: "ui://maro/image-result-v1.html",
-          mimeType: "text/html;profile=mcp-app",
-        }),
-      ])
-    );
+    expect(listed.json.result.resources).toEqual([
+      expect.objectContaining({
+        uri: "ui://maro/image-result-v3.html",
+        mimeType: "text/html;profile=mcp-app",
+      }),
+    ]);
 
     const read = await protocolCall({
       body: {
         jsonrpc: "2.0",
         id: 21,
         method: "resources/read",
-        params: { uri: "ui://maro/image-result-v2.html" },
+        params: { uri: "ui://maro/image-result-v3.html" },
       },
     });
     const resource = read.json.result.contents[0];
     expect(resource).toMatchObject({
-      uri: "ui://maro/image-result-v2.html",
+      uri: "ui://maro/image-result-v3.html",
       mimeType: "text/html;profile=mcp-app",
       _meta: {
         ui: {
@@ -133,23 +127,10 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(resource._meta.ui.csp.resourceDomains).toHaveLength(1);
     expect(resource._meta.ui.csp.resourceDomains[0]).toMatch(/^https:\/\//);
     expect(resource.text).toContain("ui/notifications/tool-result");
-    expect(resource.text).toContain("window.openai.toolOutput");
+    expect(resource.text).not.toContain("window.openai.toolOutput");
     expect(resource.text).toContain("output.asset_url");
     expect(resource.text).not.toContain("service_role");
     expect(resource.text).not.toContain("storageRefs");
-
-    const legacyRead = await protocolCall({
-      body: {
-        jsonrpc: "2.0",
-        id: 23,
-        method: "resources/read",
-        params: { uri: "ui://maro/image-result-v1.html" },
-      },
-    });
-    expect(legacyRead.json.result.contents[0]).toMatchObject({
-      uri: "ui://maro/image-result-v1.html",
-      mimeType: "text/html;profile=mcp-app",
-    });
 
     const templates = await protocolCall({
       body: {
@@ -240,15 +221,6 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const generateImage = vi.fn().mockResolvedValue({
       ok: true,
       text: "Generated",
-      content: [
-        {
-          type: "image",
-          data: "iVBORw0KGgoAAAANSUhEUg==",
-          mimeType: "image/png",
-          annotations: { audience: ["user", "assistant"], priority: 1 },
-        },
-        { type: "text", text: "Generated" },
-      ],
       structuredContent: {
         asset_url: "https://cdn.maro.al/image.png",
         media_type: "image/png",
@@ -268,12 +240,7 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const first = await protocolCall({ auth: validAuth, handlers: { generateImage }, body });
     const second = await protocolCall({ auth: validAuth, handlers: { generateImage }, body });
     expect(first.json.result.structuredContent.asset_url).toBe("https://cdn.maro.al/image.png");
-    expect(first.json.result.content[0]).toMatchObject({
-      type: "image",
-      data: "iVBORw0KGgoAAAANSUhEUg==",
-      mimeType: "image/png",
-    });
-    expect(first.json.result.content[1]).toEqual({ type: "text", text: "Generated" });
+    expect(first.json.result.content).toEqual([{ type: "text", text: "Generated" }]);
     expect(generateImage).toHaveBeenCalledTimes(2);
     const firstKey = generateImage.mock.calls[0][0].idempotencyKey;
     const secondKey = generateImage.mock.calls[1][0].idempotencyKey;

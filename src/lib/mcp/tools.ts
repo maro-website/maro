@@ -10,8 +10,6 @@ import { resolveEntitlements } from "@/lib/commerce/entitlements";
 import { getMaroAccountSummary } from "@/lib/supabase/server";
 import type { MaroMcpActor } from "@/lib/mcp/auth";
 import { getMaroMcpResource } from "@/lib/mcp/config";
-import { resolvePrivateImageContent } from "@/lib/ai/imageReferences";
-import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 
 export const maroAccountInputSchema = z.object({}).strict();
 
@@ -40,7 +38,6 @@ export type MaroMcpToolSuccess = {
   ok: true;
   text: string;
   structuredContent: Record<string, unknown>;
-  content?: ContentBlock[];
 };
 
 export type MaroMcpToolFailure = {
@@ -220,42 +217,11 @@ export async function generateMaroImageTool(input: {
   };
   if (creditsSpent !== undefined) structuredContent.credits_spent = creditsSpent;
 
-  // Keep a standards-compliant raw MCP image block for non-UI hosts. ChatGPT's
-  // plugin surface renders the primary result through the MCP Apps resource
-  // attached to this tool and hydrates it from structuredContent.asset_url.
-  const storageRefs = Array.isArray(outcome.payload.storageRefs)
-    ? outcome.payload.storageRefs.filter((value): value is string => typeof value === "string")
-    : [];
-  let inlineImage: Awaited<ReturnType<typeof resolvePrivateImageContent>> | null = null;
-  for (const storageRef of storageRefs) {
-    try {
-      inlineImage = await resolvePrivateImageContent(storageRef, input.actor.userId);
-      break;
-    } catch {
-      // Preserve the successful generation/link result if inline hydration
-      // fails. Never generate or charge again merely to format the response.
-    }
-  }
-
-  const text = inlineImage
-    ? `Imazhi u gjenerua me Maro për workspace-in aktiv dhe është bashkëngjitur direkt. Link rezervë (60 minuta): ${images[0]}`
-    : `Imazhi u gjenerua me Maro për workspace-in aktiv. Linku i sigurt është i vlefshëm për 60 minuta: ${images[0]}`;
-  const content: ContentBlock[] = inlineImage
-    ? [
-        {
-          type: "image",
-          data: inlineImage.data,
-          mimeType: inlineImage.mimeType,
-          annotations: { audience: ["user", "assistant"], priority: 1 },
-        },
-        { type: "text", text },
-      ]
-    : [{ type: "text", text }];
+  const text = "Imazhi u gjenerua me Maro për workspace-in aktiv.";
 
   return {
     ok: true,
     text,
     structuredContent,
-    content,
   };
 }
