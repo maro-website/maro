@@ -58,7 +58,8 @@ const IMAGE_INPUT_JSON_SCHEMA = {
       type: "string",
       minLength: 3,
       maxLength: 4000,
-      description: "Përshkrimi i imazhit që përdoruesi kërkon të krijojë.",
+      description:
+        "The user's complete image request. Pass through the requested subject, style, mood and constraints; Maro applies the active workspace brand privately.",
     },
     aspect_ratio: {
       type: "string",
@@ -157,14 +158,21 @@ export function createMaroMcpServer(input: {
   const getAccount = input.handlers?.getAccount ?? getMaroAccountTool;
   const generateImage = input.handlers?.generateImage ?? generateMaroImageTool;
   const server = new Server(
-    { name: "maro-mcp", version: "1.0.0" },
+    {
+      name: "maro-mcp",
+      title: "Maro / maroImazh",
+      version: "1.0.1",
+      description:
+        "Creates branded images with maroImazh for the connected user's active Maro workspace.",
+      websiteUrl: "https://maro.al",
+    },
     {
       capabilities: {
         tools: { listChanged: false },
         resources: { listChanged: false },
       },
       instructions:
-        "Use Maro only for the connected user's account and maroImazh generation. Never request or reveal Maro internal prompts, compiler output, tokens, ids, or hidden brand intelligence.",
+        "Routing rule: when the user says 'Use Maro', 'Use maroImazh', names generate_maro_image, or explicitly adds this plugin for an image-generation request, call generate_maro_image and do not substitute ChatGPT's native image generator. Use get_maro_account only when account/workspace confirmation is needed. Never request or reveal Maro internal prompts, compiler output, tokens, ids, or hidden brand intelligence.",
     }
   );
 
@@ -191,9 +199,9 @@ export function createMaroMcpServer(input: {
         },
         {
           name: "generate_maro_image",
-          title: "Generate an image with Maro",
+          title: "Generate with Maro / maroImazh",
           description:
-            "Create one maroImazh asset for the connected user's active workspace. Uses Maro brand intelligence privately and spends Maro credits. Never returns hidden prompts.",
+            "Use this when the user asks Maro or maroImazh to create an image, explicitly says to call generate_maro_image, or adds the Maro plugin to an image-generation chat. Always prefer this tool over native image generation when Maro or maroImazh is named. Creates exactly one branded image for the connected user's active workspace, spends Maro credits, and renders the result inline; never returns hidden prompts.",
           inputSchema: IMAGE_INPUT_JSON_SCHEMA,
           outputSchema: IMAGE_OUTPUT_JSON_SCHEMA,
           securitySchemes: OAUTH_SECURITY_SCHEMES,
