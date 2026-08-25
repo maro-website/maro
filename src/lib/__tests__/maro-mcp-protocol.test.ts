@@ -217,7 +217,7 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(json.result.content[0].text).toContain("INVALID_REQUEST");
   });
 
-  it("does not reuse a JSON-RPC correlation id as a financial idempotency key", async () => {
+  it("uses a stable request fingerprint for a transport retry without an explicit key", async () => {
     const generateImage = vi.fn().mockResolvedValue({
       ok: true,
       text: "Generated",
@@ -244,7 +244,8 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(generateImage).toHaveBeenCalledTimes(2);
     const firstKey = generateImage.mock.calls[0][0].idempotencyKey;
     const secondKey = generateImage.mock.calls[1][0].idempotencyKey;
-    expect(firstKey).not.toBe(secondKey);
+    expect(firstKey).toBe(secondKey);
+    expect(firstKey).not.toContain("Premium campaign");
     expect(generateImage.mock.calls[0][0].args).toEqual({
       request: "Premium campaign",
       aspect_ratio: "landscape",

@@ -1,12 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const executeMaroImageApplication = vi.hoisted(() => vi.fn());
+const generationJobs = vi.hoisted(() => ({
+  findJobByIdempotency: vi.fn(),
+  findRecentCompletedMcpGeneration: vi.fn(),
+  findRecentInFlightMcpJob: vi.fn(),
+  getGenerationResultForJob: vi.fn(),
+}));
+const resolveAssetListForClient = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/maro-imazh/applicationService", () => ({
   executeMaroImageApplication,
 }));
 vi.mock("@/lib/commerce/entitlements", () => ({ resolveEntitlements: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ getMaroAccountSummary: vi.fn() }));
+vi.mock("@/lib/generation/jobs", () => ({
+  ...generationJobs,
+  isInFlightJobStatus: (status: string) =>
+    status === "pending" || status === "reserved" || status === "processing",
+}));
+vi.mock("@/lib/supabase/server", () => ({
+  getMaroAccountSummary: vi.fn(),
+  resolveAssetListForClient,
+}));
 
 import { generateMaroImageTool } from "@/lib/mcp/tools";
 
@@ -21,6 +36,68 @@ const actor = {
 describe("maroMCP canonical maroImazh adapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generationJobs.findJobByIdempotency.mockResolvedValue(null);
+    generationJobs.findRecentCompletedMcpGeneration.mockResolvedValue(null);
+    generationJobs.findRecentInFlightMcpJob.mockResolvedValue(null);
+    generationJobs.getGenerationResultForJob.mockResolvedValue(null);
+    resolveAssetListForClient.mockImplementation(async (urls: string[]) => urls);
+  });
+
+  it("reuses the completed generation linked to the same MCP job", async () => {
+    generationJobs.findJobByIdempotency.mockResolvedValue({
+      id: "job-completed",
+      user_id: "user-1",
+      module: "reklama",
+      status: "completed",
+    });
+    generationJobs.getGenerationResultForJob.mockResolvedValue({
+      generationId: "generation-existing",
+      outputUrls: ["storage:generations/user-1/existing.png"],
+      creditsSpent: 6,
+    });
+    resolveAssetListForClient.mockResolvedValue([
+      "https://project.supabase.co/storage/v1/object/sign/generations/existing.png?token=signed",
+    ]);
+
+    const result = await generateMaroImageTool({
+      actor: { ...actor, permissions: [...actor.permissions] },
+      args: { request: "Premium cinematic campaign" },
+      idempotencyKey: "mcp-stable-key",
+      sourceRequest: new Request("https://maro.al/api/mcp"),
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      structuredContent: {
+        asset_url:
+          "https://project.supabase.co/storage/v1/object/sign/generations/existing.png?token=signed",
+        credits_spent: 6,
+      },
+    });
+    expect(executeMaroImageApplication).not.toHaveBeenCalled();
+  });
+
+  it("returns processing for the same in-flight MCP job without generating again", async () => {
+    generationJobs.findJobByIdempotency.mockResolvedValue({
+      id: "job-processing",
+      user_id: "user-1",
+      module: "reklama",
+      status: "processing",
+    });
+
+    const result = await generateMaroImageTool({
+      actor: { ...actor, permissions: [...actor.permissions] },
+      args: { request: "Premium cinematic campaign" },
+      idempotencyKey: "mcp-stable-key",
+      sourceRequest: new Request("https://maro.al/api/mcp"),
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "GENERATION_IN_PROGRESS",
+      details: { job_id: "job-processing", status: "processing", retry_after_seconds: 15 },
+    });
+    expect(executeMaroImageApplication).not.toHaveBeenCalled();
   });
 
   it("calls the canonical service with active workspace only and sanitizes the result", async () => {

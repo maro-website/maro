@@ -7,9 +7,18 @@ import {
   type MaroImageApplicationAdapter,
 } from "@/lib/maro-imazh/applicationService";
 import { resolveEntitlements } from "@/lib/commerce/entitlements";
-import { getMaroAccountSummary } from "@/lib/supabase/server";
+import { getMaroAccountSummary, resolveAssetListForClient } from "@/lib/supabase/server";
 import type { MaroMcpActor } from "@/lib/mcp/auth";
 import { getMaroMcpResource } from "@/lib/mcp/config";
+import {
+  findJobByIdempotency,
+  findRecentCompletedMcpGeneration,
+  findRecentInFlightMcpJob,
+  getGenerationResultForJob,
+  isInFlightJobStatus,
+  type CompletedGenerationResult,
+  type GenerationJob,
+} from "@/lib/generation/jobs";
 
 export const maroAccountInputSchema = z.object({}).strict();
 
@@ -30,6 +39,7 @@ export type MaroMcpErrorCode =
   | "NO_ACTIVE_WORKSPACE"
   | "INSUFFICIENT_CREDITS"
   | "RATE_LIMITED"
+  | "GENERATION_IN_PROGRESS"
   | "INVALID_REQUEST"
   | "GENERATION_FAILED"
   | "SERVICE_UNAVAILABLE";
@@ -44,14 +54,19 @@ export type MaroMcpToolFailure = {
   ok: false;
   code: MaroMcpErrorCode;
   message: string;
+  details?: Record<string, unknown>;
 };
 
 export type MaroMcpToolOutcome = MaroMcpToolSuccess | MaroMcpToolFailure;
 
 type CanonicalOutcome = { payload: Record<string, unknown>; status: number };
 
-function fail(code: MaroMcpErrorCode, message: string): MaroMcpToolFailure {
-  return { ok: false, code, message };
+function fail(
+  code: MaroMcpErrorCode,
+  message: string,
+  details?: Record<string, unknown>
+): MaroMcpToolFailure {
+  return { ok: false, code, message, ...(details ? { details } : {}) };
 }
 
 export async function getMaroAccountTool(actor: MaroMcpActor): Promise<MaroMcpToolOutcome> {
@@ -89,8 +104,80 @@ const ASPECT_TO_FORMAT: Record<NonNullable<MaroImageInput["aspect_ratio"]>, stri
   landscape: "yt-thumb",
 };
 
+const MCP_LEGACY_RECOVERY_MS = 2 * 60 * 60 * 1000;
+
+function processing(job: GenerationJob): MaroMcpToolFailure {
+  return fail(
+    "GENERATION_IN_PROGRESS",
+    "Gjenerimi ekzistues është ende duke u procesuar. I njëjti request mund të riprovohet pa krijuar imazh tjetër.",
+    { job_id: job.id, status: job.status, retry_after_seconds: 15 }
+  );
+}
+
+async function recoveredImageOutcome(
+  result: CompletedGenerationResult,
+  args: MaroImageInput
+): Promise<MaroMcpToolSuccess | null> {
+  const images = (await resolveAssetListForClient(result.outputUrls)).filter(isSafeAssetUrl);
+  if (!images.length) return null;
+  return {
+    ok: true,
+    text: "Imazhi ekzistues i përfunduar u rikthye pa krijuar ose faturuar gjenerim tjetër.",
+    structuredContent: {
+      asset_url: images[0],
+      media_type: "image/png",
+      aspect_ratio: args.aspect_ratio ?? "portrait",
+      url_expires_in_seconds: 3600,
+      credits_spent: result.creditsSpent,
+    },
+  };
+}
+
+async function recoverExistingGeneration(input: {
+  actor: MaroMcpActor;
+  args: MaroImageInput;
+  idempotencyKey: string;
+}): Promise<MaroMcpToolOutcome | null> {
+  const exactJob = await findJobByIdempotency(input.actor.userId, input.idempotencyKey);
+  if (exactJob) {
+    if (isInFlightJobStatus(exactJob.status)) return processing(exactJob);
+    if (exactJob.status === "completed") {
+      const recovered = await getGenerationResultForJob(exactJob.id, input.actor.userId);
+      if (recovered) return (await recoveredImageOutcome(recovered, input.args)) ?? processing(exactJob);
+      return processing(exactJob);
+    }
+  }
+
+  const createdAfter = new Date(Date.now() - MCP_LEGACY_RECOVERY_MS).toISOString();
+  const legacyResult = await findRecentCompletedMcpGeneration(
+    input.actor.userId,
+    "reklama",
+    input.args.request,
+    createdAfter
+  );
+  if (legacyResult) return recoveredImageOutcome(legacyResult, input.args);
+
+  const legacyInFlight = await findRecentInFlightMcpJob(
+    input.actor.userId,
+    "reklama",
+    createdAfter
+  );
+  return legacyInFlight ? processing(legacyInFlight) : null;
+}
+
 function mapCanonicalError(payload: Record<string, unknown>, status: number): MaroMcpToolFailure {
   const raw = typeof payload.error === "string" ? payload.error : "";
+  if (status === 409 && (raw === "generation_in_progress" || raw === "duplicate_job")) {
+    return fail(
+      "GENERATION_IN_PROGRESS",
+      "Gjenerimi ekzistues është ende duke u përpunuar ose duke finalizuar rezultatin.",
+      {
+        ...(typeof payload.job_id === "string" ? { job_id: payload.job_id } : {}),
+        ...(typeof payload.status === "string" ? { status: payload.status } : {}),
+        retry_after_seconds: 15,
+      }
+    );
+  }
   if (status === 401 || raw === "unauthorized") {
     return fail("AUTH_INVALID", "Lidhja me Maro nuk është më e vlefshme.");
   }
@@ -158,6 +245,9 @@ export async function generateMaroImageTool(input: {
   idempotencyKey: string;
   sourceRequest: Request;
 }): Promise<MaroMcpToolOutcome> {
+  const existing = await recoverExistingGeneration(input);
+  if (existing) return existing;
+
   const selections: Record<string, string> = {
     model: "gpt-image-2",
     speed: "normal",
@@ -187,7 +277,6 @@ export async function generateMaroImageTool(input: {
   const canonicalRequest = new Request(getMaroMcpResource(), {
     method: "POST",
     headers,
-    signal: input.sourceRequest.signal,
   });
   const outcome = await executeMaroImageApplication(
     canonicalRequest,
@@ -196,6 +285,14 @@ export async function generateMaroImageTool(input: {
   );
 
   if (outcome.payload.ok !== true) {
+    if (
+      outcome.status === 409 &&
+      (outcome.payload.error === "generation_in_progress" ||
+        outcome.payload.error === "duplicate_job")
+    ) {
+      const recovered = await recoverExistingGeneration(input);
+      if (recovered) return recovered;
+    }
     return mapCanonicalError(outcome.payload, outcome.status);
   }
 

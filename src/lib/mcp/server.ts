@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -22,6 +22,7 @@ import {
   maroImageInputSchema,
   type MaroMcpToolFailure,
   type MaroMcpToolOutcome,
+  type MaroImageInput,
 } from "@/lib/mcp/tools";
 import {
   getMaroImageResultResourceMeta,
@@ -125,7 +126,7 @@ function outcomeToResult(outcome: MaroMcpToolOutcome): CallToolResult {
   return {
     isError: true,
     content: [{ type: "text", text: `${outcome.code}: ${outcome.message}` }],
-    structuredContent: { error: outcome.code },
+    structuredContent: { error: outcome.code, ...(outcome.details ?? {}) },
   };
 }
 
@@ -134,15 +135,31 @@ function invalidRequest(message = "Kërkesa e tool-it nuk është e vlefshme."):
   return outcomeToResult(outcome);
 }
 
-function idempotencyKey(actor: MaroMcpActor, sourceRequest: Request): string {
+const MCP_RETRY_WINDOW_MS = 2 * 60 * 60 * 1000;
+
+function idempotencyKey(
+  actor: MaroMcpActor,
+  sourceRequest: Request,
+  args: MaroImageInput,
+  sessionId?: string
+): string {
   const clientDigest = createHash("sha256").update(actor.clientId).digest("hex").slice(0, 20);
-  // JSON-RPC request ids are only correlation ids within a connection. The
-  // ChatGPT stateless transport can reuse `0` for separate intentional calls,
-  // so it must never be the financial idempotency boundary. Honor an explicit
-  // HTTP idempotency key when a client supplies one; otherwise create a fresh
-  // invocation nonce for this non-idempotent tool call.
   const explicit = sourceRequest.headers.get("idempotency-key")?.trim();
-  const invocation = explicit && explicit.length <= 256 ? explicit : randomUUID();
+  // ChatGPT retries a timed-out tool call as a new JSON-RPC request and does
+  // not currently preserve an HTTP idempotency key. Use a bounded fingerprint
+  // of the session and normalized tool arguments so that transport retries
+  // converge on the same generation job without making repeated prompts
+  // permanently idempotent.
+  const invocation =
+    explicit && explicit.length <= 256
+      ? explicit
+      : JSON.stringify({
+          session: sessionId ?? "",
+          window: Math.floor(Date.now() / MCP_RETRY_WINDOW_MS),
+          request: args.request.trim(),
+          aspect_ratio: args.aspect_ratio ?? "portrait",
+          text_preference: args.text_preference ?? "no_text",
+        });
   const invocationDigest = createHash("sha256").update(invocation).digest("hex").slice(0, 32);
   return `mcp-${clientDigest}-${invocationDigest}`;
 }
@@ -270,11 +287,16 @@ export function createMaroMcpServer(input: {
       if (!actorHasPermission(actor, "image:generate")) return authFailure(input.auth, true);
       const parsed = maroImageInputSchema.safeParse(request.params.arguments ?? {});
       if (!parsed.success) return invalidRequest();
+      const requestMeta = request.params._meta as Record<string, unknown> | undefined;
+      const sessionId =
+        typeof requestMeta?.["openai/session"] === "string"
+          ? requestMeta["openai/session"]
+          : undefined;
       return outcomeToResult(
         await generateImage({
           actor,
           args: parsed.data,
-          idempotencyKey: idempotencyKey(actor, input.request),
+          idempotencyKey: idempotencyKey(actor, input.request, parsed.data, sessionId),
           sourceRequest: input.request,
         })
       );

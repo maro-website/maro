@@ -31,6 +31,12 @@ export interface GenerationJob {
   created_at: string;
 }
 
+export interface CompletedGenerationResult {
+  generationId: string;
+  outputUrls: string[];
+  creditsSpent: number;
+}
+
 export type CreateJobErrorCode =
   | "job_create_failed"
   | "jobs_table_missing"
@@ -96,6 +102,104 @@ export async function findJobByIdempotency(
     .eq("user_id", userId)
     .eq("idempotency_key", idempotencyKey)
     .in("status", ["pending", "reserved", "processing", "completed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as GenerationJob) ?? null;
+}
+
+async function getGenerationResult(generationId: string, userId: string) {
+  const { data } = await getSupabaseAdmin()
+    .from("generations")
+    .select("id, output_urls, credits_spent")
+    .eq("id", generationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    generationId: String(data.id),
+    outputUrls: Array.isArray(data.output_urls)
+      ? data.output_urls.filter((value): value is string => typeof value === "string")
+      : [],
+    creditsSpent: Number(data.credits_spent ?? 0),
+  } satisfies CompletedGenerationResult;
+}
+
+/** Resolve the persisted generation produced by a completed job. */
+export async function getGenerationResultForJob(
+  jobId: string,
+  userId: string
+): Promise<CompletedGenerationResult | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("pricing_snapshots")
+    .select("generation_id")
+    .eq("job_id", jobId)
+    .eq("user_id", userId)
+    .not("generation_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const generationId = typeof data?.generation_id === "string" ? data.generation_id : null;
+  return generationId ? getGenerationResult(generationId, userId) : null;
+}
+
+/** Recover completed MCP jobs created before stable MCP request fingerprints existed. */
+export async function findRecentCompletedMcpGeneration(
+  userId: string,
+  module: string,
+  prompt: string,
+  createdAfter: string
+): Promise<CompletedGenerationResult | null> {
+  const { data: generations } = await getSupabaseAdmin()
+    .from("generations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("tool_id", module)
+    .eq("prompt", prompt)
+    .gte("created_at", createdAfter)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  for (const generation of generations ?? []) {
+    const generationId = String(generation.id);
+    const { data: snapshot } = await getSupabaseAdmin()
+      .from("pricing_snapshots")
+      .select("job_id")
+      .eq("generation_id", generationId)
+      .eq("user_id", userId)
+      .not("job_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const jobId = typeof snapshot?.job_id === "string" ? snapshot.job_id : null;
+    if (!jobId) continue;
+    const job = await getJob(jobId);
+    if (
+      job?.user_id === userId &&
+      job.module === module &&
+      job.status === "completed" &&
+      job.idempotency_key?.startsWith("mcp-")
+    ) {
+      return getGenerationResult(generationId, userId);
+    }
+  }
+  return null;
+}
+
+/** Find one recent legacy MCP job still running for this user/module. */
+export async function findRecentInFlightMcpJob(
+  userId: string,
+  module: string,
+  createdAfter: string
+): Promise<GenerationJob | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("generation_jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("module", module)
+    .like("idempotency_key", "mcp-%")
+    .in("status", ["pending", "reserved", "processing"])
+    .gte("created_at", createdAfter)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
