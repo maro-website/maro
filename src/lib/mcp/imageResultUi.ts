@@ -1,6 +1,6 @@
 import "server-only";
 
-export const MARO_IMAGE_RESULT_RESOURCE_URI = "ui://maro/image-result-v3.html";
+export const MARO_IMAGE_RESULT_RESOURCE_URI = "ui://maro/image-result-v1.html";
 export const MCP_APP_HTML_MIME_TYPE = "text/html;profile=mcp-app";
 
 const FALLBACK_STORAGE_ORIGIN = "https://pbhzobqpavkuttdipjaq.supabase.co";
