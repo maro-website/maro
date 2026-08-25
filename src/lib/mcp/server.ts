@@ -31,6 +31,7 @@ import {
 } from "@/lib/mcp/imageResultUi";
 
 const OAUTH_SECURITY_SCHEMES = [{ type: "oauth2", scopes: [] }] as const;
+const LEGACY_MARO_IMAGE_RESULT_RESOURCE_URI = "ui://maro/image-result-v1.html";
 
 const ACCOUNT_INPUT_JSON_SCHEMA = {
   type: "object",
@@ -232,6 +233,13 @@ export function createMaroMcpServer(input: {
         description: "Responsive inline presentation for one generated Maro image.",
         mimeType: MCP_APP_HTML_MIME_TYPE,
       },
+      {
+        uri: LEGACY_MARO_IMAGE_RESULT_RESOURCE_URI,
+        name: "maro-image-result-v1",
+        title: "Maro generated image (legacy)",
+        description: "Backward-compatible alias for existing ChatGPT installations.",
+        mimeType: MCP_APP_HTML_MIME_TYPE,
+      },
     ],
   }));
 
@@ -240,13 +248,16 @@ export function createMaroMcpServer(input: {
   }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    if (request.params.uri !== MARO_IMAGE_RESULT_RESOURCE_URI) {
+    if (
+      request.params.uri !== MARO_IMAGE_RESULT_RESOURCE_URI &&
+      request.params.uri !== LEGACY_MARO_IMAGE_RESULT_RESOURCE_URI
+    ) {
       throw new McpError(ErrorCode.InvalidParams, "Resource not found");
     }
     return {
       contents: [
         {
-          uri: MARO_IMAGE_RESULT_RESOURCE_URI,
+          uri: request.params.uri,
           mimeType: MCP_APP_HTML_MIME_TYPE,
           text: MARO_IMAGE_RESULT_HTML,
           _meta: getMaroImageResultResourceMeta(),

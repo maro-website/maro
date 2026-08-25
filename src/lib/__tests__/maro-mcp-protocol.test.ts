@@ -98,12 +98,18 @@ describe("maroMCP Streamable HTTP protocol", () => {
     const listed = await protocolCall({
       body: { jsonrpc: "2.0", id: 20, method: "resources/list", params: {} },
     });
-    expect(listed.json.result.resources).toEqual([
-      expect.objectContaining({
-        uri: "ui://maro/image-result-v2.html",
-        mimeType: "text/html;profile=mcp-app",
-      }),
-    ]);
+    expect(listed.json.result.resources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          uri: "ui://maro/image-result-v2.html",
+          mimeType: "text/html;profile=mcp-app",
+        }),
+        expect.objectContaining({
+          uri: "ui://maro/image-result-v1.html",
+          mimeType: "text/html;profile=mcp-app",
+        }),
+      ])
+    );
 
     const read = await protocolCall({
       body: {
@@ -131,6 +137,19 @@ describe("maroMCP Streamable HTTP protocol", () => {
     expect(resource.text).toContain("output.asset_url");
     expect(resource.text).not.toContain("service_role");
     expect(resource.text).not.toContain("storageRefs");
+
+    const legacyRead = await protocolCall({
+      body: {
+        jsonrpc: "2.0",
+        id: 23,
+        method: "resources/read",
+        params: { uri: "ui://maro/image-result-v1.html" },
+      },
+    });
+    expect(legacyRead.json.result.contents[0]).toMatchObject({
+      uri: "ui://maro/image-result-v1.html",
+      mimeType: "text/html;profile=mcp-app",
+    });
 
     const templates = await protocolCall({
       body: {
