@@ -1,0 +1,34 @@
+---
+description: Mandatory maro.al brand and product UI rules
+globs: "**/*.{css,scss,sass,less,html,tsx,ts,jsx,js,vue,svelte}"
+alwaysApply: true
+---
+
+# maro.al UI contract
+
+Before creating or changing UI, read `MARO-DESIGN-SYSTEM.md` and `tokens/maro.css`. They are the source of truth.
+
+## Required behavior
+
+- Build every interface with Manrope. Never introduce another UI font.
+- Map the Figma tracking value `-30` to `letter-spacing: -0.03em`; never write `-30px`.
+- Import and consume `tokens/maro.css`. Use semantic `--maro-color-*` aliases in components, not raw hex values.
+- Use `#253FDA` only through brand/selection/action tokens. Use `#DA2525` only for destructive, error, or exceptional campaign states.
+- Use the 4px spacing system and documented control heights, radii, icon sizes, and breakpoints.
+- Prefer flat white surfaces on the soft gray canvas. Do not add decorative shadows, glassmorphism, gradients, or outlines unless the design system explicitly assigns them.
+- Keep visual hierarchy quiet: near-black primary text, gray supporting text, blue selection, red danger.
+- Use `maro-logo.svg`, `maro-symbol.svg`, and the approved `maro-symbol-white.svg` inverse; do not recreate, distort, rotate, outline, recolor, crop, filter, or add effects to them.
+- Use the canonical solid icons in `icons/`, normally at 20px. They use a 24×24 viewBox and `currentColor`. Do not mix outline, duotone, emoji, or third-party icon styles. Search `icons/manifest.json` before creating an icon; add a missing icon to the shared library instead of drawing it inside a component.
+- Buttons, icon buttons, fields, menus, dialogs, and custom controls must have visible hover, pressed, focus-visible, disabled, loading, and error states where relevant.
+- Interactive targets must be at least 44x44px on touch screens, even if the visible control is smaller.
+- Side navigation becomes a drawer below 1024px. Dense toolbars wrap or become horizontally scrollable; they must never overflow the viewport.
+- Account popovers become bottom sheets on small screens. Dialogs keep at least 16px viewport clearance.
+- Respect `prefers-reduced-motion`; motion explains state and must not decorate idle screens.
+- Do not use `#C7C7C7` or `#818181` for essential small text on white. Those values are for placeholders, metadata, disabled content, or large supporting text as documented.
+- Use semantic HTML, keyboard interaction, accessible names for icon-only controls, and announced validation/status messages.
+
+## Component decisions
+
+Reuse or extend an existing maro component before inventing a new pattern. A component API should expose semantic variants such as `primary`, `inverse`, `danger`, and `ghost`, not raw color props. Keep anatomy and states aligned with the component matrix in `MARO-DESIGN-SYSTEM.md`.
+
+When a requirement conflicts with the guide, preserve usability and accessibility first, then document the intentional exception in code.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232.41 232.41" role="img" aria-labelledby="title">
+  <title id="title">maro symbol in white</title>
+  <g fill="#FFFFFF">
+    <polygon points="232.41 113.71 118.71 113.71 175.56 0 232.41 113.71"/>
+    <circle cx="175.56" cy="175.56" r="56.85"/>
+    <polygon points="56.85 113.71 0 113.71 28.43 0 56.85 113.71"/>
+    <polygon points="113.71 113.71 56.85 113.71 85.28 0 113.71 113.71"/>
+    <path d="M0,232.41h33.17c.05-21.49,8.44-41.69,23.64-56.9,15.2-15.2,35.4-23.59,56.9-23.64v-33.17C50.95,118.8.1,169.66,0,232.41Z"/>
+  </g>
+</svg>

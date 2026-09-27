@@ -1,0 +1,160 @@
+// Shared types for the Supabase-backed domain (auth, credits, config).
+// Client-safe: no server-only imports here.
+
+import type { FortConfig } from "@/lib/fort/types";
+import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
+
+export type WebsiteKind = "landing" | "business" | "platform";
+export type SpeedKey = "slow" | "fast" | "2x";
+export type EffortLevel = "low" | "medium" | "high" | "xhigh";
+export type ModelKey = "claude-opus-4-8" | "claude-opus-5" | "gpt-5-6-sol";
+export type PlanKey = "free" | "fort";
+export type MaroPlanKey = "standard" | "pro" | "biz";
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  credits: number;
+  is_admin: boolean;
+  /** Administrative RBAC role (Phase 1). Null = normal user. */
+  access_role?: "super_admin" | "administrator" | "developer" | "editor" | null;
+  is_creator?: boolean;
+  /** Subscription plan. "fort" unlocks maroFort mode. */
+  plan?: PlanKey;
+  /** Purchased maro plan tier (standard/pro/biz). Required for top-up. */
+  maro_plan?: MaroPlanKey | null;
+  fort_until?: string | null;
+  created_at: string;
+}
+
+export interface SpeedConfig {
+  effort: EffortLevel;
+  mult: number;
+}
+
+export interface AdBanner {
+  /** Public URL of the uploaded banner image. */
+  imageUrl?: string;
+  /** Tool routes/ids where the banner is shown (e.g. ["website","logo"]). */
+  pages?: string[];
+  /** Optional link opened when the banner is clicked. */
+  link?: string;
+}
+
+export interface PricingConfig {
+  types: Record<WebsiteKind, number>;
+  speed: Record<SpeedKey, SpeedConfig>;
+  editCost?: number;
+  /** Credit cost per image tool (e.g. { logo: 5, reklama: 5 }). Legacy. */
+  tools?: Record<string, number>;
+  /** Per-option credit cost overrides, keyed by `${toolId}.${settingId}.${optionId}`. */
+  options?: Record<string, number>;
+  /** Reserve: enable the product-image box in Maro Reklama (admin controlled). */
+  reklamaProduct?: boolean;
+  /** Admin-managed ad banner shown above the composer on selected tools. Legacy. */
+  ads?: AdBanner;
+  /** Admin-managed announcements shown above the composer on selected tools. */
+  announcements?: Announcement[];
+  /** Credit cost to reveal-and-copy a maro Prompt (one-time per user). */
+  promptRevealCost?: number;
+  /** Credit cost per maro Fjale assistant reply (free for maroFort). */
+  chatCost?: number;
+}
+
+// An announcement/banner shown above a tool's prompt box. Either an uploaded
+// image, or a text card with a CTA — fully color-customizable by the admin.
+export interface Announcement {
+  id: string;
+  /** Tool ids where this announcement appears. */
+  pages: string[];
+  /** "image" or "text". */
+  kind: "image" | "text";
+  imageUrl?: string;
+  link?: string;
+  title?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  bg?: string;
+  textColor?: string;
+  btnColor?: string;
+  btnTextColor?: string;
+  active?: boolean;
+}
+
+export interface AppSettings {
+  master_prompt: string;
+  pricing: PricingConfig;
+  /** Per-tool master prompts for image tools (e.g. { logo, reklama }). */
+  tool_prompts: Record<string, string>;
+  /** SVG icon URLs per tool option (light/dark), keyed by optionKey. */
+  tool_option_icons: ToolOptionIcons;
+  /** Admin-managed maroFort configuration (schema overrides + prompt layers). */
+  fort_config: FortConfig;
+}
+
+export interface GenerationLog {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  prompt: string | null;
+  final_prompt: string | null;
+  website_type: string | null;
+  speed: string | null;
+  model: string | null;
+  tool_id: string | null;
+  kind: string | null;
+  output_urls: string[] | null;
+  credits_spent: number;
+  created_at: string;
+}
+
+export const DEFAULT_PRICING: PricingConfig = {
+  types: { landing: 5, business: 10, platform: 20 },
+  speed: {
+    slow: { effort: "xhigh", mult: 1 },
+    fast: { effort: "high", mult: 1.5 },
+    "2x": { effort: "medium", mult: 2 },
+  },
+  tools: { logo: 5, logo_bw: 5, logo_brand: 15, reklama: 5 },
+  reklamaProduct: false,
+};
+
+// Credit cost for an image tool (falls back to the tool's default).
+export function imageToolCost(
+  pricing: PricingConfig,
+  toolId: string,
+  fallback = 5
+): number {
+  return pricing.tools?.[toolId] ?? DEFAULT_PRICING.tools?.[toolId] ?? fallback;
+}
+
+export const WEBSITE_KINDS: { key: WebsiteKind; label: string; hint: string }[] = [
+  { key: "landing", label: "Landing Page", hint: "Një faqe, fokus konvertimi" },
+  { key: "business", label: "Business Page", hint: "Shumë faqe, biznes i plotë" },
+  { key: "platform", label: "Platform", hint: "Aplikacion / produkt kompleks" },
+];
+
+export const SPEED_OPTIONS: { key: SpeedKey; label: string; hint: string }[] = [
+  { key: "slow", label: "Slow", hint: "Cilësia maksimale" },
+  { key: "fast", label: "Fast", hint: "Balancë" },
+  { key: "2x", label: "2x Faster", hint: "Prioritet, i shpejtë" },
+];
+
+export const MODEL_OPTIONS: { key: ModelKey; label: string }[] = [
+  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { key: "claude-opus-5", label: "Claude Opus 5" },
+  { key: "gpt-5-6-sol", label: "GPT 5.6 Sol" },
+];
+
+// Compute credit cost for a given website type + speed using a pricing config.
+export function creditCost(
+  pricing: PricingConfig,
+  kind: WebsiteKind,
+  speed: SpeedKey
+): number {
+  const base = pricing.types?.[kind] ?? DEFAULT_PRICING.types[kind];
+  const mult = pricing.speed?.[speed]?.mult ?? DEFAULT_PRICING.speed[speed].mult;
+  return Math.ceil(base * mult);
+}

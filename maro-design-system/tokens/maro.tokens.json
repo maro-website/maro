@@ -1,0 +1,88 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "maro": {
+    "color": {
+      "primitive": {
+        "white": { "$type": "color", "$value": "#FFFFFF" },
+        "ink": { "$type": "color", "$value": "#111111" },
+        "gray300": { "$type": "color", "$value": "#C7C7C7" },
+        "gray600": { "$type": "color", "$value": "#818181" },
+        "gray050": { "$type": "color", "$value": "#F5F5F5" },
+        "blue": { "$type": "color", "$value": "#253FDA" },
+        "black": { "$type": "color", "$value": "#000000" },
+        "red": { "$type": "color", "$value": "#DA2525" },
+        "white38": { "$type": "color", "$value": "#FFFFFF61" }
+      },
+      "semantic": {
+        "background": {
+          "canvas": { "$type": "color", "$value": "{maro.color.primitive.gray050}" },
+          "surface": { "$type": "color", "$value": "{maro.color.primitive.white}" },
+          "inverse": { "$type": "color", "$value": "{maro.color.primitive.ink}" },
+          "selected": { "$type": "color", "$value": "{maro.color.primitive.blue}" },
+          "danger": { "$type": "color", "$value": "{maro.color.primitive.red}" }
+        },
+        "text": {
+          "primary": { "$type": "color", "$value": "{maro.color.primitive.ink}" },
+          "secondary": { "$type": "color", "$value": "{maro.color.primitive.gray600}" },
+          "tertiary": { "$type": "color", "$value": "{maro.color.primitive.gray300}" },
+          "inverse": { "$type": "color", "$value": "{maro.color.primitive.white}" },
+          "brand": { "$type": "color", "$value": "{maro.color.primitive.blue}" },
+          "danger": { "$type": "color", "$value": "{maro.color.primitive.red}" }
+        },
+        "border": {
+          "subtle": { "$type": "color", "$value": "#11111114" },
+          "default": { "$type": "color", "$value": "{maro.color.primitive.gray300}" },
+          "strong": { "$type": "color", "$value": "{maro.color.primitive.ink}" },
+          "focus": { "$type": "color", "$value": "{maro.color.primitive.blue}" }
+        }
+      }
+    },
+    "font": {
+      "family": { "$type": "fontFamily", "$value": ["Manrope", "Segoe UI", "Arial", "sans-serif"] },
+      "weight": {
+        "regular": { "$type": "fontWeight", "$value": 400 },
+        "medium": { "$type": "fontWeight", "$value": 500 },
+        "semibold": { "$type": "fontWeight", "$value": 600 },
+        "bold": { "$type": "fontWeight", "$value": 700 }
+      },
+      "tracking": {
+        "brand": { "$type": "dimension", "$value": "-0.03em" },
+        "body": { "$type": "dimension", "$value": "-0.01em" }
+      }
+    },
+    "space": {
+      "1": { "$type": "dimension", "$value": "4px" },
+      "2": { "$type": "dimension", "$value": "8px" },
+      "3": { "$type": "dimension", "$value": "12px" },
+      "4": { "$type": "dimension", "$value": "16px" },
+      "5": { "$type": "dimension", "$value": "20px" },
+      "6": { "$type": "dimension", "$value": "24px" },
+      "8": { "$type": "dimension", "$value": "32px" },
+      "10": { "$type": "dimension", "$value": "40px" },
+      "12": { "$type": "dimension", "$value": "48px" },
+      "16": { "$type": "dimension", "$value": "64px" },
+      "20": { "$type": "dimension", "$value": "80px" },
+      "24": { "$type": "dimension", "$value": "96px" }
+    },
+    "radius": {
+      "sm": { "$type": "dimension", "$value": "8px" },
+      "md": { "$type": "dimension", "$value": "12px" },
+      "lg": { "$type": "dimension", "$value": "16px" },
+      "xl": { "$type": "dimension", "$value": "20px" },
+      "pill": { "$type": "dimension", "$value": "999px" }
+    },
+    "motion": {
+      "fast": { "$type": "duration", "$value": "160ms" },
+      "normal": { "$type": "duration", "$value": "240ms" },
+      "slow": { "$type": "duration", "$value": "360ms" },
+      "standard": { "$type": "cubicBezier", "$value": [0.2, 0, 0, 1] }
+    },
+    "control": {
+      "height": {
+        "small": { "$type": "dimension", "$value": "32px" },
+        "medium": { "$type": "dimension", "$value": "40px" },
+        "large": { "$type": "dimension", "$value": "48px" }
+      }
+    }
+  }
+}

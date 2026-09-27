@@ -1,0 +1,78 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Logo } from "@/components/ui/Logo";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { useMaro } from "@/context/store";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { randomMaroLabel } from "@/lib/utils/maroButton";
+import { Coins, LogOut, Shield, User as UserIcon, Plus } from "lucide-react";
+
+export function AppHeader() {
+  const { user, isAdmin, credits, signOut } = useMaro();
+  const router = useRouter();
+  const [maroLabel, setMaroLabel] = React.useState("maro");
+  React.useEffect(() => setMaroLabel(randomMaroLabel()), []);
+
+  return (
+    <header className="maro-system-header sticky top-0 z-40 bg-canvas">
+      <div className="mx-auto flex h-full max-w-6xl items-center justify-between">
+        <div className="flex items-center gap-[10px]">
+          <Link href="/" className="flex items-center">
+            <Logo mobileWordOnly />
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-[10px]">
+          <Link
+            href="/"
+            className="hidden items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-[13px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover sm:flex"
+          >
+            <Plus className="h-4 w-4" /> {maroLabel}
+          </Link>
+          <Link
+            href="/pricing"
+            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-2"
+          >
+            <Coins className="h-4 w-4 text-brand" />
+            {credits}
+            <span className="text-ink-3">kredite</span>
+          </Link>
+
+          <Dropdown
+            align="right"
+            header={
+              <div>
+                <div className="text-[13px] font-bold text-ink">{user?.name}</div>
+                <div className="truncate text-[12px] text-ink-3">{user?.email}</div>
+              </div>
+            }
+            trigger={
+              <button className="flex items-center gap-2 rounded-full p-0.5 pr-2 transition-colors hover:bg-surface-2">
+                <UserAvatar user={user ?? { name: "U" }} className="h-8 w-8 text-[12px]" />
+              </button>
+            }
+            items={[
+              { label: "Llogaria", icon: <UserIcon />, onClick: () => router.push("/account") },
+              ...(isAdmin
+                ? [{ label: "Admin", icon: <Shield />, onClick: () => router.push("/admin") }]
+                : []),
+              { divider: true, label: "" },
+              {
+                label: "Dil",
+                icon: <LogOut />,
+                danger: true,
+                onClick: async () => {
+                  await signOut();
+                  router.push("/");
+                },
+              },
+            ]}
+          />
+        </div>
+      </div>
+    </header>
+  );
+}

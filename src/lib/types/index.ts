@@ -1,0 +1,288 @@
+// ---------------------------------------------------------------------------
+// Maro — Phase 1 local data model
+// These types describe the shape of all prototype data. In Phase 2 the mock
+// services that produce/consume them get swapped for real APIs; the types stay.
+// ---------------------------------------------------------------------------
+
+export type ProjectStatus = "draft" | "generating" | "ready" | "published";
+
+export type WebsiteCategory =
+  | "restaurant"
+  | "dentist"
+  | "agency"
+  | "construction"
+  | "portfolio"
+  | "generic";
+
+export type StyleKey =
+  | "minimal"
+  | "premium"
+  | "bold"
+  | "editorial"
+  | "modern"
+  | "playful"
+  | "auto";
+
+export type GenerationMode = "fast" | "smart" | "maximum";
+
+export type LanguageCode = "sq" | "en" | "de" | "auto";
+
+// Composer selections (Beta): website kind + generation speed.
+export type WebsiteKind = "landing" | "business" | "platform";
+export type SpeedKey = "slow" | "fast" | "2x";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatarColor: string;
+  avatarUrl?: string;
+  /** Subscription plan. "fort" unlocks maroFort mode. */
+  plan: "free" | "fort";
+  credits: number;
+  createdAt: string;
+}
+
+// A generation result (Maro Logo / Maro Imazh images, or maro Zo audio/text),
+// persisted locally. For audio, urls[0] is the audio URL. For text output
+// (transcription) the result lives in `text`.
+export interface ImageCreation {
+  id: string;
+  /** Canonical database id when this creation has been synced from the server. */
+  serverId?: string;
+  /** Stable storage references used to refresh expiring signed display URLs. */
+  storageRefs?: string[];
+  /** Active workspace when the creation was saved locally. */
+  workspaceId?: string;
+  toolId: string;
+  title?: string;
+  prompt: string;
+  urls: string[];
+  size?: string;
+  quality?: string;
+  /** Media kind. Defaults to "image" when absent (legacy creations). */
+  mediaType?: "image" | "audio" | "text";
+  /** Text result for transcription (STT). */
+  text?: string;
+  favourite?: boolean;
+  /** User's reaction to their own creation. */
+  reaction?: "like" | "dislike";
+  fort?: boolean;
+  /** Whether workspace maroBrain brand context was used for this generation. */
+  brain?: boolean;
+  promptCode?: string;
+  format?: string;
+  /** Display label e.g. "9:16", "1:1". */
+  formatLabel?: string;
+  modelLabel?: string;
+  speedLabel?: string;
+  createdAt: string;
+}
+
+export interface BrandProfile {
+  logoUrl?: string;
+  hasLogo: boolean;
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
+export type AssetCategory = "logo" | "brand" | "team" | "products" | "other";
+
+export interface Asset {
+  id: string;
+  name: string;
+  url: string;
+  /** Stable private object identity; `url` is a refreshable display URL. */
+  storageRef?: string;
+  category: AssetCategory;
+  createdAt: string;
+}
+
+export type SectionKind =
+  | "hero"
+  | "logos"
+  | "features"
+  | "gallery"
+  | "menu"
+  | "services"
+  | "work"
+  | "team"
+  | "stats"
+  | "testimonial"
+  | "pricing"
+  | "cta"
+  | "contact"
+  | "about"
+  | "process";
+
+export interface WebsiteSection {
+  id: string;
+  kind: SectionKind;
+  // Free-form content bag rendered by the preview composition.
+  data: Record<string, unknown>;
+}
+
+export interface WebsitePage {
+  id: string;
+  name: string;
+  slug: string;
+  sections: WebsiteSection[];
+  seo: SeoMeta;
+}
+
+// A full, self-contained HTML document produced by Claude (max-quality mode).
+export interface HtmlPage {
+  id: string;
+  name: string;
+  slug: string;
+  html: string;
+}
+
+export interface SeoMeta {
+  title: string;
+  description: string;
+  socialImage?: string;
+  slug: string;
+}
+
+export interface Theme {
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  headingFont: FontKey;
+  bodyFont: FontKey;
+  radius: number; // px
+  buttonStyle: ButtonStyle;
+  dark: boolean;
+}
+
+export type FontKey =
+  | "Inter"
+  | "Manrope"
+  | "DM Sans"
+  | "Space Grotesk"
+  | "Playfair Display"
+  | "Instrument Serif"
+  | "Plus Jakarta Sans";
+
+export type ButtonStyle = "solid" | "outline" | "soft" | "pill";
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  status?: "thinking" | "done";
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  messages: ChatMessage[];
+}
+
+export interface Version {
+  id: string;
+  label: string;
+  createdAt: string;
+  // Snapshot of theme + pages so a restore is possible locally.
+  snapshot: {
+    theme: Theme;
+    pages: WebsitePage[];
+    /** HTML-mode checkpoint. Optional for backwards compatibility. */
+    htmlPages?: HtmlPage[];
+    activeHtmlPageId?: string;
+  };
+}
+
+export type CreditReason =
+  | "generation"
+  | "ai-edit"
+  | "large-ai-edit"
+  | "manual";
+
+export interface CreditTransaction {
+  id: string;
+  label: string;
+  amount: number; // negative = spend
+  reason: CreditReason;
+  createdAt: string;
+}
+
+export interface Project {
+  id: string;
+  /** Canonical generation row used for persistent screenshot association. */
+  generationId?: string;
+  /** Active workspace when the project was created. */
+  workspaceId?: string;
+  name: string;
+  favourite?: boolean;
+  businessName: string;
+  tagline?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  goal: string;
+  // Original free-text prompt the user typed in the composer (Beta).
+  prompt?: string;
+  websiteType?: WebsiteKind;
+  speed?: SpeedKey;
+  /** Prompt-box selections (model/type/speed) used for cost + prompt. */
+  toolSelections?: Record<string, string>;
+  /** maroFort expert payload captured at generation time. */
+  fort?: import("@/lib/fort/types").FortPayload;
+  /** maro Prompts: id of an attached curated prompt (hidden template). */
+  maroPromptId?: string;
+  /** Uploaded visual references supplied when maroWeb generation started. */
+  referenceImages?: string[];
+  /** Whether workspace maroBrain context was requested for this website. */
+  brain?: boolean;
+  language: LanguageCode;
+  /** Customer brand color explicitly supplied for generation (never Maro UI fallback). */
+  explicitBrandColor?: string;
+  category: WebsiteCategory;
+  style: StyleKey;
+  generationMode: GenerationMode;
+  status: ProjectStatus;
+  brand: BrandProfile;
+  theme: Theme;
+  pages: WebsitePage[];
+  activePageId: string;
+  // Max-quality output: Claude-authored full HTML pages. When renderMode is
+  // "html" the preview/editor render these instead of the section components.
+  renderMode?: "sections" | "html";
+  htmlPages?: HtmlPage[];
+  activeHtmlPageId?: string;
+  assets: Asset[];
+  conversation: Conversation;
+  versions: Version[];
+  credits: CreditTransaction[];
+  previewUrl: string;
+  /** Persisted 16:9 website screenshot served from Maro storage. */
+  thumbnailUrl?: string;
+  thumbnailStorageRef?: string;
+  publishedUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Wizard draft (before a project is created)
+export interface WizardDraft {
+  goal: string;
+  businessName: string;
+  tagline: string;
+  email: string;
+  phone: string;
+  location: string;
+  language: LanguageCode;
+  logoUrl?: string;
+  hasLogo: boolean;
+  images: { id: string; url: string }[];
+  primaryColor: string;
+  secondaryColor: string;
+  style: StyleKey;
+  generationMode: GenerationMode;
+  category: WebsiteCategory;
+}

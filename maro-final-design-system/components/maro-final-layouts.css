@@ -1,0 +1,196 @@
+/*
+ * Whole-site layout contract for maro-final-design-system.
+ * 30px = outer/section spacing, 20px = component spacing, 10px = detail spacing.
+ */
+
+body[data-maro-ui="final"] {
+  min-width: 20rem;
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-canvas);
+}
+
+body[data-maro-ui="final"] :where([class*="shadow-"]) {
+  box-shadow: none !important;
+}
+
+body[data-maro-ui="final"] :where([class*="backdrop-blur"]) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body[data-maro-ui="final"] :where(button, input, select, textarea) {
+  box-shadow: none;
+}
+
+body[data-maro-ui="final"] :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+) {
+  min-height: var(--maro-control-height-md);
+  border-color: transparent;
+  border-radius: var(--maro-radius-16);
+  outline: 0;
+  background-color: var(--maro-color-bg-surface);
+}
+
+body[data-maro-ui="final"] :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea
+):focus-visible {
+  box-shadow: var(--maro-focus-ring);
+}
+
+body[data-maro-ui="final"] :where(input[type="checkbox"], input[type="radio"]) {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  accent-color: var(--maro-color-accent);
+}
+
+.maro-app-shell {
+  isolation: isolate;
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-canvas);
+}
+
+.maro-page-shell {
+  width: min(100%, var(--maro-shell-content-max));
+  margin-inline: auto;
+  padding: var(--maro-gap-30);
+}
+
+.maro-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--maro-gap-20);
+  margin-bottom: var(--maro-gap-30);
+}
+
+.maro-page-title {
+  margin: 0;
+  color: var(--maro-color-text-primary);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: var(--maro-font-weight-bold);
+  line-height: var(--maro-line-height-heading);
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+.maro-page-description {
+  max-width: 42rem;
+  margin-top: var(--maro-gap-10);
+  color: var(--maro-color-text-secondary);
+  font-size: var(--maro-font-size-14);
+  line-height: var(--maro-line-height-body);
+}
+
+.maro-section {
+  display: grid;
+  gap: var(--maro-gap-20);
+}
+
+.maro-section + .maro-section {
+  margin-top: var(--maro-gap-30);
+}
+
+.maro-panel,
+.maro-dialog {
+  border: 0;
+  border-radius: var(--maro-radius-20);
+  background: var(--maro-color-bg-surface);
+  box-shadow: none;
+}
+
+.maro-panel {
+  padding: var(--maro-gap-30);
+}
+
+.maro-toolbar,
+.maro-action-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--maro-gap-10);
+}
+
+.maro-action-row {
+  justify-content: flex-end;
+}
+
+.maro-stack-10,
+.maro-stack-20,
+.maro-stack-30 {
+  display: flex;
+  flex-direction: column;
+}
+
+.maro-stack-10 { gap: var(--maro-gap-10); }
+.maro-stack-20 { gap: var(--maro-gap-20); }
+.maro-stack-30 { gap: var(--maro-gap-30); }
+
+.maro-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--maro-gap-30);
+}
+
+.maro-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--maro-gap-10);
+}
+
+.maro-list-row {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  gap: var(--maro-gap-20);
+  padding: var(--maro-gap-20);
+  border: 0;
+  border-radius: var(--maro-radius-16);
+  background: var(--maro-color-bg-surface);
+}
+
+.maro-structural-divider {
+  width: 100%;
+  height: 1px;
+  margin-block: var(--maro-gap-20);
+  background: var(--maro-color-border-subtle);
+}
+
+.maro-system-header {
+  min-height: var(--maro-shell-header-height);
+  padding-inline: var(--maro-gap-30);
+  background: var(--maro-color-bg-canvas);
+}
+
+@media (max-width: 47.999rem) {
+  .maro-page-shell {
+    padding: var(--maro-gap-20);
+  }
+
+  .maro-page-header {
+    flex-direction: column;
+    margin-bottom: var(--maro-gap-20);
+  }
+
+  .maro-panel {
+    padding: var(--maro-gap-20);
+  }
+
+  .maro-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--maro-gap-20);
+  }
+
+  .maro-action-row > * {
+    flex: 1 1 auto;
+  }
+
+  .maro-system-header {
+    padding-inline: var(--maro-gap-20);
+  }
+}

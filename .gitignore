@@ -1,0 +1,16 @@
+/node_modules
+/.pnpm-store
+/.next
+/out
+/build
+*.log
+.DS_Store
+.env*.local
+next-env.d.ts
+.vercel
+/supabase/.temp
+*.tsbuildinfo
+
+# local one-off diagnostic scripts (read .env.local)
+/scripts
+.env*

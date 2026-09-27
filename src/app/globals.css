@@ -1,0 +1,516 @@
+/* App UI font — Manrope, locked by maro-final-design-system. */
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+
+/* Final design system — import once at root. Legacy systems are not runtime dependencies. */
+@import "../../maro-final-design-system/tokens/maro-final.css";
+@import "../../maro-final-design-system/components/maro-final-primitives.css";
+@import "../../maro-final-design-system/components/maro-final-layouts.css";
+@import "../styles/maro-compat.css";
+
+/* Website-preview selectable fonts (self-hosted, no external font API) */
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/playfair-display/400.css";
+@import "@fontsource/playfair-display/500.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
+@import "@fontsource/playfair-display/800.css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The final system does not outline generic surfaces. Structural separators
+   use dedicated elements/tokens instead of card borders. */
+.border-line,
+.border-line\/60 {
+  border-color: transparent !important;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  width: 100%;
+}
+
+body {
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  color: var(--maro-color-text-inverse);
+  background: var(--maro-color-bg-selected);
+}
+
+/* Touch-friendly vertical scroll */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bg-grid {
+  background-image: linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.bg-dot {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.bg-aurora {
+  background-image:
+    radial-gradient(42% 55% at 82% 6%, color-mix(in srgb, var(--ink) 4%, transparent), transparent 72%),
+    radial-gradient(46% 55% at 12% 4%, color-mix(in srgb, var(--ink) 3%, transparent), transparent 72%);
+}
+
+.text-accent {
+  color: var(--ink);
+}
+
+.text-accent-teal {
+  color: var(--accent);
+}
+
+.bg-accent-teal {
+  background-color: var(--accent);
+}
+
+.bg-accent-teal-soft {
+  background-color: var(--accent-teal-soft);
+}
+
+.bg-sidebar-card {
+  background-color: var(--sidebar-card);
+}
+
+.bg-prompt-dock {
+  background-color: var(--prompt-dock);
+}
+
+.bg-generate {
+  background-color: var(--generate-bg);
+}
+
+.bg-generate-idle {
+  background-color: var(--generate-bg-idle);
+}
+
+.text-generate-fg {
+  color: var(--generate-fg);
+}
+
+.text-generate-fg-idle {
+  color: var(--generate-fg-idle);
+}
+
+.bg-meta-pill {
+  background-color: var(--meta-pill-bg);
+  border: 0;
+  color: var(--meta-pill-fg);
+}
+
+.bg-card-idle {
+  background-color: var(--card-idle-bg);
+  border: 0;
+}
+.bg-card-active {
+  background-color: var(--card-active-bg);
+  color: var(--card-active-fg);
+  border: 1px solid transparent;
+}
+.ring-card-active {
+  box-shadow: inset 0 0 0 2px var(--card-active-ring);
+}
+.text-dock-muted {
+  color: var(--dock-muted);
+}
+.bg-card-locked {
+  background-color: var(--card-locked-bg);
+  border: 1px solid transparent;
+}
+.bg-card-hover:hover {
+  background-color: var(--card-hover-bg);
+}
+.bg-sidebar-nav {
+  background-color: var(--sidebar-nav-bg);
+}
+.text-sidebar-nav-prompts {
+  color: var(--sidebar-nav-prompts-fg);
+}
+.text-sidebar-nav-history {
+  color: var(--sidebar-nav-history-fg);
+}
+.bg-menu {
+  background-color: var(--menu-bg);
+}
+.text-menu-fg {
+  color: var(--menu-fg);
+}
+.text-menu-muted {
+  color: var(--menu-muted);
+}
+.hover\:bg-menu-row:hover {
+  background-color: var(--menu-row-hover);
+}
+.bg-topbar-credits {
+  background-color: var(--topbar-credits-bg);
+}
+.text-topbar-credits {
+  color: var(--topbar-credits-fg);
+}
+.text-topbar-credits-muted {
+  color: var(--topbar-credits-muted);
+}
+.bg-topbar-wallet {
+  background-color: var(--topbar-wallet-bg);
+}
+.bg-menu-divider {
+  background-color: var(--menu-divider);
+}
+.bg-menu-logout {
+  background-color: var(--menu-logout-bg);
+}
+.text-menu-logout {
+  color: var(--menu-logout-fg);
+}
+
+.maro-icon {
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.bg-menu-chip {
+  background-color: var(--menu-chip-bg);
+}
+.border-menu {
+  border-color: var(--menu-border);
+}
+.text-card-active-fg {
+  color: var(--card-active-fg);
+}
+.text-card-idle-fg {
+  color: var(--card-idle-fg);
+}
+.text-card-locked-fg {
+  color: var(--card-locked-fg);
+}
+.text-hub-tool {
+  color: var(--hub-tool);
+}
+.text-hub-tool-sub {
+  color: var(--hub-tool-sub);
+}
+.bg-hub-page {
+  background-color: var(--hub-page-bg);
+}
+
+.bg-chat-user {
+  background-color: var(--chat-user-bg);
+  color: var(--chat-user-fg);
+  border: 1px solid var(--chat-user-border);
+}
+.bg-chat-maro {
+  background-color: var(--chat-maro-bg);
+  border: 1px solid var(--chat-maro-border);
+}
+.text-chat-prompt-badge {
+  background-color: var(--generate-bg);
+  color: var(--generate-fg);
+}
+
+.maro-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--ui-btn-h);
+  padding-inline: 0.75rem;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.maro-icon-btn {
+  display: grid;
+  place-items: center;
+  width: var(--ui-btn-h);
+  height: var(--ui-btn-h);
+  min-width: var(--ui-btn-h);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+/* Prompt dock toolbar — every control stays visible. Desktop uses one row when
+   it fits; narrower viewports recompose onto additional rows with the same
+   10px rhythm instead of clipping or collapsing controls. */
+.dock-toolbar {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--maro-gap-10);
+}
+.dock-toolbar-controls {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--maro-gap-10);
+}
+.dock-toolbar-actions {
+  display: flex;
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--maro-gap-10);
+}
+
+.prompt-accessory-row > * {
+  flex-shrink: 0;
+}
+
+.dock-pill {
+  max-width: 148px;
+}
+.dock-pill-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prompt dock — Tekst switch */
+.dock-control {
+  --switch-track: var(--surface-selected);
+  --switch-knob: var(--maro-white);
+}
+
+@media (max-width: 47.999rem) {
+  .dock-toolbar,
+  .dock-toolbar-controls,
+  .dock-toolbar-actions {
+    gap: var(--maro-gap-10);
+  }
+
+  .dock-toolbar-controls {
+    flex-basis: 100%;
+  }
+
+  .dock-toolbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .prompt-accessory-row {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+}
+
+.logo-lockup-light {
+  display: inline-block;
+}
+.logo-lockup-dark {
+  display: none;
+}
+
+.maro-text-logo {
+  filter: none;
+}
+
+.bg-footer {
+  background-color: var(--footer-bg);
+}
+.text-footer {
+  color: var(--footer-fg);
+}
+.text-footer-muted {
+  color: var(--footer-muted);
+}
+
+@keyframes maro-build-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes maro-build-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.06); opacity: 0.55; }
+}
+@keyframes image-reveal {
+  from { filter: blur(16px); opacity: 0.6; }
+  to { filter: blur(0); opacity: 1; }
+}
+.image-reveal {
+  animation: image-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-18px) translateX(10px); }
+}
+.animate-float-slow {
+  animation: float-slow 9s ease-in-out infinite;
+}
+
+@keyframes maro-spin { to { transform: rotate(360deg); } }
+@keyframes maro-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes maro-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes maro-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  55% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes maro-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(6px, -8px) rotate(8deg); }
+  66% { transform: translate(-6px, 6px) rotate(-6deg); }
+}
+@keyframes maro-orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit, 34px)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--orbit, 34px)) rotate(-360deg); }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--skeleton-shine),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.maro-editable {
+  position: relative;
+  cursor: pointer;
+  transition: outline-color 0.12s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.maro-edit-mode .maro-editable:hover {
+  outline-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.maro-edit-mode .maro-editable.is-selected {
+  outline-color: var(--ink);
+}
+.maro-editable .maro-tag {
+  position: absolute;
+  top: -22px;
+  left: -2px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--ink);
+  color: var(--ink-inv);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 20;
+}
+.maro-edit-mode .maro-editable.is-selected .maro-tag,
+.maro-edit-mode .maro-editable:hover .maro-tag {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes hub-carousel-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-hub-carousel {
+  animation: hub-carousel-scroll 40s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Remove default browser focus ring on buttons (custom focus handled per component) */
+button:focus {
+  outline: none;
+}
+textarea:focus {
+  outline: none;
+}
+
+/* Explicit geometry and colors keep all switches legible across themes. */
+.maro-switch-track { display: inline-block; position: relative; flex: none; width: 36px; height: 20px; border: 1px solid #767e89; border-radius: 999px; background: #767e89; vertical-align: middle; transition: background-color .18s, border-color .18s; }
+.maro-switch-track[data-checked="true"] { background: #253fda; border-color: #253fda; }
+.maro-switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0003; transition: transform .18s; }
+.maro-switch-track[data-checked="true"] > .maro-switch-knob { transform: translateX(16px); }
+.maro-switch-track[data-size="md"] { width: 44px; height: 24px; }
+.maro-switch-track[data-size="md"] > .maro-switch-knob { width: 18px; height: 18px; }
+.maro-switch-track[data-size="md"][data-checked="true"] > .maro-switch-knob { transform: translateX(20px); }
+.maro-switch:focus-visible { outline: 2px solid #253fda; outline-offset: 4px; }
+.mobile-generation-dialog { --surface: #f4f4f5; --surface-2: #f4f4f5; --ink: #151515; --ink-2: #444; --ink-3: #666; }
+@media (prefers-reduced-motion: reduce) {
+  .maro-switch-knob, .maro-switch-track { transition: none; }
+  .maro-generation-loader * { animation: none !important; }
+}
