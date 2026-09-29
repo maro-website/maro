@@ -346,6 +346,13 @@ describe.skipIf(!hasDb)("commerce smoke integration (real DB)", () => {
     const jobA = randomUUID();
     const jobB = randomUUID();
 
+    // Reservation operates on existing jobs in the deployed database contract.
+    const { error: jobsError } = await admin().from("generation_jobs").insert([
+      { id: jobA, user_id: user.id, module: "image", status: "pending" },
+      { id: jobB, user_id: user.id, module: "image", status: "pending" },
+    ]);
+    expect(jobsError).toBeNull();
+
     const [a, b] = await Promise.all([
       reserveCredits(user.id, 30, jobA, `idem-${jobA}`),
       reserveCredits(user.id, 30, jobB, `idem-${jobB}`),
@@ -369,6 +376,10 @@ describe.skipIf(!hasDb)("commerce smoke integration (real DB)", () => {
 
     const { reserveCredits, releaseCreditReserve } = await import("@/lib/credits/ledger");
     const jobId = randomUUID();
+    const { error: jobError } = await admin().from("generation_jobs").insert({
+      id: jobId, user_id: user.id, module: "image", status: "pending",
+    });
+    expect(jobError).toBeNull();
     const bal = await reserveCredits(user.id, 20, jobId, `rel-${jobId}`);
     expect(bal).toBeGreaterThanOrEqual(0);
 

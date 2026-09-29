@@ -53,8 +53,9 @@ export default function TermsPage() {
 
       <LegalSection title="4. Kreditet dhe pagesat">
         <p>
-          Shërbimi funksionon me sistem kreditesh. Çmimi i blerjes së krediteve është €0,09 për kredit.
-          Planet maroStandard (€9 / 100 kredite) dhe maroPro (€35 / 500 kredite) shfaqen në{" "}
+          Shërbimi funksionon me sistem kreditesh. maroStandard kushton €9 çdo 30 ditë me 100 kredite
+          për cikël dhe maroPro kushton €35 çdo 30 ditë me 500 kredite për cikël. Paketat njëherëshe
+          kushtojnë €9 / 100 kredite, €17 / 200 kredite, €40 / 500 kredite dhe €75 / 1000 kredite. Detajet shfaqen në{" "}
           <Link href="/pricing" className="font-semibold text-ink underline-offset-2 hover:underline">
             Planet & Kreditet
           </Link>
@@ -62,9 +63,8 @@ export default function TermsPage() {
         </p>
         <p>
           Kreditet zbriten kur inicirohet një veprim që konsumon burime (p.sh. gjenerim website, imazh,
-          redaktim AI). Çmimi në kredite shfaqet para konfirmimit të veprimit. Pagesat proces-ohen përmes
-          Raiffeisen Bank Kosova (hosted checkout). Çmimet përfshijnë TVSH-në ku aplikohet, sipas ligjit të
-          Kosovës.
+          redaktim AI). Çmimi në kredite shfaqet para konfirmimit të veprimit. Pagesat përpunohen përmes
+          Paddle. Çmimi përfundimtar dhe taksat e aplikueshme shfaqen në checkout.
         </p>
         <p>
           Kreditet e blera nuk janë monedhë elektronike dhe nuk mund të shkëmbehen për para, përveç rasteve
@@ -79,8 +79,10 @@ export default function TermsPage() {
       <LegalSection title="5. maroFort dhe planet">
         <p>
           maroPro përfshin maroFort falas për 14 ditë. maroFort ofron akses shtesë (mode i avancuar,
-          vegla të reja). Detajet e planit dhe përfitimet shfaqen në Platformë. Planet janë blerje
-          njëherëshe — pa abonim mujor të detyrueshëm.
+          vegla të reja). Detajet e planit dhe përfitimet shfaqen në Platformë. Standard dhe Pro
+          rinovohen automatikisht përmes Paddle çdo 30 ditë, jo sipas muajit kalendarik.
+          Mund ta anuloni rinovimin në portalin Paddle nga llogaria juaj; aksesi vazhdon deri në
+          fund të periudhës së paguar. Paketat shtesë të krediteve janë blerje njëherëshe.
         </p>
       </LegalSection>
 

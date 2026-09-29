@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-ink">Të dhëna pagese:</strong> shuma, data dhe statusi i transaksioneve.
-            Detajet e plota të kartës bankare përpunohen nga Raiffeisen Bank Kosova (hosted checkout), jo nga ne
+            Detajet e plota të kartës bankare përpunohen nga Paddle (checkout dhe portali i klientit), jo nga ne
             drejtpërdrejt.
           </li>
           <li>

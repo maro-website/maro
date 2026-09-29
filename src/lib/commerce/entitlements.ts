@@ -54,10 +54,13 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
   const limits = resolveLimitsFromPlan(plan, status, membership.business_overrides);
 
   const renewalAvailable =
-    status === "RENEWAL_WINDOW" && !renewalAlreadyFulfilledForCycle(membership);
+    membership.payment_provider !== "paddle" && status === "RENEWAL_WINDOW" && !renewalAlreadyFulfilledForCycle(membership);
 
   return {
     plan_id: membership.plan_id,
+    payment_provider: membership.payment_provider,
+    paddle_status: membership.paddle_status,
+    paddle_scheduled_change: membership.paddle_scheduled_change,
     plan_status: status,
     plan_display_name: plan?.display_name ?? membership.plan_id,
     started_at: membership.started_at,

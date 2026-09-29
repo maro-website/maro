@@ -9,7 +9,7 @@ import { Input, Field } from "@/components/ui/Input";
 import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
-import { paymentMode } from "@/lib/config/features";
+import { checkoutProvider, checkoutEntryUrl, checkoutDestination } from "@/lib/payments/checkout-routing";
 import {
   LegalConsentCheckbox,
   LEGAL_CONSENT_REQUIRED,
@@ -48,8 +48,13 @@ function CheckoutPageInner() {
   const [legalAccepted, setLegalAccepted] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [orderId, setOrderId] = React.useState<string | null>(null);
   const [promoCode, setPromoCode] = React.useState("");
+  // The URL is authoritative so refresh, sign-in and back navigation cannot
+  // silently turn a Paddle checkout into a legacy payment.
+  const provider = checkoutProvider(searchParams.get("provider"));
+  const paddleAvailable = process.env.NEXT_PUBLIC_PADDLE_ENABLED === "true" &&
+    ["standard", "pro", "topup-100", "topup-200", "topup-500", "topup-1000"].includes(itemId);
+  const checkoutUrl = provider ? checkoutEntryUrl(itemId, provider, promoFromUrl) : "/checkout?provider=invalid";
 
   React.useEffect(() => {
     if (promoFromUrl) setPromoCode(promoFromUrl);
@@ -92,17 +97,25 @@ function CheckoutPageInner() {
   React.useEffect(() => {
     if (!ready) return;
     if (!user) {
-      router.replace(`/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}`)}`);
+      router.replace(`/sign-in?next=${encodeURIComponent(checkoutUrl)}`);
       return;
     }
     setFullName(user.name || "");
     setEmail(user.email || "");
-  }, [ready, user, router, itemId]);
+  }, [ready, user, router, checkoutUrl]);
+
+  if (!provider || !paddleAvailable) {
+    return <AppShell showFooter><div className="mx-auto max-w-lg px-5 py-20 text-center">
+      <h1 className="text-2xl font-bold">Pagesa me Paddle nuk është e disponueshme</h1>
+      <p role="alert" className="mt-4 text-ink-2">Kjo pagesë nuk mund të vazhdojë. Rifresko pasi Paddle të jetë aktivizuar.</p>
+    </div></AppShell>;
+  }
 
   if (!preview && previewError) {
     const messages: Record<string, string> = {
       topup_requires_active_plan: "Top-up kërkon plan aktiv.",
-      plan_already_active: "Ke tashmë plan aktiv. Rinovimi hapet 7 ditë para skadimit.",
+      plan_already_active: "Ke tashmë plan aktiv. Menaxho abonimin nga faqja e faturimit në llogarinë tënde.",
+      paddle_subscription_managed: "Menaxho abonimin në portalin Paddle nga faqja e faturimit në llogarinë tënde.",
       renewal_not_available: "Rinovimi nuk është ende i disponueshëm.",
       upgrade_not_eligible: "Upgrade në maroPro nuk është i disponueshëm për llogarinë tënde.",
     };
@@ -139,8 +152,10 @@ function CheckoutPageInner() {
       return;
     }
     setLoading(true);
+    try {
+    const destination = checkoutDestination(provider, paddleAvailable);
     const token = await getAccessToken();
-    const res = await fetch("/api/payments/create-order", {
+    const res = await fetch(destination.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -158,7 +173,7 @@ function CheckoutPageInner() {
         legalConsent: true,
       }),
     });
-    const data = (await res.json()) as { orderId?: string; error?: string };
+    const data = (await res.json()) as { orderId?: string; transactionId?: string; error?: string };
     setLoading(false);
     if (!res.ok) {
       if (data.error === "topup_requires_plan") {
@@ -170,29 +185,19 @@ function CheckoutPageInner() {
       }
       return;
     }
-    setOrderId(data.orderId ?? null);
-    router.push(`/pay/redirect?order=${data.orderId}`);
-  };
-
-  const cancelOrder = async () => {
-    if (orderId) {
-      const token = await getAccessToken();
-      await fetch("/api/payments/cancel-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ orderId }),
-      });
+    if (!data.orderId || !/^txn_[a-z0-9]{26}$/.test(data.transactionId ?? "")) {
+      throw new Error("invalid_checkout_response");
     }
-    router.push(orderId ? `/order/cancel?order=${orderId}` : "/pricing");
+    router.push(`${destination.paymentPath}?order=${encodeURIComponent(data.orderId)}`);
+    } catch {
+      setError("Porosia nuk u krijua. Provo përsëri.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isTestPayment = paymentMode() === "test";
-  const payButtonLabel = isTestPayment
-    ? `Vazhdo me pagesën e testit · ${formatEur(item.priceEur)}`
-    : `Vazhdo te pagesa · ${formatEur(item.priceEur)}`;
+  const sandbox = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === "sandbox";
+  const payButtonLabel = `Vazhdo me Paddle${sandbox ? " (Sandbox)" : ""} · ${formatEur(item.priceEur)}`;
 
   return (
     <AppShell showFooter>
@@ -217,9 +222,10 @@ function CheckoutPageInner() {
         </div>
 
         <div className="mt-6 rounded-maro12 bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
-          {isTestPayment
-            ? "Pagesa live me Raiffeisen është ende e çaktivizuar. Porosia krijohet dhe përfundon në modalitet test — nuk merren të dhëna kartë në maro."
-            : "Do të ridrejtoheni te pagesa e sigurt e bankës partner. maro nuk mbledh të dhëna kartë."}
+          {item.orderKind === "plan_purchase"
+            ? `Paddle: ${formatEur(item.priceEur)} çdo 30 ditë, me rinovim automatik. Anulo në portalin e faturimit.`
+            : "Paddle: blerje njëherëshe kreditesh."}
+          {sandbox && " Sandbox: nuk kryhet pagesë reale."}
         </div>
 
         <form
@@ -248,13 +254,7 @@ function CheckoutPageInner() {
             <Input value={nui} onChange={(e) => setNui(e.target.value)} />
           </Field>
 
-          <Field label="Promo kod (opsional)">
-            <Input
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value)}
-              placeholder="Kodi i zbritjes / kreatorit"
-            />
-          </Field>
+          {promoCode && <p className="text-sm text-danger">Ky promo kod nuk mbështetet nga Paddle. <button type="button" className="underline" onClick={() => { setPromoCode(""); router.replace(checkoutEntryUrl(itemId)); }}>Hiqe kodin</button></p>}
 
           {error && (
             <div className="flex items-start gap-2 rounded-maro12 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
@@ -268,13 +268,13 @@ function CheckoutPageInner() {
             onChange={setLegalAccepted}
           />
 
-          <Button type="submit" className="mt-2 w-full" loading={loading} disabled={!legalAccepted}>
+          <Button type="submit" className="mt-2 w-full" loading={loading} disabled={!legalAccepted || !!promoCode}>
             {payButtonLabel}
           </Button>
 
           <button
             type="button"
-            onClick={() => void cancelOrder()}
+            onClick={() => router.push("/account?tab=billing")}
             className="text-center text-[13px] font-semibold text-ink-3 hover:text-ink"
           >
             Anulo porosinë

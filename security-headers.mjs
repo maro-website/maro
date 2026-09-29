@@ -16,6 +16,14 @@ export function buildContentSecurityPolicy(options = {}) {
   // page reload, which clears unfinished form state. Production stays strict.
   if (!isProduction) scriptSources.push("'unsafe-eval'");
   scriptSources.push("https://challenges.cloudflare.com");
+  const paddle = process.env.NEXT_PUBLIC_PADDLE_ENABLED === "true";
+  const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT;
+  const paddlePrefix = paddleEnvironment === "sandbox" ? "sandbox-" : "";
+  const paddleConfigured = paddle && ["sandbox", "production"].includes(paddleEnvironment);
+  if (paddleConfigured) {
+    scriptSources.push("https://cdn.paddle.com");
+    connectHosts.push(`https://${paddlePrefix}checkout.paddle.com`, `https://${paddlePrefix}api.paddle.com`);
+  }
 
   const parts = [
     "default-src 'self'",
@@ -29,7 +37,7 @@ export function buildContentSecurityPolicy(options = {}) {
     "font-src 'self' data:",
     `connect-src ${connectHosts.join(" ")}`,
     `media-src 'self' data: blob: https://${supabaseHost}`,
-    "frame-src 'self' https://challenges.cloudflare.com",
+    `frame-src 'self' https://challenges.cloudflare.com${paddleConfigured ? ` https://${paddlePrefix}checkout.paddle.com https://${paddlePrefix}buy.paddle.com` : ""}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
   ];

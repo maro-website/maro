@@ -45,7 +45,7 @@ export async function getLatestMembership(userId: string): Promise<
   const { data, error } = await getSupabaseAdmin()
     .from("memberships")
     .select(
-      "id, user_id, plan_id, started_at, expires_at, renewal_mode, renewed_from_id, cycle_renewal_fulfilled_at, business_overrides, suspended, persisted_status, commerce_plans!inner(renewal_window_days)"
+      "*, commerce_plans!inner(renewal_window_days)"
     )
     .eq("user_id", userId)
     .order("expires_at", { ascending: false })
@@ -59,6 +59,9 @@ export async function getLatestMembership(userId: string): Promise<
 
   return {
     id: String(row.id),
+    payment_provider: row.payment_provider as string | null,
+    paddle_status: row.paddle_status as string | null,
+    paddle_scheduled_change: row.paddle_scheduled_change as MembershipRow["paddle_scheduled_change"],
     user_id: String(row.user_id),
     plan_id: row.plan_id as CanonicalPlanId,
     started_at: String(row.started_at),
@@ -99,7 +102,7 @@ export async function getUpgradeQuote(userId: string): Promise<UpgradeQuote> {
   }
 
   const status = deriveMembershipStatus(membership);
-  if (!isActivePlanStatus(status) || membership.plan_id !== "standard") {
+  if (!isActivePlanStatus(status) || membership.plan_id !== "standard" || membership.payment_provider === "paddle") {
     return {
       from_plan: membership.plan_id,
       to_plan: "pro",

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { legacyPaymentsEnabled } from "@/lib/payments/legacy";
 import { requireUser } from "@/lib/payments/auth";
 import { cancelCreditOrder } from "@/lib/payments/fulfill";
 import { getOrderForUser } from "@/lib/payments/orders";
 
 export async function POST(req: Request) {
+  if (!legacyPaymentsEnabled()) return NextResponse.json({ error: "legacy_payments_disabled" }, { status: 404 });
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -21,6 +23,7 @@ export async function POST(req: Request) {
 
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (order.provider === "paddle") return NextResponse.json({ error: "paddle_managed_payment" }, { status: 409 });
   if (order.status === "paid") {
     return NextResponse.json({ error: "already_paid" }, { status: 409 });
   }
