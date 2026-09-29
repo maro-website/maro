@@ -14,6 +14,7 @@ import {
 } from "@/lib/payments/orderDisplay";
 import { Download, Receipt, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { PaddlePortalButton } from "@/components/account/PaddlePortalButton";
 
 interface OrderRow {
   id: string;
@@ -65,6 +66,10 @@ export function OrdersSection() {
   }, [load]);
 
   const downloadInvoice = async (orderId: string) => {
+    if (orders?.find((order) => order.id === orderId)?.provider === "paddle") {
+      toast("Faturat e Paddle gjenden në portalin e faturimit.");
+      return;
+    }
     setDownloading(orderId);
     const token = await getAccessToken();
     const res = await fetch(`/api/payments/invoice?orderId=${encodeURIComponent(orderId)}`, {
@@ -98,6 +103,7 @@ export function OrdersSection() {
 
   return (
     <div className="rounded-2xl bg-surface p-6">
+      {list.some((order) => order.provider === "paddle" && order.status === "paid") && <PaddlePortalButton />}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-[14px] font-bold text-ink">Porositë e mia</div>
@@ -160,7 +166,7 @@ export function OrdersSection() {
                     {formatOrderDate(o.paidAt ?? o.createdAt)}
                   </td>
                   <td className="py-3.5">
-                    <button
+                    {o.provider === "paddle" ? (o.displayStatus === "paid" ? <PaddlePortalButton /> : <span className="text-ink-3">—</span>) : <button
                       type="button"
                       disabled={downloading === o.id}
                       onClick={() => void downloadInvoice(o.id)}
@@ -178,7 +184,7 @@ export function OrdersSection() {
                     >
                       <Download className="h-3.5 w-3.5" />
                       {downloading === o.id ? "…" : "PDF"}
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}

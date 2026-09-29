@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
-import { formatEur } from "@/lib/credits/money";
 import { formatOrderDate } from "@/lib/payments/orderDisplay";
 import { cn } from "@/lib/utils/cn";
+import { PaddlePortalButton } from "@/components/account/PaddlePortalButton";
 
 interface EntitlementsPayload {
   entitlements: {
+    payment_provider?: string;
+    paddle_status?: string;
+    paddle_scheduled_change?: { action: string; effectiveAt: string } | null;
     plan_id: string | null;
     plan_status: string;
     plan_display_name: string | null;
@@ -43,7 +46,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function BillingSection() {
   const router = useRouter();
-  const { user, credits } = useMaro();
+  const { user, credits, getAccessToken } = useMaro();
   const [data, setData] = React.useState<EntitlementsPayload | null>(null);
   const [usage, setUsage] = React.useState<UsageRow[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -53,10 +56,13 @@ export function BillingSection() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setData(null);
       try {
+        const token = await getAccessToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
         const [entRes, txRes] = await Promise.all([
-          fetch("/api/commerce/entitlements"),
-          fetch("/api/credits/transactions?limit=100"),
+          fetch("/api/commerce/entitlements", { headers }),
+          fetch("/api/credits/transactions?limit=100", { headers }),
         ]);
         if (!cancelled && entRes.ok) {
           setData((await entRes.json()) as EntitlementsPayload);
@@ -84,7 +90,7 @@ export function BillingSection() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, getAccessToken]);
 
   if (loading) {
     return <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>;
@@ -103,6 +109,14 @@ export function BillingSection() {
     <div className="space-y-8">
       <section className="rounded-maro16 bg-surface p-6">
         <h2 className="text-[18px] font-semibold tracking-brand text-ink">Plani aktual</h2>
+        {ent?.payment_provider === "paddle" && <div className="my-4 space-y-3">
+          {ent.paddle_status === "past_due" && <p className="text-sm text-danger">Pagesa e rinovimit dështoi. Përditëso mënyrën e pagesës në Paddle.</p>}
+          {ent.paddle_scheduled_change && <p className="text-sm text-ink-2">
+            {ent.paddle_scheduled_change.action === "cancel" ? "Abonimi anulohet më " : "Ndryshimi i abonimit hyn në fuqi më "}
+            {new Date(ent.paddle_scheduled_change.effectiveAt).toLocaleDateString("sq-AL")}.
+          </p>}
+          <PaddlePortalButton />
+        </div>}
         {ent?.plan_id ? (
           <>
             <p className="mt-3 text-[22px] font-bold tracking-brand text-ink">
@@ -112,7 +126,7 @@ export function BillingSection() {
               <p className="mt-1 text-[14px] text-ink-2">Aktiv deri më {expiresLabel}</p>
             )}
             <p className="mt-1 text-[14px] text-ink-3">
-              Rinovimi automatik: {ent.renewal_mode === "automatic" ? "Po" : "Jo"}
+              Rinovimi automatik: {ent.renewal_mode === "automatic" && !(ent.payment_provider === "paddle" && ent.paddle_scheduled_change?.action === "cancel") ? "Po" : "Jo"}
             </p>
             <Badge
               tone="neutral"
@@ -121,17 +135,9 @@ export function BillingSection() {
               {STATUS_LABELS[ent.plan_status] ?? ent.plan_status}
             </Badge>
             <div className="mt-5 flex flex-wrap gap-3">
-              {ent.renewal_available && (
-                <Button onClick={() => router.push("/checkout?item=renew")}>Rinovo planin</Button>
-              )}
               {ent.plan_status === "EXPIRED" || ent.plan_status === "NO_PLAN" ? (
                 <Button onClick={() => router.push("/pricing")}>Aktivizo planin</Button>
               ) : null}
-              {data?.upgradeQuote?.eligible && (
-                <Button variant="secondary" onClick={() => router.push("/checkout?item=upgrade-pro")}>
-                  Kaloni në maroPro (+{formatEur(data.upgradeQuote.price_cents / 100)})
-                </Button>
-              )}
             </div>
           </>
         ) : (

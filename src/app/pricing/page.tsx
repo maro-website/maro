@@ -11,6 +11,7 @@ import { formatEur } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
 import { Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { checkoutEntryUrl } from "@/lib/payments/checkout-routing";
 
 type Tab = "plans" | "topup";
 
@@ -43,7 +44,7 @@ export default function PricingPage() {
 function PricingPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, ready } = useMaro();
+  const { user, ready, getAccessToken } = useMaro();
 
   const [catalog, setCatalog] = React.useState<{
     plans: CatalogPlan[];
@@ -51,8 +52,7 @@ function PricingPageInner() {
     listPriceEurPerCredit: number;
   } | null>(null);
   const [canTopUp, setCanTopUp] = React.useState(false);
-  const [renewalAvailable, setRenewalAvailable] = React.useState(false);
-  const [planExpired, setPlanExpired] = React.useState(false);
+  const [hasPaddleSubscription, setHasPaddleSubscription] = React.useState(false);
 
   const initialTab = searchParams.get("tab") === "topup" ? "topup" : "plans";
   const [tab, setTab] = React.useState<Tab>(initialTab);
@@ -65,19 +65,26 @@ function PricingPageInner() {
   }, []);
 
   React.useEffect(() => {
+    setCanTopUp(false);
+    setHasPaddleSubscription(false);
     if (!user) return;
-    fetch("/api/commerce/entitlements")
-      .then((r) => r.json())
-      .then((data) => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        const response = await fetch("/api/commerce/entitlements", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
         setCanTopUp(Boolean(data.entitlements?.can_top_up));
-        setRenewalAvailable(Boolean(data.entitlements?.renewal_available));
-        setPlanExpired(
-          data.entitlements?.plan_status === "EXPIRED" ||
-            data.entitlements?.plan_status === "NO_PLAN"
-        );
-      })
-      .catch(() => null);
-  }, [user]);
+        setHasPaddleSubscription(data.entitlements?.payment_provider === "paddle" &&
+          ["active", "past_due", "paused", "trialing"].includes(data.entitlements?.paddle_status));
+      } catch { /* Keep purchases unavailable when entitlement lookup fails. */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user, getAccessToken]);
 
   React.useEffect(() => {
     const t = searchParams.get("tab") === "topup" ? "topup" : "plans";
@@ -92,14 +99,14 @@ function PricingPageInner() {
   const promoParam = searchParams.get("promo")?.trim() ?? "";
 
   const goCheckout = (itemId: string) => {
-    const promoQs = promoParam ? `&promo=${encodeURIComponent(promoParam)}` : "";
+    const checkout = checkoutEntryUrl(itemId, "paddle", promoParam);
     if (!user) {
       router.push(
-        `/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}${promoParam ? `&promo=${encodeURIComponent(promoParam)}` : ""}`)}`
+        `/sign-in?next=${encodeURIComponent(checkout)}`
       );
       return;
     }
-    router.push(`/checkout?item=${itemId}${promoQs}`);
+    router.push(checkout);
   };
 
   const plans = catalog?.plans ?? [];
@@ -114,7 +121,7 @@ function PricingPageInner() {
             Zgjidh planin tënd
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
-            Plan 30-ditor. Pagesë njëherëshe, pa rinovim automatik. Kreditet nuk skadojnë.
+            Abonime me Paddle: maroStandard €9 dhe maroPro €35 çdo 30 ditë, me rinovim automatik. Anulo në portalin e faturimit. Kreditet nuk skadojnë.
           </p>
         </div>
 
@@ -173,7 +180,7 @@ function PricingPageInner() {
                       <span className="text-[36px] font-bold tracking-brand text-ink">
                         {formatEur(plan.priceEur)}
                       </span>
-                      <span className="text-[14px] text-ink-3">· {plan.credits} kredite</span>
+                      <span className="text-[14px] text-ink-3">çdo 30 ditë · {plan.credits} kredite</span>
                     </div>
                   )}
 
@@ -193,13 +200,9 @@ function PricingPageInner() {
                     >
                       Na kontakto
                     </Link>
-                  ) : renewalAvailable && plan.id !== "business" ? (
-                    <Button className="mt-8 w-full" onClick={() => goCheckout("renew")}>
-                      Rinovo planin
-                    </Button>
                   ) : (
-                    <Button className="mt-8 w-full" onClick={() => goCheckout(plan.id)}>
-                      {planExpired ? "Aktivizo planin" : "Aktivizo planin"}
+                    <Button className="mt-8 w-full" onClick={() => hasPaddleSubscription ? router.push("/account?tab=billing") : goCheckout(plan.id)}>
+                      {hasPaddleSubscription ? "Menaxho abonimin" : "Aktivizo abonimin"}
                     </Button>
                   )}
                 </div>
@@ -246,15 +249,15 @@ function PricingPageInner() {
               {[
                 {
                   q: "A është ky abonim automatik?",
-                  a: "Jo. Planet paguhen një herë dhe zgjasin 30 ditë. Nuk ka pagesë të përsëritur automatikisht.",
+                  a: "Po. maroStandard kushton €9 dhe maroPro €35 çdo 30 ditë, me rinovim automatik përmes Paddle. Kjo nuk është periudhë njëmujore kalendarike.",
                 },
                 {
                   q: "A skadojnë kreditet?",
                   a: "Jo. Kreditet mbeten në llogarinë tënde edhe pas skadimit të planit.",
                 },
                 {
-                  q: "Kur mund ta rinovoj planin?",
-                  a: "Gjatë 7 ditëve të fundit para skadimit.",
+                  q: "Si e menaxhoj ose anuloj abonimin?",
+                  a: "Nga Plani & Kreditet hap portalin Paddle. Anulimi ndalon rinovimin e ardhshëm; aksesi mbetet deri në fund të periudhës së paguar.",
                 },
                 {
                   q: "A mund të blej vetëm kredite?",

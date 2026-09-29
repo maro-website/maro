@@ -18,8 +18,8 @@ export default function RefundPage() {
           .
         </p>
         <p>
-          maro përdor kredite si njësi pagese. Planet maroStandard (€9 / 100 kredite) dhe maroPro (€35 /
-          500 kredite) shfaqen në{" "}
+          maro përdor kredite si njësi pagese. Planet maroStandard (€9 / 100 kredite çdo 30 ditë) dhe
+          maroPro (€35 / 500 kredite çdo 30 ditë) rinovohen automatikisht përmes Paddle dhe shfaqen në{" "}
           <Link href="/pricing" className="font-semibold text-ink underline-offset-2 hover:underline">
             Planet & Kreditet
           </Link>
@@ -95,11 +95,12 @@ export default function RefundPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="6. maroFort dhe abonime">
+      <LegalSection title="6. Abonimet Standard dhe Pro">
         <p>
-          Për abonimin maroFort: anulimi ndalon rinovimin e ardhshëm; nuk rimbursohet periudha aktive e
-          paguar, përveç rasteve të detyrueshme ligjore. Kreditet mujore të maroFort janë pjesë e planit
-          dhe nuk konvertohen në para.
+          Standard dhe Pro kanë cikël faturimi prej 30 ditësh, jo muaj kalendarik. Anulimi në portalin
+          Paddle ndalon rinovimin e ardhshëm dhe ruan aksesin deri në fund të periudhës së paguar.
+          Anulimi nuk shkakton automatikisht rimbursim të periudhës aktive; kërkesat për rimbursim
+          trajtohen sipas kushteve më sipër. Kreditet e planit nuk konvertohen në para.
         </p>
       </LegalSection>
 
