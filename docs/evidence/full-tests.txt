@@ -1,0 +1,205 @@
+
+ RUN  v3.2.7 C:/Users/nicep/Desktop/maro-al/maro-v1-recovery-20260930
+
+·-············································································································································································································································································stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > request validation does no financial or provider work (0)
+{"event":"image_request_validation","requestId":"f463de68-a5a3-4052-bb7d-8a69c5912a32","userPromptLength":null,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_string","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > request validation does no financial or provider work (1)
+{"event":"image_request_validation","requestId":"a3d17f11-5f80-4a9a-8101-f2e161f77847","userPromptLength":null,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_string","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > request validation does no financial or provider work (2)
+{"event":"image_request_validation","requestId":"b7e80939-cf2c-4cbe-9b4a-879e86e69127","userPromptLength":64001,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"prompt_too_long","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"e4b7d088-b075-414a-a64d-37c59c75f4b7","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":31999,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"f1b77eab-54fb-45d8-9bf4-c7dc775ac8f8","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":32000,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"a0183552-5a12-47ed-9b6c-da73218e1627","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":32001,"jobId":null,"outcome":"rejected","code":"prompt_too_long","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"9848312b-990d-46b3-8d33-a140f4d78ee0","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-flare","compiledPromptLength":31999,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"c94adb97-2f5b-4148-b6c0-8a9c6d93fb21","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-flare","compiledPromptLength":32000,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for flare, generate and edit
+{"event":"image_request_validation","requestId":"3b127375-054e-4ff6-a690-0102b084fb1f","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-flare","compiledPromptLength":32001,"jobId":null,"outcome":"rejected","code":"prompt_too_long","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"1d5c1b5d-daa8-48df-9f30-ed8b3fce2398","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-sunburst","compiledPromptLength":31999,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"9ce503f8-ef96-492b-9e6d-f0d64c087767","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-sunburst","compiledPromptLength":32000,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"74e8f1e7-62d0-4cd7-bd4e-d8fca80635f1","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-sunburst","compiledPromptLength":32001,"jobId":null,"outcome":"rejected","code":"prompt_too_long","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"6d44e8a0-dd8a-427d-8e0e-f706034cf3e6","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-sunburst","compiledPromptLength":31999,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"df0236df-89b1-48c8-bbc9-3b60bbc66e08","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-sunburst","compiledPromptLength":32000,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > validates exact compiled boundaries for sunburst, generate and edit
+{"event":"image_request_validation","requestId":"74077d79-7922-4c95-9a7f-758ac0a9b226","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-sunburst","compiledPromptLength":32001,"jobId":null,"outcome":"rejected","code":"prompt_too_long","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > accepts a long input through the actual compiler, with one provider execution
+{"event":"image_request_validation","requestId":"57090888-c0d4-44bf-a4c3-3218f74fb14c","userPromptLength":8000,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":8032,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"model":"unknown"} without side effects
+{"event":"image_request_validation","requestId":"19479917-f857-439c-af02-6824b148c723","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"unknown_model","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"model":"gpt-image-2"} without side effects
+{"event":"image_request_validation","requestId":"e703cd66-9fe5-440a-8f57-cc8cf7235220","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"unknown_model","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"n":4} without side effects
+{"event":"image_request_validation","requestId":"466d3dfb-9ff4-48db-be2d-ee8927b8fde5","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_image_count","field":null}
+
+············stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"quality":"low"} without side effects
+{"event":"image_request_validation","requestId":"91df6b62-ba0f-48ca-8f46-bf611573a7c4","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_option","field":"request"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"selections":{"format":"zero-credit-bypass"}} without side effects
+{"event":"image_request_validation","requestId":"159db225-4f0a-4baf-ab9c-471d8b12f949","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_option","field":"selections.format"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"selections":{"speed":"free"}} without side effects
+{"event":"image_request_validation","requestId":"809526c1-f3fb-43c1-a410-e6c1fde46c96","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_option","field":"selections.speed"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"cost":0} without side effects
+{"event":"image_request_validation","requestId":"20c59886-1647-47db-af96-22348bff1254","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"unknown_field","field":"request"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"credits":0} without side effects
+{"event":"image_request_validation","requestId":"d75de03f-821f-4042-a556-c2e0887f4b54","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"unknown_field","field":"request"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"selections":null} without side effects
+{"event":"image_request_validation","requestId":"1342c10e-25f0-4a61-803b-bc8514434971","userPromptLength":23,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_request","field":"selections"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"prompt":{}} without side effects
+{"event":"image_request_validation","requestId":"5389043f-a848-4c94-a08d-b53c268195ae","userPromptLength":null,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_string","field":"prompt"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects {"maroPrompt":{"id":"unpublished"}} without side effects
+{"event":"image_request_validation","requestId":"87a67413-b457-4499-af20-b89ed6c800f9","userPromptLength":23,"hasReferences":false,"model":null,"jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_preset","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects missing authoritative configuration before side effects
+{"event":"image_request_validation","requestId":"3c92b559-4c09-4bd0-a760-eb1e37e05a2b","userPromptLength":23,"hasReferences":false,"model":null,"jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"model_not_configured","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects zero authoritative configuration before side effects
+{"event":"image_request_validation","requestId":"9a859e8b-ac5d-47db-986b-b21f124b2341","userPromptLength":23,"hasReferences":false,"model":null,"jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_model_price","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects disabled authoritative configuration before side effects
+{"event":"image_request_validation","requestId":"cb9482d9-9808-49e7-aed0-54ec93e97693","userPromptLength":23,"hasReferences":false,"model":null,"jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_model_configuration","field":"request"}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > rejects unauthorized references before reservation
+{"event":"image_request_validation","requestId":"a18eb272-a559-4b37-b154-9aa7265c8ff7","userPromptLength":23,"hasReferences":true,"model":null,"jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"forbidden_reference","field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > a configured 6-credit price reaches the next route reservation, execution and response
+{"event":"image_request_validation","requestId":"9a5e2100-a01c-4f4e-8261-3aa2c4ba6bf8","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+································stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > bills and executes exactly the frozen flare snapshot
+{"event":"image_request_validation","requestId":"568d6fe7-e1b3-4cc6-8c4b-b899b63c607c","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > bills and executes exactly the frozen sunburst snapshot
+{"event":"image_request_validation","requestId":"d50575f4-59bc-441d-a247-79c76815593f","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-sunburst","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > Logo cannot load Brain in legacy, even with a tampered true flag
+{"event":"image_request_validation","requestId":"530c9573-954b-471d-86c7-cd71b9961391","userPromptLength":0,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":2966,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+······························································································stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > Logo cannot load Brain in engine_internal, even with a tampered true flag
+{"event":"image_request_validation","requestId":"298adf09-eaaa-4570-bc8b-321594b1168a","userPromptLength":0,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":2966,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > does not let retained shadow configuration choose the V1 prompt
+{"event":"image_request_validation","requestId":"b521b868-bb19-4599-94ca-2795947f7cb4","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > records the exact executable prompt privately and omits it from user history and response
+{"event":"image_request_validation","requestId":"b39ee49b-b9c4-494c-8bad-38f3796ee81b","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > fails configuration before any reservation or provider call
+{"event":"image_request_validation","requestId":"35dc929f-4fe5-47cd-91c9-26563f780f89","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","jobId":null,"compiledPromptLength":null,"outcome":"rejected","code":"request_configuration_unavailable","field":null}
+
+·stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > does not spend at the provider if the required private trace cannot be recorded
+{"event":"image_request_validation","requestId":"2521fb37-25a3-48f8-8f2e-395260a86420","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > forwards the same resolved Sunburst ID for reference edits in legacy
+{"event":"image_request_validation","requestId":"0031e43c-3e19-48af-b268-a95799e5d727","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-sunburst","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > active route preflight before job/reservation/provider > forwards the same resolved Sunburst ID for reference edits in engine_internal
+{"event":"image_request_validation","requestId":"a75cbe75-c974-4f05-b5a1-a42ab03f28f0","userPromptLength":23,"hasReferences":true,"model":"gpt-image-2.5-sunburst","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > provider failure releases without storage, history or charge
+{"event":"image_request_validation","requestId":"d3c40814-ac6d-4844-80de-f967d1b9fc68","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > storage failure cannot fall back to inline success or charge
+{"event":"image_request_validation","requestId":"7eb0fe84-c396-4e17-abbf-f1997dc38bb2","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > history failure retains stored output but does not finalize
+{"event":"image_request_validation","requestId":"9b3ef7eb-489e-4c35-b155-0fcc0d1e3029","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > uncertain history commit remains recoverable instead of claiming a refund
+{"event":"image_request_validation","requestId":"e5179283-1f9a-4d7b-acb4-a0dcc1519131","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > settlement_pending preserves durable identifiers and never releases
+{"event":"image_request_validation","requestId":"09a639ac-1938-4d1d-9d5f-14b70911e6a0","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > invalid_state preserves durable identifiers and never releases
+{"event":"image_request_validation","requestId":"af580094-a833-411c-b89e-a4007ae90d10","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > evidence_missing preserves durable identifiers and never releases
+{"event":"image_request_validation","requestId":"de2e05ab-5602-4bd4-a6b1-f7800bb9fc31","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > telemetry and accounting exceptions cannot corrupt verified success
+{"event":"image_request_validation","requestId":"e1b8a3ea-d311-41ef-b30d-011b2d58441e","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stderr | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > telemetry and accounting exceptions cannot corrupt verified success
+[v1_image] optional execution telemetry failed
+
+stderr | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > telemetry and accounting exceptions cannot corrupt verified success
+[v1_image] optional cost accounting failed
+
+stderr | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > telemetry and accounting exceptions cannot corrupt verified success
+[v1_image] optional success telemetry failed
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > verified already-finalized settlement is normal recoverable success
+{"event":"image_request_validation","requestId":"fe89fc74-8d86-4365-9e30-a868b7e18b51","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+stdout | src/lib/__tests__/v1-image-route.test.ts > V1 durability failure injection > SSE cancellation cannot interrupt durable completion or trigger release
+{"event":"image_request_validation","requestId":"2733d418-95fd-43b9-9f91-e93b4b9a36ee","userPromptLength":23,"hasReferences":false,"model":"gpt-image-2.5-flare","compiledPromptLength":55,"jobId":"job","outcome":"accepted","code":null,"field":null}
+
+···················································································································································································································································stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=website
+{"event":"image_request_validation","requestId":"5b6507bb-d534-4b71-969a-49beec55323f","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+···stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=maro_web
+{"event":"image_request_validation","requestId":"2016c011-b5c4-49a3-8d00-5263f323617a","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=filma
+{"event":"image_request_validation","requestId":"282b6d84-7054-4d95-8a01-eb7cf419aeb0","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=audio
+{"event":"image_request_validation","requestId":"20110640-b692-4963-9b0b-b52a9345a352","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=zo
+{"event":"image_request_validation","requestId":"f91c2f78-db62-4812-a003-3fc3ec99a777","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=marketing
+{"event":"image_request_validation","requestId":"ef595a1b-5133-4069-b1db-3644eca7fc4a","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=fort
+{"event":"image_request_validation","requestId":"cae9889f-5d87-4e5e-a8ef-fec2f6678cf4","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > cannot bypass parking through image toolId=chat
+{"event":"image_request_validation","requestId":"925f2960-2915-4837-9454-9a7fc273bc21","userPromptLength":4,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"module_unavailable","field":"toolId"}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > leaves reklama on the existing active request path
+{"event":"image_request_validation","requestId":"93066851-cf59-40c5-a895-10d47334f1dc","userPromptLength":0,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"missing-prompt","field":null}
+
+stdout | src/lib/__tests__/v1-module-availability.test.ts > V1 route boundaries > leaves logo on the existing active request path
+{"event":"image_request_validation","requestId":"ded44f7a-8355-4627-9b11-b902964494d7","userPromptLength":0,"hasReferences":false,"jobId":null,"model":null,"compiledPromptLength":null,"outcome":"rejected","code":"invalid_request","field":"request"}
+
+·····················································································································································································································································································································································································································································----------············································
+
+ Test Files  86 passed | 1 skipped (87)
+      Tests  1135 passed | 11 skipped (1146)
+   Start at  23:19:16
+   Duration  5.16s (transform 12.27s, setup 1.06s, collect 45.42s, tests 15.50s, environment 19ms, prepare 14.43s)
+

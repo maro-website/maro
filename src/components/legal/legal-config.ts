@@ -23,7 +23,7 @@ export const LEGAL_PAGES = [
   { href: "/legal/cookies", label: "Politika e Cookies" },
 ] as const;
 
-export const LEGAL_UPDATED = "15 Shtator 2026";
+export const LEGAL_UPDATED = "30 Shtator 2026";
 
 export const LEGAL_SOURCES = {
   privacy: "https://gzk.rks-gov.net/ActDocumentDetail.aspx?ActID=18616",

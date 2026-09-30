@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { useMaro } from "@/context/store";
-import { UserAvatar } from "@/components/ui/UserAvatar";
+import { initials } from "@/lib/utils/format";
 import { randomMaroLabel } from "@/lib/utils/maroButton";
 import { Coins, LogOut, Shield, User as UserIcon, Plus } from "lucide-react";
 
@@ -51,7 +51,19 @@ export function AppHeader() {
             }
             trigger={
               <button className="flex items-center gap-2 rounded-full p-0.5 pr-2 transition-colors hover:bg-surface-2">
-                <UserAvatar user={user ?? { name: "U" }} className="h-8 w-8 text-[12px]" />
+                {user?.avatarUrl ? (
+                  <span className="h-8 w-8 overflow-hidden rounded-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  </span>
+                ) : (
+                  <span
+                    className="grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold text-white"
+                    style={{ background: user?.avatarColor ?? "#00FF72" }}
+                  >
+                    {initials(user?.name ?? "U")}
+                  </span>
+                )}
               </button>
             }
             items={[

@@ -45,7 +45,7 @@
   --brand: var(--accent);
   --brand-hover: var(--accent-hover);
   --brand-soft: color-mix(in srgb, var(--accent) 10%, transparent);
-  --brand-fg: var(--maro-color-text-inverse);
+  --brand-fg: var(--maro-color-text-on-accent);
   --accent-teal: var(--accent);
   --accent-soft: var(--brand-soft);
   --accent-teal-soft: var(--brand-soft);

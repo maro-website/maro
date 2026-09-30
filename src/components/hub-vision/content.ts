@@ -5,6 +5,7 @@ import { MODULE_AVAILABILITY } from "@/lib/modules/availability";
 export const copy = {
   greeting: "Maro diçka sot",
   workspace: "Hapësira jote",
+  accountLabel: "Llogaria jote",
   workspaceError: "Hapësira nuk u ndryshua. Provo përsëri.",
   imazh: { name: "maroImazh", line: "Imagjino përtej\ntë zakonshmes.", action: "Krijo imazh", href: "/imazh" },
   logo: { name: "maroLogo", action: "Krijo identitet", href: "/marologo" },

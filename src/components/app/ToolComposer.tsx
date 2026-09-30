@@ -17,8 +17,7 @@ import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { GPT_IMAGE_PROMPT_MAX_CHARS } from "@/lib/generation/imagePromptValidation";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
-import { FortPanel } from "@/components/fort/FortPanel";
-import { BrainPill, FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
+import { BrainPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
@@ -30,10 +29,6 @@ import {
 } from "@/lib/workspaces/brainService";
 import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { toolToFortModule, type FortValue } from "@/lib/fort/types";
-import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
-import { defaultFortValues } from "@/lib/fort/schema";
-import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
 import { createProjectFromComposer, TYPE_TO_KIND } from "@/lib/services/projectService";
 import {
   MAX_PROJECT_ASSET_FILE_BYTES,
@@ -177,14 +172,11 @@ export function ToolComposer({
   const openId = searchParams.get("open");
   const isReadOnlyView = Boolean(openId);
   const { toast } = useToast();
-  const { user, credits, hasFort, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
+  const { user, credits, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
-  const { pricing, fortConfig, toolOptionIcons } = useSettings(Boolean(user));
+  const { pricing, toolOptionIcons } = useSettings(Boolean(user));
 
-  const fortModule = toolToFortModule(tool.id);
-  const fortAvailable = Boolean(fortModule && isFortModuleEnabled(fortConfig, fortModule));
-  const fortResolved = resolveFortConfig(fortConfig);
 
   const [prompt, setPrompt] = React.useState("");
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
@@ -201,12 +193,6 @@ export function ToolComposer({
   const promptCountId = React.useId();
   const [expanded, setExpanded] = React.useState(false);
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
-  // maroFort: opens as a pop-up. `active` means a saved config is applied to
-  // generation (shows the red button); `modalOpen` controls the pop-up.
-  const [fortActive, setFortActive] = React.useState(false);
-  const [fortModalOpen, setFortModalOpen] = React.useState(false);
-  const [fortDirty, setFortDirty] = React.useState(false);
-  const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
   const [promptAttachInternal, setPromptAttachInternal] = React.useState<PromptAttach | null>(null);
@@ -308,9 +294,6 @@ export function ToolComposer({
     setAttachments([]);
     setPrivateImageAttachments([]);
     setAudioInput(null);
-    setFortActive(false);
-    setFortModalOpen(false);
-    setFortDirty(false);
     // Pull a curated prompt attached from /prompts (only if it targets this tool).
     let attach: PromptAttach | null = null;
     try {
@@ -421,60 +404,6 @@ export function ToolComposer({
     });
     return () => cancelAnimationFrame(frame);
   }, [latestMessage?.id, latestMessage?.status]);
-
-  // Initialize maroFort values (defaults + persisted) once config is available.
-  React.useEffect(() => {
-    if (!fortModule) return;
-    const base = defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>;
-    const saved = loadFortValues(tool.id) as Record<string, FortValue>;
-    setFortValues({ ...base, ...saved });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool.id, fortModule, fortConfig]);
-
-  const setFortValue = (id: string, value: FortValue) => {
-    setFortDirty(true);
-    setFortValues((prev) => {
-      const next = { ...prev, [id]: value };
-      saveFortValues(tool.id, next);
-      return next;
-    });
-  };
-
-  // Open the maroFort pop-up (or trigger the upgrade flow when not entitled).
-  const openFortModal = () => {
-    setFortDirty(false);
-    setFortModalOpen(true);
-  };
-
-  // "Ruaj" — apply the config and show the red button in the composer.
-  const saveFort = () => {
-    saveFortValues(tool.id, fortValues);
-    setFortActive(true);
-    setFortDirty(false);
-    setFortModalOpen(false);
-  };
-
-  // "Fshije" — clear all maroFort settings for this tool and deactivate.
-  const clearFort = () => {
-    const base = fortModule
-      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
-      : {};
-    setFortValues(base);
-    saveFortValues(tool.id, base);
-    setFortActive(false);
-    setFortDirty(false);
-    setFortModalOpen(false);
-  };
-
-  // Reset — back to defaults but keep the pop-up open (fresh start).
-  const resetFort = () => {
-    const base = fortModule
-      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
-      : {};
-    setFortValues(base);
-    saveFortValues(tool.id, base);
-    setFortDirty(true);
-  };
 
   const cost = isImage ? selectedImageModel?.customerCredits ?? 0 : toolSelectionCost(tool, selections, pricing.options);
   const creditsRef = React.useRef(credits);
@@ -786,10 +715,7 @@ export function ToolComposer({
     const text = prompt.trim();
     if (!text || promptTooLong) return;
 
-    const fortPayload =
-      fortAvailable && fortActive && hasFort
-        ? { enabled: true, values: fortValues }
-        : undefined;
+    const fortPayload = undefined;
     const maroPromptPayload = promptAttach ? { id: promptAttach.id } : undefined;
 
     if (tool.kind === "website") {
@@ -850,7 +776,6 @@ export function ToolComposer({
     const onStarted = createImageDraftAcceptance({
       prompt, attachments: sentPrivateAttachments ?? [], setPrompt,
       setAttachments: setPrivateImageAttachments,
-      onAccepted: () => setFortModalOpen(false),
     });
     setLoading(true);
     setMobileComposerOpen(false);
@@ -929,7 +854,7 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
+  }, [promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = !promptTooLong && (isAudio
@@ -1207,26 +1132,9 @@ export function ToolComposer({
             </div>
           )}
 
-          {(fortAvailable || promptAttach || (canAttachImages && brainReady)) && !loading && (
+          {(promptAttach || (canAttachImages && brainReady)) && !loading && (
             <div className="prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5">
               {canAttachImages && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
-              {fortAvailable && (
-                <FortPill
-                  active={fortActive}
-                  locked={false}
-                  label={fortResolved.label}
-                  badgeText={fortResolved.badgeText}
-                  onToggle={(next) => {
-                    if (next) openFortModal();
-                    else clearFort();
-                  }}
-                  onOpen={() => {
-                    setFortDirty(false);
-                    setFortModalOpen(true);
-                  }}
-                  onUpgrade={() => router.push("/pricing")}
-                />
-              )}
               {promptAttach && (
                 <PresetPill
                   code={promptAttach.code}
@@ -1433,73 +1341,6 @@ export function ToolComposer({
             className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover"
           >
             Po, vazhdo
-          </button>
-        </div>
-      </Modal>
-
-      {/* maroFort pop-up */}
-      <Modal
-        open={fortAvailable && fortModalOpen}
-        onClose={() => setFortModalOpen(false)}
-        size="lg"
-        className="max-w-2xl overflow-hidden bg-canvas"
-        hideClose
-      >
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface text-ink">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div>
-              <div className="text-[12.5px] text-ink-3">Modaliteti ekspert, kontroll i plotë</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={resetFort}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:opacity-80"
-          >
-            <Eraser className="h-3.5 w-3.5" />
-            Pastroje
-          </button>
-        </div>
-
-        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 pb-4">
-          {fortModule && (
-            <FortPanel
-              module={fortModule}
-              config={fortConfig}
-              values={fortValues}
-              onChange={setFortValue}
-            />
-          )}
-        </div>
-
-        <div className="flex gap-2 bg-canvas px-5 py-4">
-          {fortActive && (
-            <button
-              type="button"
-              onClick={clearFort}
-              className="rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-danger transition-colors hover:opacity-80"
-            >
-              Fshije
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setFortModalOpen(false)}
-            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:opacity-80"
-          >
-            Anulo
-          </button>
-          <button
-            type="button"
-            onClick={saveFort}
-            disabled={!fortDirty}
-            className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-bold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Ruaj
           </button>
         </div>
       </Modal>

@@ -1,0 +1,34 @@
+✔ missing secret fails before any request (48.6262ms)
+✔ missing explicit origin fails even when an alias exists (34.3814ms)
+✔ verified success sends one authenticated POST and exits zero (63.4712ms)
+✔ HTTP 401 fails without printing response or retrying (60.8514ms)
+✔ HTTP 403 fails without printing response or retrying (57.6082ms)
+✔ HTTP 500 fails without printing response or retrying (58.2913ms)
+✔ HTTP 503 fails without printing response or retrying (61.1486ms)
+✔ redirects are not followed (61.2876ms)
+✔ 200 with HTML fails (63.9369ms)
+✔ 200 with malformed JSON fails (61.6688ms)
+✔ 200 with false acknowledgement fails (60.8801ms)
+✔ 200 with missing acknowledgement fails (62.5561ms)
+✔ 200 with oversized body fails (65.566ms)
+✔ timeout while waiting for headers exits non-zero (145.763ms)
+✔ timeout while waiting for body exits non-zero (142.0723ms)
+✔ invalid origin is rejected: invalid (33.5346ms)
+✔ invalid origin is rejected: http://maro.invalid (34.3024ms)
+✔ invalid origin is rejected: https://user:password@maro.invalid (33.8116ms)
+✔ invalid origin is rejected: https://maro.invalid/path (34.0628ms)
+✔ invalid origin is rejected: https://maro.invalid/?secret=bad (33.7274ms)
+✔ invalid origin is rejected: https://maro.invalid/#bad (36.0945ms)
+✔ production rejects HTTP even on loopback (35.8029ms)
+✔ invalid timeout 0 fails closed (34.9639ms)
+✔ invalid timeout 120001 fails closed (34.2875ms)
+✔ invalid timeout invalid fails closed (34.1739ms)
+✔ network failure exits non-zero without exception details (51.8491ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1515.3804

@@ -8,7 +8,7 @@ export interface WorkspaceBrand {
 }
 
 export const DEFAULT_WORKSPACE_BRAND: WorkspaceBrand = {
-  primaryColor: "#253FDA",
+  primaryColor: "#00ff72",
   secondaryColor: "#0B0B0B",
   backgroundColor: "#FFFFFF",
   textColor: "#0B0B0B",

@@ -21,7 +21,7 @@ export function FilmaPreview() {
     <video
       ref={video}
       className={s.filmaVideo}
-      src="/videos/hub-vision/maro-filma.mp4"
+      src="/videos/hub-vision/maroFilma-hub04.mp4"
       autoPlay
       loop
       muted={muted}
@@ -31,7 +31,7 @@ export function FilmaPreview() {
       disableRemotePlayback
       aria-label="Video demonstrimi maroFilma"
     />
-    <span className={s.filmaBadge}>generated with <strong>maroFilma</strong></span>
+    <span className={s.filmaBadge}>Gjeneruar me <strong>maroFilma</strong></span>
     <button type="button" className={s.filmaSound} onClick={toggleSound} aria-label={muted ? "Unmute" : "Mute"} title={muted ? "Unmute" : "Mute"}>
       {muted ? <VolumeX size={19} aria-hidden /> : <Volume2 size={19} aria-hidden />}
     </button>

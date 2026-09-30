@@ -41,12 +41,13 @@ export default function PrivacyPage() {
       <LegalSection title="5. Kush mund t’i marrë të dhënat">
         <ul className="list-disc space-y-2 pl-5">
           <li><strong>Supabase:</strong> autentifikimi, baza e të dhënave dhe ruajtja e skedarëve.</li>
-          <li><strong>Anthropic:</strong> teksti dhe konteksti i nevojshëm për krijimin/redaktimin e website-ve dhe funksionet përkatëse AI.</li>
+          <li><strong>Anthropic:</strong> vetëm për funksionet e website-ve kur janë të aktivizuara; maroWeb nuk është i disponueshëm në V1.</li>
           <li><strong>OpenAI:</strong> promptet, cilësimet dhe referencat e nevojshme për imazhe e logo.</li>
           <li><strong>ElevenLabs:</strong> tekst dhe audio vetëm kur përdorni funksionet audio të aktivizuara që mbështeten te ky ofrues.</li>
           <li><strong>Railway dhe Cloudflare:</strong> hostimi i platformës, shpërndarja e trafikut, lidhja e sigurt dhe mbrojtja e shërbimit.</li>
           <li><strong>Resend:</strong> adresa e marrësit, përmbajtja e emailit të shërbimit dhe të dhënat e dërgimit.</li>
           <li><strong>Raiffeisen Bank Kosova dhe procesori përkatës:</strong> të dhënat e transaksionit kur pagesa reale përmes tyre është e disponueshme dhe e zgjedhur.</li>
+          <li><strong>Paddle:</strong> të dhënat e faturimit dhe transaksionit për përpunimin e abonimeve ose blerjeve ekzistuese me këtë ofrues. Blerjet e reja janë të mbyllura në V1.</li>
         </ul>
         <p>Nuk i dërgojmë çdo të dhënë çdo ofruesi; marrësi varet nga funksioni. Punonjësit dhe bashkëpunëtorët e autorizuar marrin qasje sipas detyrës. Këshilltarët kontabël/ligjorë dhe autoritetet mund të marrin të dhëna kur nevojitet për detyrime ligjore ose mbrojtjen e kërkesave.</p>
         <p>Ofruesit mund të veprojnë si përpunues për shërbimin që kryejnë për ne dhe, për detyrimet e tyre ligjore, si kontrollues të veçantë. Një bankë nuk vepron vetëm sipas udhëzimeve tona. Krijimet që publikoni u bëhen të qasshme vizitorëve të Explore. Një lidhje drejt reklamuesit ose një website-i të jashtëm ju çon te shërbimi dhe politika e tij.</p>

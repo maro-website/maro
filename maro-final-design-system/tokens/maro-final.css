@@ -18,9 +18,9 @@
   --maro-gray-300: #c9c9c9;
   --maro-gray-500: #8a8a8a;
   --maro-gray-650: #5f5f5f;
-  --maro-blue: #253fda;
-  --maro-blue-hover: #1f35bd;
-  --maro-blue-soft-icon: #8793ef;
+  --maro-blue: #00ff72;
+  --maro-blue-hover: #00d961;
+  --maro-blue-soft-icon: #3dff8a;
   --maro-red: #da2525;
   --maro-success: #15824b;
   --maro-warning: #aa6700;
@@ -43,14 +43,14 @@
   --maro-color-text-tertiary: var(--maro-gray-500);
   --maro-color-text-muted: var(--maro-gray-500);
   --maro-color-text-inverse: var(--maro-white);
-  --maro-color-text-brand: var(--maro-blue);
+  --maro-color-text-brand: #007a38;
   --maro-color-text-danger: var(--maro-danger);
   --maro-color-text-disabled: var(--maro-gray-300);
 
   --maro-color-icon-primary: var(--maro-ink);
   --maro-color-icon-secondary: var(--maro-gray-650);
   --maro-color-icon-inverse: var(--maro-white);
-  --maro-color-icon-brand: var(--maro-blue);
+  --maro-color-icon-brand: #007a38;
   --maro-color-icon-danger: var(--maro-danger);
 
   /* Structural separators only. Never use these to outline every surface. */
@@ -61,14 +61,15 @@
 
   --maro-color-accent: var(--maro-blue);
   --maro-color-accent-hover: var(--maro-blue-hover);
+  --maro-color-text-on-accent: var(--maro-ink);
   --maro-color-success: var(--maro-success);
   --maro-color-warning: var(--maro-warning);
   --maro-color-danger: var(--maro-danger);
 
   /* Product-only gradients. They are not general surface colors. */
   --maro-gradient-fort: linear-gradient(90deg, #da2525 0%, #e45c5c 52%, rgb(255 255 255 / 78%) 100%);
-  --maro-gradient-preset: linear-gradient(90deg, #253fda 0%, #6878ea 52%, rgb(255 255 255 / 78%) 100%);
-  --maro-gradient-cta: linear-gradient(90deg, #253fda 0%, #8793ef 100%);
+  --maro-gradient-preset: linear-gradient(90deg, #00ff72 0%, #5dffa0 52%, rgb(255 255 255 / 78%) 100%);
+  --maro-gradient-cta: linear-gradient(90deg, #00ff72 0%, #3dff8a 100%);
 
   /* Typography */
   --maro-font-family: "Manrope", "Segoe UI", Arial, sans-serif;

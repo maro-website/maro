@@ -81,7 +81,9 @@ describe("workspace images cannot cause arbitrary server fetches", () => {
   });
 
   it("the image route uses this resolver and has no arbitrary URL-fetch fallback", () => {
-    const route = readFileSync("src/app/api/ai/image/route.ts", "utf8");
+    const route = readFileSync("src/lib/generation/v1ImageApplication.ts", "utf8");
+    const entry = readFileSync("src/app/api/ai/image/route.ts", "utf8");
+    expect(entry).toContain("export const POST = executeV1ImageApplication");
     const canonical = readFileSync("src/lib/generation/v1ImagePrompt.ts", "utf8");
     expect(route).toContain("await compileTrustedImageRequest(trusted)");
     expect(canonical).toContain("await resolveWorkspaceImageReference(url, request.userId)");

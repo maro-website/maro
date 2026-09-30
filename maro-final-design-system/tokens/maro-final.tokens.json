@@ -13,7 +13,7 @@
     "ink": { "$type": "color", "$value": "#0a0a0a" },
     "secondary": { "$type": "color", "$value": "#5f5f5f" },
     "muted": { "$type": "color", "$value": "#8a8a8a" },
-    "brand": { "$type": "color", "$value": "#253fda" },
+    "brand": { "$type": "color", "$value": "#00ff72" },
     "fort": { "$type": "color", "$value": "#da2525" },
     "success": { "$type": "color", "$value": "#15824b" },
     "warning": { "$type": "color", "$value": "#aa6700" },

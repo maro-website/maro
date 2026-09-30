@@ -51,8 +51,8 @@ function editorBridge(options: AiPreviewEditorOptions): string {
   ].join(",");
 
   return `<style data-maro-editor-bridge>
-[data-maro-editor-hover]{outline:2px dashed #253FDA!important;outline-offset:3px!important;cursor:pointer!important}
-[data-maro-editor-selected]{outline:3px solid #253FDA!important;outline-offset:3px!important}
+[data-maro-editor-hover]{outline:2px dashed #00ff72!important;outline-offset:3px!important;cursor:pointer!important}
+[data-maro-editor-selected]{outline:3px solid #00ff72!important;outline-offset:3px!important}
 </style><script data-maro-editor-bridge>(function(){
 var channel=${safeJson(options.channel)};
 var selectedPath=${safeJson(options.selectedPath ?? null)};

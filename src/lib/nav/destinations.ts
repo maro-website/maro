@@ -45,7 +45,7 @@ const MODULE_DESTINATIONS: NavDestination[] = [
   { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
   { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma" },
-  { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo" },
+  { id: "audio", label: "maroZo", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo" },
   { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea" },
   { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
 ];
@@ -70,9 +70,7 @@ export const NAV_DESTINATIONS: NavDestination[] = [
   { id: "home", label: "Hub", route: "/", group: "home" },
   ...TOP_BAR_DESTINATIONS,
   { id: "explore", label: "Explore", route: "/explore", group: "discover" },
-  { id: "contests", label: "Kontestet", route: "/contests", group: "community" },
-  { id: "kreator", label: "Kreator", route: "/kreator", group: "community" },
-  { id: "academy", label: "Academy", route: "/academy", group: "later", badge: "së shpejti", comingSoon: true },
+  { id: "case_studies", label: "Case Studies", route: "/case-studies", group: "later", badge: "Së shpejti · V1.5", comingSoon: true },
   { id: "mcp", label: "MCP & CLI", route: "/mcp", group: "later", badge: "së shpejti", comingSoon: true },
 ];
 

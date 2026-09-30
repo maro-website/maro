@@ -14,7 +14,7 @@ import { LAUNCH_REQUEST_HEADER } from "@/lib/launch/config";
 export const metadata: Metadata = {
   title: "maro · AI Hub",
   description:
-    "maro AI Hub: krijo website, logo dhe imazhe me AI. Përshkruaj çka do dhe maro e maron.",
+    "maro AI Hub: krijo logo dhe imazhe me AI. Përshkruaj çka do dhe maro e maron.",
   icons: { icon: MARO_LOGO.symbol },
 };
 
@@ -22,9 +22,8 @@ export const viewport: Viewport = {
   themeColor: "#F9F9F9",
   width: "device-width",
   initialScale: 1,
-  // Prevent iOS auto-zoom when focusing form fields.
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default async function RootLayout({

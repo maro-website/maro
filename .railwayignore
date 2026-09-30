@@ -4,3 +4,9 @@ node_modules
 .vercel
 .env*
 *.tsbuildinfo
+
+# Preserved source history and verification are not runtime assets.
+quarantine/
+docs/evidence/
+tools/recovery/
+.recovery-test-db/

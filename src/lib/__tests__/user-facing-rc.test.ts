@@ -18,9 +18,9 @@ describe("User-facing RC — terminology", () => {
     expect(getTool("prompte")?.name).toBe("maroPresets");
   });
 
-  it("uses maroAudio publicly while preserving the canonical legacy tool id", () => {
+  it("uses maroZo publicly while preserving the canonical legacy tool id", () => {
     const audio = TOP_BAR_DESTINATIONS.find((destination) => destination.id === "audio");
-    expect(audio?.label).toBe("maroAudio");
+    expect(audio?.label).toBe("maroZo");
     expect(audio?.route).toBe("/audio");
     expect(audio?.toolId).toBe("zo");
   });

@@ -3,7 +3,7 @@
 import * as React from "react";
 
 /** App UI is light-only; kept for icon resolution hooks that read theme. */
-export type Theme = "mshelt";
+export type Theme = "qelt";
 
 const THEME_COLOR = "#F9F9F9";
 
@@ -16,7 +16,7 @@ const Ctx = React.createContext<ThemeCtx | null>(null);
 function applyLightTheme() {
   document.documentElement.removeAttribute("data-theme");
   try {
-    localStorage.setItem("maro.theme", "mshelt");
+    localStorage.setItem("maro.theme", "qelt");
   } catch {
     /* private mode */
   }
@@ -34,7 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyLightTheme();
   }, []);
 
-  return <Ctx.Provider value={{ theme: "mshelt" }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ theme: "qelt" }}>{children}</Ctx.Provider>;
 }
 
 export function useTheme(): ThemeCtx {

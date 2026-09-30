@@ -35,14 +35,14 @@ beforeEach(() => {
       if (mock.fail === table) return { data: null, error: new Error("database unavailable") };
       const data = table === "tool_model_configs" ? mock.rows
         : table === "profiles" ? { active_workspace_id: mock.active }
-        : table === "workspaces" ? filters.id === "owned" && filters.owner_id === "user" ? { id: "owned" } : null
+        : table === "workspaces" ? (!filters.id || filters.id === "owned") && filters.owner_id === "user" ? { id: "owned" } : null
         : table === "maro_prompts" ? mock.preset
         : [];
       return { data, error: null };
     };
     const query = {
       select: () => query, eq: (key: string, value: unknown) => { filters[key] = value; return query; },
-      in: () => query, order: () => query,
+      in: () => query, order: () => query, limit: () => query, update: () => query,
       single: async () => result(), maybeSingle: async () => result(),
       then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result()).then(resolve),
     };
@@ -57,9 +57,12 @@ describe("real storage boundaries with mocked SDK", () => {
     expect(mock.queries.find((query) => query.table === "workspaces")?.filters).toEqual({ id: "other", owner_id: "user" });
     expect(mock.queries.some((query) => query.table === "profiles")).toBe(false);
   });
-  it("checks the active workspace belongs to the authenticated user too", async () => {
+  it("replaces a stale foreign active preference only with an owned fallback", async () => {
     mock.active = "other";
-    await expect(boundary.resolveV1ImageRequest(boundary.parseV1ImageRequest(imazhRequest), "user")).rejects.toThrow("forbidden_workspace");
+    const trusted = await boundary.resolveV1ImageRequest(boundary.parseV1ImageRequest(imazhRequest), "user");
+    expect(trusted.snapshot.workspaceId).toBe("owned");
+    const workspaceQueries = mock.queries.filter((q) => q.table === "workspaces");
+    expect(workspaceQueries.every((q) => q.filters.owner_id === "user")).toBe(true);
   });
   it.each(["profiles", "workspaces", "tool_model_configs"])("fails closed on %s read errors", async (table) => {
     mock.fail = table;

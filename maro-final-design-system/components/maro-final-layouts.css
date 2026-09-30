@@ -55,6 +55,18 @@ body[data-maro-ui="final"] :where(input[type="checkbox"], input[type="radio"]) {
   background: var(--maro-color-bg-canvas);
 }
 
+.maro-shell-header--frost {
+  background: color-mix(in srgb, var(--maro-color-bg-canvas) 70%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  backdrop-filter: blur(22px) saturate(1.12);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .maro-shell-header--frost {
+    background: var(--maro-color-bg-canvas);
+  }
+}
+
 .maro-page-shell {
   width: min(100%, var(--maro-shell-content-max));
   margin-inline: auto;

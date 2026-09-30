@@ -4,12 +4,14 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const executable = path.resolve('scripts/phase5-data/postgresql-runtime/pgsql/bin/psql.exe');
+const executable = path.resolve(process.env.MARO_TEST_PSQL || 'scripts/phase5-data/postgresql-runtime/pgsql/bin/psql.exe');
+const port = process.env.MARO_TEST_PG_PORT || '55435';
+if (!/^\d{4,5}$/.test(port)) throw new Error('invalid_local_test_port');
 const database = 'phase5_test';
 const q = (v) => `'${String(v).replaceAll("'", "''")}'`;
 function sql(statement) {
   return new Promise((resolve,reject) => {
-    const child=spawn(executable,['-X','-h','127.0.0.1','-p','55435','-U','phase5','-d',database,'-v','ON_ERROR_STOP=1','-Atq'],{windowsHide:true});
+    const child=spawn(executable,['-X','-h','127.0.0.1','-p',port,'-U','phase5','-d',database,'-v','ON_ERROR_STOP=1','-Atq'],{windowsHide:true,env:{PATH:process.env.PATH,SYSTEMROOT:process.env.SYSTEMROOT}});
     let out='',err=''; child.stdout.on('data',b=>out+=b);child.stderr.on('data',b=>err+=b);
     child.on('error',reject);child.on('close',code=>code===0?resolve(out.trim()):reject(Error(err.trim())));child.stdin.end(statement);
   });
@@ -44,4 +46,4 @@ await test('duplicate submissions cannot create two jobs, including after comple
 await test('terminal failure permits retry with the same key on a new separately reserved job',async()=>{const u=await user();const key=randomUUID();const old=await job(u,key);await reserve(u,old);await release(old);const retry=await job(u,key);assert.notEqual(old,retry);assert.equal(await reserve(u,retry),'5');assert.deepEqual(await balance(u),[5,5]);await release(retry);});
 await test('missing/wrong storage, trace, model or history ownership prevents a charge',async()=>{for(const mode of ['storage','trace','model','owner']){const u=await user();const j=await job(u);await reserve(u,j);await stored(u,j);await persist(j);if(mode==='storage')await sql(`delete from storage.objects where name=${q(`${u}/${j}/output.png`)};`);if(mode==='trace')await sql(`delete from pricing_snapshots where job_id=${q(j)};`);if(mode==='model')await sql(`update generations set model='wrong' where job_id=${q(j)};`);if(mode==='owner')await sql(`update generations set user_id=${q(await user())} where job_id=${q(j)};`);assert.equal(await finalize(j),'evidence_missing');assert.equal((await state(j)).charges,0);assert.equal(await release(j),'f');}});
 await test('new privileged RPCs deny ordinary roles',async()=>{for(const signature of ['settle_v1_image_job(uuid)','persist_v1_image_generation(uuid)','fail_v1_image_job(uuid,text)','reconcile_generation_job(uuid,integer)','mark_v1_image_provider_result(uuid,text,jsonb)'])assert.equal(await sql(`select has_function_privilege('authenticated',${q(signature)},'execute');`),'f');});
-const report={database:'isolated PostgreSQL 17, loopback only',passed:checks.length,checks,providerCalls:0,customerDataUsed:false};fs.writeFileSync('scripts/phase5-data/database-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+const report={database:'isolated PostgreSQL 17, loopback only',port,passed:checks.length,checks,providerCalls:0,customerDataUsed:false};fs.writeFileSync(process.env.MARO_TEST_REPORT || 'scripts/phase5-data/database-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));

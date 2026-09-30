@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({ draft: null as Record<string, unknown> | null,
 vi.mock("@/lib/marologo/contentServer", async () => ({ loadLogoContent: async () => (await import("@/lib/marologo/content")).DEFAULT_LOGO_CONTENT }));
 vi.mock("@/lib/supabase/server", () => ({
   supabaseServerConfigured: () => true,
+  getActiveWorkspaceId: async () => "owned",
   getSupabaseAdmin: () => ({ from: (table: string) => {
     let toolModule: unknown;
     const query = { select: () => query, eq: (key: string, value: unknown) => { if (key === "tool_id") toolModule = value; return query; }, in: () => query,

@@ -1,0 +1,286 @@
+[
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/hub-lab",
+    "preserved_at": "quarantine/20260930/old-hub-lab/src/app/hub-lab",
+    "action": "move within recovery",
+    "files": [
+      {
+        "path": "src/app/hub-lab/page.tsx",
+        "sha256": "b6bb1cbaa1b1320907977f63a37d9b843b4d6d19c189bd86db18f70d834e8b40"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/components/hub-lab",
+    "preserved_at": "quarantine/20260930/old-hub-lab/src/components/hub-lab",
+    "action": "move within recovery",
+    "files": [
+      {
+        "path": "src/components/hub-lab/BrandArtwork.tsx",
+        "sha256": "db7724b9ac4a28f57830149677c8e0b7a0b9c46948a6e6cb1fcbf478fa782cec"
+      },
+      {
+        "path": "src/components/hub-lab/HubLab.module.css",
+        "sha256": "c16acd02183de47009b9ddcb14ebc92e63362118afcff0a2f2bf753262a69b64"
+      },
+      {
+        "path": "src/components/hub-lab/HubLab.tsx",
+        "sha256": "d1a48b70f3cb1ab13beb4c935c0307bf158073e8f20e02305cd58ca9a3ee4c51"
+      },
+      {
+        "path": "src/components/hub-lab/ProductStory.tsx",
+        "sha256": "f4c51239dd3bd711db76726e8ece14106d3af7ac90b3ba687d465c1dc4b9c992"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/components/app/ToolComposer.tsx",
+    "preserved_at": "quarantine/20260930/fort-ui-original/src/components/app/ToolComposer.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/components/app/ToolComposer.tsx",
+        "sha256": "a5161579e3e650e3512c644671079a7311c3a1cb943114fa8d4271b4d47c4e67"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/components/marologo/MaroLogoWizard.tsx",
+    "preserved_at": "quarantine/20260930/fort-ui-original/src/components/marologo/MaroLogoWizard.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/components/marologo/MaroLogoWizard.tsx",
+        "sha256": "064f29eddd70c3d3e913a588912b8d0e42ae00e94beee1909650039236a8f5fc"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/components/app/PromptAccessoryRow.tsx",
+    "preserved_at": "quarantine/20260930/fort-ui-original/src/components/app/PromptAccessoryRow.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/components/app/PromptAccessoryRow.tsx",
+        "sha256": "8b6333ffb7313d0fcc02ada4e6cd7e9728a10dcab0b7671f1da92d8f5f998103"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/components/fort",
+    "preserved_at": "quarantine/20260930/fort-ui/src/components/fort",
+    "action": "move within recovery",
+    "files": [
+      {
+        "path": "src/components/fort/BriefStrength.tsx",
+        "sha256": "0a29b9abb8940fefbc8c2d17bc7c4a0fc1e53b138ba68572b842a7b9ff29587f"
+      },
+      {
+        "path": "src/components/fort/fields.tsx",
+        "sha256": "c599125a28e831a8d4add4b1a241eae859307113a12702251c7d101cb62937e1"
+      },
+      {
+        "path": "src/components/fort/FortInfoHint.tsx",
+        "sha256": "87fde71bba9b95093a51568ef5176b0cc2913a669c8b6677b9a0a485e97c8a49"
+      },
+      {
+        "path": "src/components/fort/FortPanel.tsx",
+        "sha256": "a97e6b6b007cf142f3d203d7c3418d944c386b30588993f755d5f03789ae164a"
+      },
+      {
+        "path": "src/components/fort/FortToggle.tsx",
+        "sha256": "8d79a4093351e1c10ef6267b2fff3dd05756b2fc2991e62ad7438477a8496681"
+      },
+      {
+        "path": "src/components/fort/index.ts",
+        "sha256": "97fee2dc6b8b046e793fb23780bd334bdc69c1e2aa4367a69a803fa3734c69cd"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/checkout/page.tsx",
+    "preserved_at": "quarantine/20260930/legacy-product-flow/src/app/checkout/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/checkout/page.tsx",
+        "sha256": "a5cc1662e3dc74f537832bff65401648295e3389624e14c5305e6b8a9a5e1f18"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/pay/test/page.tsx",
+    "preserved_at": "quarantine/20260930/legacy-product-flow/src/app/pay/test/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/pay/test/page.tsx",
+        "sha256": "b3d8cb006170c553c3eef7d4d5473575e084f633d01b6f4e0d59a7758702666e"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/pay/redirect/page.tsx",
+    "preserved_at": "quarantine/20260930/legacy-product-flow/src/app/pay/redirect/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/pay/redirect/page.tsx",
+        "sha256": "7a7f1034b5e31096d644baef9952dcb84ebc4c86b8fc53eaf163576e1c90abda"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/projects/[projectId]/editor/page.tsx",
+    "preserved_at": "quarantine/20260930/legacy-product-flow/src/app/projects/[projectId]/editor/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/projects/[projectId]/editor/page.tsx",
+        "sha256": "fe4a9797fff6b75777e7ad64f6a34a23a182031561586ea8a3e0853e6d5f06f8"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930",
+    "original_path": "src/app/projects/[projectId]/generating/page.tsx",
+    "preserved_at": "quarantine/20260930/legacy-product-flow/src/app/projects/[projectId]/generating/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/projects/[projectId]/generating/page.tsx",
+        "sha256": "d202ee6f23afc8ba89ffcc164c8b8e26ccfbe42d6bab9a1da3e9b40b738c9d7f"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-paddle",
+    "original_path": "src/app/pay/paddle/page.tsx",
+    "preserved_at": "quarantine/20260930/paddle-product-ui/src/app/pay/paddle/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/pay/paddle/page.tsx",
+        "sha256": "978898978ed404716cf52ad54dc8b168dd381b8d08f75782838d35fa72707cdb"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-paddle",
+    "original_path": "src/app/checkout/page.tsx",
+    "preserved_at": "quarantine/20260930/paddle-product-ui/src/app/checkout/page.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/checkout/page.tsx",
+        "sha256": "12d4a383e43b3884f1603d16dfb3616e6658c78dac9b11b428743feffc2c72ff"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-paddle",
+    "original_path": "src/components/account/PaddlePortalButton.tsx",
+    "preserved_at": "quarantine/20260930/paddle-product-ui/src/components/account/PaddlePortalButton.tsx",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/components/account/PaddlePortalButton.tsx",
+        "sha256": "068f8c3ce42ef27511d03b8a6f5fc9278557fc7a4fa4485cfa4643498d97b755"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-paddle",
+    "original_path": "src/app/api/payments/paddle/checkout/route.ts",
+    "preserved_at": "quarantine/20260930/paddle-product-ui/src/app/api/payments/paddle/checkout/route.ts",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/api/payments/paddle/checkout/route.ts",
+        "sha256": "e6a0f08ff296f51861254a06f42c517861fb497aea0296a5e0b0f4ce13e6c3b3"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-paddle",
+    "original_path": "src/app/api/payments/paddle/portal/route.ts",
+    "preserved_at": "quarantine/20260930/paddle-product-ui/src/app/api/payments/paddle/portal/route.ts",
+    "action": "copy; original retained",
+    "files": [
+      {
+        "path": "src/app/api/payments/paddle/portal/route.ts",
+        "sha256": "7b113a641b7a6363a18f101340a54e105f5f1ccab2d43142ca7cb888bb08567c"
+      }
+    ]
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/app/case-studies",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/components/case-studies",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/data",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "public/case-studies",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/app/showreel",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/components/showreel",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/app/hub-bits",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/components/hub-bits",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/app/marobrain-test",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/components/marobrain-test",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/components/dev",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  },
+  {
+    "original_root": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-al",
+    "original_path": "src/styles/maro-preview-dark.css",
+    "action": "preserved in original worktree; excluded from recovery imports/routes/public assets"
+  }
+]

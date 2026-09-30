@@ -12,7 +12,7 @@ export function ModuleComingSoon({ moduleId }: { moduleId: ProductModuleId }) {
         </span>
         <h1 className="mt-5 text-[28px] font-bold tracking-brand text-ink">{productModule.name}</h1>
         <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
-          {productModule.name} po përgatitet për {productModule.version}. Gjenerimi do të jetë i disponueshëm në atë version.
+          {productModule.name} po përgatitet për {productModule.version}. Ky modul nuk është i disponueshëm në V1.
         </p>
         <Link href="/imazh" className="mt-6 inline-flex h-11 items-center rounded-xl bg-ink px-5 text-[14px] font-bold text-canvas">
           Krijo me maroImazh

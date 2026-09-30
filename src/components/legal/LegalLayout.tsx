@@ -65,6 +65,12 @@ export function LegalLayout({
             <p className="mt-[10px] text-[13.5px] text-ink-3">Përditësuar: {LEGAL_UPDATED}</p>
           </header>
 
+          <p className="mt-5 rounded-maro12 bg-surface px-5 py-4 text-[14px] text-ink-2">
+            V1: maroImazh, maroLogo, maroBrain dhe maroPresets. maroWeb dhe Case Studies vijnë në V1.5;
+            maroFilma, maroZo dhe maroMarketing në V2. Blerjet dhe regjistrimet e reja janë të mbyllura.
+            Të drejtat për llogaritë dhe blerjet ekzistuese ruhen.
+          </p>
+
           <article className="legal-prose mt-[30px] break-words [&_a]:font-semibold [&_a]:text-ink [&_a]:underline [&_a]:underline-offset-2 [&_code]:break-all [&_code]:text-[0.9em]">{children}</article>
 
           <nav className="mt-[30px] border-t border-line pt-[20px] lg:hidden">

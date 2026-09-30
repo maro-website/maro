@@ -10,7 +10,6 @@ import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
-import { useSettings } from "@/lib/hooks/useSettings";
 import { generateImages, ImageGenerationError, InsufficientCreditsError } from "@/lib/services/imageService";
 import { buildGenerationRequest } from "@/lib/marologo/generation";
 import { V1_IMAGE_ERRORS } from "@/lib/services/imageErrors";
@@ -18,11 +17,6 @@ import { INITIAL_APP_STATE, DEFAULT_WIZARD_STATE } from "@/lib/marologo/defaults
 import { PRESENTATION_LABELS } from "@/lib/marologo/constants";
 import { validateStep } from "@/lib/marologo/validation";
 import type { MaroLogoAppState, MaroLogoWizardState, PresentationMode, UploadedReference, WizardPhase, WizardStep } from "@/lib/marologo/types";
-import { defaultFortValues } from "@/lib/fort/schema";
-import { isFortModuleEnabled, resolveFortConfig } from "@/lib/fort/config";
-import type { FortValue } from "@/lib/fort/types";
-import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
-import { FortPanel } from "@/components/fort/FortPanel";
 import { useToast } from "@/components/ui/Toast";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
@@ -117,17 +111,13 @@ export function MaroLogoWizard() {
   const [showBuy, setShowBuy] = React.useState(false);
   const [resultCreation, setResultCreation] = React.useState<ImageCreation | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [fortActive, setFortActive] = React.useState(false);
-  const [fortModalOpen, setFortModalOpen] = React.useState(false);
-  const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [presetAttach, setPresetAttach] = React.useState<PromptAttach | null>(null);
   const generatingRef = React.useRef(false);
   const pendingGenerateRef = React.useRef(false);
 
-  const { ready, user, credits, hasFort, spendCredits, addCreation, activeWorkspaceScope } = useMaro();
+  const { ready, user, credits, spendCredits, addCreation, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
-  const { fortConfig } = useSettings(Boolean(user));
   const { toast } = useToast();
   const model = useV1ImageModels("logo").find((entry) => entry.key === "flare" && entry.enabled);
   const cost = model?.customerCredits ?? 0;
@@ -161,15 +151,6 @@ export function MaroLogoWizard() {
     if (loadedDraftKey !== draftKey || isGenerating || state.phase === "generating" || state.phase === "result") return;
     void saveLogoDraft(draftKey, { state, preset: presetAttach });
   }, [loadedDraftKey, draftKey, state, presetAttach, isGenerating]);
-  const fortAvailable = isFortModuleEnabled(fortConfig, "logo");
-  const fortResolved = resolveFortConfig(fortConfig);
-
-  React.useEffect(() => {
-    const defaults = defaultFortValues("logo", fortConfig) as Record<string, FortValue>;
-    const saved = loadFortValues("logo") as Record<string, FortValue>;
-    setFortValues({ ...defaults, ...saved });
-  }, [fortConfig]);
-
   React.useEffect(() => {
     if (!content || loadedDraftKey !== draftKey || restoredPreset.current) return;
     restoredPreset.current = true;
@@ -221,7 +202,7 @@ export function MaroLogoWizard() {
     setIsGenerating(true);
     dispatch({ type: "SET_PHASE", phase: "generating" });
     const now = new Date().toISOString();
-    const fort = fortAvailable && fortActive && hasFort ? { enabled: true, values: fortValues } : undefined;
+    const fort = undefined;
 
     try {
       const canonicalReferences = await Promise.all(
@@ -256,7 +237,7 @@ export function MaroLogoWizard() {
       generatingRef.current = false;
       setIsGenerating(false);
     }
-  }, [draftKey, content, state.wizard, state.references, user, credits, cost, model, fortAvailable, fortActive, hasFort, fortValues, presetAttach, spendCredits, addCreation, workspaceId, toast]);
+  }, [draftKey, content, state.wizard, state.references, user, credits, cost, model, presetAttach, spendCredits, addCreation, workspaceId, toast]);
 
   React.useEffect(() => {
     if (user && loadedDraftKey === draftKey && pendingGenerateRef.current) {
@@ -265,9 +246,6 @@ export function MaroLogoWizard() {
     }
   }, [user, loadedDraftKey, draftKey, runGenerate]);
   const onAuthDone = () => setShowAuth(false);
-  const openFort = () => { if (!hasFort) { router.push("/pricing"); return; } setFortModalOpen(true); };
-  const saveFort = () => { saveFortValues("logo", fortValues); setFortActive(true); setFortModalOpen(false); };
-  const clearFort = () => { const defaults = defaultFortValues("logo", fortConfig) as Record<string, FortValue>; setFortValues(defaults); saveFortValues("logo", defaults); setFortActive(false); setFortModalOpen(false); };
   const restart = () => { setResultCreation(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
 
   if (!content || loadedDraftKey !== draftKey) return <p className="p-8 text-ink-3">{contentError ? "Konfigurimi nuk është në dispozicion. Rifresko faqen." : "Duke ngarkuar…"}</p>;
@@ -282,21 +260,14 @@ export function MaroLogoWizard() {
       {state.phase === "intro" && <MaroLogoIntro onStart={() => dispatch({ type: "SET_PHASE", phase: 1 })} />}
       {state.phase === 1 && <StepBrand step={1} highestStepReached={state.highestStepReached} wizard={state.wizard} errors={stepErrors} onChange={(patch) => dispatch({ type: "PATCH_BRAND", patch })} onNext={() => advanceFromStep(1)} onStepClick={goToStep} />}
       {state.phase === 2 && <StepDirection step={2} highestStepReached={state.highestStepReached} wizard={state.wizard} references={state.references} errors={stepErrors} onChangeTraits={(traits) => dispatch({ type: "PATCH_DIRECTION", patch: { traits } })} onChangeLogo={(patch) => dispatch({ type: "PATCH_LOGO", patch })} onChangeLook={(patch) => dispatch({ type: "PATCH_LOOK", patch })} onChangeReferences={(references) => dispatch({ type: "SET_REFERENCES", references })} onMaxTraits={() => toast("Zgjedh maksimum 3 tipare.", "info")} onToast={(message) => toast(message, "error")} onNext={() => advanceFromStep(2)} onStepClick={goToStep} />}
-      {state.phase === 3 && <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} fortAvailable={fortAvailable} fortActive={fortActive} hasFort={hasFort} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onOpenFort={openFort} onGenerate={() => void runGenerate()} onStepClick={goToStep} />}
+      {state.phase === 3 && <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} />}
       {state.phase === "generating" && <MaroLogoGenerating />}
       {state.phase === "result" && resultCreation && <MaroLogoResult creation={resultCreation} onRestart={restart} />}
 
       <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm"><AuthPanel onDone={onAuthDone} /></Modal>
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
 
-      <Modal open={fortAvailable && fortModalOpen} onClose={() => setFortModalOpen(false)} size="lg" className="max-w-2xl overflow-hidden bg-canvas" hideClose>
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-surface"><Sparkles className="h-5 w-5" /></span><div><div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div><div className="text-[12.5px] text-ink-3">Kontrolle eksperte për këtë identitet</div></div></div>
-          <button type="button" onClick={clearFort} className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2"><Eraser className="h-3.5 w-3.5" />Pastroje</button>
-        </div>
-        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 pb-4"><FortPanel module="logo" config={fortConfig} values={fortValues} onChange={(id, value) => setFortValues((current) => ({ ...current, [id]: value }))} /></div>
-        <div className="flex gap-2 px-5 py-4"><button type="button" onClick={() => setFortModalOpen(false)} className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink">Anulo</button><button type="button" onClick={saveFort} className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg">Apliko maroFort</button></div>
-      </Modal>
+
     </div></LogoContentContext.Provider>
   );
 }

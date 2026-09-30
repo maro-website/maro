@@ -32,7 +32,13 @@ function ModuleNavIcon({
   return null;
 }
 
-export function AppTopNav({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
+export function AppTopNav({
+  onOpenDrawer,
+  className,
+}: {
+  onOpenDrawer?: () => void;
+  className?: string;
+}) {
   const pathname = usePathname();
   const { user, credits } = useMaro();
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
@@ -57,7 +63,12 @@ export function AppTopNav({ onOpenDrawer }: { onOpenDrawer?: () => void }) {
   };
 
   return (
-    <header className="z-30 flex h-[var(--maro-shell-header-height)] shrink-0 items-center gap-3 bg-canvas px-3 sm:px-4 lg:gap-[var(--nav-gap)] lg:px-[30px]">
+    <header
+      className={cn(
+        "maro-shell-header--frost relative z-30 flex h-[var(--maro-shell-header-height)] shrink-0 items-center gap-3 px-3 sm:px-4 lg:gap-[var(--nav-gap)] lg:px-[30px]",
+        className
+      )}
+    >
       <div className="flex min-w-0 items-center gap-2 lg:gap-[var(--nav-gap)]">
         {onOpenDrawer && (
           <button

@@ -31,7 +31,7 @@ export const BRAND_PALETTE = {
     surface: "#ffffff",
     surface2: "#f3f3f3",
     muted: "#8a8a8a",
-    brand: "#253fda",
+    brand: "#00ff72",
     ink: "#0a0a0a",
     inkMuted: "#5f5f5f",
   },
@@ -39,13 +39,13 @@ export const BRAND_PALETTE = {
 
 /** @deprecated Use semantic --maro-* tokens. */
 export const BRAND = {
-  primary: "#253fda",
+  primary: "#00ff72",
   ink: "#0a0a0a",
   canvas: "#f9f9f9",
   muted: "#8a8a8a",
   secondary: "#5f5f5f",
   white: "#ffffff",
   red: "#da2525",
-  teal: "#253fda",
+  teal: "#00ff72",
   forest: "#0a0a0a",
 } as const;

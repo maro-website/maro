@@ -7,7 +7,7 @@ import { logoContentAnswerErrors, type LogoContent } from "@/lib/marologo/conten
 import { validateLogoWizardAnswers } from "@/lib/marologo/request";
 import { mapLogoTypeToRegistry } from "@/lib/marologo/generation";
 import type { MaroLogoWizardState } from "@/lib/marologo/types";
-import { getPromptTemplate, getSupabaseAdmin } from "@/lib/supabase/server";
+import { getActiveWorkspaceId, getPromptTemplate, getSupabaseAdmin } from "@/lib/supabase/server";
 import { resolvePrivateImageReference, type ResolvedImageReference } from "@/lib/ai/imageReferences";
 import { loadV1ImageModelRows, resolveV1ImageModel, type V1ImageModule, type V1LogicalImageModel, type V1ImageModelConfiguration } from "@/lib/engine/v1ImageModels";
 import { ImageRequestValidationError, knownKeys, requestBoolean, requestChoice, requestObject, requestString } from "./requestValidation";
@@ -128,9 +128,8 @@ async function resolveOwnedWorkspace(userId: string, requestedId?: string): Prom
   const admin = getSupabaseAdmin();
   let id = requestedId;
   if (id === undefined) {
-    const { data, error } = await admin.from("profiles").select("active_workspace_id").eq("id", userId).maybeSingle();
-    if (error) throw new ImageRequestValidationError("workspace_unavailable", 503);
-    id = data?.active_workspace_id ?? undefined;
+    try { id = (await getActiveWorkspaceId(userId, { strict: true })) ?? undefined; }
+    catch { throw new ImageRequestValidationError("workspace_unavailable", 503); }
   }
   if (id === undefined) return null;
   const { data, error } = await admin.from("workspaces").select("id").eq("id", id).eq("owner_id", userId).maybeSingle();

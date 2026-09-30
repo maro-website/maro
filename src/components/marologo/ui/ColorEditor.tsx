@@ -22,7 +22,7 @@ export function ColorEditor({
   error?: string;
 }) {
   const content = useLogoContent();
-  const [draft, setDraft] = React.useState("#253FDA");
+  const [draft, setDraft] = React.useState("#00ff72");
   const customActive = mode === "custom";
 
   const addColor = () => {

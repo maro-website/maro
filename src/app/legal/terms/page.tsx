@@ -14,7 +14,7 @@ export default function TermsPage() {
       </LegalSection>
       <LegalSection title="2. Shërbimet e Maro-s">
         <ul className="list-disc space-y-2 pl-5">
-          <li><strong>maro Web:</strong> krijim dhe redaktim faqesh me AI, bisedë për ndryshime, editor vizual, shikim paraprak dhe eksport të kodit sipas formatit të ofruar. Hostimin dhe publikimin e website-it të eksportuar i organizoni veçmas. Shikimi paraprak brenda Maro-s nuk është hostim publik.</li>
+          <li><strong>maroWeb dhe Case Studies:</strong> së shpejti në V1.5; nuk janë të disponueshme në V1.</li>
           <li><strong>maroLogo dhe maro Imazh:</strong> gjenerim e përpunim logosh, imazhesh, reklamash dhe variantesh, përfshirë përdorimin e referencave që ngarkoni.</li>
           <li><strong>Workspaces dhe maroBrain:</strong> organizim sipas biznesit ose projektit; profil i brendit, audiencës, objektivave, tregut, stilit dhe burimeve që mund të përdoren si kontekst për gjenerimet.</li>
           <li><strong>maroPresets dhe cilësimet e avancuara:</strong> modele të gatshme dhe përshtatje e kërkesës. Përdorimi i një preset-i nuk përfshin blerjen ose zbulimin e udhëzimeve të brendshme të sistemit.</li>
@@ -28,7 +28,7 @@ export default function TermsPage() {
       </LegalSection>
       <LegalSection title="4. Planet, afati dhe rinovimi">
         <p>Oferta përfshin maroStandard, maroPro dhe maroBiz sipas marrëveshjes. Çmimi, kreditet, kohëzgjatja, numri i Workspaces dhe gjenerimet e lejuara njëkohësisht shfaqen te <Link href="/pricing">Planet &amp; Kreditet</Link> dhe në porosi. Detajet e ruajtura për porosinë tuaj vlejnë për atë blerje; ndryshimet e mëvonshme në katalog nuk e ndryshojnë prapa në kohë.</p>
-        <p>Standard dhe Pro aktualisht kanë periudhë të kufizuar dhe rinovim manual. Afatin dhe mundësinë e rinovimit i shihni në llogari. Rinovimi manual nuk ju ngarkon automatikisht për periudhën tjetër. Për kalim nga Standard në Pro, diferenca e çmimit, kreditet shtesë dhe afati shfaqen para porosisë.</p>
+        <p>Blerjet, rinovimet manuale dhe kalimet e reja të planit janë të mbyllura në këtë version. Afati dhe mënyra e rinovimit të një plani ekzistues shfaqen në llogari. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të pranuara për atë blerje; mbyllja e blerjeve të reja nuk e anulon abonimin.</p>
         <p>Afati i planit dhe balanca e krediteve janë të ndara. Kreditet e blera nuk skadojnë vetëm pse përfundon plani. Pas skadimit ndryshojnë përfitimet dhe kufijtë e planit; rimbushja kërkon plan aktiv. Bonuset mund të kenë afat ose kufizime të shpjeguara kur jepen. Cilësimet e avancuara nuk krijojnë vetvetiu abonim të veçantë ose provë falas.</p>
       </LegalSection>
       <LegalSection title="5. Porositë, pagesat dhe kreditet">

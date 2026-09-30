@@ -12,7 +12,7 @@ const AI_ROUTES = [
   },
   {
     route: "/api/ai/image",
-    file: "src/app/api/ai/image/route.ts",
+    file: "src/lib/generation/v1ImageApplication.ts",
     limitKey: "jsonAi" as const,
   },
   {

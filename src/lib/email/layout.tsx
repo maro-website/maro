@@ -8,8 +8,8 @@ import {
 import type { EmailStructuredContent } from "./types";
 
 /** Locked brand tokens — transactional email shell only. */
-const BRAND_PRIMARY = "#253FDA";
-const BRAND_CTA_TEXT = "#FFFFFF";
+const BRAND_PRIMARY = "#00ff72";
+const BRAND_CTA_TEXT = "#111111";
 
 /**
  * Inlined, email-client-safe palette.

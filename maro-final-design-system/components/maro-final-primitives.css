@@ -52,7 +52,7 @@
 }
 
 .maro-button[data-variant="brand"] {
-  color: var(--maro-color-text-inverse);
+  color: var(--maro-color-text-on-accent);
   background: var(--maro-color-accent);
 }
 
@@ -356,7 +356,7 @@
 
 .maro-nav__link:hover,
 .maro-nav__link[data-active="true"] {
-  color: var(--maro-color-accent);
+  color: var(--maro-color-text-brand);
   background: var(--maro-color-bg-surface);
 }
 
