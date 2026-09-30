@@ -1,0 +1,247 @@
+   ▲ Next.js 15.5.26
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (106kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (253kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 14.5s
+   Linting and checking validity of types ...
+
+./src/components/app/cards.tsx
+484:6  Warning: React Hook React.useEffect has missing dependencies: 'creation.prompt', 'creation.toolId', and 'creation.urls'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/app/ToolComposer.tsx
+406:6  Warning: React Hook React.useEffect has a missing dependency: 'latestMessage'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/marologo/MaroLogoWizard.tsx
+149:6  Warning: React Hook React.useEffect has missing dependencies: 'activeWorkspace' and 'user'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/96) ...
+   Generating static pages (24/96) 
+   Generating static pages (48/96) 
+   Generating static pages (72/96) 
+ ✓ Generating static pages (96/96)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                           Size  First Load JS
+┌ ƒ /                                                                408 B         259 kB
+├ ƒ /_not-found                                                      999 B         104 kB
+├ ƒ /.well-known/oauth-protected-resource                            436 B         103 kB
+├ ƒ /.well-known/oauth-protected-resource/api/mcp                    436 B         103 kB
+├ ƒ /academy                                                         436 B         103 kB
+├ ƒ /account                                                       9.02 kB         258 kB
+├ ƒ /account/workspaces                                            2.06 kB         251 kB
+├ ƒ /account/workspaces/[workspaceId]                              3.09 kB         252 kB
+├ ƒ /admin                                                           136 B         175 kB
+├ ƒ /admin/access                                                   9.4 kB         188 kB
+├ ƒ /admin/analytics                                               4.85 kB         183 kB
+├ ƒ /admin/analytics/presets                                         477 B         207 kB
+├ ƒ /admin/commerce                                                5.55 kB         184 kB
+├ ƒ /admin/commerce/business                                       6.54 kB         185 kB
+├ ƒ /admin/commerce/creators                                       2.45 kB         177 kB
+├ ƒ /admin/commerce/ledger                                         6.71 kB         185 kB
+├ ƒ /admin/commerce/payments                                       5.42 kB         184 kB
+├ ƒ /admin/commerce/plans                                          6.41 kB         185 kB
+├ ƒ /admin/commerce/promos                                         2.87 kB         178 kB
+├ ƒ /admin/commerce/topups                                         5.97 kB         184 kB
+├ ƒ /admin/creators                                                  372 B         207 kB
+├ ƒ /admin/emails                                                  10.6 kB         185 kB
+├ ƒ /admin/engine                                                    136 B         175 kB
+├ ƒ /admin/engine/brain                                              436 B         103 kB
+├ ƒ /admin/engine/generations                                      3.15 kB         171 kB
+├ ƒ /admin/engine/presets                                          12.3 kB         187 kB
+├ ƒ /admin/engine/tools/[toolId]                                   18.3 kB         197 kB
+├ ƒ /admin/help                                                    2.83 kB         178 kB
+├ ƒ /admin/legacy                                                    183 B         207 kB
+├ ƒ /admin/login-ads                                               5.39 kB         180 kB
+├ ƒ /admin/mfa                                                     3.39 kB         178 kB
+├ ƒ /admin/notifications                                           3.91 kB         179 kB
+├ ƒ /admin/operations/audit                                        2.18 kB         180 kB
+├ ƒ /admin/operations/flags                                        3.35 kB         182 kB
+├ ƒ /admin/operations/logs                                         2.17 kB         180 kB
+├ ƒ /admin/operations/retention                                    2.05 kB         177 kB
+├ ƒ /admin/operations/security                                     4.95 kB         180 kB
+├ ƒ /admin/presets/categories                                        436 B         103 kB
+├ ƒ /admin/prompts                                                   436 B         103 kB
+├ ƒ /admin/security                                                  436 B         103 kB
+├ ƒ /admin/support                                                 3.37 kB         182 kB
+├ ƒ /admin/support/reports                                         3.79 kB         190 kB
+├ ƒ /admin/users                                                     361 B         207 kB
+├ ƒ /api/admin/access/overview                                       436 B         103 kB
+├ ƒ /api/admin/access/users                                          436 B         103 kB
+├ ƒ /api/admin/ad-upload                                             436 B         103 kB
+├ ƒ /api/admin/analytics/overview                                    436 B         103 kB
+├ ƒ /api/admin/analytics/prompt-events                               436 B         103 kB
+├ ƒ /api/admin/analytics/validation                                  436 B         103 kB
+├ ƒ /api/admin/command-center/kpis                                   436 B         103 kB
+├ ƒ /api/admin/commerce/business                                     436 B         103 kB
+├ ƒ /api/admin/commerce/commissions                                  436 B         103 kB
+├ ƒ /api/admin/commerce/earnings                                     436 B         103 kB
+├ ƒ /api/admin/commerce/ledger                                       436 B         103 kB
+├ ƒ /api/admin/commerce/overview                                     436 B         103 kB
+├ ƒ /api/admin/commerce/plans                                        436 B         103 kB
+├ ƒ /api/admin/commerce/promos                                       436 B         103 kB
+├ ƒ /api/admin/creators                                              436 B         103 kB
+├ ƒ /api/admin/credits/adjust                                        436 B         103 kB
+├ ƒ /api/admin/emails/logs                                           436 B         103 kB
+├ ƒ /api/admin/emails/overview                                       436 B         103 kB
+├ ƒ /api/admin/emails/preview                                        436 B         103 kB
+├ ƒ /api/admin/emails/settings                                       436 B         103 kB
+├ ƒ /api/admin/emails/templates                                      436 B         103 kB
+├ ƒ /api/admin/emails/templates/[id]                                 436 B         103 kB
+├ ƒ /api/admin/emails/templates/[id]/draft                           436 B         103 kB
+├ ƒ /api/admin/emails/templates/[id]/versions/[versionId]            436 B         103 kB
+├ ƒ /api/admin/emails/templates/[id]/versions/[versionId]/publish    436 B         103 kB
+├ ƒ /api/admin/emails/templates/[id]/versions/[versionId]/restore    436 B         103 kB
+├ ƒ /api/admin/emails/test-send                                      436 B         103 kB
+├ ƒ /api/admin/engine/compile                                        436 B         103 kB
+├ ƒ /api/admin/engine/seed                                           436 B         103 kB
+├ ƒ /api/admin/engine/shadow-comparisons                             436 B         103 kB
+├ ƒ /api/admin/engine/system-prompts/[id]                            436 B         103 kB
+├ ƒ /api/admin/engine/system-prompts/[id]/publish                    436 B         103 kB
+├ ƒ /api/admin/engine/system-prompts/[id]/rollback                   436 B         103 kB
+├ ƒ /api/admin/engine/tools                                          436 B         103 kB
+├ ƒ /api/admin/engine/tools/[toolId]                                 436 B         103 kB
+├ ƒ /api/admin/engine/tools/[toolId]/input-fields                    436 B         103 kB
+├ ƒ /api/admin/engine/tools/[toolId]/models                          436 B         103 kB
+├ ƒ /api/admin/engine/tools/[toolId]/prompt-layers                   436 B         103 kB
+├ ƒ /api/admin/engine/tools/[toolId]/system-prompts                  436 B         103 kB
+├ ƒ /api/admin/help/articles                                         436 B         103 kB
+├ ƒ /api/admin/icon-upload                                           436 B         103 kB
+├ ƒ /api/admin/login-ads                                             436 B         103 kB
+├ ƒ /api/admin/notifications/campaigns                               436 B         103 kB
+├ ƒ /api/admin/operations/flags                                      436 B         103 kB
+├ ƒ /api/admin/operations/logs                                       436 B         103 kB
+├ ƒ /api/admin/operations/retention                                  436 B         103 kB
+├ ƒ /api/admin/orders                                                436 B         103 kB
+├ ƒ /api/admin/presets/categories                                    436 B         103 kB
+├ ƒ /api/admin/presets/upload                                        436 B         103 kB
+├ ƒ /api/admin/prompts                                               436 B         103 kB
+├ ƒ /api/admin/reports                                               436 B         103 kB
+├ ƒ /api/admin/security                                              436 B         103 kB
+├ ƒ /api/admin/support/tickets                                       436 B         103 kB
+├ ƒ /api/admin/users/role                                            436 B         103 kB
+├ ƒ /api/admin/v1/configuration                                      436 B         103 kB
+├ ƒ /api/admin/v1/logo-content                                       436 B         103 kB
+├ ƒ /api/admin/v1/operations                                         436 B         103 kB
+├ ƒ /api/ai/audio                                                    436 B         103 kB
+├ ƒ /api/ai/chat                                                     436 B         103 kB
+├ ƒ /api/ai/edit                                                     436 B         103 kB
+├ ƒ /api/ai/edit-html                                                436 B         103 kB
+├ ƒ /api/ai/generate                                                 436 B         103 kB
+├ ƒ /api/ai/image                                                    436 B         103 kB
+├ ƒ /api/ai/image/logo-content                                       436 B         103 kB
+├ ƒ /api/ai/image/models                                             436 B         103 kB
+├ ƒ /api/auth/forgot-password                                        436 B         103 kB
+├ ƒ /api/auth/login-ad                                               436 B         103 kB
+├ ƒ /api/auth/resend-confirmation                                    436 B         103 kB
+├ ƒ /api/auth/signup                                                 436 B         103 kB
+├ ƒ /api/avatar                                                      436 B         103 kB
+├ ƒ /api/challenges                                                  436 B         103 kB
+├ ƒ /api/commerce/catalog                                            436 B         103 kB
+├ ƒ /api/commerce/checkout-preview                                   436 B         103 kB
+├ ƒ /api/commerce/entitlements                                       436 B         103 kB
+├ ƒ /api/contests                                                    436 B         103 kB
+├ ƒ /api/creations                                                   436 B         103 kB
+├ ƒ /api/creator/stats                                               436 B         103 kB
+├ ƒ /api/credits/transactions                                        436 B         103 kB
+├ ƒ /api/cron/cleanup-temp                                           436 B         103 kB
+├ ƒ /api/cron/data-retention                                         436 B         103 kB
+├ ƒ /api/cron/plan-renewal-reminders                                 436 B         103 kB
+├ ƒ /api/cron/reconcile-stale-jobs                                   436 B         103 kB
+├ ƒ /api/explore                                                     436 B         103 kB
+├ ƒ /api/explore/like                                                436 B         103 kB
+├ ƒ /api/follow                                                      436 B         103 kB
+├ ƒ /api/jobs/[id]                                                   436 B         103 kB
+├ ƒ /api/launch-waitlist                                             436 B         103 kB
+├ ƒ /api/mcp                                                         436 B         103 kB
+├ ƒ /api/media/resolve                                               436 B         103 kB
+├ ƒ /api/notification-campaigns                                      436 B         103 kB
+├ ƒ /api/notifications                                               436 B         103 kB
+├ ƒ /api/payments/cancel-order                                       436 B         103 kB
+├ ƒ /api/payments/complete-test                                      436 B         103 kB
+├ ƒ /api/payments/create-order                                       436 B         103 kB
+├ ƒ /api/payments/invoice                                            436 B         103 kB
+├ ƒ /api/payments/order                                              436 B         103 kB
+├ ƒ /api/payments/orders                                             436 B         103 kB
+├ ƒ /api/payments/paddle/checkout                                    436 B         103 kB
+├ ƒ /api/payments/paddle/portal                                      436 B         103 kB
+├ ƒ /api/projects/assets                                             436 B         103 kB
+├ ƒ /api/projects/thumbnail                                          436 B         103 kB
+├ ƒ /api/promo/track                                                 436 B         103 kB
+├ ƒ /api/prompts                                                     436 B         103 kB
+├ ƒ /api/prompts/[id]                                                436 B         103 kB
+├ ƒ /api/prompts/like                                                436 B         103 kB
+├ ƒ /api/prompts/reveal                                              436 B         103 kB
+├ ƒ /api/settings/public                                             436 B         103 kB
+├ ƒ /api/track                                                       436 B         103 kB
+├ ƒ /api/usage                                                       436 B         103 kB
+├ ƒ /api/webhooks/paddle                                             436 B         103 kB
+├ ƒ /api/webhooks/supabase/auth-email                                436 B         103 kB
+├ ƒ /api/workspaces                                                  436 B         103 kB
+├ ƒ /api/workspaces/assets                                           436 B         103 kB
+├ ƒ /audio                                                           240 B         249 kB
+├ ƒ /auth/callback                                                   436 B         103 kB
+├ ƒ /brain                                                         6.78 kB         255 kB
+├ ƒ /brand                                                           436 B         103 kB
+├ ƒ /c/[slug]                                                      3.89 kB         190 kB
+├ ƒ /case-studies                                                    240 B         249 kB
+├ ƒ /checkout                                                        240 B         249 kB
+├ ƒ /coming-soon                                                   3.33 kB         106 kB
+├ ƒ /confirm-email                                                 2.72 kB         120 kB
+├ ƒ /contact                                                       1.52 kB         250 kB
+├ ƒ /contests                                                        436 B         103 kB
+├ ƒ /contests/[slug]                                                 436 B         103 kB
+├ ƒ /dashboard                                                       436 B         103 kB
+├ ƒ /explore                                                        3.2 kB         252 kB
+├ ƒ /favourites                                                    1.11 kB         266 kB
+├ ƒ /filma                                                           240 B         249 kB
+├ ƒ /fjale                                                           436 B         103 kB
+├ ƒ /forgot-password                                               2.72 kB         120 kB
+├ ƒ /hub-vision                                                    4.42 kB         201 kB
+├ ƒ /imazh                                                         29.1 kB         301 kB
+├ ƒ /kreator                                                         436 B         103 kB
+├ ƒ /krijimet                                                      4.11 kB         269 kB
+├ ƒ /legal/cookies                                                   178 B         106 kB
+├ ƒ /legal/fair-use                                                  178 B         106 kB
+├ ƒ /legal/privacy                                                   178 B         106 kB
+├ ƒ /legal/refund                                                    178 B         106 kB
+├ ƒ /legal/terms                                                     178 B         106 kB
+├ ƒ /logo                                                            436 B         103 kB
+├ ƒ /marketing                                                       240 B         249 kB
+├ ƒ /marologo                                                      15.5 kB         288 kB
+├ ƒ /mcp                                                             840 B         250 kB
+├ ƒ /new                                                             436 B         103 kB
+├ ƒ /oauth/consent                                                 2.81 kB         186 kB
+├ ƒ /order/cancel                                                  1.17 kB         250 kB
+├ ƒ /order/success                                                 1.96 kB         251 kB
+├ ƒ /pay/paddle                                                      240 B         249 kB
+├ ƒ /pay/redirect                                                    240 B         249 kB
+├ ƒ /pay/test                                                        240 B         249 kB
+├ ƒ /preview-runtime                                                 436 B         103 kB
+├ ƒ /pricing                                                       2.76 kB         251 kB
+├ ƒ /projects/[projectId]                                            240 B         249 kB
+├ ƒ /projects/[projectId]/editor                                     240 B         249 kB
+├ ƒ /projects/[projectId]/generating                                 240 B         249 kB
+├ ƒ /projects/[projectId]/preview                                    240 B         249 kB
+├ ƒ /projects/[projectId]/settings                                   240 B         249 kB
+├ ƒ /prompts                                                       8.48 kB         257 kB
+├ ƒ /r/[slug]                                                      2.06 kB         177 kB
+├ ƒ /reset-password                                                 3.3 kB         186 kB
+├ ƒ /sign-in                                                       1.43 kB         195 kB
+├ ƒ /sign-up                                                         888 B         195 kB
+├ ƒ /u/[id]                                                        1.66 kB         250 kB
+├ ƒ /web                                                             240 B         249 kB
+└ ƒ /zo                                                              436 B         103 kB
++ First Load JS shared by all                                       103 kB
+  ├ chunks/622e5ddb-69ebbf066d995609.js                            54.2 kB
+  ├ chunks/7961-8d27bbe2762674d3.js                                46.4 kB
+  └ other shared chunks (total)                                    2.05 kB
+
+
+ƒ Middleware                                                       92.3 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+

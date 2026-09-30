@@ -1,0 +1,150 @@
+{
+  "at_utc": "2026-09-30T21:53:19.136282+00:00",
+  "candidate": "3b086a668e440a9bd04651262e6895cb45697933",
+  "staging_auth_public_settings": {
+    "http_status": 200,
+    "response_sha256": "c0ee7bce41a579a86b10eeb54b76dad4c99114a6829d8879db1b6f3ba373c142",
+    "json": true,
+    "url": "https://bpvaatqlbmaokilsyihf.supabase.co",
+    "values": {
+      "disable_signup": true,
+      "mailer_autoconfirm": false
+    }
+  },
+  "production_auth_public_settings": {
+    "http_status": 200,
+    "response_sha256": "c0ee7bce41a579a86b10eeb54b76dad4c99114a6829d8879db1b6f3ba373c142",
+    "json": true,
+    "url": "https://pbhzobqpavkuttdipjaq.supabase.co",
+    "values": {
+      "disable_signup": true,
+      "mailer_autoconfirm": false
+    }
+  },
+  "staging_rest_contract": {
+    "http_status": 200,
+    "response_sha256": "7819e6ded3f6d23e30befb86eec0ec14f6d6165e4ec6b3ed9d217a63ccbefd73",
+    "json": true,
+    "required_rpc": {
+      "start_v1_image_job": "PRESENT",
+      "mark_v1_image_provider_result": "PRESENT",
+      "persist_v1_image_generation": "PRESENT",
+      "settle_v1_image_job": "PRESENT",
+      "fail_v1_image_job": "PRESENT",
+      "reconcile_generation_job": "PRESENT",
+      "reserve_credits": "PRESENT",
+      "release_credit_reserve": "PRESENT",
+      "finalize_credit_charge": "PRESENT"
+    },
+    "tables": [
+      "abuse_events",
+      "app_settings",
+      "audit_events",
+      "budget_guards",
+      "business_leads",
+      "challenge_entries",
+      "commerce_plans",
+      "commerce_topups",
+      "contest_submissions",
+      "contests",
+      "creation_likes",
+      "creator_applications",
+      "creator_commissions",
+      "creator_follows",
+      "credit_orders",
+      "credit_transactions",
+      "data_retention_policies",
+      "email_logs",
+      "email_outbox",
+      "email_settings",
+      "email_template_versions",
+      "email_templates",
+      "engine_internal_canary_users",
+      "engine_shadow_comparisons",
+      "feature_flags",
+      "generation_internal_prompts",
+      "generation_jobs",
+      "generations",
+      "help_articles",
+      "launch_waitlist",
+      "login_ads",
+      "maro_prompts",
+      "memberships",
+      "notification_campaigns",
+      "notification_dismissals",
+      "paddle_webhook_events",
+      "platform_spend_rollup",
+      "preset_categories",
+      "pricing_snapshots",
+      "product_events",
+      "profiles",
+      "promo_codes",
+      "promo_events",
+      "prompt_events",
+      "prompt_layers",
+      "prompt_likes",
+      "prompt_reveals",
+      "provider_cost_estimates",
+      "public_creations",
+      "rate_limit_events",
+      "refund_records",
+      "reports",
+      "retention_execution_runs",
+      "security_events",
+      "signup_signals",
+      "storage_usage",
+      "support_ticket_messages",
+      "support_tickets",
+      "system_prompt_versions",
+      "tool_engine_config",
+      "tool_input_fields",
+      "tool_model_configs",
+      "user_notifications",
+      "weekly_challenges",
+      "workspace_sources",
+      "workspaces"
+    ]
+  },
+  "production_jwks": {
+    "http_status": 200,
+    "response_sha256": "785425f3915eb324fad480e5a98287f00a84882657cede958a8bad6c6b34237d",
+    "json": true,
+    "metadata": {
+      "key_count": 1,
+      "algorithms": [
+        "ES256"
+      ]
+    }
+  },
+  "production_oauth_discovery": {
+    "http_status": 200,
+    "response_sha256": "5d916bdb65622a5770811847078da674317f5c17723728ac035679ee00f432b0",
+    "json": true,
+    "metadata": {
+      "issuer": "https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1",
+      "authorization_endpoint": "https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1/oauth/authorize",
+      "token_endpoint": "https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1/oauth/token",
+      "registration_endpoint": "https://pbhzobqpavkuttdipjaq.supabase.co/auth/v1/oauth/clients/register",
+      "code_challenge_methods_supported": [
+        "S256",
+        "plain"
+      ]
+    }
+  },
+  "railway_project_read": {
+    "http_status": 200,
+    "response_sha256": "ca0f994aa94ec170e367b27e12d5a8782d04af52fb0707dca8e8f21614fbd126",
+    "json": true,
+    "project": "cb4c8dcc-712d-459d-b01c-96ae9ad29814",
+    "accessible": false,
+    "errors": [
+      "Not Authorized"
+    ]
+  },
+  "local_services": {
+    "54331": "MISSING",
+    "54332": "MISSING",
+    "54333": "MISSING"
+  },
+  "scope": "Only auth settings, public discovery/JWKS, staging REST schema and a Railway GraphQL query. No data rows, RPC executions, migrations, deploys, email sends or configuration writes."
+}
