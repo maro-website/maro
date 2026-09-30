@@ -1,7 +1,6 @@
 /** Shared security header builders for Next.js config and application code. */
 
-export const THEME_INIT_SCRIPT =
-  "(function(){try{localStorage.setItem('maro.theme','qelt');document.documentElement.removeAttribute('data-theme');var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute('content','#F5F5F5');}catch(e){}})();";
+export { THEME_INIT_SCRIPT } from "./theme-preferences.mjs";
 
 export function buildContentSecurityPolicy(options = {}) {
   const supabaseHost = (options.supabaseHost || "*.supabase.co").replace(/^https?:\/\//, "");

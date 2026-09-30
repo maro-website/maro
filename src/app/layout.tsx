@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F9F9F9",
+  themeColor: "#111315",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -35,7 +35,7 @@ export default async function RootLayout({
   const isLaunchRequest = requestHeaders.get(LAUNCH_REQUEST_HEADER) === "1";
 
   return (
-    <html lang="sq">
+    <html lang="sq" data-theme="mshelt" suppressHydrationWarning>
       {isLaunchRequest ? null : (
         <head>
           <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
@@ -52,16 +52,16 @@ export default async function RootLayout({
         {isLaunchRequest ? (
           children
         ) : (
-          <ThemeProvider>
-            <MaroProvider>
+          <MaroProvider>
+            <ThemeProvider>
               <WorkspaceProvider>
                 <ToastProvider>
                   {children}
                   <CookieBanner />
                 </ToastProvider>
               </WorkspaceProvider>
-            </MaroProvider>
-          </ThemeProvider>
+            </ThemeProvider>
+          </MaroProvider>
         )}
       </body>
     </html>

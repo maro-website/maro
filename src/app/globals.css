@@ -514,7 +514,10 @@ textarea:focus {
 .maro-switch-track[data-size="md"] > .maro-switch-knob { width: 18px; height: 18px; }
 .maro-switch-track[data-size="md"][data-checked="true"] > .maro-switch-knob { transform: translateX(20px); }
 .maro-switch:focus-visible { outline: 2px solid #00ff72; outline-offset: 4px; }
-.mobile-generation-dialog { --surface: #f4f4f5; --surface-2: #f4f4f5; --ink: #151515; --ink-2: #444; --ink-3: #666; }
+html[data-theme="mshelt"] .logo-lockup-light,
+html[data-theme="mshelt"] .maro-text-logo { filter: brightness(0) invert(1); }
+html[data-theme="mshelt"] .maro-symbol-inverse { filter: brightness(0); }
+html[data-theme="mshelt"] { --on-scrim: #fff; --skeleton-shine: rgb(255 255 255 / 6%); }
 @media (prefers-reduced-motion: reduce) {
   .maro-switch-knob, .maro-switch-track { transition: none; }
   .maro-generation-loader * { animation: none !important; }

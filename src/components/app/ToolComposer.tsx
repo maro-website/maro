@@ -1031,7 +1031,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-black shadow-sm lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
+        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-ink shadow-sm lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
           <span className="min-w-0 truncate text-sm font-semibold">{mobileComposerOpen ? "Mbyll promptbox" : prompt || "Shkruaj idenë tënde…"}</span>
           <ChevronDown className={cn("h-5 w-5 shrink-0", !mobileComposerOpen && "rotate-180")} />
         </button>
@@ -1345,10 +1345,10 @@ export function ToolComposer({
         </div>
       </Modal>
 
-      <Modal open={isMobile && mobileResultOpen && Boolean(latestMessage)} onClose={() => setMobileResultOpen(false)} className="mobile-generation-dialog !bg-white !text-black" hideClose>
-        <div className="sticky top-0 z-20 flex items-center justify-between bg-white px-5 py-3 text-black">
+      <Modal open={isMobile && mobileResultOpen && Boolean(latestMessage)} onClose={() => setMobileResultOpen(false)} className="mobile-generation-dialog !bg-surface !text-ink" hideClose>
+        <div className="sticky top-0 z-20 flex items-center justify-between bg-surface px-5 py-3 text-ink">
           <h2 className="font-bold">{loading ? "Po gjenerohet…" : "Gjenerimi yt"}</h2>
-          <button type="button" autoFocus onClick={() => setMobileResultOpen(false)} aria-label="Mbyll gjenerimin" className="grid h-11 w-11 place-items-center rounded-xl bg-white text-black"><X className="h-6 w-6" /></button>
+          <button type="button" autoFocus onClick={() => setMobileResultOpen(false)} aria-label="Mbyll gjenerimin" className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-ink"><X className="h-6 w-6" /></button>
         </div>
         {latestMessage && <div className="px-4 pb-6"><GenerationCard message={latestMessage} onOpen={(creation) => { setMobileResultOpen(false); setLightbox(creation); }} /></div>}
       </Modal>

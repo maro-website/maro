@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
+import { ThemeSwitch } from "@/components/app/ThemeSwitch";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
@@ -93,6 +94,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             className="maro-menu absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(17.8125rem,calc(100vw-1rem))] p-[30px]"
             role="menu"
           >
+            <div className="mb-[20px]"><ThemeSwitch /></div>
             <div className="flex min-h-[52px] items-center gap-[10px] rounded-maro16 bg-surface-2 p-[6px]">
               <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
                 <Avatar user={user} className="h-10 w-10 text-[14px]" />

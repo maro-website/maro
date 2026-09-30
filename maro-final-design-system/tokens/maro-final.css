@@ -1,7 +1,7 @@
 /*
  * maro-final-design-system
  * The only visual token source used by maro.al.
- * Light-only, flat, mobile-first. Do not add a second theme layer.
+ * Qelt and Mshelt share semantic tokens, geometry and typography.
  */
 
 :root {
@@ -176,6 +176,38 @@
   --maro-hub-promo-height: 11.125rem;
   --maro-hub-promo-gap: 1.875rem;
   --maro-hub-dropdown-width: 17.8125rem;
+}
+
+/* Mshelt changes semantic colors; Qelt keeps the original palette. */
+:root[data-theme="mshelt"] {
+  color-scheme: dark;
+  --maro-color-bg-canvas: #111315;
+  --maro-color-bg-surface: #1b1e21;
+  --maro-color-bg-surface-02: #25292e;
+  --maro-color-bg-surface-hover: #30363c;
+  --maro-color-bg-surface-selected: #3b424a;
+  --maro-color-bg-inverse: #f2f4f6;
+  --maro-color-bg-disabled: #30363c;
+  --maro-color-bg-overlay: rgb(0 0 0 / 72%);
+  --maro-color-text-primary: #f2f4f6;
+  --maro-color-text-secondary: #bcc3cb;
+  --maro-color-text-tertiary: #9aa4af;
+  --maro-color-text-muted: #9aa4af;
+  --maro-color-text-inverse: #111315;
+  --maro-color-text-brand: #00ff72;
+  --maro-color-text-danger: #ff8585;
+  --maro-color-text-disabled: #78838f;
+  --maro-color-icon-primary: #f2f4f6;
+  --maro-color-icon-secondary: #bcc3cb;
+  --maro-color-icon-inverse: #111315;
+  --maro-color-icon-brand: #00ff72;
+  --maro-color-icon-danger: #ff8585;
+  --maro-color-border-subtle: #343b43;
+  --maro-color-border-default: #4b5561;
+  --maro-color-border-strong: #f2f4f6;
+  --maro-color-success: #65dfa1;
+  --maro-color-warning: #ffcc75;
+  --maro-color-danger: #ff8585;
 }
 
 *,

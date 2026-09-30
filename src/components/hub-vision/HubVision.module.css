@@ -351,7 +351,7 @@
 .continueTitle > a { display: flex; align-items: center; gap: 7px; min-height: 44px; font-size: 11px; color: var(--muted); }
 .recentList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .recentItem { display: flex; align-items: center; min-width: 0; gap: 12px; border-radius: 7px; padding: 5px; transition: background .2s; }
-.recentItem:hover { background: white; }
+.recentItem:hover { background: var(--maro-color-bg-surface-hover); }
 .recentImage { width: 48px; height: 48px; object-fit: cover; border-radius: 7px; flex-shrink: 0; }
 .recentItem > span { flex: 1; min-width: 0; }
 .recentItem strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; }
@@ -385,7 +385,7 @@
 .filmaBadge { position: absolute; left: 18px; bottom: 18px; display: inline-flex; gap: 4px; align-items: center; min-height: 30px; padding: 7px 11px; border-radius: 6px; background: rgb(255 255 255 / 94%); color: #242424; font-size: 10px; line-height: 1.4; }
 .filmaBadge strong { font-weight: 700; }
 .filmaSound { position: absolute; right: 18px; bottom: 18px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / 94%); color: #242424; transition: background .2s; }
-.filmaSound:hover { background: white; }
+.filmaSound:hover { background: var(--maro-color-bg-surface-hover); }
 .audio .toolStudy { background: #eae5ef; }
 .marketing .toolStudy { background: #f4e8e1; }
 .webStudy { width: 84%; margin: 23px auto 0; background: #fafaf3; border-radius: 6px 6px 0 0; box-shadow: 0 8px 26px #5861631c; transform: rotate(-3deg); transition: transform .5s; }
@@ -450,7 +450,7 @@
 .presetMedia { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
 .presetCard:hover .presetMedia { transform: scale(1.05); }
 .presetUse { position: absolute; right: 10px; bottom: 10px; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: grid; place-items: center; color: var(--brand); }
-.premium { position: absolute; top: 10px; left: 10px; font-size: 8px; background: white; border-radius: 4px; padding: 4px 6px; }
+.premium { position: absolute; top: 10px; left: 10px; font-size: 8px; background: var(--maro-color-bg-surface); border-radius: 4px; padding: 4px 6px; }
 .presetName { display: block; margin-top: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .presetCategory { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
 .presetNoMedia { display: flex; height: 100%; flex-direction: column; justify-content: center; padding: 15px; background: #eaeaf2; color: var(--brand); }
@@ -674,32 +674,32 @@
   .wordmark svg { width: 29px; }
   .launchFooter p { max-width: 130px; }
 }
-/* Dev dark preview — html flag set by PreviewDarkMode (development only). */
-:global(html[data-maro-preview-dark]) .breadcrumb > :nth-child(2) { color: var(--muted); }
-:global(html[data-maro-preview-dark]) .workspaceIcon { background: color-mix(in srgb, var(--brand) 22%, var(--paper)); }
-:global(html[data-maro-preview-dark]) .workspaceLoading { background: var(--line); }
-:global(html[data-maro-preview-dark]) .profileAvatar { background: color-mix(in srgb, var(--brand) 28%, var(--paper)); }
-:global(html[data-maro-preview-dark]) .logoDoor .createButton:hover { background: var(--maro-color-bg-surface-hover); }
-:global(html[data-maro-preview-dark]) .presetTabs { background: var(--maro-color-bg-surface-02); }
-:global(html[data-maro-preview-dark]) .presetTabs button[aria-pressed="true"] {
+/* Mshelt uses the same layout with dark semantic surfaces. */
+:global(html[data-theme=mshelt]) .breadcrumb > :nth-child(2) { color: var(--muted); }
+:global(html[data-theme=mshelt]) .workspaceIcon { background: color-mix(in srgb, var(--brand) 22%, var(--paper)); }
+:global(html[data-theme=mshelt]) .workspaceLoading { background: var(--line); }
+:global(html[data-theme=mshelt]) .profileAvatar { background: color-mix(in srgb, var(--brand) 28%, var(--paper)); }
+:global(html[data-theme=mshelt]) .logoDoor .createButton:hover { background: var(--maro-color-bg-surface-hover); }
+:global(html[data-theme=mshelt]) .presetTabs { background: var(--maro-color-bg-surface-02); }
+:global(html[data-theme=mshelt]) .presetTabs button[aria-pressed="true"] {
   background: var(--maro-color-bg-surface);
   box-shadow: none;
   color: var(--brand);
 }
-:global(html[data-maro-preview-dark]) .presetImage,
-:global(html[data-maro-preview-dark]) .presetSkeleton { background: var(--maro-color-bg-surface-02); }
-:global(html[data-maro-preview-dark]) .presetUse { background: var(--maro-color-bg-surface); }
-:global(html[data-maro-preview-dark]) .presetNoMedia { background: color-mix(in srgb, var(--brand) 12%, var(--paper)); }
-:global(html[data-maro-preview-dark]) .web .toolStudy { background: #1e2426; }
-:global(html[data-maro-preview-dark]) .film .toolStudy { background: #22261e; }
-:global(html[data-maro-preview-dark]) .audio .toolStudy { background: #221f28; }
-:global(html[data-maro-preview-dark]) .marketing .toolStudy { background: #28221f; }
-:global(html[data-maro-preview-dark]) .filmaBadge,
-:global(html[data-maro-preview-dark]) .filmaSound {
+:global(html[data-theme=mshelt]) .presetImage,
+:global(html[data-theme=mshelt]) .presetSkeleton { background: var(--maro-color-bg-surface-02); }
+:global(html[data-theme=mshelt]) .presetUse { background: var(--maro-color-bg-surface); }
+:global(html[data-theme=mshelt]) .presetNoMedia { background: color-mix(in srgb, var(--brand) 12%, var(--paper)); }
+:global(html[data-theme=mshelt]) .web .toolStudy { background: #1e2426; }
+:global(html[data-theme=mshelt]) .film .toolStudy { background: #22261e; }
+:global(html[data-theme=mshelt]) .audio .toolStudy { background: #221f28; }
+:global(html[data-theme=mshelt]) .marketing .toolStudy { background: #28221f; }
+:global(html[data-theme=mshelt]) .filmaBadge,
+:global(html[data-theme=mshelt]) .filmaSound {
   background: color-mix(in srgb, var(--paper) 92%, transparent);
   color: var(--ink);
 }
-:global(html[data-maro-preview-dark]) .release { background: var(--maro-color-bg-surface-02); color: var(--muted); }
+:global(html[data-theme=mshelt]) .release { background: var(--maro-color-bg-surface-02); color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .heroTitle,
