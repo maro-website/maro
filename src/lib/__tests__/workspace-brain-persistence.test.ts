@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
 import { isBrainConfigured } from "@/lib/workspaces/brainProfile";
-import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft } from "@/lib/workspaces/brainDraft";
+import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBrainDraft } from "@/lib/workspaces/brainDraft";
 import { workspaceRequest } from "@/lib/workspaces/request";
 import { subscribeToSession } from "@/lib/supabase/sessionSubscription";
 
@@ -82,6 +82,17 @@ describe("workspace and maroBrain persistence", () => {
     await expect(fetchWorkspaces("alice")).rejects.toThrow("denied");
     await expect(saveBrainProfile("alice", "ws-a", emptyBrainProfile())).rejects.toThrow("denied");
     expect(localStorage.getItem("maro:ws-brain:ws-a")).toBeNull();
+  });
+
+  it("recovers an older failed-save cache once without replacing confirmed server data", () => {
+    const old = emptyBrainProfile(); old.brand.name = "Previously filled";
+    localStorage.setItem("maro:ws-brain:ws-a", JSON.stringify(old));
+    const remote = emptyBrainProfile(); remote.brand.name = "Confirmed on server";
+    expect(recoverLegacyBrainDraft("alice", "ws-a", remote)).toBeNull();
+    expect(recoverLegacyBrainDraft("alice", "ws-a", emptyBrainProfile())).toEqual(old);
+    expect(readBrainDraft("alice", "ws-a")).toEqual(old);
+    clearSavedBrainDraft("alice", "ws-a", old);
+    expect(recoverLegacyBrainDraft("alice", "ws-a", emptyBrainProfile())).toBeNull();
   });
 
   it("serializes autosaves and makes tool reads wait for the newest saved profile", async () => {

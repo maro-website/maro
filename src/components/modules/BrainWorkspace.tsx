@@ -29,7 +29,7 @@ import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft } from "@/lib/workspaces/brainDraft";
+import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBrainDraft } from "@/lib/workspaces/brainDraft";
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
@@ -103,8 +103,10 @@ function BrainWorkspaceEditor() {
       if (!active) return;
       // Server hydration and source refreshes must never overwrite an unsaved draft.
       if (!dirtyRef.current) {
-        profileRef.current = p;
-        setProfileState(p);
+        const recovered = recoverLegacyBrainDraft(userId, workspaceId, p);
+        profileRef.current = recovered ?? p;
+        dirtyRef.current = Boolean(recovered);
+        setProfileState(recovered ?? p);
       }
       setSources(s);
     }).catch((error) => {

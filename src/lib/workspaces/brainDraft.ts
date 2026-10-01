@@ -1,5 +1,5 @@
 import type { WorkspaceBrainProfile } from "./brainTypes";
-import { normalizeBrainProfile } from "./brainProfile";
+import { isBrainConfigured, normalizeBrainProfile } from "./brainProfile";
 
 function key(userId: string, workspaceId: string) {
   return `maro:brain-draft:${userId}:${workspaceId}`;
@@ -20,6 +20,25 @@ export function writeBrainDraft(userId: string, workspaceId: string, profile: Wo
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Older failed saves cached the profile locally before the server confirmed it.
+ * Call only after the server has confirmed this workspace belongs to the user.
+ */
+export function recoverLegacyBrainDraft(userId: string, workspaceId: string, serverProfile: WorkspaceBrainProfile) {
+  if (isBrainConfigured(serverProfile)) return null;
+  const recoveredKey = `${key(userId, workspaceId)}:legacy-recovered`;
+  try {
+    if (localStorage.getItem(recoveredKey)) return null;
+    const raw = localStorage.getItem(`maro:ws-brain:${workspaceId}`);
+    if (!raw) return null;
+    const profile = normalizeBrainProfile(JSON.parse(raw));
+    if (!isBrainConfigured(profile)) return null;
+    if (writeBrainDraft(userId, workspaceId, profile)) localStorage.setItem(recoveredKey, "1");
+    return profile;
+  } catch {
+    return null;
   }
 }
 
