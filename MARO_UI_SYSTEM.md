@@ -25,8 +25,8 @@ Use semantic roles. Dark canvas/surface/raised tones form quiet layers; everyday
 | `bg-surface` | `#1b1e21` | `#ffffff` |
 | `bg-surface-02` | `#25292e` | `#f3f3f3` |
 | `bg-surface-raised` | `#25292e` | `#ffffff` |
-| `bg-surface-hover` | `#30363c` | `#ededed` |
-| `bg-surface-active` | `#343c44` | `#e3e7e5` |
+| `bg-surface-hover` | `#333a41` | `#ededed` |
+| `bg-surface-active` | `#424c55` | `#e3e7e5` |
 | `bg-subtle` | `#171a1d` | `#f3f3f3` |
 | `text-primary` | `#f2f4f6` | `#0a0a0a` |
 | `text-secondary` | `#bcc3cb` | `#5f5f5f` |

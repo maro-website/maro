@@ -213,10 +213,10 @@
   --maro-color-bg-canvas: #111315;
   --maro-color-bg-surface: #1b1e21;
   --maro-color-bg-surface-02: #25292e;
-  --maro-color-bg-surface-hover: #30363c;
-  --maro-color-bg-surface-selected: #343c44;
+  --maro-color-bg-surface-hover: #333a41;
+  --maro-color-bg-surface-selected: #424c55;
   --maro-color-bg-surface-raised: #25292e;
-  --maro-color-bg-surface-active: #343c44;
+  --maro-color-bg-surface-active: #424c55;
   --maro-color-bg-subtle: #171a1d;
   --maro-color-bg-inverse: #f2f4f6;
   --maro-color-bg-disabled: #30363c;

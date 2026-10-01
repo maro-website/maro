@@ -620,6 +620,21 @@
   background: var(--maro-color-accent);
 }
 
+/* Mshelt interactions use a tonal lift, distinct from raised surfaces and selection. */
+:root[data-theme="mshelt"] .maro-nav__link:hover:not([data-active="true"]),
+:root[data-theme="mshelt"] .maro-menu__item:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([data-variant="danger"]):not(.text-danger) {
+  background: var(--maro-color-bg-surface-hover);
+}
+
+:root[data-theme="mshelt"] .maro-nav__link:hover:not([data-active="true"]) {
+  color: var(--maro-color-text-primary);
+}
+
+:root[data-theme="mshelt"] :is(.maro-card[data-interactive="true"], .maro-icon-button:not([data-variant]), .maro-chip-select:not([data-selected="true"])):active:not(:disabled),
+:root[data-theme="mshelt"] .maro-menu__item:active:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([data-variant="danger"]):not(.text-danger) {
+  background: var(--maro-color-bg-surface-active);
+}
+
 .maro-text-display { font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
 .maro-text-h1 { font-size: clamp(1.75rem, 3vw, 2rem); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
 .maro-text-h2 { font-size: var(--maro-font-size-24); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }

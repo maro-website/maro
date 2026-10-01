@@ -164,6 +164,21 @@
 
 }
 
+/* Legacy hover utilities share Mshelt's semantic interaction tone. Qelt stays unchanged. */
+:root[data-theme="mshelt"] :is(.hover\:bg-surface, .hover\:bg-surface-2, .hover\:bg-surface-02, .hover\:bg-menu-row):hover:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([aria-current="page"]):not(.text-danger) {
+  background-color: var(--maro-color-bg-surface-hover);
+}
+
+:root[data-theme="mshelt"] :is(.hover\:bg-surface, .hover\:bg-surface-2, .hover\:bg-surface-02, .hover\:bg-surface-hover, .hover\:bg-menu-row):active:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([aria-current="page"]):not(.text-danger) {
+  background-color: var(--maro-color-bg-surface-active);
+}
+
+/* Existing neutral selections in menus and the navigation drawer remain stronger than hover. */
+:root[data-theme="mshelt"] .maro-menu button.bg-surface-2:not(:disabled):not(.hover\:bg-surface-hover),
+:root[data-theme="mshelt"] .bg-surface.text-brand[aria-current="page"] {
+  background-color: var(--maro-color-bg-surface-selected);
+}
+
 /* maroFort / maroPreset chips — approved gradient exceptions */
 .fort-pill {
   display: inline-flex;
