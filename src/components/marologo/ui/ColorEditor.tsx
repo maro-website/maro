@@ -1,11 +1,14 @@
 "use client";
 
+import { useLogoContent } from "../LogoContent";
 import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { MAX_COLORS } from "@/lib/marologo/constants";
 import { normalizeHex } from "@/lib/marologo/validation";
 import { MaroDecidesCheckbox } from "./LogoTypeCards";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export function ColorEditor({
   mode,
@@ -20,7 +23,8 @@ export function ColorEditor({
   onValuesChange: (values: string[]) => void;
   error?: string;
 }) {
-  const [draft, setDraft] = React.useState("#00FF72");
+  const content = useLogoContent();
+  const [draft, setDraft] = React.useState("#00ff72");
   const customActive = mode === "custom";
 
   const addColor = () => {
@@ -51,7 +55,7 @@ export function ColorEditor({
 
   return (
     <div className="space-y-[20px]">
-      <h3 className="text-[15px] font-semibold text-ink">Ngjyrat</h3>
+      <h3 className="text-base font-semibold text-ink">{content["look.colors"].label}</h3>
 
       <div className={cn(!customActive && "opacity-50 pointer-events-none")}>
         <span className="marologo-field-label mb-[10px] block">Kam ngjyra:</span>
@@ -61,19 +65,24 @@ export function ColorEditor({
               <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-lg">
                 <span className="block h-full w-full" style={{ background: normalizeHex(hex) ?? hex }} />
                 <input
+                  aria-label={`Ngjyra ${i + 1}`}
+                  disabled={!customActive}
                   type="color"
-                  value={normalizeHex(hex)?.slice(1) ?? "00FF72"}
-                  onChange={(e) => updateColor(i, `#${e.target.value}`)}
+                  value={normalizeHex(hex) ?? "#00ff72"}
+                  onChange={(e) => updateColor(i, e.target.value)}
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
               </label>
               <input
+                aria-label={`Ngjyra ${i + 1} HEX`}
+                disabled={!customActive}
                 type="text"
                 value={hex}
                 onChange={(e) => updateColor(i, e.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none"
               />
               <button
+                disabled={!customActive}
                 type="button"
                 aria-label="Hiq ngjyrën"
                 onClick={() => removeColor(hex)}
@@ -86,20 +95,21 @@ export function ColorEditor({
         </div>
         {values.length < MAX_COLORS && (
           <div className="mt-[10px] flex gap-[10px]">
-            <input
+            <Input
+              aria-label="Ngjyra e re HEX"
+              disabled={!customActive}
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="#00FF72"
-              className="marologo-card h-11 min-w-0 flex-1 px-4 text-[14px] outline-none"
+              placeholder={content["look.colors"].placeholder}
+              className="min-w-0 flex-1"
             />
-            <button
+            <Button variant="secondary" disabled={!customActive}
               type="button"
               onClick={addColor}
-              className="marologo-card px-4 text-[13px] font-semibold uppercase tracking-wide text-ink-3 hover:text-ink"
             >
               SHTO +
-            </button>
+            </Button>
           </div>
         )}
       </div>

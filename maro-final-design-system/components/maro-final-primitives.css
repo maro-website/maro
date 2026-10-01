@@ -27,8 +27,8 @@
 
 .maro-button {
   min-height: var(--maro-control-height-md);
-  gap: var(--maro-gap-10);
-  padding-inline: var(--maro-gap-20);
+  gap: var(--maro-space-2);
+  padding-inline: var(--maro-space-4);
   border-radius: var(--maro-radius-12);
   font-size: var(--maro-font-size-14);
   line-height: var(--maro-line-height-control);
@@ -46,33 +46,67 @@
   padding-inline: var(--maro-gap-30);
 }
 
-.maro-button[data-variant="inverse"] {
+.maro-button[data-variant="inverse"],
+.maro-icon-button[data-variant="inverse"] {
   color: var(--maro-color-text-inverse);
   background: var(--maro-color-bg-inverse);
 }
 
-.maro-button[data-variant="brand"] {
+.maro-button[data-variant="brand"],
+.maro-icon-button[data-variant="brand"] {
   color: var(--maro-color-text-on-accent);
   background: var(--maro-color-accent);
 }
 
-.maro-button[data-variant="secondary"] {
+.maro-button[data-variant="secondary"],
+.maro-icon-button[data-variant="secondary"] {
   color: var(--maro-color-text-primary);
   background: var(--maro-color-bg-surface-02);
 }
 
-.maro-button[data-variant="ghost"] {
+.maro-button[data-variant="ghost"],
+.maro-icon-button[data-variant="ghost"] {
   color: var(--maro-color-text-primary);
   background: transparent;
 }
 
-.maro-button[data-variant="danger"] {
-  color: var(--maro-color-text-inverse);
+.maro-button[data-variant="danger"],
+.maro-icon-button[data-variant="danger"] {
+  color: var(--maro-color-text-on-danger);
   background: var(--maro-color-bg-danger);
 }
 
-.maro-button:hover:not(:disabled) {
-  filter: brightness(0.96);
+.maro-button[data-variant="brand"]:hover:not(:disabled),
+.maro-icon-button[data-variant="brand"]:hover:not(:disabled) {
+  background: var(--maro-color-accent-hover);
+}
+.maro-button[data-variant="brand"]:active:not(:disabled),
+.maro-icon-button[data-variant="brand"]:active:not(:disabled) {
+  background: var(--maro-color-accent-active);
+}
+.maro-button[data-variant="inverse"]:hover:not(:disabled),
+.maro-icon-button[data-variant="inverse"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--maro-color-bg-inverse) 88%, var(--maro-color-bg-surface));
+}
+.maro-button:is([data-variant="secondary"], [data-variant="ghost"]):hover:not(:disabled),
+.maro-icon-button:is([data-variant="secondary"], [data-variant="ghost"]):hover:not(:disabled) {
+  background: var(--maro-color-bg-surface-hover);
+}
+.maro-button[data-variant="danger"]:hover:not(:disabled),
+.maro-icon-button[data-variant="danger"]:hover:not(:disabled) {
+  background: var(--maro-color-danger-hover);
+}
+.maro-button[data-variant="danger"]:active:not(:disabled),
+.maro-icon-button[data-variant="danger"]:active:not(:disabled) {
+  background: var(--maro-color-danger-active);
+}
+.maro-button[data-variant="inverse"]:active:not(:disabled),
+.maro-icon-button[data-variant="inverse"]:active:not(:disabled) {
+  background: color-mix(in srgb, var(--maro-color-bg-inverse) 82%, var(--maro-color-bg-surface));
+}
+.maro-button:is([data-variant="secondary"], [data-variant="ghost"]):active:not(:disabled),
+.maro-icon-button:is([data-variant="secondary"], [data-variant="ghost"]):active:not(:disabled) {
+  background: var(--maro-color-bg-surface-active);
 }
 
 .maro-button:active:not(:disabled) {
@@ -91,7 +125,8 @@
   filter: none;
 }
 
-.maro-button[aria-busy="true"]::before {
+.maro-button[aria-busy="true"]::before,
+.maro-icon-button[aria-busy="true"]::before {
   content: "";
   width: 1em;
   height: 1em;
@@ -116,6 +151,8 @@
 
 .maro-icon-button > svg,
 .maro-button > svg,
+.maro-button > span > svg,
+.maro-icon-button > span > svg,
 .maro-chip > svg {
   width: var(--maro-icon-size-md);
   height: var(--maro-icon-size-md);
@@ -138,37 +175,44 @@
 }
 
 .maro-chip[data-selected="true"] {
-  color: var(--maro-color-text-inverse);
+  color: var(--maro-color-text-on-accent);
   background: var(--maro-color-bg-selected);
 }
 
 .maro-field {
   display: grid;
-  gap: var(--maro-gap-10);
+  gap: var(--maro-space-2);
 }
 
 .maro-field__label {
-  color: var(--maro-gray-300);
+  color: var(--maro-color-text-secondary);
   font-size: var(--maro-font-size-14);
   font-weight: var(--maro-font-weight-semibold);
   line-height: var(--maro-line-height-control);
 }
 
-.maro-field :is(input, select, textarea) {
+.maro-input,
+.maro-field :where(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), select, textarea) {
   width: 100%;
-  min-height: var(--maro-control-height-lg);
+  min-height: var(--maro-control-height-md);
   padding: var(--maro-space-3) var(--maro-space-4);
-  border: 0;
+  border: 1px solid var(--maro-color-border-interactive);
   border-radius: var(--maro-radius-12);
-  outline: 0;
   color: var(--maro-color-text-primary);
   background: var(--maro-color-bg-surface);
   font-size: var(--maro-font-size-16);
   line-height: var(--maro-line-height-body);
 }
 
+.maro-input::placeholder,
+.maro-field :is(input, textarea)::placeholder {
+  color: var(--maro-color-text-muted);
+  opacity: 1;
+}
+
+.maro-input:hover:not(:disabled),
 .maro-field :is(input, select, textarea):hover:not(:disabled) {
-  background: var(--maro-color-bg-surface);
+  border-color: var(--maro-color-border-focus);
 }
 
 .maro-field textarea {
@@ -176,9 +220,22 @@
   resize: vertical;
 }
 
+.maro-input:focus-visible,
 .maro-field :is(input, select, textarea):focus-visible {
   background: var(--maro-color-bg-surface);
   box-shadow: var(--maro-focus-ring);
+}
+
+.maro-input:disabled,
+.maro-field :is(input, select, textarea):disabled {
+  color: var(--maro-color-text-disabled);
+  background: var(--maro-color-bg-disabled);
+  cursor: not-allowed;
+}
+.maro-input[aria-invalid="true"],
+.maro-input[data-invalid="true"],
+.maro-field [aria-invalid="true"] {
+  border-color: var(--maro-color-danger);
 }
 
 .maro-field__help,
@@ -195,15 +252,15 @@
   height: 24px;
   flex: 0 0 24px;
   appearance: none;
-  border: 2px solid var(--maro-gray-300);
-  border-radius: 6px;
-  background: var(--maro-white);
+  border: 2px solid var(--maro-color-border-interactive);
+  border-radius: var(--maro-radius-4);
+  background: var(--maro-color-bg-surface);
 }
 
 .maro-native-checkbox:checked {
   border-color: var(--maro-blue);
   background-color: var(--maro-blue);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 10 4 4 8-8' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 10 4 4 8-8' fill='none' stroke='%230a0a0a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .maro-surface,
@@ -248,11 +305,11 @@
 .maro-menu {
   min-width: 13.75rem;
   max-width: 22rem;
-  padding: var(--maro-gap-30);
-  border: 0;
+  padding: var(--maro-space-4);
+  border: 1px solid var(--maro-color-border-subtle);
   border-radius: var(--maro-radius-20);
-  background: var(--maro-color-bg-surface);
-  box-shadow: none;
+  background: var(--maro-color-bg-surface-raised);
+  box-shadow: var(--maro-shadow-float);
 }
 
 .maro-menu__item {
@@ -261,7 +318,7 @@
   min-height: var(--maro-control-height-md);
   align-items: center;
   gap: var(--maro-gap-20);
-  padding-inline: 0;
+  padding-inline: var(--maro-space-3);
   border: 0;
   border-radius: var(--maro-radius-12);
   color: var(--maro-color-text-primary);
@@ -277,7 +334,7 @@
 }
 
 .maro-menu__item[data-variant="danger"] {
-  color: var(--maro-color-text-inverse);
+  color: var(--maro-color-text-on-danger);
   background: var(--maro-color-bg-danger);
 }
 
@@ -356,8 +413,13 @@
 
 .maro-nav__link:hover,
 .maro-nav__link[data-active="true"] {
-  color: var(--maro-color-accent);
+  color: var(--maro-color-text-brand);
   background: var(--maro-color-bg-surface);
+}
+
+.maro-nav__link[data-active="true"] {
+  background: var(--maro-color-accent-subtle);
+  box-shadow: inset 0 -2px var(--maro-color-border-focus);
 }
 
 .maro-nav__link[data-disabled="true"] {
@@ -397,6 +459,7 @@
 
 .maro-dock-pill[data-variant="accent"] {
   background: var(--maro-color-accent);
+  color: var(--maro-color-text-on-accent);
 }
 
 .maro-dock-pill__label {
@@ -443,7 +506,7 @@
   inset: 0 0 2.25rem;
   display: grid;
   place-items: center;
-  color: var(--maro-blue-soft-icon);
+  color: var(--maro-color-icon-brand);
   transform: translateY(0) scale(1);
   transition:
     color 280ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -489,7 +552,7 @@
 
 .maro-hub-tile__label {
   max-width: 100%;
-  color: var(--maro-blue-soft-icon);
+  color: var(--maro-color-text-brand);
   font-size: var(--maro-font-size-16);
   font-weight: var(--maro-font-weight-semibold);
   text-align: center;
@@ -529,14 +592,14 @@
   }
 
   .maro-hub-tile-shell:not([aria-disabled="true"]):is(:hover, :focus-within) .maro-hub-tile__icon-area {
-    color: var(--maro-color-text-inverse);
+    color: var(--maro-color-text-on-scrim);
     transform: translateY(-0.2rem) scale(0.96);
   }
 
   .maro-hub-tile-shell:not([aria-disabled="true"]):is(:hover, :focus-within) .maro-hub-tile__icon-area svg,
   .maro-hub-tile-shell:not([aria-disabled="true"]):is(:hover, :focus-within) .maro-hub-tile__icon-area .maro-icon,
   .maro-hub-tile-shell:not([aria-disabled="true"]):is(:hover, :focus-within) .maro-hub-tile__label {
-    color: var(--maro-color-text-inverse) !important;
+    color: var(--maro-color-text-on-scrim) !important;
   }
 }
 
@@ -553,9 +616,40 @@
 
 .maro-chip-select:hover { background: var(--maro-color-bg-surface-hover); }
 .maro-chip-select[data-selected="true"] {
-  color: var(--maro-color-text-inverse);
+  color: var(--maro-color-text-on-accent);
   background: var(--maro-color-accent);
 }
+
+/* Mshelt interactions use a tonal lift, distinct from raised surfaces and selection. */
+:root[data-theme="mshelt"] .maro-nav__link:hover:not([data-active="true"]),
+:root[data-theme="mshelt"] .maro-menu__item:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([data-variant="danger"]):not(.text-danger) {
+  background: var(--maro-color-bg-surface-hover);
+}
+
+:root[data-theme="mshelt"] .maro-nav__link:hover:not([data-active="true"]) {
+  color: var(--maro-color-text-primary);
+}
+
+:root[data-theme="mshelt"] :is(.maro-card[data-interactive="true"], .maro-icon-button:not([data-variant]), .maro-chip-select:not([data-selected="true"])):active:not(:disabled),
+:root[data-theme="mshelt"] .maro-menu__item:active:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([data-variant="danger"]):not(.text-danger) {
+  background: var(--maro-color-bg-surface-active);
+}
+
+.maro-text-display { font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
+.maro-text-h1 { font-size: clamp(1.75rem, 3vw, 2rem); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
+.maro-text-h2 { font-size: var(--maro-font-size-24); font-weight: 700; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
+.maro-text-h3 { font-size: var(--maro-font-size-20); font-weight: 600; line-height: var(--maro-line-height-heading); letter-spacing: var(--maro-tracking-brand); }
+.maro-text-h4 { font-size: var(--maro-font-size-18); font-weight: 600; line-height: var(--maro-line-height-heading); }
+.maro-text-body-lg { font-size: var(--maro-font-size-16); line-height: var(--maro-line-height-body); }
+.maro-text-body { font-size: var(--maro-font-size-14); line-height: var(--maro-line-height-body); }
+.maro-text-label { font-size: var(--maro-font-size-14); font-weight: 600; line-height: 1.4; }
+.maro-text-caption { font-size: var(--maro-font-size-12); line-height: var(--maro-line-height-body); }
+
+.maro-alert { display: flex; align-items: flex-start; gap: var(--maro-space-2); padding: var(--maro-space-3) var(--maro-space-4); border-radius: var(--maro-radius-12); font-size: var(--maro-font-size-14); line-height: var(--maro-line-height-body); }
+.maro-alert[data-tone="error"] { color: var(--maro-color-danger); background: var(--maro-color-danger-subtle); }
+.maro-alert[data-tone="success"] { color: var(--maro-color-success); background: var(--maro-color-success-subtle); }
+.maro-alert[data-tone="warning"] { color: var(--maro-color-warning); background: var(--maro-color-warning-subtle); }
+.maro-alert[data-tone="info"] { color: var(--maro-color-info); background: var(--maro-color-info-subtle); }
 
 .maro-progress-steps {
   display: flex;

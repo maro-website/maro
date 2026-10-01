@@ -1,9 +1,9 @@
 "use client";
 
 import { ToolIcon } from "@/components/app/OptionIcon";
-import { Megaphone } from "lucide-react";
 import { ProductLogo } from "@/components/ui/ProductLogo";
 import { getProductBrand } from "@/lib/design/maro-system";
+import { Megaphone } from "lucide-react";
 
 export function ModuleHero({
   toolId,
@@ -15,16 +15,12 @@ export function ModuleHero({
   subtitle: string;
 }) {
   return (
-    <div className="maro-editorial-hero pb-10 pt-12 sm:pb-14 sm:pt-16 lg:pb-16 lg:pt-24">
-      {getProductBrand(toolId) ? (
-        <ProductLogo product={toolId} className="h-14 w-[212px] sm:h-16 sm:w-[244px]" />
-      ) : (
-        <ToolIcon toolId={toolId} fallback={Megaphone} className="h-14 w-14 text-brand opacity-50 sm:h-16 sm:w-16" />
-      )}
-      <h1 className="mt-8 max-w-2xl text-[clamp(34px,5vw,52px)] font-bold leading-[1.04] tracking-brand text-ink sm:mt-10">
+    <div className="maro-editorial-hero pb-8 pt-8 sm:pb-10 sm:pt-12">
+      {getProductBrand(toolId) && getProductBrand(toolId)?.id !== "maroFort" ? <ProductLogo product={toolId} className="h-12 w-[184px]" /> : <ToolIcon toolId={toolId} fallback={Megaphone} className="h-12 w-12 text-brand" />}
+      <h1 className="maro-text-h1 mt-6 max-w-2xl text-ink">
         {title}
       </h1>
-      <p className="mt-4 max-w-[var(--layout-hero-subtitle-max)] text-[15px] leading-relaxed text-ink-2 sm:text-[16px]">{subtitle}</p>
+      <p className="maro-text-body-lg mt-3 max-w-[var(--layout-hero-subtitle-max)] text-ink-2">{subtitle}</p>
     </div>
   );
 }

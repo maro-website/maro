@@ -5,38 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
+import { ThemeSwitch } from "@/components/app/ThemeSwitch";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
-import { initials } from "@/lib/utils/format";
+import { UserAvatar as Avatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils/cn";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import type { LucideIcon } from "lucide-react";
 import { Bookmark, Camera, ChevronDown, Shield, Star, User as UserIcon } from "lucide-react";
 
-function Avatar({
-  user,
-  className,
-}: {
-  user: { name: string; avatarColor: string; avatarUrl?: string };
-  className?: string;
-}) {
-  if (user.avatarUrl) {
-    return (
-      <span className={cn("block shrink-0 overflow-hidden rounded-full", className)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-      </span>
-    );
-  }
-  return (
-    <span
-      className={cn("grid shrink-0 place-items-center rounded-full font-bold text-white", className)}
-      style={{ background: user.avatarColor }}
-    >
-      {initials(user.name)}
-    </span>
-  );
-}
 
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
@@ -46,6 +24,9 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const [uploading, setUploading] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  useMenuKeyboard(open, panelRef, triggerRef, () => setOpen(false));
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const go = (href: string) => {
@@ -95,6 +76,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex h-11 items-center gap-[10px] rounded-maro16 bg-surface p-0.5 transition-colors hover:bg-surface-hover lg:pr-3"
@@ -110,15 +92,17 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="maro-menu absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(17.8125rem,calc(100vw-1rem))] p-[30px]"
+            className="maro-menu absolute right-0 top-[calc(100%+10px)] z-[var(--maro-z-dropdown)] max-h-[calc(100dvh-6rem)] w-[min(17.8125rem,calc(100vw-1rem))] overflow-y-auto p-4"
             role="menu"
           >
+            <div className="mb-[20px]"><ThemeSwitch /></div>
             <div className="flex min-h-[52px] items-center gap-[10px] rounded-maro16 bg-surface-2 p-[6px]">
-              <button type="button" onClick={() => fileRef.current?.click()} className="group relative">
+              <button type="button" aria-label="Ndrysho foton e profilit" onClick={() => fileRef.current?.click()} className="group relative">
                 <Avatar user={user} className="h-10 w-10 text-[14px]" />
                 <span className="absolute inset-0 grid place-items-center rounded-full bg-dim opacity-0 transition-opacity group-hover:opacity-100">
                   {uploading ? (
@@ -130,11 +114,11 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               </button>
               <div className="min-w-0">
                 <div className="truncate text-[16px] font-bold text-menu-fg">{user.name}</div>
-                <div className="truncate text-[13px] text-menu-muted">{user.email}</div>
+                <div className="truncate text-sm text-menu-muted">{user.email}</div>
               </div>
             </div>
 
-            <div className="mt-[30px] flex flex-col gap-[20px]">
+            <div className="mt-4 flex flex-col gap-1">
               <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
@@ -143,7 +127,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
 
             <div className="my-[20px] h-px bg-menu-divider" />
 
-            <div className="flex flex-col gap-[20px]">
+            <div className="flex flex-col gap-1">
               <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
               <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
             </div>
@@ -157,7 +141,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
               className="mt-[30px] flex h-[52px] w-full items-center justify-between gap-[20px] rounded-maro16 bg-menu-logout px-[20px] text-[16px] font-bold text-menu-logout transition-opacity hover:opacity-90"
             >
               <span className="inline-flex items-center gap-[10px]">
-                <MaroIcon name="logout" className="h-5 w-5 text-white" />
+                <MaroIcon name="logout" className="h-5 w-5" />
                 Dil
               </span>
               <span className="text-[12px] font-normal opacity-80">(mos thuj qe ke)</span>
@@ -203,7 +187,7 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-8 w-full items-center gap-[20px] rounded-maro12 text-left text-[16px] font-medium text-menu-fg transition-colors hover:bg-menu-row"
+      className="maro-menu__item text-menu-fg hover:bg-menu-row"
       role="menuitem"
     >
       <MaroIcon name={icon} fallback={Fallback} className="h-5 w-5 shrink-0 text-ink" />

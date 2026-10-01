@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { PlatformNotices } from "@/components/app/PlatformNotices";
@@ -15,10 +17,10 @@ import { StableImage } from "@/components/app/StableImage";
 import { GalleryMasonry } from "@/components/app/GalleryMasonry";
 import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
+import { GPT_IMAGE_PROMPT_MAX_CHARS } from "@/lib/generation/imagePromptValidation";
 import { PromptExpand } from "@/components/app/PromptExpand";
 import { Switch } from "@/components/ui/Switch";
-import { FortPanel } from "@/components/fort/FortPanel";
-import { BrainPill, FortPill, PresetPill } from "@/components/app/PromptAccessoryRow";
+import { BrainPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
@@ -28,11 +30,8 @@ import {
   fetchBrainProfile,
   fetchWorkspaceSources,
 } from "@/lib/workspaces/brainService";
+import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { toolToFortModule, type FortValue } from "@/lib/fort/types";
-import { resolveFortConfig, isFortModuleEnabled } from "@/lib/fort/config";
-import { defaultFortValues } from "@/lib/fort/schema";
-import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
 import { createProjectFromComposer, TYPE_TO_KIND } from "@/lib/services/projectService";
 import {
   MAX_PROJECT_ASSET_FILE_BYTES,
@@ -50,6 +49,8 @@ import {
   ImageGenerationError,
 } from "@/lib/services/imageService";
 import { generateAudio, AudioGenerationError } from "@/lib/services/audioService";
+import { V1_IMAGE_ERRORS, imageErrorMessage } from "@/lib/services/imageErrors";
+import { createImageDraftAcceptance } from "@/lib/services/imageDraft";
 import { fetchPromptDetail } from "@/lib/services/promptsService";
 import {
   findOption,
@@ -88,12 +89,12 @@ import {
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
-  "no-key": "Çelësi i OpenAI nuk është konfiguruar në server ende.",
+  "no-key": "Gjenerimi nuk është i disponueshëm. Provo më vonë.",
   unauthorized: "Sesioni skadoi. Hyr përsëri dhe provo sërish.",
   "ai-failed": "Modeli nuk u përgjigj. Provo përsëri ose ndrysho përshkrimin.",
   job_create_failed: "Gjenerimi dështoi në server. Provo përsëri pas pak sekondash.",
   jobs_table_missing:
-    "Baza e të dhënave nuk është e konfiguruar plotësisht (generation_jobs). Kontakto support.",
+    "Gjenerimi nuk është i disponueshëm. Kontakto support.",
   jobs_db_permission: "Serveri nuk ka akses në bazën e të dhënave. Kontakto support.",
   concurrency_limit: "Ke një gjenerim aktiv. Prit pak sekonda dhe provo sërish.",
   platform_busy: "Platforma është e ngarkuar. Provo përsëri pas pak.",
@@ -111,6 +112,7 @@ const IMG_ERRORS: Record<string, string> = {
   reference_not_found: "Referenca nuk u gjet më. Ngarkoje përsëri.",
   file_too_large: "Imazhi është tepër i madh. Përdor PNG, JPG ose WebP deri në 25 MB.",
   unsupported_mime: "Formati nuk mbështetet. Përdor PNG, JPG ose WebP.",
+  ...V1_IMAGE_ERRORS,
 };
 
 const AUDIO_ERRORS: Record<string, string> = {
@@ -124,7 +126,7 @@ const AUDIO_ERRORS: Record<string, string> = {
   "bad-tool": "Tool i pavlefshëm.",
 };
 
-const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENTS = 3;
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const IMAGE_REFERENCE_TRANSFER_KEY = "maro:image-reference";
 
@@ -173,14 +175,11 @@ export function ToolComposer({
   const openId = searchParams.get("open");
   const isReadOnlyView = Boolean(openId);
   const { toast } = useToast();
-  const { user, credits, hasFort, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
+  const { user, credits, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
-  const { pricing, fortConfig, toolOptionIcons } = useSettings(Boolean(user));
+  const { pricing, toolOptionIcons } = useSettings(Boolean(user));
 
-  const fortModule = toolToFortModule(tool.id);
-  const fortAvailable = Boolean(fortModule && isFortModuleEnabled(fortConfig, fortModule));
-  const fortResolved = resolveFortConfig(fortConfig);
 
   const [prompt, setPrompt] = React.useState("");
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
@@ -190,14 +189,13 @@ export function ToolComposer({
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
+  const [mobileComposerOpen, setMobileComposerOpen] = React.useState(false);
+  const [mobileResultOpen, setMobileResultOpen] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [serverPromptLimit, setServerPromptLimit] = React.useState<number | null>(null);
+  const promptCountId = React.useId();
   const [expanded, setExpanded] = React.useState(false);
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
-  // maroFort: opens as a pop-up. `active` means a saved config is applied to
-  // generation (shows the red button); `modalOpen` controls the pop-up.
-  const [fortActive, setFortActive] = React.useState(false);
-  const [fortModalOpen, setFortModalOpen] = React.useState(false);
-  const [fortDirty, setFortDirty] = React.useState(false);
-  const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
   const [promptAttachInternal, setPromptAttachInternal] = React.useState<PromptAttach | null>(null);
@@ -225,11 +223,20 @@ export function ToolComposer({
   privateImageAttachmentsRef.current = privateImageAttachments;
 
   const isImage = tool.kind === "image";
+  const promptLimit = serverPromptLimit ?? (isImage ? GPT_IMAGE_PROMPT_MAX_CHARS : 24000);
+  const promptTooLong = prompt.length > promptLimit;
+  React.useEffect(() => {
+    const query = window.matchMedia("(max-width: 1023px)");
+    const update = () => { setIsMobile(query.matches); if (!query.matches) setMobileResultOpen(false); };
+    update(); query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const isWebsite = tool.kind === "website";
   const isAudio = tool.kind === "audio";
   const canAttachImages = isImage || isWebsite;
   const [brainReady, setBrainReady] = React.useState(false);
   const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(false);
+  React.useEffect(() => { setServerPromptLimit(null); }, [tool.id, selections.model, promptAttach?.id, useWorkspaceBrand, workspaceId]);
   // Temporarily down for technical reasons (distinct from "coming soon").
   const maintenance = Boolean(tool.maintenance);
   const functional = tool.functional && !maintenance;
@@ -241,7 +248,18 @@ export function ToolComposer({
     : undefined;
   const needsAudioInput = Boolean(modeOpt?.inputAudio);
   const needsPrompt = isAudio ? !modeOpt?.noPrompt : true;
-  const shownSettings = visibleSettings(tool, selections);
+  const imageModels = useV1ImageModels(isImage ? tool.id : null);
+  const selectedImageModel = imageModels.find((model) => model.key === selections.model && model.enabled) ?? imageModels.find((model) => model.isDefault && model.enabled);
+  React.useEffect(() => {
+    if (isImage && selections.model && imageModels.length && !imageModels.some((m) => m.key === selections.model && m.enabled)) {
+      setSelections((current) => { const next = { ...current }; delete next.model; return next; });
+    }
+  }, [isImage, imageModels, selections.model]);
+  const shownSettings = visibleSettings(tool, selections).map((setting) => isImage && setting.id === "model"
+    ? { ...setting, default: imageModels.find((m) => m.isDefault)?.key ?? setting.default, options: imageModels.map((model) => ({
+        id: model.key, label: model.label, hint: `${model.customerCredits} credits · ${model.descriptor}`, available: model.enabled,
+      })) }
+    : setting);
 
   React.useEffect(() => {
     if (!user || !workspaceId) {
@@ -257,7 +275,7 @@ export function ToolComposer({
       if (!alive) return;
       const ready = isBrainConfigured(profile, sources.length);
       setBrainReady(ready);
-      setUseWorkspaceBrand(ready);
+      setUseWorkspaceBrand(false);
     });
     return () => {
       alive = false;
@@ -279,9 +297,6 @@ export function ToolComposer({
     setAttachments([]);
     setPrivateImageAttachments([]);
     setAudioInput(null);
-    setFortActive(false);
-    setFortModalOpen(false);
-    setFortDirty(false);
     // Pull a curated prompt attached from /prompts (only if it targets this tool).
     let attach: PromptAttach | null = null;
     try {
@@ -380,66 +395,20 @@ export function ToolComposer({
     // recent card while already on the same tool page).
   }, [tool, openId, setPromptAttach]);
 
-  // Keep the conversation scrolled to the newest message (top of feed).
+  // Only scroll when the latest generation is added or changes status.
+  const latestMessage = messages[messages.length - 1];
   React.useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [messages]);
-
-  // Initialize maroFort values (defaults + persisted) once config is available.
-  React.useEffect(() => {
-    if (!fortModule) return;
-    const base = defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>;
-    const saved = loadFortValues(tool.id) as Record<string, FortValue>;
-    setFortValues({ ...base, ...saved });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool.id, fortModule, fortConfig]);
-
-  const setFortValue = (id: string, value: FortValue) => {
-    setFortDirty(true);
-    setFortValues((prev) => {
-      const next = { ...prev, [id]: value };
-      saveFortValues(tool.id, next);
-      return next;
+    if (!latestMessage) return;
+    const frame = requestAnimationFrame(() => {
+      const cards = scrollRef.current?.querySelectorAll<HTMLElement>("[data-generation-id]");
+      const card = cards?.[cards.length - 1];
+      const target = card?.querySelector<HTMLElement>("[data-generation-result]") ?? card;
+      target?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [latestMessage?.id, latestMessage?.status]);
 
-  // Open the maroFort pop-up (or trigger the upgrade flow when not entitled).
-  const openFortModal = () => {
-    setFortDirty(false);
-    setFortModalOpen(true);
-  };
-
-  // "Ruaj" — apply the config and show the red button in the composer.
-  const saveFort = () => {
-    saveFortValues(tool.id, fortValues);
-    setFortActive(true);
-    setFortDirty(false);
-    setFortModalOpen(false);
-  };
-
-  // "Fshije" — clear all maroFort settings for this tool and deactivate.
-  const clearFort = () => {
-    const base = fortModule
-      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
-      : {};
-    setFortValues(base);
-    saveFortValues(tool.id, base);
-    setFortActive(false);
-    setFortDirty(false);
-    setFortModalOpen(false);
-  };
-
-  // Reset — back to defaults but keep the pop-up open (fresh start).
-  const resetFort = () => {
-    const base = fortModule
-      ? (defaultFortValues(fortModule, fortConfig) as Record<string, FortValue>)
-      : {};
-    setFortValues(base);
-    saveFortValues(tool.id, base);
-    setFortDirty(true);
-  };
-
-  const cost = toolSelectionCost(tool, selections, pricing.options);
+  const cost = isImage ? selectedImageModel?.customerCredits ?? 0 : toolSelectionCost(tool, selections, pricing.options);
   const creditsRef = React.useRef(credits);
   creditsRef.current = credits;
 
@@ -659,7 +628,7 @@ export function ToolComposer({
 
   const doGenerateAudio = React.useCallback(async () => {
     const text = prompt.trim();
-    if (needsPrompt && !text) return;
+    if (needsPrompt && (!text || promptTooLong)) return;
     if (needsAudioInput && !audioInput) return;
 
     const mode = selections[tool.settings[0].id] ?? tool.settings[0].default;
@@ -670,6 +639,7 @@ export function ToolComposer({
     const now = new Date().toISOString();
     const isTextMode = mode === "stt";
     setMessages((m) => [
+      ...m,
       {
         id: maroId,
         role: "generation",
@@ -678,11 +648,12 @@ export function ToolComposer({
         status: "thinking",
         mediaType: isTextMode ? "text" : "audio",
       },
-      ...m,
     ]);
     setPrompt("");
     setAudioInput(null);
     setLoading(true);
+    setMobileComposerOpen(false);
+    setMobileResultOpen(true);
     try {
       const res = await generateAudio({
         toolId: tool.id as "zo",
@@ -737,7 +708,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast, workspaceId]);
+  }, [promptTooLong, prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast, workspaceId]);
 
   const doGenerate = React.useCallback(async () => {
     if (tool.kind === "audio") {
@@ -745,12 +716,9 @@ export function ToolComposer({
       return;
     }
     const text = prompt.trim();
-    if (!text) return;
+    if (!text || promptTooLong) return;
 
-    const fortPayload =
-      fortAvailable && fortActive && hasFort
-        ? { enabled: true, values: fortValues }
-        : undefined;
+    const fortPayload = undefined;
     const maroPromptPayload = promptAttach ? { id: promptAttach.id } : undefined;
 
     if (tool.kind === "website") {
@@ -789,6 +757,7 @@ export function ToolComposer({
     const now = new Date().toISOString();
     const labels = resolveGenerationLabels(tool, selections);
     setMessages((m) => [
+      ...m,
       {
         id: maroId,
         role: "generation",
@@ -800,19 +769,20 @@ export function ToolComposer({
         format: labels.format,
         size: labels.size,
         formatLabel: labels.formatLabel,
-        modelLabel: labels.modelLabel,
+        modelLabel: selectedImageModel?.label ?? labels.modelLabel,
         speedLabel: labels.speedLabel,
         createdAt: now,
         status: "thinking",
         mediaType: "image",
       },
-      ...m,
     ]);
-    setPrompt("");
-    setPrivateImageAttachments([]);
-    // Generation started — the maroFort pop-up is no longer needed on screen.
-    setFortModalOpen(false);
+    const onStarted = createImageDraftAcceptance({
+      prompt, attachments: sentPrivateAttachments ?? [], setPrompt,
+      setAttachments: setPrivateImageAttachments,
+    });
     setLoading(true);
+    setMobileComposerOpen(false);
+    setMobileResultOpen(true);
     try {
       setUploadingReferences(Boolean(sentAttachments?.length));
       const canonicalAttachments = sentPrivateAttachments?.length
@@ -832,9 +802,9 @@ export function ToolComposer({
         attachments: canonicalAttachments,
         fort: fortPayload,
         maroPrompt: maroPromptPayload,
-        workspaceId,
+        workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
         useWorkspaceBrand: brainReady && useWorkspaceBrand,
-      });
+      }, { onStarted });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"),
@@ -847,7 +817,7 @@ export function ToolComposer({
         format: labels.format,
         size: labels.size,
         formatLabel: labels.formatLabel,
-        modelLabel: labels.modelLabel,
+        modelLabel: selectedImageModel?.label ?? labels.modelLabel,
         speedLabel: labels.speedLabel,
         fort: Boolean(fortPayload),
         brain: brainReady && useWorkspaceBrand,
@@ -866,7 +836,13 @@ export function ToolComposer({
         setShowBuy(true);
         errMsg = "Nuk ke kredite të mjaftueshme.";
       } else if (err instanceof ImageGenerationError) {
-        errMsg = IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`;
+        if (err.code === "prompt_too_long") {
+          const d = err.diagnostics;
+          const limit = d.maxUserPromptLength ?? (d.maxCompiledPromptLength !== undefined && d.compiledPromptLength !== undefined && d.userPromptLength !== undefined
+            ? Math.max(0, d.userPromptLength - (d.compiledPromptLength - d.maxCompiledPromptLength)) : null);
+          if (limit !== null) setServerPromptLimit(limit);
+        }
+        errMsg = imageErrorMessage(err.code, IMG_ERRORS);
         toast(errMsg);
       } else {
         errMsg = projectAssetErrorMessage(err);
@@ -881,16 +857,16 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [prompt, tool, selections, attachments, privateImageAttachments, cost, fortAvailable, fortActive, hasFort, fortValues, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload]);
+  }, [promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
 
   // Whether the current inputs are enough to generate.
-  const canGenerate = isAudio
+  const canGenerate = !promptTooLong && (isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
-    : Boolean(prompt.trim()) && (
+    : Boolean(prompt.trim()) && (!isImage || Boolean(selectedImageModel)) && (
         !isImage ||
         !user ||
         privateImageAttachments.every((attachment) => Boolean(attachment.storageRef))
-      );
+      ));
 
   const onGenerate = () => {
     if (!functional) {
@@ -1023,7 +999,7 @@ export function ToolComposer({
       <div
         ref={scrollRef}
         className={cn(
-          "scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto",
+          "scroll-thin min-h-0 flex-1 overflow-x-clip overflow-y-auto max-lg:pb-24 max-lg:flex-none max-lg:overflow-y-visible lg:overflow-y-auto",
           isReadOnlyView && "pb-10"
         )}
       >
@@ -1057,7 +1033,12 @@ export function ToolComposer({
       </div>
 
       {!isReadOnlyView && (
-      <div className="relative z-20 shrink-0 bg-canvas max-lg:sticky max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-ink shadow-float lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
+          <span className="min-w-0 truncate text-sm font-semibold">{mobileComposerOpen ? "Mbyll promptbox" : prompt || "Shkruaj idenë tënde…"}</span>
+          <ChevronDown className={cn("h-5 w-5 shrink-0", !mobileComposerOpen && "rotate-180")} />
+        </button>
+        <div id="mobile-composer-content" className={cn(!mobileComposerOpen && "max-lg:hidden", "max-lg:max-h-[60dvh] max-lg:overflow-y-auto")}>
         <div className="mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6">
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
@@ -1154,30 +1135,14 @@ export function ToolComposer({
             </div>
           )}
 
-          {(fortAvailable || promptAttach || (canAttachImages && brainReady)) && !loading && (
+          {(promptAttach || (canAttachImages && brainReady)) && !loading && (
             <div className="prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5">
               {canAttachImages && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
-              {fortAvailable && (
-                <FortPill
-                  active={fortActive}
-                  locked={false}
-                  label={fortResolved.label}
-                  badgeText={fortResolved.badgeText}
-                  onToggle={(next) => {
-                    if (next) openFortModal();
-                    else clearFort();
-                  }}
-                  onOpen={() => {
-                    setFortDirty(false);
-                    setFortModalOpen(true);
-                  }}
-                  onUpgrade={() => router.push("/pricing")}
-                />
-              )}
               {promptAttach && (
                 <PresetPill
                   code={promptAttach.code}
                   thumbnailUrl={promptAttach.thumbnailUrl}
+                  module={promptAttach.tool}
                   onRemove={() => setPromptAttach(null)}
                 />
               )}
@@ -1189,6 +1154,9 @@ export function ToolComposer({
             <div className="relative">
               {needsPrompt ? (
                 <textarea
+                  aria-label="Prompti"
+                  aria-describedby={promptCountId}
+                  aria-invalid={promptTooLong}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
@@ -1216,6 +1184,10 @@ export function ToolComposer({
               )}
             </div>
 
+            {needsPrompt && <p id={promptCountId} className={cn("px-2 pb-2 text-[12px]", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
+              {prompt.length.toLocaleString("en-US")} / {promptLimit.toLocaleString("en-US")} shkronja
+              {promptTooLong && ` · Fshi edhe ${(prompt.length - promptLimit).toLocaleString("en-US")} shkronja për të gjeneruar.`}
+            </p>}
             {/* Toolbar */}
             <div className="dock-toolbar">
               <div className="dock-toolbar-controls">
@@ -1237,7 +1209,7 @@ export function ToolComposer({
                     disabled={(isImage ? privateImageAttachments.length : attachments.length) >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5 text-white" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -1254,7 +1226,7 @@ export function ToolComposer({
                     }}
                   />
                   <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
-                    <Mic className="h-5 w-5 text-white" />
+                    <Mic className="h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -1297,31 +1269,21 @@ export function ToolComposer({
                 {functional && (
                   <span className="maro-dock-pill shrink-0">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
-                    {cost}
-                    <span className="text-ink-3">kredite</span>
+                    {isImage && !selectedImageModel ? "—" : cost}
+                    <span className="opacity-80">kredite</span>
                   </span>
                 )}
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
+                <Button
+                  variant="primary"
+                  loading={loading}
+                  icon={<MaroIcon name="generate" className="h-5 w-5" />}
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
-                  className={cn(
-                    "inline-flex h-10 min-w-[4.5rem] shrink-0 items-center justify-center gap-2 rounded-maro12 px-5 text-[16px] font-bold transition-all focus:outline-none",
-                    functional && canGenerate && !loading
-                      ? "bg-generate text-generate-fg hover:opacity-90"
-                      : "cursor-not-allowed bg-generate-idle text-generate-fg-idle"
-                  )}
+                  className="min-w-[4.5rem] shrink-0"
                   aria-label="Gjenero"
                 >
-                  {loading ? (
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
-                  ) : (
-                    <>
-                      <MaroIcon name="generate" className={cn("h-5 w-5", functional && canGenerate ? "text-white" : "text-ink-3")} />
-                      maro
-                    </>
-                  )}
-                </motion.button>
+                  maro
+                </Button>
               </div>
             </div>
           </div>
@@ -1337,6 +1299,7 @@ export function ToolComposer({
           ) : (
             <p className="mt-3 text-center text-[13px] text-ink-3">kush punon gabon, edhe maro gabon</p>
           )}
+        </div>
         </div>
       </div>
       )}
@@ -1375,76 +1338,19 @@ export function ToolComposer({
         </div>
       </Modal>
 
-      {/* maroFort pop-up */}
-      <Modal
-        open={fortModalOpen}
-        onClose={() => setFortModalOpen(false)}
-        size="lg"
-        className="max-w-2xl overflow-hidden bg-canvas"
-        hideClose
-      >
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface text-ink">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div>
-              <div className="text-[12.5px] text-ink-3">Modaliteti ekspert, kontroll i plotë</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={resetFort}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:opacity-80"
-          >
-            <Eraser className="h-3.5 w-3.5" />
-            Pastroje
-          </button>
+      <Modal open={isMobile && mobileResultOpen && Boolean(latestMessage)} onClose={() => setMobileResultOpen(false)} className="mobile-generation-dialog !bg-surface !text-ink" hideClose>
+        <div className="sticky top-0 z-20 flex items-center justify-between bg-surface px-5 py-3 text-ink">
+          <h2 className="font-bold">{loading ? "Po gjenerohet…" : "Gjenerimi yt"}</h2>
+          <button type="button" autoFocus onClick={() => setMobileResultOpen(false)} aria-label="Mbyll gjenerimin" className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-ink"><X className="h-6 w-6" /></button>
         </div>
-
-        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 pb-4">
-          {fortModule && (
-            <FortPanel
-              module={fortModule}
-              config={fortConfig}
-              values={fortValues}
-              onChange={setFortValue}
-            />
-          )}
-        </div>
-
-        <div className="flex gap-2 bg-canvas px-5 py-4">
-          {fortActive && (
-            <button
-              type="button"
-              onClick={clearFort}
-              className="rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-danger transition-colors hover:opacity-80"
-            >
-              Fshije
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setFortModalOpen(false)}
-            className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:opacity-80"
-          >
-            Anulo
-          </button>
-          <button
-            type="button"
-            onClick={saveFort}
-            disabled={!fortDirty}
-            className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-bold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Ruaj
-          </button>
-        </div>
+        {latestMessage && <div className="px-4 pb-6"><GenerationCard message={latestMessage} onOpen={(creation) => { setMobileResultOpen(false); setLightbox(creation); }} /></div>}
       </Modal>
 
       <PromptExpand
         open={expanded}
         value={prompt}
+        maxChars={promptLimit}
+        canSubmit={canGenerate && !loading}
         onChange={setPrompt}
         onClose={() => setExpanded(false)}
         onSubmit={() => {
@@ -1507,12 +1413,14 @@ function ToolSwitcher({
   const btnRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const current = getTool(currentId);
+  useMenuKeyboard(open && Boolean(pos), menuRef, btnRef, () => setOpen(false));
 
   const place = React.useCallback(() => {
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+    const width = Math.min(256, window.innerWidth - 16);
+    setPos({ bottom: window.innerHeight - r.top + 8, left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)), width });
   }, []);
 
   React.useEffect(() => {
@@ -1558,8 +1466,8 @@ function ToolSwitcher({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="maro-menu overflow-hidden p-1.5"
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: `calc(100dvh - ${pos.bottom + 8}px)`, zIndex: "var(--maro-z-dropdown)" }}
+                className="maro-menu overflow-y-auto p-2" role="menu"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
                 {tools.map((t) => {
@@ -1647,6 +1555,7 @@ function SettingSelect({
   const current = findOption(setting, value) ?? setting.options[0];
   const Icon = setting.icon;
   const currentId = current?.id ?? value;
+  useMenuKeyboard(open && Boolean(pos), menuRef, btnRef, () => setOpen(false));
   const compactLabel = setting.id === "format"
     ? ({ "ig-post": "4:5", "ig-story": "9:16", "fb-post": "1:1", "yt-thumb": "16:9" } as Record<string, string>)[currentId] ?? current?.label
     : current?.label;
@@ -1655,7 +1564,8 @@ function SettingSelect({
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+    const width = Math.min(256, window.innerWidth - 16);
+    setPos({ bottom: window.innerHeight - r.top + 8, left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)), width });
   }, []);
 
   React.useEffect(() => {
@@ -1682,7 +1592,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-dock-pill max-w-none shrink-0"
+        aria-expanded={open} aria-haspopup="menu" className="maro-dock-pill max-w-none shrink-0"
         title={setting.label}
       >
         <OptionIcon
@@ -1706,8 +1616,8 @@ function SettingSelect({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="maro-menu overflow-hidden p-1.5"
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: `calc(100dvh - ${pos.bottom + 8}px)`, zIndex: "var(--maro-z-dropdown)" }}
+                className="maro-menu overflow-y-auto p-2" role="menu"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
                   {setting.label}

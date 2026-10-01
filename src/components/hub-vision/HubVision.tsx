@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, ChevronDown, Layers } from "lucide-react";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { useToast } from "@/components/ui/Toast";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import { StableImage } from "@/components/app/StableImage";
 import { resumableCreations, resumeHref } from "./data";
 import { Launchpad } from "./Launchpad";
@@ -34,20 +35,18 @@ function WorkspaceSelect() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLUListElement>(null);
+  useMenuKeyboard(open, panelRef, triggerRef, () => setOpen(false));
 
   useEffect(() => {
     if (!open) return;
     const onPointer = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
     document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
@@ -73,6 +72,7 @@ function WorkspaceSelect() {
     <div className={`${s.workspaceField} ${s.heroWorkspaceField}`} ref={rootRef}>
       <span className={s.workspaceLabel} id="hub-workspace-label">{copy.workspace}</span>
       <button
+        ref={triggerRef}
         type="button"
         className={s.workspaceTrigger}
         aria-labelledby="hub-workspace-label"
@@ -86,7 +86,7 @@ function WorkspaceSelect() {
         <ChevronDown size={16} className={s.workspaceChevron} aria-hidden data-open={open || undefined} />
       </button>
       {open ? (
-        <ul className={`maro-menu ${s.workspaceMenu}`} role="listbox" aria-label={copy.workspace}>
+        <ul ref={panelRef} className={`maro-menu ${s.workspaceMenu}`} role="listbox" aria-label={copy.workspace}>
           {workspaces.map((w) => {
             const selected = w.id === activeWorkspace.id;
             return (

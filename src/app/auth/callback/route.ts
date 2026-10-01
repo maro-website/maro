@@ -28,12 +28,14 @@ function authErrorRedirect(reason: AuthCallbackErrorReason): NextResponse {
   signIn.searchParams.set("auth_error", reason);
   const res = NextResponse.redirect(signIn);
   res.headers.set("Cache-Control", "no-store");
+  res.headers.set("Referrer-Policy", "no-referrer");
   return res;
 }
 
 function successRedirect(destination: string): NextResponse {
   const res = NextResponse.redirect(buildPublicUrl(destination));
   res.headers.set("Cache-Control", "no-store");
+  res.headers.set("Referrer-Policy", "no-referrer");
   return res;
 }
 
@@ -54,7 +56,7 @@ function resolveDestination(
  *   Email → Supabase /auth/v1/verify → redirect_to with ?code= (PKCE)
  *   → exchangeCodeForSession(code) → session cookies → /reset-password
  *
- * Future Maro Send Email Hook (hook ON):
+ * Maro Send Email Hook (hook ON):
  *   Email → https://maro.al/auth/callback?token_hash=…&type=…
  *   → verifyOtp({ token_hash, type }) — never exchangeCodeForSession for token_hash
  */
@@ -68,6 +70,10 @@ export async function GET(req: NextRequest) {
   const typeRaw = searchParams.get("type");
   const nextRaw = searchParams.get("next");
   const code = searchParams.get("code");
+  if ((code && tokenHash) || (typeRaw && !parseEmailOtpType(typeRaw)) ||
+      (nextRaw && !sanitizeInternalRedirectPath(nextRaw, ""))) {
+    return authErrorRedirect("malformed_callback");
+  }
 
   const providerError = searchParams.get("error");
   const providerErrorCode = searchParams.get("error_code");
@@ -79,11 +85,11 @@ export async function GET(req: NextRequest) {
 
   // Built-in Supabase mailer PKCE handoff — prefer code before token_hash.
   if (code) {
-    const destination = resolveDestination(nextRaw, typeRaw);
+    const destination = typeRaw === "recovery" ? "/reset-password" : resolveDestination(nextRaw, typeRaw);
     const pkceVerifierPresent = requestHasPkceVerifierCookie(req.cookies.getAll());
     let response = successRedirect(destination);
     const supabase = createSupabaseRouteHandlerClient(req, response);
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code).catch(() => ({ error: { message: "exchange failed" } }));
     if (error) {
       const exchangeFailureCategory = classifyCodeExchangeFailure(error.message);
       const reason = classifyCodeExchangeError(error.message);
@@ -103,7 +109,7 @@ export async function GET(req: NextRequest) {
     return response;
   }
 
-  // Future custom hook + direct token_hash links.
+  // Signed email hook links verify directly without depending on browser PKCE state.
   if (!tokenHash) {
     console.warn("[auth/callback]", callbackFailureLogMeta({ reason: "missing_token", flow: "missing_params", otpType: typeRaw }));
     return authErrorRedirect("missing_token");
@@ -114,7 +120,7 @@ export async function GET(req: NextRequest) {
     return authErrorRedirect("invalid_type");
   }
 
-  const destination = resolveDestination(nextRaw, typeRaw, defaultPostAuthPathForOtpType(otpType));
+  const destination = otpType === "recovery" ? "/reset-password" : resolveDestination(nextRaw, typeRaw, defaultPostAuthPathForOtpType(otpType));
 
   let response = successRedirect(destination);
   const supabase = createSupabaseRouteHandlerClient(req, response);
@@ -122,7 +128,7 @@ export async function GET(req: NextRequest) {
   const { error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
     type: otpType,
-  });
+  }).catch(() => ({ error: { message: "verification failed" } }));
 
   if (error) {
     const reason = classifyVerifyOtpError(error.message);

@@ -1,5 +1,4 @@
 import "server-only";
-import { releaseCreditReserve } from "@/lib/credits/ledger";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export type JobStatus =
@@ -53,12 +52,12 @@ export type CreateJobResult =
 
 const STALE_JOB_MS = 15 * 60 * 1000;
 
-/** Fail jobs stuck in pending/reserved/processing so users aren't blocked forever. */
+/** Reconcile under the same database lock as persistence, finalize and release. */
 export async function cleanupStaleJobs(userId?: string): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_JOB_MS).toISOString();
   let q = getSupabaseAdmin()
     .from("generation_jobs")
-    .select("id, status, credits_reserved")
+    .select("id")
     .in("status", ["pending", "reserved", "processing"])
     .lt("created_at", cutoff);
   if (userId) q = q.eq("user_id", userId);
@@ -66,29 +65,13 @@ export async function cleanupStaleJobs(userId?: string): Promise<void> {
   const { data: staleJobs, error } = await q;
   if (error) {
     console.error("[generation_jobs] stale cleanup select failed:", error.code, error.message);
-    return;
+    throw new Error("stale_job_query_failed");
   }
 
   for (const job of staleJobs ?? []) {
     const jobId = String(job.id);
-    const hasReservation =
-      Number(job.credits_reserved ?? 0) > 0 ||
-      job.status === "reserved" ||
-      job.status === "processing";
-
-    if (hasReservation) {
-      try {
-        await releaseCreditReserve(jobId, `stale-${jobId}`);
-      } catch (e) {
-        console.error("[generation_jobs] stale credit release failed:", jobId, e);
-      }
-    }
-
-    await updateJob(jobId, {
-      status: "failed",
-      error: "stale_timeout",
-      finished_at: new Date().toISOString(),
-    });
+    const { error: reconcileError } = await getSupabaseAdmin().rpc("reconcile_generation_job", { p_job_id: jobId, p_stale_minutes: 15 });
+    if (reconcileError) throw new Error("stale_job_reconciliation_failed");
   }
 }
 
@@ -130,6 +113,22 @@ export async function getGenerationResultForJob(
   jobId: string,
   userId: string
 ): Promise<CompletedGenerationResult | null> {
+  const job = await getJob(jobId);
+  if (!job || job.user_id !== userId || job.status !== "completed") return null;
+  const { data: durable } = await getSupabaseAdmin()
+    .from("generations")
+    .select("id, output_urls, credits_spent")
+    .eq("job_id", jobId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (durable) return {
+    generationId: String(durable.id),
+    outputUrls: Array.isArray(durable.output_urls) ? durable.output_urls.filter((value): value is string => typeof value === "string") : [],
+    creditsSpent: Number(durable.credits_spent ?? 0),
+  };
+  // V1 history is authoritative; optional cost snapshots are never a prerequisite
+  // for recovery. Only pre-V1 completed jobs use the legacy snapshot mapping.
+  if (job.metadata.v1_durable === true) return null;
   const { data } = await getSupabaseAdmin()
     .from("pricing_snapshots")
     .select("generation_id")

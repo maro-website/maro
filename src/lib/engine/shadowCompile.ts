@@ -21,6 +21,7 @@ import type {
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
 
 export interface ShadowCompileInput {
+  trustedImageModel?: import("./v1ImageModels").V1ImageModelConfiguration;
   toolId: string;
   registryToolId: string;
   model: string;
@@ -193,7 +194,8 @@ export async function runShadowCompilation(input: ShadowCompileInput): Promise<S
 
     const ctx = await loadCompileContext(engineId, {
       ownerUserId: input.userId,
-      workspaceId: input.workspaceId,
+      workspaceId: engineId === "maro_imazh" && !input.useBrain ? undefined : input.workspaceId,
+      trustedImageModel: input.trustedImageModel,
     });
 
     const brief = compileGenerationBrief(compileInput, ctx);

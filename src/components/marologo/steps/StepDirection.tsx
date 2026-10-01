@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { LogoFields, useLogoContent } from "../LogoContent";
+import { logoOptions } from "@/lib/marologo/content";
 import { Check, ChevronDown } from "lucide-react";
 import { Field, Textarea } from "@/components/ui/Input";
 import { cn } from "@/lib/utils/cn";
@@ -31,27 +33,25 @@ export function StepDirection({
   onNext: () => void;
   onStepClick?: (step: WizardStep) => void;
 }) {
+  const content = useLogoContent();
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  React.useEffect(() => { if (errors.symbolMeaning || errors.mustInclude || errors.avoid || errors.colors) setDetailsOpen(true); }, [errors]);
   const customDetails = wizard.look.typography !== "maro_decides" || wizard.look.colors.mode === "custom" || Boolean(wizard.logo.symbolMeaning || wizard.logo.mustInclude || wizard.logo.avoid || references.length);
 
   return (
     <WizardStepLayout step={step} highestStepReached={highestStepReached} title="Jepi një ndjesi." nextLabel="Zgjedh prezantimin" nextDisabled={Object.keys(errors).length > 0} onNext={onNext} onStepClick={onStepClick}>
-      <div>
-        <span className="marologo-field-label mb-[10px] block">Personaliteti · deri në 3</span>
+      <LogoFields fields={{ "direction.traits": <div>
+        <span className="marologo-field-label mb-[10px] block">{content["direction.traits"].label}</span>
         <TraitPills value={wizard.direction.traits} onChange={onChangeTraits} onMaxReached={onMaxTraits} />
         <p className="mt-2 text-[12px] text-ink-3">Mundesh me e lanë bosh — Maro e nxjerr nga biznesi dhe audienca.</p>
         {errors.traits && <p className="mt-2 text-[12px] text-danger">{errors.traits}</p>}
-      </div>
-
-      <div>
-        <span className="marologo-field-label mb-[10px] block">Logo type</span>
+      </div>, "logo.type": <div>
+        <span className="marologo-field-label mb-[10px] block">{content["logo.type"].label}</span>
         <LogoTypeCards value={wizard.logo.type} onChange={(type) => onChangeLogo({ type })} />
-      </div>
-
-      <div>
-        <span className="marologo-field-label mb-[10px] block">Çka duhet me udhëheq konceptin?</span>
+      </div>, "logo.conceptIntent": <div>
+        <span className="marologo-field-label mb-[10px] block">{content["logo.conceptIntent"].label}</span>
         <div className="grid gap-3 sm:grid-cols-2">
-          {CONCEPT_INTENTS.map((item) => {
+          {logoOptions(content, "logo.conceptIntent").map((item) => {
             const active = wizard.logo.conceptIntent === item.value;
             return (
               <button key={item.value} type="button" aria-pressed={active} onClick={() => onChangeLogo({ conceptIntent: item.value as ConceptIntent })} className={cn("marologo-card relative min-h-[104px] p-5 text-left transition-colors", active ? "ring-2 ring-brand" : "hover:bg-surface-hover")}>
@@ -62,17 +62,15 @@ export function StepDirection({
             );
           })}
         </div>
-      </div>
-
-      <div>
-        <span className="marologo-field-label mb-[10px] block">Drejtimi vizual</span>
+      </div>, "look.visualStyle": <div>
+        <span className="marologo-field-label mb-[10px] block">{content["look.visualStyle"].label}</span>
         <div className="flex flex-wrap gap-2.5">
-          {VISUAL_STYLE_OPTIONS.map((item) => {
+          {logoOptions(content, "look.visualStyle").map((item) => {
             const active = wizard.look.visualStyle === item.value;
             return <button key={item.value} type="button" aria-pressed={active} onClick={() => onChangeLook({ visualStyle: item.value as VisualStyle })} className="maro-chip-select min-h-[48px] px-4 py-2 text-[13px]" data-selected={active || undefined}>{item.label}</button>;
           })}
         </div>
-      </div>
+      </div> }} />
 
       <div className="rounded-maro16 bg-surface px-5">
         <button type="button" onClick={() => setDetailsOpen((open) => !open)} className="flex min-h-[62px] w-full items-center justify-between text-left" aria-expanded={detailsOpen}>
@@ -85,24 +83,16 @@ export function StepDirection({
 
         {detailsOpen && (
           <div className="space-y-7 border-t border-line py-6">
-            <Field label="A ke një ide ose domethënie për simbolin?">
-              <Textarea value={wizard.logo.symbolMeaning} onChange={(e) => onChangeLogo({ symbolMeaning: e.target.value })} rows={2} placeholder="p.sh. lidhje, shpejtësi, transformim — ose lëre Maron me vendos" className="marologo-card border-0 bg-canvas" />
-            </Field>
-
-            <div>
-              <h3 className="mb-3 text-[14px] font-semibold text-ink">Tipografia</h3>
+            <LogoFields className="space-y-7" fields={{ "logo.symbolMeaning": <Field label={content["logo.symbolMeaning"].label + (content["logo.symbolMeaning"].required ? " *" : "")} hint={errors.symbolMeaning}>
+              <Textarea value={wizard.logo.symbolMeaning} onChange={(e) => onChangeLogo({ symbolMeaning: e.target.value })} rows={2} placeholder={content["logo.symbolMeaning"].placeholder} className="marologo-card border-0 bg-canvas" />
+            </Field>, "look.typography": <div>
+              <h3 className="mb-3 text-[14px] font-semibold text-ink">{content["look.typography"].label}</h3>
               <TypographyGrid value={wizard.look.typography} onChange={(typography) => onChangeLook({ typography })} />
-            </div>
-
-            <ColorEditor mode={wizard.look.colors.mode} values={wizard.look.colors.values} onModeChange={(mode) => onChangeLook({ colors: { ...wizard.look.colors, mode } })} onValuesChange={(values) => onChangeLook({ colors: { mode: "custom", values } })} error={errors.colors} />
-
-            <Field label="Çka duhet patjetër me u përfshi?">
-              <Textarea value={wizard.logo.mustInclude} onChange={(e) => onChangeLogo({ mustInclude: e.target.value })} rows={2} placeholder="Vetëm nëse është vërtet e domosdoshme" className="marologo-card border-0 bg-canvas" />
-            </Field>
-            <Field label="Çka nuk don me pa?">
-              <Textarea value={wizard.logo.avoid} onChange={(e) => onChangeLogo({ avoid: e.target.value })} rows={2} placeholder="p.sh. pa kulme shtëpish, pa AI sparkles" className="marologo-card border-0 bg-canvas" />
-            </Field>
-            <ReferenceUpload references={references} onChange={onChangeReferences} onError={onToast} />
+            </div>, "look.colors": <ColorEditor mode={wizard.look.colors.mode} values={wizard.look.colors.values} onModeChange={(mode) => onChangeLook({ colors: { ...wizard.look.colors, mode } })} onValuesChange={(values) => onChangeLook({ colors: { mode: "custom", values } })} error={errors.colors} />, "logo.mustInclude": <Field label={content["logo.mustInclude"].label + (content["logo.mustInclude"].required ? " *" : "")} hint={errors.mustInclude}>
+              <Textarea value={wizard.logo.mustInclude} onChange={(e) => onChangeLogo({ mustInclude: e.target.value })} rows={2} placeholder={content["logo.mustInclude"].placeholder} className="marologo-card border-0 bg-canvas" />
+            </Field>, "logo.avoid": <Field label={content["logo.avoid"].label + (content["logo.avoid"].required ? " *" : "")} hint={errors.avoid}>
+              <Textarea value={wizard.logo.avoid} onChange={(e) => onChangeLogo({ avoid: e.target.value })} rows={2} placeholder={content["logo.avoid"].placeholder} className="marologo-card border-0 bg-canvas" />
+            </Field>, "references": <ReferenceUpload references={references} onChange={onChangeReferences} onError={onToast} /> }} />
           </div>
         )}
       </div>

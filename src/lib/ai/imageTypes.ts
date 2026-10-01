@@ -1,9 +1,12 @@
 import type { ImageQuality, ImageSize, ToolId } from "@/lib/tools/registry";
 import type { FortPayload } from "@/lib/fort/types";
+import type { MaroLogoWizardState } from "@/lib/marologo/types";
 
 export interface AiImageRequest {
   toolId: ToolId;
   prompt: string;
+  model?: "flare" | "sunburst";
+  logoWizard?: MaroLogoWizardState;
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
@@ -11,9 +14,9 @@ export interface AiImageRequest {
   attachments?: string[];
   /** Product variant (e.g. logo package) — legacy. */
   variant?: string;
-  /** Selected options per setting id (drives cost + prompt composition). */
+  /** Validated selections; V1 model configuration owns the generation price. */
   selections?: Record<string, string>;
-  /** maroFort expert payload (ignored server-side unless the user is entitled). */
+  /** Preserved future payload; always ignored by the V1 release policy. */
   fort?: FortPayload;
   /** maro Prompts: id of an attached curated prompt. The hidden template text
    * is fetched server-side and never sent from the client. */

@@ -28,6 +28,8 @@ import {
   Type,
 } from "lucide-react";
 
+import { moduleAvailabilityFlags } from "@/lib/modules/availability";
+
 export type ToolId = "website" | "logo" | "reklama" | "filma" | "zo" | "prompte";
 export type ToolKind = "website" | "image" | "video" | "audio" | "prompts";
 
@@ -127,13 +129,20 @@ const WEB_MODELS: ToolOption[] = [
   { id: "gpt-5-6-sol", label: "GPT 5.6 Sol", available: false },
 ];
 
-const IMAGE_MODELS: ToolOption[] = [
+/** Compatibility data for retained legacy/shadow/admin paths, never V1 configuration. */
+export const LEGACY_IMAGE_MODELS: ToolOption[] = [
   { id: "gpt-image-2", label: "GPT Image 2", available: true },
   { id: "nano-banana-2", label: "Nano Banana 2", available: false },
   { id: "nano-banana-2-lite", label: "Nano Banana 2 Lite", available: false },
   { id: "flux-2-max", label: "FLUX.2 Max", available: false },
   { id: "seedream-5-pro", label: "Seedream 5 Pro", available: false },
   { id: "maroart-1", label: "maroArt 1.0", available: false },
+];
+
+// V1 input choices; enabled state, default validation and prices are resolved on the server.
+const IMAGE_MODELS: ToolOption[] = [
+  { id: "flare", label: "Flare", available: true },
+  { id: "sunburst", label: "Sunburst", available: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -149,7 +158,7 @@ export const TOOLS: ToolDef[] = [
     icon: Globe,
     kind: "website",
     route: "/web",
-    functional: true,
+    ...moduleAvailabilityFlags("web"),
     baseCost: 0,
     defaultPrompt: "",
     settings: [
@@ -184,12 +193,12 @@ export const TOOLS: ToolDef[] = [
     icon: Sparkles,
     kind: "image",
     route: "/marologo",
-    functional: true,
+    ...moduleAvailabilityFlags("logo"),
     baseCost: 0,
     defaultPrompt:
       "You are maroLogo, an expert identity designer. Translate the structured brief into one distinctive, coherent brand identity with vector-like clarity, strong silhouette, disciplined typography and professional spacing. Follow the selected presentation mode exactly. Multiple views must always show the same identity system, never unrelated concepts. Avoid stock-logo clichés, decorative clutter, watermarks and invented text.",
     settings: [
-      { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
+      { id: "model", label: "Modeli", icon: Cpu, default: "flare", options: IMAGE_MODELS.filter((model) => model.id === "flare") },
       {
         id: "type",
         label: "Lloji",
@@ -224,12 +233,12 @@ export const TOOLS: ToolDef[] = [
     icon: Megaphone,
     kind: "image",
     route: "/imazh",
-    functional: true,
+    ...moduleAvailabilityFlags("imazh"),
     baseCost: 0,
     defaultPrompt:
       "You are maro Imazh, an expert visual art director. Produce a scroll-stopping, high-quality image with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
     settings: [
-      { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
+      { id: "model", label: "Modeli", icon: Cpu, default: "flare", options: IMAGE_MODELS },
       {
         id: "format",
         label: "Formati",
@@ -279,8 +288,7 @@ export const TOOLS: ToolDef[] = [
     icon: Lightbulb,
     kind: "prompts",
     route: "/prompts",
-    functional: true,
-    comingSoon: false,
+    ...moduleAvailabilityFlags("presets"),
     baseCost: 0,
     settings: [],
   },
@@ -292,8 +300,7 @@ export const TOOLS: ToolDef[] = [
     icon: Clapperboard,
     kind: "video",
     route: "/filma",
-    functional: false,
-    comingSoon: true,
+    ...moduleAvailabilityFlags("filma"),
     baseCost: 0,
     settings: [
       {
@@ -342,8 +349,7 @@ export const TOOLS: ToolDef[] = [
     icon: AudioLines,
     kind: "audio",
     route: "/audio",
-    functional: false,
-    comingSoon: true,
+    ...moduleAvailabilityFlags("audio"),
     baseCost: 0,
     defaultPrompt: "",
     settings: [

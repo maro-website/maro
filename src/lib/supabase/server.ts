@@ -131,6 +131,20 @@ export async function uploadValidatedImage(
   return uploadStorageObject(storageKey, bytes, contentType);
 }
 
+/** Remove an object only when it belongs to one of the intentionally public prefixes. */
+export async function deletePublicAsset(storageKey: string): Promise<boolean> {
+  try {
+    const path = storageKey.replace(/^\/+/, "");
+    if (!isPublicAssetPath(path)) return false;
+    const { error } = await getSupabaseAdmin()
+      .storage.from(PUBLIC_STORAGE_BUCKET)
+      .remove([path]);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 async function uploadStorageObject(
   storageKey: string,
   bytes: Buffer,
@@ -351,29 +365,31 @@ export async function incrementPromptUse(id: string): Promise<void> {
   }
 }
 
-export async function getActiveWorkspaceId(userId: string): Promise<string | null> {
+export async function getActiveWorkspaceId(userId: string, options: { strict?: boolean } = {}): Promise<string | null> {
   try {
     const admin = getSupabaseAdmin();
-    const { data: profile } = await admin
+    const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("active_workspace_id")
       .eq("id", userId)
       .maybeSingle();
+    if (profileError) throw new Error("workspace_unavailable");
     const activeId = (profile?.active_workspace_id as string | undefined) ?? null;
 
     if (activeId) {
-      const { data: ownedActive } = await admin
+      const { data: ownedActive, error: ownershipError } = await admin
         .from("workspaces")
         .select("id")
         .eq("id", activeId)
         .eq("owner_id", userId)
         .maybeSingle();
+      if (ownershipError) throw new Error("workspace_unavailable");
       if (ownedActive?.id) return ownedActive.id as string;
     }
 
     // Repair a stale/foreign profile preference deterministically with the
     // user's first owned workspace. MCP callers never supply workspace ids.
-    const { data: fallback } = await admin
+    const { data: fallback, error: fallbackError } = await admin
       .from("workspaces")
       .select("id")
       .eq("owner_id", userId)
@@ -381,12 +397,14 @@ export async function getActiveWorkspaceId(userId: string): Promise<string | nul
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
+    if (fallbackError) throw new Error("workspace_unavailable");
     const fallbackId = (fallback?.id as string | undefined) ?? null;
     if (fallbackId && fallbackId !== activeId) {
       await admin.from("profiles").update({ active_workspace_id: fallbackId }).eq("id", userId);
     }
     return fallbackId;
-  } catch {
+  } catch (error) {
+    if (options.strict) throw error;
     return null;
   }
 }

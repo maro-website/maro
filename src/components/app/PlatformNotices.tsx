@@ -76,11 +76,11 @@ export function PlatformNotices({
       {items.map((item) => (
         <div key={item.id} className="flex items-center gap-3 rounded-maro16 bg-surface-selected px-4 py-3 text-ink">
           <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-bold leading-tight">{item.title}</div>
-            {item.body && <div className="mt-0.5 text-[12.5px] text-ink-2">{item.body}</div>}
+            <div className="text-sm font-bold leading-tight">{item.title}</div>
+            {item.body && <div className="mt-0.5 text-xs text-ink-2">{item.body}</div>}
           </div>
           {item.ctaLabel && item.ctaUrl && (
-            <a href={item.ctaUrl} className="shrink-0 rounded-maro12 bg-ink px-3 py-2 text-[12px] font-semibold text-white">
+            <a href={item.ctaUrl} className="shrink-0 rounded-maro12 bg-ink px-3 py-2 text-[12px] font-semibold text-ink-inv">
               {item.ctaLabel}
             </a>
           )}

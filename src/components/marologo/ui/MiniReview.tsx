@@ -22,10 +22,10 @@ export function MiniReview({ wizard }: { wizard: MaroLogoWizardState }) {
       <div className="marologo-card p-5">
         <div className="mb-5">
           <p className="text-[28px] font-extrabold tracking-brand text-ink">{wizard.brand.name.trim()}</p>
-          <p className="mt-1 text-[13px] text-ink-3">{industry.startsWith("Infer") ? "Maro e nxjerr nga përshkrimi" : industry}</p>
+          <p className="mt-1 text-sm text-ink-3">{industry.startsWith("Infer") ? "Maro e nxjerr nga përshkrimi" : industry}</p>
         </div>
         <div className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
-          {rows.map((row) => <div key={row.label}><p className="text-[10px] font-semibold uppercase tracking-wide text-ink-3">{row.label}</p><p className="mt-0.5 text-[13px] font-medium text-ink">{row.value}</p></div>)}
+          {rows.map((row) => <div key={row.label}><p className="text-[10px] font-semibold uppercase tracking-wide text-ink-3">{row.label}</p><p className="mt-0.5 text-sm font-medium text-ink">{row.value}</p></div>)}
         </div>
       </div>
     </div>

@@ -1,4 +1,8 @@
 "use client";
+import { isModuleLive } from "@/lib/modules/availability";
+import { ModuleComingSoon } from "./ModuleComingSoon";
+
+import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
 
 import * as React from "react";
 import Link from "next/link";
@@ -8,7 +12,6 @@ import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import type { Project } from "@/lib/types";
 import { AiHtmlPreviewFrame } from "@/components/website-previews/AiHtmlPreviewFrame";
-import { StableImage } from "@/components/app/StableImage";
 import { Eye, Pencil, RefreshCw, X } from "lucide-react";
 
 function projectPreviewHtml(project: Project): string | null {
@@ -17,6 +20,11 @@ function projectPreviewHtml(project: Project): string | null {
 }
 
 export function WebWorkspace({ toolId }: { toolId: string }) {
+  if (!isModuleLive("web")) return <ModuleComingSoon moduleId="web" />;
+  return <WebWorkspaceContent toolId={toolId} />;
+}
+
+function WebWorkspaceContent({ toolId }: { toolId: string }) {
   const { projects } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id;
@@ -57,7 +65,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
       />
       {recentProjects.length > 0 && (
         <section className="mx-auto mt-4 w-full max-w-[var(--module-content-max)] px-4 sm:px-0">
-          <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-ink-3">
             Website-et e fundit
           </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -71,7 +79,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
                 }}
                 className="rounded-maro16 bg-surface p-4 text-left transition-colors hover:bg-surface-2"
               >
-                {p.thumbnailUrl && <StableImage src={p.thumbnailUrl} alt="" className="mb-3 aspect-video w-full rounded-maro12 object-cover object-top" />}
+                <div className="mb-3 aspect-video w-full overflow-hidden rounded-maro12"><PreviewThumb project={p} height="100%" /></div>
                 <div className="truncate text-[14px] font-semibold text-ink">
                   {p.businessName || p.name}
                 </div>
@@ -82,7 +90,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
                   <Link
                     href={`/projects/${p.id}/editor`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-white"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-ink-inv"
                   >
                     <Pencil className="h-3 w-3" /> Editor
                   </Link>
@@ -111,7 +119,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
       {previewOpen && (
       <aside className="mx-4 mb-4 flex min-h-[320px] flex-col overflow-hidden rounded-maro20 bg-surface lg:mb-4 lg:ml-0 lg:mr-4 lg:mt-4 lg:min-h-0 lg:w-[min(440px,38%)]">
         <div className="flex min-h-14 items-center justify-between gap-2 px-4 py-3">
-          <span className="text-[13px] font-semibold text-ink">Preview live</span>
+          <span className="text-sm font-semibold text-ink">Preview live</span>
           <div className="flex items-center gap-1">
             {previewProject && (
             <button
@@ -141,7 +149,7 @@ export function WebWorkspace({ toolId }: { toolId: string }) {
               className="h-full min-h-[240px] w-full rounded-maro12 bg-surface"
             />
           ) : (
-            <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-[13px] text-ink-3">
+            <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-sm text-ink-3">
               {previewProject
                 ? "Ky projekt nuk ka HTML ende. Gjenero ose hap editorin."
                 : "Gjenero një website ose zgjidh një projekt nga lista."}

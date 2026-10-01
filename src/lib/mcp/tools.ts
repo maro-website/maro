@@ -1,18 +1,13 @@
 import "server-only";
 
 import { z } from "zod";
-import type { AiImageRequest } from "@/lib/ai/imageTypes";
-import {
-  executeMaroImageApplication,
-  type MaroImageApplicationAdapter,
-} from "@/lib/maro-imazh/applicationService";
+import { executeV1ImageApplication } from "@/lib/generation/v1ImageApplication";
 import { resolveEntitlements } from "@/lib/commerce/entitlements";
 import { getMaroAccountSummary, resolveAssetListForClient } from "@/lib/supabase/server";
 import type { MaroMcpActor } from "@/lib/mcp/auth";
 import { getMaroMcpResource } from "@/lib/mcp/config";
 import {
   findJobByIdempotency,
-  findRecentCompletedMcpGeneration,
   findRecentInFlightMcpJob,
   getGenerationResultForJob,
   isInFlightJobStatus,
@@ -149,14 +144,8 @@ async function recoverExistingGeneration(input: {
   }
 
   const createdAfter = new Date(Date.now() - MCP_LEGACY_RECOVERY_MS).toISOString();
-  const legacyResult = await findRecentCompletedMcpGeneration(
-    input.actor.userId,
-    "reklama",
-    input.args.request,
-    createdAfter
-  );
-  if (legacyResult) return recoveredImageOutcome(legacyResult, input.args);
-
+  // A matching prompt alone cannot prove model, format, text or workspace
+  // identity. Return completed results only for the exact accepted job key.
   const legacyInFlight = await findRecentInFlightMcpJob(
     input.actor.userId,
     "reklama",
@@ -167,6 +156,7 @@ async function recoverExistingGeneration(input: {
 
 function mapCanonicalError(payload: Record<string, unknown>, status: number): MaroMcpToolFailure {
   const raw = typeof payload.error === "string" ? payload.error : "";
+  if (payload.recoverable === true) return fail("GENERATION_IN_PROGRESS", "Rezultati po finalizohet. Riprovo të njëjtën kërkesë pa krijuar gjenerim tjetër.", { job_id: payload.jobId, retry_after_seconds: 15 });
   if (status === 409 && (raw === "generation_in_progress" || raw === "duplicate_job")) {
     return fail(
       "GENERATION_IN_PROGRESS",
@@ -205,7 +195,7 @@ function mapCanonicalError(payload: Record<string, unknown>, status: number): Ma
   ) {
     return fail("SERVICE_UNAVAILABLE", "Maro Imazh nuk është i disponueshëm për momentin.");
   }
-  return fail("GENERATION_FAILED", "Imazhi nuk u gjenerua. Kreditet rezervë lirohen automatikisht pas dështimit teknik.");
+  return fail("GENERATION_FAILED", "Gjenerimi nuk përfundoi. Kontrollo statusin e kërkesës para se të provosh sërish.");
 }
 
 function isSafeAssetUrl(value: unknown): value is string {
@@ -219,24 +209,33 @@ function isSafeAssetUrl(value: unknown): value is string {
   }
 }
 
-function canonicalAdapter(): MaroImageApplicationAdapter<Promise<CanonicalOutcome>> {
-  return {
-    failure(payload, status) {
-      return Promise.resolve({ payload, status });
-    },
-    async stream(run) {
-      let finalPayload: Record<string, unknown> | null = null;
-      let succeeded = false;
-      await run((payload) => {
-        finalPayload = payload;
-        succeeded = payload.ok === true;
-      });
-      return {
-        payload: finalPayload ?? { ok: false, error: "empty" },
-        status: succeeded ? 200 : 502,
-      };
-    },
-  };
+async function readCanonicalOutcome(response: Response): Promise<CanonicalOutcome> {
+  if (!response.headers.get("content-type")?.includes("text/event-stream")) {
+    return { payload: await response.json(), status: response.status };
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return { payload: { error: "empty" }, status: 502 };
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let finalPayload: Record<string, unknown> | null = null;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      buffered += decoder.decode(value, { stream: !done });
+      if (buffered.length > 64 * 1024) throw new Error("invalid_image_response");
+      let split: number;
+      while ((split = buffered.indexOf("\n\n")) >= 0) {
+        const frame = buffered.slice(0, split);
+        buffered = buffered.slice(split + 2);
+        if (frame.startsWith("data: ")) {
+          const payload = JSON.parse(frame.slice(6)) as Record<string, unknown>;
+          if (typeof payload.ok === "boolean") finalPayload = payload;
+        }
+      }
+      if (done) break;
+    }
+  } finally { reader.releaseLock(); }
+  return { payload: finalPayload ?? { error: "empty" }, status: finalPayload?.ok === true ? 200 : 502 };
 }
 
 export async function generateMaroImageTool(input: {
@@ -249,17 +248,18 @@ export async function generateMaroImageTool(input: {
   if (existing) return existing;
 
   const selections: Record<string, string> = {
-    model: "gpt-image-2",
     speed: "normal",
     format: ASPECT_TO_FORMAT[input.args.aspect_ratio ?? "portrait"],
     text: input.args.text_preference === "include_text" ? "on" : "off",
   };
 
-  const body: AiImageRequest = {
+  const body = {
     toolId: "reklama",
     prompt: input.args.request,
     selections,
-    useWorkspaceBrand: true,
+    // Match Golden's explicit Brain opt-in. OAuth image permission does not
+    // silently add private Brain material to an otherwise standard request.
+    useWorkspaceBrand: false,
     n: 1,
     idempotencyKey: input.idempotencyKey,
   };
@@ -277,12 +277,10 @@ export async function generateMaroImageTool(input: {
   const canonicalRequest = new Request(getMaroMcpResource(), {
     method: "POST",
     headers,
+    body: JSON.stringify(body),
+    signal: input.sourceRequest.signal,
   });
-  const outcome = await executeMaroImageApplication(
-    canonicalRequest,
-    body,
-    canonicalAdapter()
-  );
+  const outcome = await readCanonicalOutcome(await executeV1ImageApplication(canonicalRequest));
 
   if (outcome.payload.ok !== true) {
     if (

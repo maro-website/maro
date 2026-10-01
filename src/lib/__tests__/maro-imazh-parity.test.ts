@@ -149,7 +149,7 @@ describe("maroImazh client brand isolation", () => {
     );
     expect(provider.prompt).not.toContain(MARO_UI_BRAND_COLOR);
     expect(provider.prompt).not.toMatch(/maro logo/i);
-    expect(provider.prompt).not.toContain("#00FF72");
+    expect(provider.prompt).not.toContain("#253FDA");
   });
 });
 

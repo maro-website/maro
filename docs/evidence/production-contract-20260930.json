@@ -1,0 +1,2799 @@
+{
+  "checked_at_utc": "2026-09-30T21:13:27.047754+00:00",
+  "production_project": "pbhzobqpavkuttdipjaq",
+  "transaction_read_only": "on",
+  "tls_ca_and_hostname_verified": true,
+  "tls_root_compatibility": "Official Supabase CA; X509_STRICT off for legacy missing key-usage extension; CERT_REQUIRED and hostname checks on.",
+  "server_version": "PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+  "queries": "Catalog and non-user product-configuration SELECTs only; prompt counts/lengths only; no financial RPC or user rows; explicit ROLLBACK.",
+  "functions": [
+    {
+      "name": "admin_publish_v1_prompt",
+      "signature": "admin_publish_v1_prompt(uuid,uuid,boolean)",
+      "identity_arguments": "p_id uuid, p_actor uuid, p_rollback boolean",
+      "result": "system_prompt_versions",
+      "body": "\r\ndeclare t public.system_prompt_versions;\r\nbegin\r\n  select * into t from public.system_prompt_versions where id=p_id;\r\n  if t.id is null or t.tool_id not in ('maro_imazh','maro_logo') then raise exception 'invalid_prompt'; end if;\r\n  perform 1 from public.tool_engine_config where tool_id=t.tool_id for update;\r\n  select * into t from public.system_prompt_versions where id=p_id for update;\r\n  if (not p_rollback and t.status not in ('draft','review')) or (p_rollback and t.status <> 'archived') then raise exception 'invalid_prompt_status'; end if;\r\n  if length(btrim(t.content))=0 or length(t.content)>100000 then raise exception 'invalid_prompt_content'; end if;\r\n  update public.system_prompt_versions set status='archived' where tool_id=t.tool_id and status='live';\r\n  update public.system_prompt_versions set status='live',published_by=p_actor,published_at=now() where id=p_id returning * into t;\r\n  return t;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_publish_v1_prompt(p_id uuid, p_actor uuid, p_rollback boolean DEFAULT false)\n RETURNS system_prompt_versions\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare t public.system_prompt_versions;\r\nbegin\r\n  select * into t from public.system_prompt_versions where id=p_id;\r\n  if t.id is null or t.tool_id not in ('maro_imazh','maro_logo') then raise exception 'invalid_prompt'; end if;\r\n  perform 1 from public.tool_engine_config where tool_id=t.tool_id for update;\r\n  select * into t from public.system_prompt_versions where id=p_id for update;\r\n  if (not p_rollback and t.status not in ('draft','review')) or (p_rollback and t.status <> 'archived') then raise exception 'invalid_prompt_status'; end if;\r\n  if length(btrim(t.content))=0 or length(t.content)>100000 then raise exception 'invalid_prompt_content'; end if;\r\n  update public.system_prompt_versions set status='archived' where tool_id=t.tool_id and status='live';\r\n  update public.system_prompt_versions set status='live',published_by=p_actor,published_at=now() where id=p_id returning * into t;\r\n  return t;\r\nend $function$\n",
+      "body_md5": "d787c3c005a55cf280990e6832102816",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "admin_v1_operations",
+      "signature": "admin_v1_operations(timestamp with time zone,text)",
+      "identity_arguments": "p_before timestamp with time zone, p_status text",
+      "result": "jsonb",
+      "body": "\r\nwith jobs as (\r\n select * from public.generation_jobs where metadata->>'v1_durable'='true' and metadata#>>'{v1_request,module}' in ('maro_imazh','maro_logo')\r\n), page as (\r\n select * from jobs where (p_before is null or created_at<p_before) and (p_status is null or status=p_status)\r\n order by created_at desc,id desc limit 50\r\n), evidence as (\r\n select j.*, g.id as generation_id,\r\n exists(select 1 from storage.objects o where o.bucket_id='generations' and o.name=j.user_id::text||'/'||j.id::text||'/output.png' and coalesce((o.metadata->>'size')::bigint,0)>0) as stored,\r\n exists(select 1 from public.credit_transactions t where t.job_id=j.id and t.type='charge') as charged,\r\n exists(select 1 from public.credit_transactions t where t.job_id=j.id and t.type='release') as released\r\n from page j left join public.generations g on g.job_id=j.id\r\n)\r\nselect jsonb_build_object(\r\n 'counts',(select jsonb_build_object('total',count(*),'failed',count(*) filter(where status='failed'),\r\n 'pending',count(*) filter(where status in ('pending','reserved','processing')),\r\n 'stale',count(*) filter(where status in ('pending','reserved','processing') and created_at<=now()-interval '15 minutes'),\r\n 'settlementPending',count(*) filter(where metadata#>>'{v1_lifecycle,phase}'='settlement_pending' and status not in ('completed','failed','cancelled'))) from jobs),\r\n 'jobs',coalesce((select jsonb_agg(jsonb_build_object(\r\n 'id',id,'createdAt',created_at,'userId',user_id,'module',metadata#>>'{v1_request,module}','model',metadata#>>'{v1_request,logicalModel}',\r\n 'provider',metadata#>>'{v1_request,model,provider}','providerModelId',metadata#>>'{v1_request,model,providerModelId}',\r\n 'status',status,'generationId',generation_id,'reserved',credits_reserved,'charged',credits_charged,\r\n 'configuredCredits',metadata#>'{v1_request,model,customerCredits}',\r\n 'output',case when stored then 'stored' else 'missing' end,'history',case when generation_id is not null then 'saved' else 'missing' end,\r\n 'settlement',case when charged then 'charged' when released then 'released' when credits_reserved>0 then 'reserved' else 'none' end,\r\n 'phase',metadata#>>'{v1_lifecycle,phase}',\r\n 'failure',case when error in ('provider_failed','provider_output_invalid','storage_failed','history_failed','execution_trace_unavailable','execution_interrupted','settlement_pending') then error when error is not null then 'other_failure' else null end,\r\n 'retainedOrphan',stored and generation_id is null and (status in ('failed','cancelled') or created_at<=now()-interval '15 minutes'),'recoveredFromJobId',metadata->>'recovered_from_job_id',\r\n 'latencyMs',metadata#>'{execution,image_provider,latencyMs}',\r\n 'eligible',status in ('pending','reserved','processing') and created_at<=now()-interval '15 minutes'\r\n ) order by created_at desc,id desc) from evidence),'[]'::jsonb),\r\n 'recentReconciliation',coalesce((select jsonb_agg(a) from (select created_at,action,target_id,metadata from public.audit_events\r\n where action='v1.job.reconciled' order by created_at desc limit 10) a),'[]'::jsonb)\r\n);\r\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_v1_operations(p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_status text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nwith jobs as (\r\n select * from public.generation_jobs where metadata->>'v1_durable'='true' and metadata#>>'{v1_request,module}' in ('maro_imazh','maro_logo')\r\n), page as (\r\n select * from jobs where (p_before is null or created_at<p_before) and (p_status is null or status=p_status)\r\n order by created_at desc,id desc limit 50\r\n), evidence as (\r\n select j.*, g.id as generation_id,\r\n exists(select 1 from storage.objects o where o.bucket_id='generations' and o.name=j.user_id::text||'/'||j.id::text||'/output.png' and coalesce((o.metadata->>'size')::bigint,0)>0) as stored,\r\n exists(select 1 from public.credit_transactions t where t.job_id=j.id and t.type='charge') as charged,\r\n exists(select 1 from public.credit_transactions t where t.job_id=j.id and t.type='release') as released\r\n from page j left join public.generations g on g.job_id=j.id\r\n)\r\nselect jsonb_build_object(\r\n 'counts',(select jsonb_build_object('total',count(*),'failed',count(*) filter(where status='failed'),\r\n 'pending',count(*) filter(where status in ('pending','reserved','processing')),\r\n 'stale',count(*) filter(where status in ('pending','reserved','processing') and created_at<=now()-interval '15 minutes'),\r\n 'settlementPending',count(*) filter(where metadata#>>'{v1_lifecycle,phase}'='settlement_pending' and status not in ('completed','failed','cancelled'))) from jobs),\r\n 'jobs',coalesce((select jsonb_agg(jsonb_build_object(\r\n 'id',id,'createdAt',created_at,'userId',user_id,'module',metadata#>>'{v1_request,module}','model',metadata#>>'{v1_request,logicalModel}',\r\n 'provider',metadata#>>'{v1_request,model,provider}','providerModelId',metadata#>>'{v1_request,model,providerModelId}',\r\n 'status',status,'generationId',generation_id,'reserved',credits_reserved,'charged',credits_charged,\r\n 'configuredCredits',metadata#>'{v1_request,model,customerCredits}',\r\n 'output',case when stored then 'stored' else 'missing' end,'history',case when generation_id is not null then 'saved' else 'missing' end,\r\n 'settlement',case when charged then 'charged' when released then 'released' when credits_reserved>0 then 'reserved' else 'none' end,\r\n 'phase',metadata#>>'{v1_lifecycle,phase}',\r\n 'failure',case when error in ('provider_failed','provider_output_invalid','storage_failed','history_failed','execution_trace_unavailable','execution_interrupted','settlement_pending') then error when error is not null then 'other_failure' else null end,\r\n 'retainedOrphan',stored and generation_id is null and (status in ('failed','cancelled') or created_at<=now()-interval '15 minutes'),'recoveredFromJobId',metadata->>'recovered_from_job_id',\r\n 'latencyMs',metadata#>'{execution,image_provider,latencyMs}',\r\n 'eligible',status in ('pending','reserved','processing') and created_at<=now()-interval '15 minutes'\r\n ) order by created_at desc,id desc) from evidence),'[]'::jsonb),\r\n 'recentReconciliation',coalesce((select jsonb_agg(a) from (select created_at,action,target_id,metadata from public.audit_events\r\n where action='v1.job.reconciled' order by created_at desc limit 10) a),'[]'::jsonb)\r\n);\r\n$function$\n",
+      "body_md5": "ea9cbb3536620c10a1485ceb1d053305",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "apply_paddle_event",
+      "signature": "apply_paddle_event(jsonb)",
+      "identity_arguments": "p_event jsonb",
+      "result": "jsonb",
+      "body": "\ndeclare\n  seed public.credit_orders%rowtype;\n  o public.credit_orders%rowtype;\n  m public.memberships%rowtype;\n  kind text := p_event->>'kind';\n  event_time timestamptz := (p_event->>'occurredAt')::timestamptz;\n  period_start timestamptz := (p_event->>'startsAt')::timestamptz;\n  period_end timestamptz := (p_event->>'endsAt')::timestamptz;\n  sub_id text := p_event->>'subscriptionId';\n  tx_id text := p_event->>'transactionId';\n  customer_id text := p_event->>'customerId';\n  state text := p_event->>'status';\n  new_balance integer; added integer; order_type text; new_expiry timestamptz;\nbegin\n  if p_event->>'eventId' is null or event_time is null then raise exception 'invalid_event'; end if;\n  insert into public.paddle_webhook_events(event_id, event_type, occurred_at)\n    values(p_event->>'eventId', p_event->>'eventType', event_time) on conflict do nothing;\n  get diagnostics added = row_count;\n  if added = 0 then return jsonb_build_object('duplicate', true); end if;\n  if kind = 'ignored' then return jsonb_build_object('ignored', true); end if;\n  if kind not in ('subscription', 'transaction') then raise exception 'invalid_event_kind'; end if;\n  select * into seed from public.credit_orders where id = (p_event->>'seedOrderId')::uuid;\n  if seed.id is null or seed.provider <> 'paddle' or seed.user_id::text <> p_event->>'userId'\n    or seed.provider_transaction_id is null or seed.paddle_customer_id is distinct from customer_id\n    or seed.paddle_price_id is distinct from p_event->>'priceId'\n    or (seed.paddle_subscription_id is not null and seed.paddle_subscription_id is distinct from sub_id) then\n    raise exception 'paddle_mapping_mismatch';\n  end if;\n  perform pg_advisory_xact_lock(hashtextextended(seed.user_id::text, 742));\n  -- A customer must never become a portal bridge across maro accounts.\n  if exists(select 1 from public.credit_orders where paddle_customer_id = customer_id\n    and user_id <> seed.user_id) then raise exception 'paddle_customer_ownership_mismatch'; end if;\n  select * into m from public.memberships where paddle_subscription_id = sub_id for update;\n  if m.id is not null and (m.user_id <> seed.user_id or m.paddle_customer_id <> customer_id\n    or m.paddle_origin_order_id <> seed.id) then raise exception 'paddle_subscription_ownership_mismatch'; end if;\n\n  if sub_id is not null and m.id is null then\n    -- Only the bound initial transaction or subscription.created's transaction_id\n    -- can establish a subscription link. Updated events arriving first are retried.\n    if tx_id is distinct from seed.provider_transaction_id or seed.order_kind <> 'plan_purchase' then\n      raise exception 'paddle_subscription_not_bound';\n    end if;\n    if exists(select 1 from public.memberships where user_id = seed.user_id\n      and (expires_at > now() or (payment_provider = 'paddle' and paddle_status <> 'canceled'))) then\n      raise exception 'another_membership_active';\n    end if;\n    insert into public.memberships(user_id, plan_id, started_at, expires_at, renewal_mode,\n      payment_provider, paddle_subscription_id, paddle_customer_id, paddle_price_id,\n      paddle_origin_order_id, paddle_status)\n    values(seed.user_id, seed.item_id, coalesce(period_start, event_time),\n      coalesce(period_start, event_time), 'automatic', 'paddle', sub_id, customer_id,\n      seed.paddle_price_id, seed.id, 'pending') returning * into m;\n    update public.credit_orders set paddle_subscription_id = sub_id where id = seed.id;\n  end if;\n\n  if kind = 'subscription' then\n    if m.id is null or state not in ('active', 'trialing', 'past_due', 'paused', 'canceled') then\n      raise exception 'invalid_subscription';\n    end if;\n    if m.paddle_event_at is null or event_time > m.paddle_event_at then\n      -- A lifecycle event cannot extend paid time. Only completed payment can.\n      new_expiry := coalesce(m.paddle_paid_through, m.expires_at);\n      if state in ('canceled', 'paused') then new_expiry := least(new_expiry, event_time); end if;\n      update public.memberships set paddle_status = state, paddle_event_at = event_time,\n        paddle_scheduled_change = nullif(p_event->'scheduledChange', 'null'::jsonb),\n        expires_at = new_expiry, updated_at = now()\n        where id = m.id;\n    end if;\n    return jsonb_build_object('synchronized', true);\n  end if;\n\n  if state <> 'completed' or tx_id is null or (p_event->>'amount')::integer <> seed.amount_cents\n    or p_event->>'currency' <> seed.currency then raise exception 'paddle_amount_mismatch'; end if;\n  select * into o from public.credit_orders where provider_transaction_id = tx_id for update;\n  if o.id is not null and (o.provider <> 'paddle' or o.user_id <> seed.user_id) then\n    raise exception 'paddle_transaction_ownership_mismatch';\n  end if;\n  if o.status = 'paid' then return jsonb_build_object('duplicate_transaction', true); end if;\n  if sub_id is null then\n    if seed.order_kind <> 'topup' or tx_id <> seed.provider_transaction_id then raise exception 'invalid_topup_transaction'; end if;\n    o := seed;\n    order_type := 'topup';\n    -- Eligibility was checked when checkout was created. A delayed paid webhook\n    -- still delivers purchased credits even if the membership has since expired.\n  else\n    if m.id is null or period_start is null or period_end is null or period_end <= period_start\n      or period_end - period_start <> ((seed.commercial_snapshot->>'duration_days')::integer * interval '1 day') then\n      raise exception 'invalid_billing_period';\n    end if;\n    if exists(select 1 from public.credit_orders where provider = 'paddle' and status = 'paid'\n      and paddle_subscription_id = sub_id and paddle_period_start = period_start) then\n      return jsonb_build_object('duplicate_period', true);\n    end if;\n    -- Reject overlapping payments without dropping legitimate late older periods.\n    if exists(select 1 from public.credit_orders where provider = 'paddle' and status = 'paid'\n      and paddle_subscription_id = sub_id and paddle_period_start < period_end\n      and paddle_period_end > period_start) then raise exception 'overlapping_billing_period'; end if;\n    if tx_id = seed.provider_transaction_id then\n      o := seed; order_type := 'plan_purchase';\n    else\n      if p_event->>'origin' <> 'subscription_recurring' then raise exception 'unexpected_transaction_origin'; end if;\n      order_type := 'plan_renewal';\n      insert into public.credit_orders(user_id, user_email, credits, amount_cents, currency, status,\n        provider, item_type, item_id, order_kind, commercial_snapshot, billing_snapshot,\n        provider_transaction_id, paddle_customer_id, paddle_subscription_id, paddle_price_id)\n      values(seed.user_id, seed.user_email, seed.credits, seed.amount_cents, seed.currency, 'pending',\n        'paddle', 'plan', seed.item_id, order_type,\n        seed.commercial_snapshot || jsonb_build_object('order_kind', order_type, 'captured_at', event_time),\n        seed.billing_snapshot, tx_id, customer_id, sub_id, seed.paddle_price_id) returning * into o;\n    end if;\n    -- Lifecycle ordering is independent from paid-period ordering.\n    new_expiry := greatest(coalesce(m.paddle_paid_through, period_end), period_end);\n    if m.paddle_status in ('canceled', 'paused') then\n      new_expiry := least(new_expiry, m.paddle_event_at);\n    end if;\n    update public.memberships set paddle_paid_through = greatest(paddle_paid_through, period_end),\n      expires_at = new_expiry, started_at = least(started_at, period_start),\n      paddle_status = case when paddle_status = 'pending' then 'active' else paddle_status end,\n      updated_at = now() where id = m.id;\n  end if;\n  if o.status <> 'pending' then raise exception 'invalid_order_status'; end if;\n  update public.profiles set credits = credits + seed.credits,\n    maro_plan = case when sub_id is not null and new_expiry > now() then seed.item_id else maro_plan end\n    where id = seed.user_id returning credits into new_balance;\n  if new_balance is null then raise exception 'profile_missing'; end if;\n  insert into public.credit_transactions(user_id, type, amount, balance_after, idempotency_key,\n    order_id, membership_id, metadata)\n  values(seed.user_id, order_type, seed.credits, new_balance, 'paddle:' || tx_id, o.id, m.id,\n    jsonb_build_object('provider', 'paddle', 'transaction_id', tx_id, 'event_id', p_event->>'eventId'));\n  update public.credit_orders set status = 'paid', paid_at = event_time, membership_id = m.id,\n    paddle_subscription_id = sub_id, paddle_period_start = period_start, paddle_period_end = period_end\n    where id = o.id;\n  return jsonb_build_object('fulfilled', true, 'order_id', o.id);\nend;\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.apply_paddle_event(p_event jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  seed public.credit_orders%rowtype;\n  o public.credit_orders%rowtype;\n  m public.memberships%rowtype;\n  kind text := p_event->>'kind';\n  event_time timestamptz := (p_event->>'occurredAt')::timestamptz;\n  period_start timestamptz := (p_event->>'startsAt')::timestamptz;\n  period_end timestamptz := (p_event->>'endsAt')::timestamptz;\n  sub_id text := p_event->>'subscriptionId';\n  tx_id text := p_event->>'transactionId';\n  customer_id text := p_event->>'customerId';\n  state text := p_event->>'status';\n  new_balance integer; added integer; order_type text; new_expiry timestamptz;\nbegin\n  if p_event->>'eventId' is null or event_time is null then raise exception 'invalid_event'; end if;\n  insert into public.paddle_webhook_events(event_id, event_type, occurred_at)\n    values(p_event->>'eventId', p_event->>'eventType', event_time) on conflict do nothing;\n  get diagnostics added = row_count;\n  if added = 0 then return jsonb_build_object('duplicate', true); end if;\n  if kind = 'ignored' then return jsonb_build_object('ignored', true); end if;\n  if kind not in ('subscription', 'transaction') then raise exception 'invalid_event_kind'; end if;\n  select * into seed from public.credit_orders where id = (p_event->>'seedOrderId')::uuid;\n  if seed.id is null or seed.provider <> 'paddle' or seed.user_id::text <> p_event->>'userId'\n    or seed.provider_transaction_id is null or seed.paddle_customer_id is distinct from customer_id\n    or seed.paddle_price_id is distinct from p_event->>'priceId'\n    or (seed.paddle_subscription_id is not null and seed.paddle_subscription_id is distinct from sub_id) then\n    raise exception 'paddle_mapping_mismatch';\n  end if;\n  perform pg_advisory_xact_lock(hashtextextended(seed.user_id::text, 742));\n  -- A customer must never become a portal bridge across maro accounts.\n  if exists(select 1 from public.credit_orders where paddle_customer_id = customer_id\n    and user_id <> seed.user_id) then raise exception 'paddle_customer_ownership_mismatch'; end if;\n  select * into m from public.memberships where paddle_subscription_id = sub_id for update;\n  if m.id is not null and (m.user_id <> seed.user_id or m.paddle_customer_id <> customer_id\n    or m.paddle_origin_order_id <> seed.id) then raise exception 'paddle_subscription_ownership_mismatch'; end if;\n\n  if sub_id is not null and m.id is null then\n    -- Only the bound initial transaction or subscription.created's transaction_id\n    -- can establish a subscription link. Updated events arriving first are retried.\n    if tx_id is distinct from seed.provider_transaction_id or seed.order_kind <> 'plan_purchase' then\n      raise exception 'paddle_subscription_not_bound';\n    end if;\n    if exists(select 1 from public.memberships where user_id = seed.user_id\n      and (expires_at > now() or (payment_provider = 'paddle' and paddle_status <> 'canceled'))) then\n      raise exception 'another_membership_active';\n    end if;\n    insert into public.memberships(user_id, plan_id, started_at, expires_at, renewal_mode,\n      payment_provider, paddle_subscription_id, paddle_customer_id, paddle_price_id,\n      paddle_origin_order_id, paddle_status)\n    values(seed.user_id, seed.item_id, coalesce(period_start, event_time),\n      coalesce(period_start, event_time), 'automatic', 'paddle', sub_id, customer_id,\n      seed.paddle_price_id, seed.id, 'pending') returning * into m;\n    update public.credit_orders set paddle_subscription_id = sub_id where id = seed.id;\n  end if;\n\n  if kind = 'subscription' then\n    if m.id is null or state not in ('active', 'trialing', 'past_due', 'paused', 'canceled') then\n      raise exception 'invalid_subscription';\n    end if;\n    if m.paddle_event_at is null or event_time > m.paddle_event_at then\n      -- A lifecycle event cannot extend paid time. Only completed payment can.\n      new_expiry := coalesce(m.paddle_paid_through, m.expires_at);\n      if state in ('canceled', 'paused') then new_expiry := least(new_expiry, event_time); end if;\n      update public.memberships set paddle_status = state, paddle_event_at = event_time,\n        paddle_scheduled_change = nullif(p_event->'scheduledChange', 'null'::jsonb),\n        expires_at = new_expiry, updated_at = now()\n        where id = m.id;\n    end if;\n    return jsonb_build_object('synchronized', true);\n  end if;\n\n  if state <> 'completed' or tx_id is null or (p_event->>'amount')::integer <> seed.amount_cents\n    or p_event->>'currency' <> seed.currency then raise exception 'paddle_amount_mismatch'; end if;\n  select * into o from public.credit_orders where provider_transaction_id = tx_id for update;\n  if o.id is not null and (o.provider <> 'paddle' or o.user_id <> seed.user_id) then\n    raise exception 'paddle_transaction_ownership_mismatch';\n  end if;\n  if o.status = 'paid' then return jsonb_build_object('duplicate_transaction', true); end if;\n  if sub_id is null then\n    if seed.order_kind <> 'topup' or tx_id <> seed.provider_transaction_id then raise exception 'invalid_topup_transaction'; end if;\n    o := seed;\n    order_type := 'topup';\n    -- Eligibility was checked when checkout was created. A delayed paid webhook\n    -- still delivers purchased credits even if the membership has since expired.\n  else\n    if m.id is null or period_start is null or period_end is null or period_end <= period_start\n      or period_end - period_start <> ((seed.commercial_snapshot->>'duration_days')::integer * interval '1 day') then\n      raise exception 'invalid_billing_period';\n    end if;\n    if exists(select 1 from public.credit_orders where provider = 'paddle' and status = 'paid'\n      and paddle_subscription_id = sub_id and paddle_period_start = period_start) then\n      return jsonb_build_object('duplicate_period', true);\n    end if;\n    -- Reject overlapping payments without dropping legitimate late older periods.\n    if exists(select 1 from public.credit_orders where provider = 'paddle' and status = 'paid'\n      and paddle_subscription_id = sub_id and paddle_period_start < period_end\n      and paddle_period_end > period_start) then raise exception 'overlapping_billing_period'; end if;\n    if tx_id = seed.provider_transaction_id then\n      o := seed; order_type := 'plan_purchase';\n    else\n      if p_event->>'origin' <> 'subscription_recurring' then raise exception 'unexpected_transaction_origin'; end if;\n      order_type := 'plan_renewal';\n      insert into public.credit_orders(user_id, user_email, credits, amount_cents, currency, status,\n        provider, item_type, item_id, order_kind, commercial_snapshot, billing_snapshot,\n        provider_transaction_id, paddle_customer_id, paddle_subscription_id, paddle_price_id)\n      values(seed.user_id, seed.user_email, seed.credits, seed.amount_cents, seed.currency, 'pending',\n        'paddle', 'plan', seed.item_id, order_type,\n        seed.commercial_snapshot || jsonb_build_object('order_kind', order_type, 'captured_at', event_time),\n        seed.billing_snapshot, tx_id, customer_id, sub_id, seed.paddle_price_id) returning * into o;\n    end if;\n    -- Lifecycle ordering is independent from paid-period ordering.\n    new_expiry := greatest(coalesce(m.paddle_paid_through, period_end), period_end);\n    if m.paddle_status in ('canceled', 'paused') then\n      new_expiry := least(new_expiry, m.paddle_event_at);\n    end if;\n    update public.memberships set paddle_paid_through = greatest(paddle_paid_through, period_end),\n      expires_at = new_expiry, started_at = least(started_at, period_start),\n      paddle_status = case when paddle_status = 'pending' then 'active' else paddle_status end,\n      updated_at = now() where id = m.id;\n  end if;\n  if o.status <> 'pending' then raise exception 'invalid_order_status'; end if;\n  update public.profiles set credits = credits + seed.credits,\n    maro_plan = case when sub_id is not null and new_expiry > now() then seed.item_id else maro_plan end\n    where id = seed.user_id returning credits into new_balance;\n  if new_balance is null then raise exception 'profile_missing'; end if;\n  insert into public.credit_transactions(user_id, type, amount, balance_after, idempotency_key,\n    order_id, membership_id, metadata)\n  values(seed.user_id, order_type, seed.credits, new_balance, 'paddle:' || tx_id, o.id, m.id,\n    jsonb_build_object('provider', 'paddle', 'transaction_id', tx_id, 'event_id', p_event->>'eventId'));\n  update public.credit_orders set status = 'paid', paid_at = event_time, membership_id = m.id,\n    paddle_subscription_id = sub_id, paddle_period_start = period_start, paddle_period_end = period_end\n    where id = o.id;\n  return jsonb_build_object('fulfilled', true, 'order_id', o.id);\nend;\n$function$\n",
+      "body_md5": "bfef2a730f1399f12e2be6ac73d6e6da",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "cancel_credit_order",
+      "signature": "cancel_credit_order(uuid,text)",
+      "identity_arguments": "p_order_id uuid, p_reason text",
+      "result": "jsonb",
+      "body": "\nbegin\n  if exists(select 1 from public.credit_orders where id = p_order_id and provider = 'paddle') then\n    return jsonb_build_object('ok', false, 'error', 'paddle_managed_payment');\n  end if;\n  return public.cancel_non_paddle_credit_order(p_order_id, p_reason);\nend;\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.cancel_credit_order(p_order_id uuid, p_reason text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  if exists(select 1 from public.credit_orders where id = p_order_id and provider = 'paddle') then\n    return jsonb_build_object('ok', false, 'error', 'paddle_managed_payment');\n  end if;\n  return public.cancel_non_paddle_credit_order(p_order_id, p_reason);\nend;\n$function$\n",
+      "body_md5": "60ca399beb9ff3ace59755ba57417d70",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "cancel_non_paddle_credit_order",
+      "signature": "cancel_non_paddle_credit_order(uuid,text)",
+      "identity_arguments": "p_order_id uuid, p_reason text",
+      "result": "jsonb",
+      "body": "\r\ndeclare\r\n  o record;\r\nbegin\r\n  select * into o from public.credit_orders where id = p_order_id for update;\r\n  if o.id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'not_found');\r\n  end if;\r\n\r\n  if o.status = 'paid' then\r\n    return jsonb_build_object('ok', false, 'error', 'already_paid');\r\n  end if;\r\n\r\n  if o.status = 'cancelled' then\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id);\r\n  end if;\r\n\r\n  update public.credit_orders\r\n  set status = 'cancelled',\r\n      cancel_reason = coalesce(p_reason, cancel_reason)\r\n  where id = o.id;\r\n\r\n  return jsonb_build_object('ok', true, 'order_id', o.id);\r\nend;\r\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.cancel_non_paddle_credit_order(p_order_id uuid, p_reason text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare\r\n  o record;\r\nbegin\r\n  select * into o from public.credit_orders where id = p_order_id for update;\r\n  if o.id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'not_found');\r\n  end if;\r\n\r\n  if o.status = 'paid' then\r\n    return jsonb_build_object('ok', false, 'error', 'already_paid');\r\n  end if;\r\n\r\n  if o.status = 'cancelled' then\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id);\r\n  end if;\r\n\r\n  update public.credit_orders\r\n  set status = 'cancelled',\r\n      cancel_reason = coalesce(p_reason, cancel_reason)\r\n  where id = o.id;\r\n\r\n  return jsonb_build_object('ok', true, 'order_id', o.id);\r\nend;\r\n$function$\n",
+      "body_md5": "32bee44a7d9482fc227bc1d7970cf2d2",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "name": "create_paddle_order",
+      "signature": "create_paddle_order(uuid,text,text,jsonb)",
+      "identity_arguments": "p_user uuid, p_item text, p_price text, p_billing jsonb",
+      "result": "jsonb",
+      "body": "\ndeclare\n  o public.credit_orders%rowtype;\n  cp public.commerce_plans%rowtype;\n  tp public.commerce_topups%rowtype;\n  n integer; amount integer; days integer; label text; email_address text; kind text;\nbegin\n  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 742));\n  if p_price !~ '^pri_[a-z0-9]{26}$' or (p_billing->>'legalConsent')::boolean is distinct from true then\n    raise exception 'invalid_checkout';\n  end if;\n  select email into email_address from auth.users where id = p_user;\n  if email_address is null then raise exception 'unknown_user'; end if;\n  if p_item in ('standard', 'pro') then\n    if exists(select 1 from public.memberships where user_id = p_user and\n      (expires_at > now() or (payment_provider = 'paddle' and paddle_status <> 'canceled'))) then\n      raise exception 'plan_already_active_or_managed';\n    end if;\n    select * into cp from public.commerce_plans where id = p_item and enabled and not contact_only;\n    if cp.id is null or cp.currency <> 'EUR' then raise exception 'invalid_plan'; end if;\n    n := cp.included_credits; amount := cp.price_cents; days := cp.duration_days;\n    label := cp.display_name; kind := 'plan_purchase';\n  else\n    if not exists(select 1 from public.memberships where user_id = p_user and expires_at > now()\n      and not suspended and (payment_provider is distinct from 'paddle' or paddle_status = 'active')) then\n      raise exception 'topup_requires_active_plan';\n    end if;\n    select * into tp from public.commerce_topups where id = p_item and enabled;\n    if tp.id is null or tp.currency <> 'EUR' then raise exception 'invalid_topup'; end if;\n    n := tp.credits; amount := tp.price_cents; label := p_item; kind := 'topup';\n  end if;\n  if n <= 0 or amount <= 0 then raise exception 'invalid_catalog'; end if;\n  select * into o from public.credit_orders where user_id = p_user and provider = 'paddle'\n    and status = 'pending' and (item_id = p_item or (kind = 'plan_purchase' and order_kind = kind))\n    order by created_at desc limit 1 for update;\n  if o.id is not null then\n    if o.item_id <> p_item then raise exception 'paddle_checkout_already_pending'; end if;\n    if o.provider_transaction_id is not null then\n      return jsonb_build_object('created', false, 'order', to_jsonb(o));\n    end if;\n    if o.created_at > now() - interval '10 minutes' then raise exception 'paddle_checkout_in_progress'; end if;\n    -- No transaction was bound or returned to the browser. Retire an interrupted\n    -- reservation; never retire a bound checkout that can still be paid.\n    update public.credit_orders set status = 'failed' where id = o.id;\n  end if;\n  insert into public.credit_orders(user_id, user_email, credits, amount_cents, currency,\n    status, provider, item_type, item_id, order_kind, commercial_snapshot, billing_snapshot, paddle_price_id)\n  values(p_user, email_address, n, amount, 'EUR', 'pending', 'paddle',\n    case when kind = 'topup' then 'topup' else 'plan' end, p_item, kind,\n    jsonb_build_object('captured_at', now(), 'order_kind', kind, 'plan_id', cp.id,\n      'plan_name_snapshot', label, 'credits_snapshot', n, 'price_cents', amount,\n      'currency', 'EUR', 'duration_days', days, 'config_version', 'paddle_v1'),\n    p_billing || jsonb_build_object('email', email_address), p_price)\n  returning * into o;\n  return jsonb_build_object('created', true, 'order', to_jsonb(o));\nend;\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.create_paddle_order(p_user uuid, p_item text, p_price text, p_billing jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  o public.credit_orders%rowtype;\n  cp public.commerce_plans%rowtype;\n  tp public.commerce_topups%rowtype;\n  n integer; amount integer; days integer; label text; email_address text; kind text;\nbegin\n  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 742));\n  if p_price !~ '^pri_[a-z0-9]{26}$' or (p_billing->>'legalConsent')::boolean is distinct from true then\n    raise exception 'invalid_checkout';\n  end if;\n  select email into email_address from auth.users where id = p_user;\n  if email_address is null then raise exception 'unknown_user'; end if;\n  if p_item in ('standard', 'pro') then\n    if exists(select 1 from public.memberships where user_id = p_user and\n      (expires_at > now() or (payment_provider = 'paddle' and paddle_status <> 'canceled'))) then\n      raise exception 'plan_already_active_or_managed';\n    end if;\n    select * into cp from public.commerce_plans where id = p_item and enabled and not contact_only;\n    if cp.id is null or cp.currency <> 'EUR' then raise exception 'invalid_plan'; end if;\n    n := cp.included_credits; amount := cp.price_cents; days := cp.duration_days;\n    label := cp.display_name; kind := 'plan_purchase';\n  else\n    if not exists(select 1 from public.memberships where user_id = p_user and expires_at > now()\n      and not suspended and (payment_provider is distinct from 'paddle' or paddle_status = 'active')) then\n      raise exception 'topup_requires_active_plan';\n    end if;\n    select * into tp from public.commerce_topups where id = p_item and enabled;\n    if tp.id is null or tp.currency <> 'EUR' then raise exception 'invalid_topup'; end if;\n    n := tp.credits; amount := tp.price_cents; label := p_item; kind := 'topup';\n  end if;\n  if n <= 0 or amount <= 0 then raise exception 'invalid_catalog'; end if;\n  select * into o from public.credit_orders where user_id = p_user and provider = 'paddle'\n    and status = 'pending' and (item_id = p_item or (kind = 'plan_purchase' and order_kind = kind))\n    order by created_at desc limit 1 for update;\n  if o.id is not null then\n    if o.item_id <> p_item then raise exception 'paddle_checkout_already_pending'; end if;\n    if o.provider_transaction_id is not null then\n      return jsonb_build_object('created', false, 'order', to_jsonb(o));\n    end if;\n    if o.created_at > now() - interval '10 minutes' then raise exception 'paddle_checkout_in_progress'; end if;\n    -- No transaction was bound or returned to the browser. Retire an interrupted\n    -- reservation; never retire a bound checkout that can still be paid.\n    update public.credit_orders set status = 'failed' where id = o.id;\n  end if;\n  insert into public.credit_orders(user_id, user_email, credits, amount_cents, currency,\n    status, provider, item_type, item_id, order_kind, commercial_snapshot, billing_snapshot, paddle_price_id)\n  values(p_user, email_address, n, amount, 'EUR', 'pending', 'paddle',\n    case when kind = 'topup' then 'topup' else 'plan' end, p_item, kind,\n    jsonb_build_object('captured_at', now(), 'order_kind', kind, 'plan_id', cp.id,\n      'plan_name_snapshot', label, 'credits_snapshot', n, 'price_cents', amount,\n      'currency', 'EUR', 'duration_days', days, 'config_version', 'paddle_v1'),\n    p_billing || jsonb_build_object('email', email_address), p_price)\n  returning * into o;\n  return jsonb_build_object('created', true, 'order', to_jsonb(o));\nend;\n$function$\n",
+      "body_md5": "6fbbdafebc13ae3965d6cabcb657c764",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "fail_v1_image_job",
+      "signature": "fail_v1_image_job(uuid,text)",
+      "identity_arguments": "p_job_id uuid, p_reason text",
+      "result": "text",
+      "body": "\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  if p_reason not in ('provider_failed','provider_output_invalid','storage_failed','history_failed','execution_trace_unavailable','execution_interrupted') then raise exception 'invalid_failure_reason'; end if;\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' then return 'invalid_state'; end if;\r\n  if j.status='completed' then return 'already_finalized'; end if;\r\n  if j.status in ('failed','cancelled') then return 'released'; end if;\r\n  if exists(select 1 from public.generations where job_id=p_job_id) then return 'settlement_pending'; end if;\r\n  update public.generation_jobs set error=p_reason,metadata=jsonb_set(metadata,'{v1_lifecycle}',coalesce(metadata->'v1_lifecycle','{}'::jsonb)||jsonb_build_object('failure',p_reason)) where id=p_job_id;\r\n  if public.release_credit_reserve(p_job_id,'fail-'||p_job_id) then return 'released'; end if;\r\n  return 'reconciliation_pending';\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.fail_v1_image_job(p_job_id uuid, p_reason text)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  if p_reason not in ('provider_failed','provider_output_invalid','storage_failed','history_failed','execution_trace_unavailable','execution_interrupted') then raise exception 'invalid_failure_reason'; end if;\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' then return 'invalid_state'; end if;\r\n  if j.status='completed' then return 'already_finalized'; end if;\r\n  if j.status in ('failed','cancelled') then return 'released'; end if;\r\n  if exists(select 1 from public.generations where job_id=p_job_id) then return 'settlement_pending'; end if;\r\n  update public.generation_jobs set error=p_reason,metadata=jsonb_set(metadata,'{v1_lifecycle}',coalesce(metadata->'v1_lifecycle','{}'::jsonb)||jsonb_build_object('failure',p_reason)) where id=p_job_id;\r\n  if public.release_credit_reserve(p_job_id,'fail-'||p_job_id) then return 'released'; end if;\r\n  return 'reconciliation_pending';\r\nend $function$\n",
+      "body_md5": "6d6389157fe4d6ab5d0b2a7c082fad17",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "finalize_credit_charge",
+      "signature": "finalize_credit_charge(uuid)",
+      "identity_arguments": "p_job_id uuid",
+      "result": "boolean",
+      "body": "\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return false; end if;\r\n  if exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge') then\r\n    select * into r from public.credit_transactions where job_id=p_job_id and type='charge';\r\n    return j.status='completed' and j.credits_charged=r.amount and r.user_id=j.user_id and j.credits_reserved=0\r\n      and (j.metadata->>'v1_durable' is distinct from 'true' or (public.v1_image_success_evidence(p_job_id)\r\n        and exists(select 1 from public.generations where job_id=j.id and credits_spent=r.amount)));\r\n  end if;\r\n  if j.status not in ('reserved','processing') or exists(select 1 from public.credit_transactions where job_id=p_job_id and type in ('release','refund')) then return false; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is null or r.user_id <> j.user_id or r.amount <> j.credits_reserved then return false; end if;\r\n  if j.metadata->>'v1_durable'='true' then\r\n    if not public.v1_image_success_evidence(p_job_id) or r.amount is distinct from (j.metadata#>>'{v1_request,model,customerCredits}')::integer then return false; end if;\r\n    update public.generations set credits_spent=r.amount where job_id=j.id;\r\n  end if;\r\n  update public.profiles set credits_reserved=credits_reserved-r.amount where id=r.user_id and credits_reserved>=r.amount returning credits into bal;\r\n  if not found then raise exception 'reservation_accounting_mismatch'; end if;\r\n  insert into public.credit_transactions(user_id,job_id,type,amount,balance_after) values(r.user_id,j.id,'charge',r.amount,bal);\r\n  update public.generation_jobs set credits_reserved=0,credits_charged=r.amount,status='completed',finished_at=now(),error=null,\r\n    metadata=case when metadata->>'v1_durable'='true' then jsonb_set(metadata,'{v1_lifecycle,phase}','\"completed\"') else metadata end where id=j.id;\r\n  return true;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.finalize_credit_charge(p_job_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return false; end if;\r\n  if exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge') then\r\n    select * into r from public.credit_transactions where job_id=p_job_id and type='charge';\r\n    return j.status='completed' and j.credits_charged=r.amount and r.user_id=j.user_id and j.credits_reserved=0\r\n      and (j.metadata->>'v1_durable' is distinct from 'true' or (public.v1_image_success_evidence(p_job_id)\r\n        and exists(select 1 from public.generations where job_id=j.id and credits_spent=r.amount)));\r\n  end if;\r\n  if j.status not in ('reserved','processing') or exists(select 1 from public.credit_transactions where job_id=p_job_id and type in ('release','refund')) then return false; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is null or r.user_id <> j.user_id or r.amount <> j.credits_reserved then return false; end if;\r\n  if j.metadata->>'v1_durable'='true' then\r\n    if not public.v1_image_success_evidence(p_job_id) or r.amount is distinct from (j.metadata#>>'{v1_request,model,customerCredits}')::integer then return false; end if;\r\n    update public.generations set credits_spent=r.amount where job_id=j.id;\r\n  end if;\r\n  update public.profiles set credits_reserved=credits_reserved-r.amount where id=r.user_id and credits_reserved>=r.amount returning credits into bal;\r\n  if not found then raise exception 'reservation_accounting_mismatch'; end if;\r\n  insert into public.credit_transactions(user_id,job_id,type,amount,balance_after) values(r.user_id,j.id,'charge',r.amount,bal);\r\n  update public.generation_jobs set credits_reserved=0,credits_charged=r.amount,status='completed',finished_at=now(),error=null,\r\n    metadata=case when metadata->>'v1_durable'='true' then jsonb_set(metadata,'{v1_lifecycle,phase}','\"completed\"') else metadata end where id=j.id;\r\n  return true;\r\nend $function$\n",
+      "body_md5": "2791471e223250eb312bb66fe9a3fed6",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "fulfill_commerce_order",
+      "signature": "fulfill_commerce_order(uuid,text)",
+      "identity_arguments": "p_order_id uuid, p_provider_transaction_id text",
+      "result": "jsonb",
+      "body": "\ndeclare o public.credit_orders%rowtype;\nbegin\n  select * into o from public.credit_orders where id = p_order_id;\n  if o.provider = 'paddle' then return jsonb_build_object('ok', false, 'error', 'paddle_webhook_required'); end if;\n  perform pg_advisory_xact_lock(hashtextextended(o.user_id::text, 742));\n  if o.order_kind in ('plan_purchase', 'plan_renewal', 'plan_upgrade', 'business_payment') and exists(\n    select 1 from public.memberships where user_id = o.user_id and payment_provider = 'paddle'\n      and (paddle_status <> 'canceled' or expires_at > now())\n  ) then return jsonb_build_object('ok', false, 'error', 'paddle_managed_subscription'); end if;\n  return public.fulfill_non_paddle_commerce_order(p_order_id, p_provider_transaction_id);\nend;\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.fulfill_commerce_order(p_order_id uuid, p_provider_transaction_id text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare o public.credit_orders%rowtype;\nbegin\n  select * into o from public.credit_orders where id = p_order_id;\n  if o.provider = 'paddle' then return jsonb_build_object('ok', false, 'error', 'paddle_webhook_required'); end if;\n  perform pg_advisory_xact_lock(hashtextextended(o.user_id::text, 742));\n  if o.order_kind in ('plan_purchase', 'plan_renewal', 'plan_upgrade', 'business_payment') and exists(\n    select 1 from public.memberships where user_id = o.user_id and payment_provider = 'paddle'\n      and (paddle_status <> 'canceled' or expires_at > now())\n  ) then return jsonb_build_object('ok', false, 'error', 'paddle_managed_subscription'); end if;\n  return public.fulfill_non_paddle_commerce_order(p_order_id, p_provider_transaction_id);\nend;\n$function$\n",
+      "body_md5": "f89cc4ce199452ad8b66a9e1f0e293a4",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "fulfill_non_paddle_commerce_order",
+      "signature": "fulfill_non_paddle_commerce_order(uuid,text)",
+      "identity_arguments": "p_order_id uuid, p_provider_transaction_id text",
+      "result": "jsonb",
+      "body": "\r\ndeclare\r\n  o record;\r\n  m record;\r\n  cp record;\r\n  tp record;\r\n  new_balance integer;\r\n  idem text;\r\n  eff_status text;\r\n  renewal_days integer;\r\n  new_expires timestamptz;\r\n  upgrade_from text;\r\n  pro_plan record;\r\n  std_plan record;\r\n  new_membership_id uuid;\r\nbegin\r\n  select * into o from public.credit_orders where id = p_order_id for update;\r\n  if o.id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'not_found');\r\n  end if;\r\n\r\n  if o.status = 'paid' then\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id);\r\n  end if;\r\n\r\n  if o.status <> 'pending' then\r\n    return jsonb_build_object('ok', false, 'error', 'invalid_status', 'status', o.status);\r\n  end if;\r\n\r\n  if o.user_id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'no_user');\r\n  end if;\r\n\r\n  if p_provider_transaction_id is not null then\r\n    if exists (\r\n      select 1 from public.credit_orders\r\n      where provider_transaction_id = p_provider_transaction_id\r\n        and status = 'paid'\r\n        and id <> o.id\r\n    ) then\r\n      return jsonb_build_object('ok', false, 'error', 'provider_tx_duplicate');\r\n    end if;\r\n  end if;\r\n\r\n  idem := coalesce(\r\n    p_provider_transaction_id,\r\n    'purchase-' || o.id::text\r\n  );\r\n\r\n  if exists (\r\n    select 1 from public.credit_transactions\r\n    where user_id = o.user_id and idempotency_key = idem\r\n      and type in ('plan_purchase', 'plan_renewal', 'plan_upgrade', 'topup', 'manual_adjustment')\r\n  ) then\r\n    update public.credit_orders\r\n    set status = 'paid',\r\n        paid_at = coalesce(paid_at, now()),\r\n        provider = coalesce(provider, 'test'),\r\n        provider_transaction_id = coalesce(provider_transaction_id, p_provider_transaction_id)\r\n    where id = o.id;\r\n    select credits into new_balance from public.profiles where id = o.user_id;\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id, 'balance', new_balance);\r\n  end if;\r\n\r\n  -- Load current membership (latest by expires_at)\r\n  select m2.*, cp2.renewal_window_days as plan_renewal_window_days\r\n  into m\r\n  from public.memberships m2\r\n  join public.commerce_plans cp2 on cp2.id = m2.plan_id\r\n  where m2.user_id = o.user_id\r\n  order by m2.expires_at desc\r\n  limit 1;\r\n\r\n  if m.id is not null then\r\n    eff_status := public.membership_effective_status(\r\n      m.expires_at, m.plan_renewal_window_days, m.plan_id, m.suspended, now()\r\n    );\r\n  else\r\n    eff_status := 'NO_PLAN';\r\n  end if;\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- TOPUP\r\n  -- -------------------------------------------------------------------------\r\n  if o.order_kind = 'topup' then\r\n    if eff_status not in ('ACTIVE', 'RENEWAL_WINDOW', 'BUSINESS_ACTIVE') then\r\n      return jsonb_build_object('ok', false, 'error', 'topup_requires_active_plan');\r\n    end if;\r\n\r\n    select * into tp from public.commerce_topups where id = o.item_id and enabled = true;\r\n    if tp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_topup');\r\n    end if;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'topup', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object('item_id', o.item_id, 'order_kind', o.order_kind)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN UPGRADE (standard -> pro)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_upgrade' then\r\n    if eff_status not in ('ACTIVE', 'RENEWAL_WINDOW') or m.plan_id <> 'standard' then\r\n      return jsonb_build_object('ok', false, 'error', 'upgrade_not_eligible');\r\n    end if;\r\n\r\n    select * into std_plan from public.commerce_plans where id = 'standard';\r\n    select * into pro_plan from public.commerce_plans where id = 'pro';\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = 'pro'\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    update public.memberships\r\n    set plan_id = 'pro',\r\n        updated_at = now()\r\n    where id = m.id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_upgrade', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object(\r\n        'from_plan', 'standard', 'to_plan', 'pro',\r\n        'order_kind', o.order_kind\r\n      )\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN RENEWAL\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_renewal' then\r\n    if eff_status <> 'RENEWAL_WINDOW' then\r\n      return jsonb_build_object('ok', false, 'error', 'renewal_not_available');\r\n    end if;\r\n\r\n    if m.cycle_renewal_fulfilled_at is not null\r\n       and m.cycle_renewal_fulfilled_at >= (m.expires_at - (m.plan_renewal_window_days || ' days')::interval) then\r\n      return jsonb_build_object('ok', false, 'error', 'renewal_already_fulfilled');\r\n    end if;\r\n\r\n    select * into cp from public.commerce_plans where id = m.plan_id and enabled = true and contact_only = false;\r\n    if cp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_plan');\r\n    end if;\r\n\r\n    new_expires := m.expires_at + (cp.duration_days || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = m.plan_id\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    update public.memberships\r\n    set expires_at = new_expires,\r\n        cycle_renewal_fulfilled_at = now(),\r\n        updated_at = now()\r\n    where id = m.id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_renewal', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object('plan_id', m.plan_id, 'new_expires_at', new_expires)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN PURCHASE (new or after expiry)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_purchase' then\r\n    if eff_status in ('ACTIVE', 'RENEWAL_WINDOW', 'BUSINESS_ACTIVE') then\r\n      return jsonb_build_object('ok', false, 'error', 'plan_already_active');\r\n    end if;\r\n\r\n    select * into cp from public.commerce_plans where id = o.item_id and enabled = true and contact_only = false;\r\n    if cp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_plan');\r\n    end if;\r\n\r\n    new_expires := now() + (cp.duration_days || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = cp.id\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.memberships (\r\n      user_id, plan_id, started_at, expires_at, renewal_mode, renewed_from_id\r\n    ) values (\r\n      o.user_id, cp.id, now(), new_expires, cp.renewal_mode,\r\n      case when m.id is not null then m.id else null end\r\n    )\r\n    returning id into new_membership_id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_purchase', o.credits, new_balance, idem, o.id, new_membership_id,\r\n      jsonb_build_object('plan_id', cp.id, 'expires_at', new_expires)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- BUSINESS PAYMENT (admin-configured)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'business_payment' then\r\n    select * into cp from public.commerce_plans where id = 'business';\r\n\r\n    new_expires := now() + (coalesce((o.commercial_snapshot->>'duration_days')::integer, cp.duration_days) || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = 'business'\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.memberships (\r\n      user_id, plan_id, started_at, expires_at, renewal_mode, business_overrides\r\n    ) values (\r\n      o.user_id, 'business', now(), new_expires, 'manual',\r\n      coalesce(o.commercial_snapshot->'business_overrides', '{}'::jsonb)\r\n    )\r\n    returning id into new_membership_id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_purchase', o.credits, new_balance, idem, o.id, new_membership_id,\r\n      jsonb_build_object('plan_id', 'business', 'order_kind', 'business_payment')\r\n    );\r\n\r\n  else\r\n    -- Legacy fallback: treat as old fulfill_credit_order behavior without fort grant\r\n    update public.profiles\r\n    set credits = credits + o.credits\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, metadata\r\n    ) values (\r\n      o.user_id, 'manual_adjustment', o.credits, new_balance, idem, o.id,\r\n      jsonb_build_object('order_id', o.id, 'item_type', o.item_type, 'item_id', o.item_id, 'legacy', true)\r\n    );\r\n\r\n    if o.item_type = 'plan' and o.item_id in ('standard', 'pro', 'business') then\r\n      select * into cp from public.commerce_plans where id = o.item_id;\r\n      new_expires := now() + (cp.duration_days || ' days')::interval;\r\n      update public.profiles set maro_plan = o.item_id where id = o.user_id;\r\n      insert into public.memberships (user_id, plan_id, started_at, expires_at)\r\n      values (o.user_id, o.item_id, now(), new_expires);\r\n    end if;\r\n  end if;\r\n\r\n  update public.credit_orders\r\n  set status = 'paid',\r\n      paid_at = now(),\r\n      provider = coalesce(provider, 'test'),\r\n      provider_transaction_id = coalesce(p_provider_transaction_id, provider_transaction_id),\r\n      membership_id = coalesce(new_membership_id, membership_id)\r\n  where id = o.id;\r\n\r\n  select credits into new_balance from public.profiles where id = o.user_id;\r\n\r\n  return jsonb_build_object(\r\n    'ok', true,\r\n    'order_id', o.id,\r\n    'credits', o.credits,\r\n    'balance', new_balance,\r\n    'order_kind', o.order_kind,\r\n    'membership_id', new_membership_id\r\n  );\r\nend;\r\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.fulfill_non_paddle_commerce_order(p_order_id uuid, p_provider_transaction_id text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare\r\n  o record;\r\n  m record;\r\n  cp record;\r\n  tp record;\r\n  new_balance integer;\r\n  idem text;\r\n  eff_status text;\r\n  renewal_days integer;\r\n  new_expires timestamptz;\r\n  upgrade_from text;\r\n  pro_plan record;\r\n  std_plan record;\r\n  new_membership_id uuid;\r\nbegin\r\n  select * into o from public.credit_orders where id = p_order_id for update;\r\n  if o.id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'not_found');\r\n  end if;\r\n\r\n  if o.status = 'paid' then\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id);\r\n  end if;\r\n\r\n  if o.status <> 'pending' then\r\n    return jsonb_build_object('ok', false, 'error', 'invalid_status', 'status', o.status);\r\n  end if;\r\n\r\n  if o.user_id is null then\r\n    return jsonb_build_object('ok', false, 'error', 'no_user');\r\n  end if;\r\n\r\n  if p_provider_transaction_id is not null then\r\n    if exists (\r\n      select 1 from public.credit_orders\r\n      where provider_transaction_id = p_provider_transaction_id\r\n        and status = 'paid'\r\n        and id <> o.id\r\n    ) then\r\n      return jsonb_build_object('ok', false, 'error', 'provider_tx_duplicate');\r\n    end if;\r\n  end if;\r\n\r\n  idem := coalesce(\r\n    p_provider_transaction_id,\r\n    'purchase-' || o.id::text\r\n  );\r\n\r\n  if exists (\r\n    select 1 from public.credit_transactions\r\n    where user_id = o.user_id and idempotency_key = idem\r\n      and type in ('plan_purchase', 'plan_renewal', 'plan_upgrade', 'topup', 'manual_adjustment')\r\n  ) then\r\n    update public.credit_orders\r\n    set status = 'paid',\r\n        paid_at = coalesce(paid_at, now()),\r\n        provider = coalesce(provider, 'test'),\r\n        provider_transaction_id = coalesce(provider_transaction_id, p_provider_transaction_id)\r\n    where id = o.id;\r\n    select credits into new_balance from public.profiles where id = o.user_id;\r\n    return jsonb_build_object('ok', true, 'already', true, 'order_id', o.id, 'balance', new_balance);\r\n  end if;\r\n\r\n  -- Load current membership (latest by expires_at)\r\n  select m2.*, cp2.renewal_window_days as plan_renewal_window_days\r\n  into m\r\n  from public.memberships m2\r\n  join public.commerce_plans cp2 on cp2.id = m2.plan_id\r\n  where m2.user_id = o.user_id\r\n  order by m2.expires_at desc\r\n  limit 1;\r\n\r\n  if m.id is not null then\r\n    eff_status := public.membership_effective_status(\r\n      m.expires_at, m.plan_renewal_window_days, m.plan_id, m.suspended, now()\r\n    );\r\n  else\r\n    eff_status := 'NO_PLAN';\r\n  end if;\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- TOPUP\r\n  -- -------------------------------------------------------------------------\r\n  if o.order_kind = 'topup' then\r\n    if eff_status not in ('ACTIVE', 'RENEWAL_WINDOW', 'BUSINESS_ACTIVE') then\r\n      return jsonb_build_object('ok', false, 'error', 'topup_requires_active_plan');\r\n    end if;\r\n\r\n    select * into tp from public.commerce_topups where id = o.item_id and enabled = true;\r\n    if tp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_topup');\r\n    end if;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'topup', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object('item_id', o.item_id, 'order_kind', o.order_kind)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN UPGRADE (standard -> pro)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_upgrade' then\r\n    if eff_status not in ('ACTIVE', 'RENEWAL_WINDOW') or m.plan_id <> 'standard' then\r\n      return jsonb_build_object('ok', false, 'error', 'upgrade_not_eligible');\r\n    end if;\r\n\r\n    select * into std_plan from public.commerce_plans where id = 'standard';\r\n    select * into pro_plan from public.commerce_plans where id = 'pro';\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = 'pro'\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    update public.memberships\r\n    set plan_id = 'pro',\r\n        updated_at = now()\r\n    where id = m.id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_upgrade', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object(\r\n        'from_plan', 'standard', 'to_plan', 'pro',\r\n        'order_kind', o.order_kind\r\n      )\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN RENEWAL\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_renewal' then\r\n    if eff_status <> 'RENEWAL_WINDOW' then\r\n      return jsonb_build_object('ok', false, 'error', 'renewal_not_available');\r\n    end if;\r\n\r\n    if m.cycle_renewal_fulfilled_at is not null\r\n       and m.cycle_renewal_fulfilled_at >= (m.expires_at - (m.plan_renewal_window_days || ' days')::interval) then\r\n      return jsonb_build_object('ok', false, 'error', 'renewal_already_fulfilled');\r\n    end if;\r\n\r\n    select * into cp from public.commerce_plans where id = m.plan_id and enabled = true and contact_only = false;\r\n    if cp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_plan');\r\n    end if;\r\n\r\n    new_expires := m.expires_at + (cp.duration_days || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = m.plan_id\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    update public.memberships\r\n    set expires_at = new_expires,\r\n        cycle_renewal_fulfilled_at = now(),\r\n        updated_at = now()\r\n    where id = m.id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_renewal', o.credits, new_balance, idem, o.id, m.id,\r\n      jsonb_build_object('plan_id', m.plan_id, 'new_expires_at', new_expires)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- PLAN PURCHASE (new or after expiry)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'plan_purchase' then\r\n    if eff_status in ('ACTIVE', 'RENEWAL_WINDOW', 'BUSINESS_ACTIVE') then\r\n      return jsonb_build_object('ok', false, 'error', 'plan_already_active');\r\n    end if;\r\n\r\n    select * into cp from public.commerce_plans where id = o.item_id and enabled = true and contact_only = false;\r\n    if cp.id is null then\r\n      return jsonb_build_object('ok', false, 'error', 'invalid_plan');\r\n    end if;\r\n\r\n    new_expires := now() + (cp.duration_days || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = cp.id\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.memberships (\r\n      user_id, plan_id, started_at, expires_at, renewal_mode, renewed_from_id\r\n    ) values (\r\n      o.user_id, cp.id, now(), new_expires, cp.renewal_mode,\r\n      case when m.id is not null then m.id else null end\r\n    )\r\n    returning id into new_membership_id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_purchase', o.credits, new_balance, idem, o.id, new_membership_id,\r\n      jsonb_build_object('plan_id', cp.id, 'expires_at', new_expires)\r\n    );\r\n\r\n  -- -------------------------------------------------------------------------\r\n  -- BUSINESS PAYMENT (admin-configured)\r\n  -- -------------------------------------------------------------------------\r\n  elsif o.order_kind = 'business_payment' then\r\n    select * into cp from public.commerce_plans where id = 'business';\r\n\r\n    new_expires := now() + (coalesce((o.commercial_snapshot->>'duration_days')::integer, cp.duration_days) || ' days')::interval;\r\n\r\n    update public.profiles\r\n    set credits = credits + o.credits,\r\n        maro_plan = 'business'\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.memberships (\r\n      user_id, plan_id, started_at, expires_at, renewal_mode, business_overrides\r\n    ) values (\r\n      o.user_id, 'business', now(), new_expires, 'manual',\r\n      coalesce(o.commercial_snapshot->'business_overrides', '{}'::jsonb)\r\n    )\r\n    returning id into new_membership_id;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, membership_id, metadata\r\n    ) values (\r\n      o.user_id, 'plan_purchase', o.credits, new_balance, idem, o.id, new_membership_id,\r\n      jsonb_build_object('plan_id', 'business', 'order_kind', 'business_payment')\r\n    );\r\n\r\n  else\r\n    -- Legacy fallback: treat as old fulfill_credit_order behavior without fort grant\r\n    update public.profiles\r\n    set credits = credits + o.credits\r\n    where id = o.user_id\r\n    returning credits into new_balance;\r\n\r\n    insert into public.credit_transactions (\r\n      user_id, type, amount, balance_after, idempotency_key, order_id, metadata\r\n    ) values (\r\n      o.user_id, 'manual_adjustment', o.credits, new_balance, idem, o.id,\r\n      jsonb_build_object('order_id', o.id, 'item_type', o.item_type, 'item_id', o.item_id, 'legacy', true)\r\n    );\r\n\r\n    if o.item_type = 'plan' and o.item_id in ('standard', 'pro', 'business') then\r\n      select * into cp from public.commerce_plans where id = o.item_id;\r\n      new_expires := now() + (cp.duration_days || ' days')::interval;\r\n      update public.profiles set maro_plan = o.item_id where id = o.user_id;\r\n      insert into public.memberships (user_id, plan_id, started_at, expires_at)\r\n      values (o.user_id, o.item_id, now(), new_expires);\r\n    end if;\r\n  end if;\r\n\r\n  update public.credit_orders\r\n  set status = 'paid',\r\n      paid_at = now(),\r\n      provider = coalesce(provider, 'test'),\r\n      provider_transaction_id = coalesce(p_provider_transaction_id, provider_transaction_id),\r\n      membership_id = coalesce(new_membership_id, membership_id)\r\n  where id = o.id;\r\n\r\n  select credits into new_balance from public.profiles where id = o.user_id;\r\n\r\n  return jsonb_build_object(\r\n    'ok', true,\r\n    'order_id', o.id,\r\n    'credits', o.credits,\r\n    'balance', new_balance,\r\n    'order_kind', o.order_kind,\r\n    'membership_id', new_membership_id\r\n  );\r\nend;\r\n$function$\n",
+      "body_md5": "a63f8c0734c3f3171c6e01aedfa47c39",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "name": "guard_generation_job_transition",
+      "signature": "guard_generation_job_transition()",
+      "identity_arguments": "",
+      "result": "trigger",
+      "body": "\r\nbegin\r\n  if TG_OP = 'INSERT' and new.idempotency_key is not null then\r\n    perform pg_advisory_xact_lock(hashtextextended(new.user_id::text || ':' || new.idempotency_key, 0));\r\n    if exists(select 1 from public.generation_jobs where user_id = new.user_id and idempotency_key = new.idempotency_key and status in ('pending','reserved','processing','completed')) then\r\n      raise unique_violation using message = 'generation_idempotency_conflict';\r\n    end if;\r\n  elsif TG_OP = 'UPDATE' then\r\n    if old.metadata->>'v1_durable'='true' and (new.user_id<>old.user_id or new.module<>old.module or new.model is distinct from old.model\r\n      or new.metadata->'v1_durable' is distinct from old.metadata->'v1_durable' or new.metadata->'v1_request' is distinct from old.metadata->'v1_request'\r\n      or new.metadata->'canonical_prompt' is distinct from old.metadata->'canonical_prompt') then raise exception 'immutable_v1_snapshot'; end if;\r\n    if old.status in ('completed','failed','cancelled') and (new.status <> old.status or new.credits_charged <> old.credits_charged or new.credits_reserved <> old.credits_reserved) then\r\n      raise exception 'terminal_generation_job';\r\n    end if;\r\n  end if;\r\n  return new;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.guard_generation_job_transition()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n  if TG_OP = 'INSERT' and new.idempotency_key is not null then\r\n    perform pg_advisory_xact_lock(hashtextextended(new.user_id::text || ':' || new.idempotency_key, 0));\r\n    if exists(select 1 from public.generation_jobs where user_id = new.user_id and idempotency_key = new.idempotency_key and status in ('pending','reserved','processing','completed')) then\r\n      raise unique_violation using message = 'generation_idempotency_conflict';\r\n    end if;\r\n  elsif TG_OP = 'UPDATE' then\r\n    if old.metadata->>'v1_durable'='true' and (new.user_id<>old.user_id or new.module<>old.module or new.model is distinct from old.model\r\n      or new.metadata->'v1_durable' is distinct from old.metadata->'v1_durable' or new.metadata->'v1_request' is distinct from old.metadata->'v1_request'\r\n      or new.metadata->'canonical_prompt' is distinct from old.metadata->'canonical_prompt') then raise exception 'immutable_v1_snapshot'; end if;\r\n    if old.status in ('completed','failed','cancelled') and (new.status <> old.status or new.credits_charged <> old.credits_charged or new.credits_reserved <> old.credits_reserved) then\r\n      raise exception 'terminal_generation_job';\r\n    end if;\r\n  end if;\r\n  return new;\r\nend $function$\n",
+      "body_md5": "7e3c0e8790a2797ab119348153cab1bf",
+      "security_definer": false,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "mark_v1_image_provider_result",
+      "signature": "mark_v1_image_provider_result(uuid,text,jsonb)",
+      "identity_arguments": "p_job_id uuid, p_sha256 text, p_observation jsonb",
+      "result": "boolean",
+      "body": "\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status not in ('reserved','processing') or p_sha256 is null or p_sha256 !~ '^[a-f0-9]{64}$' then return false; end if;\r\n  if j.metadata#>>'{v1_lifecycle,phase}' in ('provider_succeeded','persisted','settlement_pending') then\r\n    return j.metadata#>>'{v1_lifecycle,output_sha256}' = p_sha256;\r\n  end if;\r\n  update public.generation_jobs set metadata=metadata || jsonb_build_object('v1_lifecycle',jsonb_build_object('phase','provider_succeeded','output_sha256',p_sha256,'storage_ref','storage:generations/'||j.user_id||'/'||j.id||'/output.png'),'execution',coalesce(metadata->'execution','{}'::jsonb)||jsonb_build_object('image_provider',p_observation)) where id=p_job_id;\r\n  return true;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.mark_v1_image_provider_result(p_job_id uuid, p_sha256 text, p_observation jsonb DEFAULT NULL::jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status not in ('reserved','processing') or p_sha256 is null or p_sha256 !~ '^[a-f0-9]{64}$' then return false; end if;\r\n  if j.metadata#>>'{v1_lifecycle,phase}' in ('provider_succeeded','persisted','settlement_pending') then\r\n    return j.metadata#>>'{v1_lifecycle,output_sha256}' = p_sha256;\r\n  end if;\r\n  update public.generation_jobs set metadata=metadata || jsonb_build_object('v1_lifecycle',jsonb_build_object('phase','provider_succeeded','output_sha256',p_sha256,'storage_ref','storage:generations/'||j.user_id||'/'||j.id||'/output.png'),'execution',coalesce(metadata->'execution','{}'::jsonb)||jsonb_build_object('image_provider',p_observation)) where id=p_job_id;\r\n  return true;\r\nend $function$\n",
+      "body_md5": "9da8c73f9a8facd371011736c81c113a",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "maro_mcp_custom_access_token_hook",
+      "signature": "maro_mcp_custom_access_token_hook(jsonb)",
+      "identity_arguments": "event jsonb",
+      "result": "jsonb",
+      "body": "\r\ndeclare\r\n  claims jsonb;\r\nbegin\r\n  claims := coalesce(event -> 'claims', '{}'::jsonb);\r\n\r\n  -- client_id is present on Supabase OAuth 2.1 Server access tokens, including\r\n  -- refreshes. Social-login/direct application sessions do not cross this gate.\r\n  if nullif(claims ->> 'client_id', '') is not null then\r\n    claims := jsonb_set(\r\n      claims,\r\n      '{aud}',\r\n      to_jsonb('https://maro.al/api/mcp'::text),\r\n      true\r\n    );\r\n    claims := jsonb_set(claims, '{maro_mcp}', 'true'::jsonb, true);\r\n    claims := jsonb_set(\r\n      claims,\r\n      '{maro_mcp_permissions}',\r\n      '[\"account:read\", \"image:generate\"]'::jsonb,\r\n      true\r\n    );\r\n  end if;\r\n\r\n  return jsonb_build_object('claims', claims);\r\nend;\r\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.maro_mcp_custom_access_token_hook(event jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE\n SET search_path TO ''\nAS $function$\r\ndeclare\r\n  claims jsonb;\r\nbegin\r\n  claims := coalesce(event -> 'claims', '{}'::jsonb);\r\n\r\n  -- client_id is present on Supabase OAuth 2.1 Server access tokens, including\r\n  -- refreshes. Social-login/direct application sessions do not cross this gate.\r\n  if nullif(claims ->> 'client_id', '') is not null then\r\n    claims := jsonb_set(\r\n      claims,\r\n      '{aud}',\r\n      to_jsonb('https://maro.al/api/mcp'::text),\r\n      true\r\n    );\r\n    claims := jsonb_set(claims, '{maro_mcp}', 'true'::jsonb, true);\r\n    claims := jsonb_set(\r\n      claims,\r\n      '{maro_mcp_permissions}',\r\n      '[\"account:read\", \"image:generate\"]'::jsonb,\r\n      true\r\n    );\r\n  end if;\r\n\r\n  return jsonb_build_object('claims', claims);\r\nend;\r\n$function$\n",
+      "body_md5": "fa50be3a83018434efb622e9df6541db",
+      "security_definer": false,
+      "config": [
+        "search_path=\"\""
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres,supabase_auth_admin=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "persist_v1_image_generation",
+      "signature": "persist_v1_image_generation(uuid)",
+      "identity_arguments": "p_job_id uuid",
+      "result": "uuid",
+      "body": "\r\ndeclare j public.generation_jobs; s jsonb; g public.generations; path text; ref text; workspace text;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status not in ('reserved','processing','completed') then raise exception 'invalid_persistence_state'; end if;\r\n  select * into g from public.generations where job_id=p_job_id;\r\n  if g.id is not null then return g.id; end if;\r\n  if j.status='completed' or j.metadata#>>'{v1_lifecycle,phase}' is distinct from 'provider_succeeded' then raise exception 'provider_result_missing'; end if;\r\n  s := j.metadata->'v1_request';\r\n  path := j.user_id::text||'/'||j.id::text||'/output.png'; ref := 'storage:generations/'||path;\r\n  if not exists(select 1 from storage.objects where bucket_id='generations' and name=path and coalesce((metadata->>'size')::bigint,0)>0) then raise exception 'durable_output_missing'; end if;\r\n  if s->>'userId' is distinct from j.user_id::text or s->>'registryToolId' is distinct from j.module or s#>>'{model,providerModelId}' is distinct from j.model or (s->>'imageCount')::integer is distinct from 1 then raise exception 'invalid_generation_snapshot'; end if;\r\n  workspace := nullif(s->>'workspaceId','');\r\n  if workspace is not null and not exists(select 1 from public.workspaces where id=workspace and owner_id=j.user_id) then raise exception 'invalid_generation_workspace'; end if;\r\n  insert into public.generations(job_id,user_id,user_email,tool_id,model,kind,prompt,final_prompt,credits_spent,output_urls,selections,workspace_id)\r\n    values(j.id,j.user_id,(select email from public.profiles where id=j.user_id),j.module,j.model,'image',s->>'prompt','',0,array[ref],coalesce(s->'selections','{}'::jsonb),workspace) returning * into g;\r\n  update public.generation_jobs set metadata=jsonb_set(metadata,'{v1_lifecycle}',coalesce(metadata->'v1_lifecycle','{}'::jsonb)||jsonb_build_object('phase','persisted','generation_id',g.id)) where id=j.id;\r\n  return g.id;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.persist_v1_image_generation(p_job_id uuid)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs; s jsonb; g public.generations; path text; ref text; workspace text;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status not in ('reserved','processing','completed') then raise exception 'invalid_persistence_state'; end if;\r\n  select * into g from public.generations where job_id=p_job_id;\r\n  if g.id is not null then return g.id; end if;\r\n  if j.status='completed' or j.metadata#>>'{v1_lifecycle,phase}' is distinct from 'provider_succeeded' then raise exception 'provider_result_missing'; end if;\r\n  s := j.metadata->'v1_request';\r\n  path := j.user_id::text||'/'||j.id::text||'/output.png'; ref := 'storage:generations/'||path;\r\n  if not exists(select 1 from storage.objects where bucket_id='generations' and name=path and coalesce((metadata->>'size')::bigint,0)>0) then raise exception 'durable_output_missing'; end if;\r\n  if s->>'userId' is distinct from j.user_id::text or s->>'registryToolId' is distinct from j.module or s#>>'{model,providerModelId}' is distinct from j.model or (s->>'imageCount')::integer is distinct from 1 then raise exception 'invalid_generation_snapshot'; end if;\r\n  workspace := nullif(s->>'workspaceId','');\r\n  if workspace is not null and not exists(select 1 from public.workspaces where id=workspace and owner_id=j.user_id) then raise exception 'invalid_generation_workspace'; end if;\r\n  insert into public.generations(job_id,user_id,user_email,tool_id,model,kind,prompt,final_prompt,credits_spent,output_urls,selections,workspace_id)\r\n    values(j.id,j.user_id,(select email from public.profiles where id=j.user_id),j.module,j.model,'image',s->>'prompt','',0,array[ref],coalesce(s->'selections','{}'::jsonb),workspace) returning * into g;\r\n  update public.generation_jobs set metadata=jsonb_set(metadata,'{v1_lifecycle}',coalesce(metadata->'v1_lifecycle','{}'::jsonb)||jsonb_build_object('phase','persisted','generation_id',g.id)) where id=j.id;\r\n  return g.id;\r\nend $function$\n",
+      "body_md5": "5ef1064189fe3a1c1e4cd0851a26a974",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reconcile_generation_job",
+      "signature": "reconcile_generation_job(uuid,integer)",
+      "identity_arguments": "p_job_id uuid, p_stale_minutes integer",
+      "result": "text",
+      "body": "\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return 'missing'; end if;\r\n  if j.status in ('completed','failed','cancelled') then return j.status; end if;\r\n  if j.created_at > now()-make_interval(mins=>greatest(1,p_stale_minutes)) then return 'active'; end if;\r\n  if j.metadata->>'v1_durable'='true' then\r\n    if not exists(select 1 from public.generations where job_id=j.id)\r\n      and j.metadata#>>'{v1_lifecycle,phase}'='provider_succeeded'\r\n      and exists(select 1 from storage.objects where bucket_id='generations' and name=j.user_id::text||'/'||j.id::text||'/output.png' and coalesce((metadata->>'size')::bigint,0)>0) then\r\n      -- Process died after storage; the trusted snapshot supplies the required history.\r\n      perform public.persist_v1_image_generation(j.id);\r\n    end if;\r\n    if exists(select 1 from public.generations where job_id=j.id) then return public.settle_v1_image_job(j.id); end if;\r\n    return public.fail_v1_image_job(j.id,'execution_interrupted');\r\n  end if;\r\n  if public.release_credit_reserve(j.id,'stale-'||j.id) then return 'released'; end if;\r\n  return 'unchanged';\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.reconcile_generation_job(p_job_id uuid, p_stale_minutes integer DEFAULT 15)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return 'missing'; end if;\r\n  if j.status in ('completed','failed','cancelled') then return j.status; end if;\r\n  if j.created_at > now()-make_interval(mins=>greatest(1,p_stale_minutes)) then return 'active'; end if;\r\n  if j.metadata->>'v1_durable'='true' then\r\n    if not exists(select 1 from public.generations where job_id=j.id)\r\n      and j.metadata#>>'{v1_lifecycle,phase}'='provider_succeeded'\r\n      and exists(select 1 from storage.objects where bucket_id='generations' and name=j.user_id::text||'/'||j.id::text||'/output.png' and coalesce((metadata->>'size')::bigint,0)>0) then\r\n      -- Process died after storage; the trusted snapshot supplies the required history.\r\n      perform public.persist_v1_image_generation(j.id);\r\n    end if;\r\n    if exists(select 1 from public.generations where job_id=j.id) then return public.settle_v1_image_job(j.id); end if;\r\n    return public.fail_v1_image_job(j.id,'execution_interrupted');\r\n  end if;\r\n  if public.release_credit_reserve(j.id,'stale-'||j.id) then return 'released'; end if;\r\n  return 'unchanged';\r\nend $function$\n",
+      "body_md5": "1e838ea90bf36efa1b70deb3004143e3",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reconcile_stale_generation_jobs",
+      "signature": "reconcile_stale_generation_jobs(integer)",
+      "identity_arguments": "p_stale_minutes integer",
+      "result": "integer",
+      "body": "\r\ndeclare r record; n integer:=0;\r\nbegin\r\n  for r in select id from public.generation_jobs where status in ('pending','reserved','processing') and created_at < now()-make_interval(mins=>greatest(1,p_stale_minutes)) order by id for update skip locked loop\r\n    perform public.reconcile_generation_job(r.id,p_stale_minutes); n:=n+1;\r\n  end loop;\r\n  return n;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.reconcile_stale_generation_jobs(p_stale_minutes integer DEFAULT 15)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare r record; n integer:=0;\r\nbegin\r\n  for r in select id from public.generation_jobs where status in ('pending','reserved','processing') and created_at < now()-make_interval(mins=>greatest(1,p_stale_minutes)) order by id for update skip locked loop\r\n    perform public.reconcile_generation_job(r.id,p_stale_minutes); n:=n+1;\r\n  end loop;\r\n  return n;\r\nend $function$\n",
+      "body_md5": "a45bc94e8e9051992bcb750f20424bbb",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "release_credit_reserve",
+      "signature": "release_credit_reserve(uuid,text)",
+      "identity_arguments": "p_job_id uuid, p_idempotency_key text",
+      "result": "boolean",
+      "body": "\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  -- Same lock/order as reserve/finalize/persist/reconcile. No process-local locking.\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return false; end if;\r\n  if j.status='completed' or exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge') then return false; end if;\r\n  if exists(select 1 from public.credit_transactions where job_id=p_job_id and type in ('release','refund')) then return true; end if;\r\n  -- Retain a persisted result and hold for reconciliation; never compensate an uncertain charge.\r\n  if j.metadata->>'v1_durable'='true' and exists(select 1 from public.generations where job_id=p_job_id) then return false; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is not null then\r\n    update public.profiles set credits=credits+r.amount,credits_reserved=credits_reserved-r.amount where id=r.user_id and credits_reserved>=r.amount returning credits into bal;\r\n    if not found then raise exception 'reservation_accounting_mismatch'; end if;\r\n    insert into public.credit_transactions(user_id,job_id,type,amount,balance_after,idempotency_key) values(r.user_id,p_job_id,'release',r.amount,bal,p_idempotency_key);\r\n  end if;\r\n  if j.status not in ('failed','cancelled') then\r\n    update public.generation_jobs set status='failed',credits_reserved=0,finished_at=now(),error=coalesce(error,'generation_failed') where id=p_job_id;\r\n  end if;\r\n  return true;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.release_credit_reserve(p_job_id uuid, p_idempotency_key text DEFAULT NULL::text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  -- Same lock/order as reserve/finalize/persist/reconcile. No process-local locking.\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null then return false; end if;\r\n  if j.status='completed' or exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge') then return false; end if;\r\n  if exists(select 1 from public.credit_transactions where job_id=p_job_id and type in ('release','refund')) then return true; end if;\r\n  -- Retain a persisted result and hold for reconciliation; never compensate an uncertain charge.\r\n  if j.metadata->>'v1_durable'='true' and exists(select 1 from public.generations where job_id=p_job_id) then return false; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is not null then\r\n    update public.profiles set credits=credits+r.amount,credits_reserved=credits_reserved-r.amount where id=r.user_id and credits_reserved>=r.amount returning credits into bal;\r\n    if not found then raise exception 'reservation_accounting_mismatch'; end if;\r\n    insert into public.credit_transactions(user_id,job_id,type,amount,balance_after,idempotency_key) values(r.user_id,p_job_id,'release',r.amount,bal,p_idempotency_key);\r\n  end if;\r\n  if j.status not in ('failed','cancelled') then\r\n    update public.generation_jobs set status='failed',credits_reserved=0,finished_at=now(),error=coalesce(error,'generation_failed') where id=p_job_id;\r\n  end if;\r\n  return true;\r\nend $function$\n",
+      "body_md5": "227d055a8b4bc12b6d63b06133ae68b4",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reserve_credits",
+      "signature": "reserve_credits(uuid,integer,uuid,text)",
+      "identity_arguments": "p_user uuid, p_amount integer, p_job_id uuid, p_idempotency_key text",
+      "result": "integer",
+      "body": "\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.user_id <> p_user or j.status not in ('pending','reserved','processing') or p_amount <= 0 then return -1; end if;\r\n  if j.metadata->>'v1_durable' = 'true' and p_amount is distinct from (j.metadata#>>'{v1_request,model,customerCredits}')::integer then return -1; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is not null then\r\n    if r.user_id <> p_user or r.amount <> p_amount then return -1; end if;\r\n    select credits into bal from public.profiles where id=p_user;\r\n    return bal;\r\n  end if;\r\n  -- credits is already the spendable balance: reserve debits it exactly once.\r\n  select credits into bal from public.profiles where id=p_user for update;\r\n  if bal is null or bal < p_amount then return -1; end if;\r\n  update public.profiles set credits=credits-p_amount, credits_reserved=credits_reserved+p_amount where id=p_user returning credits into bal;\r\n  insert into public.credit_transactions(user_id,job_id,type,amount,balance_after,idempotency_key) values(p_user,p_job_id,'reserve',p_amount,bal,p_idempotency_key);\r\n  update public.generation_jobs set status='reserved',credits_reserved=p_amount where id=p_job_id;\r\n  return bal;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.reserve_credits(p_user uuid, p_amount integer, p_job_id uuid, p_idempotency_key text DEFAULT NULL::text)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs; r public.credit_transactions; bal integer;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.user_id <> p_user or j.status not in ('pending','reserved','processing') or p_amount <= 0 then return -1; end if;\r\n  if j.metadata->>'v1_durable' = 'true' and p_amount is distinct from (j.metadata#>>'{v1_request,model,customerCredits}')::integer then return -1; end if;\r\n  select * into r from public.credit_transactions where job_id=p_job_id and type='reserve' order by created_at limit 1;\r\n  if r.id is not null then\r\n    if r.user_id <> p_user or r.amount <> p_amount then return -1; end if;\r\n    select credits into bal from public.profiles where id=p_user;\r\n    return bal;\r\n  end if;\r\n  -- credits is already the spendable balance: reserve debits it exactly once.\r\n  select credits into bal from public.profiles where id=p_user for update;\r\n  if bal is null or bal < p_amount then return -1; end if;\r\n  update public.profiles set credits=credits-p_amount, credits_reserved=credits_reserved+p_amount where id=p_user returning credits into bal;\r\n  insert into public.credit_transactions(user_id,job_id,type,amount,balance_after,idempotency_key) values(p_user,p_job_id,'reserve',p_amount,bal,p_idempotency_key);\r\n  update public.generation_jobs set status='reserved',credits_reserved=p_amount where id=p_job_id;\r\n  return bal;\r\nend $function$\n",
+      "body_md5": "9a9360a2cbc9626a049c4e2977729773",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "settle_v1_image_job",
+      "signature": "settle_v1_image_job(uuid)",
+      "identity_arguments": "p_job_id uuid",
+      "result": "text",
+      "body": "\r\ndeclare j public.generation_jobs; already boolean;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' then return 'invalid_state'; end if;\r\n  already := exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge');\r\n  if public.finalize_credit_charge(p_job_id) then return case when already then 'already_finalized' else 'finalized' end; end if;\r\n  if j.status in ('failed','cancelled','completed') then return 'invalid_state'; end if;\r\n  if public.v1_image_success_evidence(p_job_id) then\r\n    update public.generation_jobs set error='settlement_pending',metadata=jsonb_set(metadata,'{v1_lifecycle,phase}','\"settlement_pending\"') where id=p_job_id;\r\n    return 'settlement_pending';\r\n  end if;\r\n  return 'evidence_missing';\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.settle_v1_image_job(p_job_id uuid)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs; already boolean;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' then return 'invalid_state'; end if;\r\n  already := exists(select 1 from public.credit_transactions where job_id=p_job_id and type='charge');\r\n  if public.finalize_credit_charge(p_job_id) then return case when already then 'already_finalized' else 'finalized' end; end if;\r\n  if j.status in ('failed','cancelled','completed') then return 'invalid_state'; end if;\r\n  if public.v1_image_success_evidence(p_job_id) then\r\n    update public.generation_jobs set error='settlement_pending',metadata=jsonb_set(metadata,'{v1_lifecycle,phase}','\"settlement_pending\"') where id=p_job_id;\r\n    return 'settlement_pending';\r\n  end if;\r\n  return 'evidence_missing';\r\nend $function$\n",
+      "body_md5": "8819bb89fc0aec5858cd51bfef79b6d9",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "start_v1_image_job",
+      "signature": "start_v1_image_job(uuid)",
+      "identity_arguments": "p_job_id uuid",
+      "result": "boolean",
+      "body": "\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status <> 'reserved' or j.credits_reserved <= 0 then return false; end if;\r\n  update public.generation_jobs set status='processing',started_at=now() where id=p_job_id;\r\n  return true;\r\nend ",
+      "definition": "CREATE OR REPLACE FUNCTION public.start_v1_image_job(p_job_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare j public.generation_jobs;\r\nbegin\r\n  select * into j from public.generation_jobs where id=p_job_id for update;\r\n  if j.id is null or j.metadata->>'v1_durable' is distinct from 'true' or j.status <> 'reserved' or j.credits_reserved <= 0 then return false; end if;\r\n  update public.generation_jobs set status='processing',started_at=now() where id=p_job_id;\r\n  return true;\r\nend $function$\n",
+      "body_md5": "ba0df957e92c6a7f8cda9d0feabe6030",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "v1_image_lifecycle_version",
+      "signature": "v1_image_lifecycle_version()",
+      "identity_arguments": "",
+      "result": "integer",
+      "body": " select 2 ",
+      "definition": "CREATE OR REPLACE FUNCTION public.v1_image_lifecycle_version()\n RETURNS integer\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$ select 2 $function$\n",
+      "body_md5": "101ae94b5c6da3fa9122a65a0470e525",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "v1_image_success_evidence",
+      "signature": "v1_image_success_evidence(uuid)",
+      "identity_arguments": "p_job_id uuid",
+      "result": "boolean",
+      "body": "\r\n  select exists(select 1 from public.generation_jobs j join public.generations g on g.job_id=j.id\r\n    join storage.objects o on o.bucket_id='generations' and o.name=j.user_id::text||'/'||j.id::text||'/output.png'\r\n    where j.id=p_job_id and j.metadata->>'v1_durable'='true'\r\n      and j.metadata#>>'{v1_lifecycle,phase}' in ('persisted','settlement_pending','completed')\r\n      and g.id::text=j.metadata#>>'{v1_lifecycle,generation_id}' and g.user_id=j.user_id and g.tool_id=j.module and g.model=j.model and g.kind='image'\r\n      and g.output_urls=array['storage:generations/'||o.name] and coalesce((o.metadata->>'size')::bigint,0)>0\r\n      and j.metadata#>>'{v1_request,userId}'=j.user_id::text and j.metadata#>>'{v1_request,registryToolId}'=j.module\r\n      and j.metadata#>>'{v1_request,model,providerModelId}'=j.model and j.metadata#>>'{v1_request,imageCount}'='1'\r\n      and exists(select 1 from public.pricing_snapshots p where p.job_id=j.id and p.snapshot->>'record_type'='v1_image_execution'\r\n        and p.snapshot#>>'{canonical,provenance,promptHash}'=j.metadata#>>'{canonical_prompt,hash}'));\r\n",
+      "definition": "CREATE OR REPLACE FUNCTION public.v1_image_success_evidence(p_job_id uuid)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  select exists(select 1 from public.generation_jobs j join public.generations g on g.job_id=j.id\r\n    join storage.objects o on o.bucket_id='generations' and o.name=j.user_id::text||'/'||j.id::text||'/output.png'\r\n    where j.id=p_job_id and j.metadata->>'v1_durable'='true'\r\n      and j.metadata#>>'{v1_lifecycle,phase}' in ('persisted','settlement_pending','completed')\r\n      and g.id::text=j.metadata#>>'{v1_lifecycle,generation_id}' and g.user_id=j.user_id and g.tool_id=j.module and g.model=j.model and g.kind='image'\r\n      and g.output_urls=array['storage:generations/'||o.name] and coalesce((o.metadata->>'size')::bigint,0)>0\r\n      and j.metadata#>>'{v1_request,userId}'=j.user_id::text and j.metadata#>>'{v1_request,registryToolId}'=j.module\r\n      and j.metadata#>>'{v1_request,model,providerModelId}'=j.model and j.metadata#>>'{v1_request,imageCount}'='1'\r\n      and exists(select 1 from public.pricing_snapshots p where p.job_id=j.id and p.snapshot->>'record_type'='v1_image_execution'\r\n        and p.snapshot#>>'{canonical,provenance,promptHash}'=j.metadata#>>'{canonical_prompt,hash}'));\r\n$function$\n",
+      "body_md5": "afd2a2ef3f4d8d5bd194341064a78dab",
+      "security_definer": true,
+      "config": [
+        "search_path=public"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    }
+  ],
+  "triggers": [
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "name": "guard_generation_job_transition",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER guard_generation_job_transition BEFORE INSERT OR UPDATE ON public.generation_jobs FOR EACH ROW EXECUTE FUNCTION guard_generation_job_transition()",
+      "function": "guard_generation_job_transition"
+    },
+    {
+      "schema": "public",
+      "table": "profiles",
+      "name": "profiles_sync_admin_flags",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER profiles_sync_admin_flags BEFORE INSERT OR UPDATE OF access_role, is_admin ON public.profiles FOR EACH ROW EXECUTE FUNCTION sync_profile_admin_flags()",
+      "function": "sync_profile_admin_flags"
+    },
+    {
+      "schema": "public",
+      "table": "workspaces",
+      "name": "workspaces_entitlement_check",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER workspaces_entitlement_check BEFORE INSERT ON public.workspaces FOR EACH ROW EXECUTE FUNCTION enforce_workspace_entitlement()",
+      "function": "enforce_workspace_entitlement"
+    }
+  ],
+  "indexes": [
+    {
+      "schema": "public",
+      "table": "credit_orders",
+      "name": "credit_orders_created_at_idx",
+      "definition": "CREATE INDEX credit_orders_created_at_idx ON public.credit_orders USING btree (created_at DESC)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_orders",
+      "name": "credit_orders_pkey",
+      "definition": "CREATE UNIQUE INDEX credit_orders_pkey ON public.credit_orders USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_orders",
+      "name": "credit_orders_provider_tx_unique_idx",
+      "definition": "CREATE UNIQUE INDEX credit_orders_provider_tx_unique_idx ON public.credit_orders USING btree (provider_transaction_id) WHERE (provider_transaction_id IS NOT NULL)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_orders",
+      "name": "paddle_paid_cycle_once",
+      "definition": "CREATE UNIQUE INDEX paddle_paid_cycle_once ON public.credit_orders USING btree (paddle_subscription_id, paddle_period_start) WHERE ((provider = 'paddle'::text) AND (status = 'paid'::text) AND (paddle_subscription_id IS NOT NULL))"
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "name": "credit_transactions_idempotency_idx",
+      "definition": "CREATE UNIQUE INDEX credit_transactions_idempotency_idx ON public.credit_transactions USING btree (user_id, idempotency_key, type) WHERE (idempotency_key IS NOT NULL)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "name": "credit_transactions_job_idx",
+      "definition": "CREATE INDEX credit_transactions_job_idx ON public.credit_transactions USING btree (job_id)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "name": "credit_transactions_one_charge_per_job_idx",
+      "definition": "CREATE UNIQUE INDEX credit_transactions_one_charge_per_job_idx ON public.credit_transactions USING btree (job_id) WHERE ((type = 'charge'::text) AND (job_id IS NOT NULL))"
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "name": "credit_transactions_pkey",
+      "definition": "CREATE UNIQUE INDEX credit_transactions_pkey ON public.credit_transactions USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "name": "credit_transactions_user_idx",
+      "definition": "CREATE INDEX credit_transactions_user_idx ON public.credit_transactions USING btree (user_id, created_at DESC)"
+    },
+    {
+      "schema": "public",
+      "table": "generation_internal_prompts",
+      "name": "generation_internal_prompts_pkey",
+      "definition": "CREATE UNIQUE INDEX generation_internal_prompts_pkey ON public.generation_internal_prompts USING btree (generation_id)"
+    },
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "name": "generation_jobs_idempotency_active_idx",
+      "definition": "CREATE UNIQUE INDEX generation_jobs_idempotency_active_idx ON public.generation_jobs USING btree (user_id, idempotency_key) WHERE ((idempotency_key IS NOT NULL) AND (status = ANY (ARRAY['pending'::text, 'reserved'::text, 'processing'::text])))"
+    },
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "name": "generation_jobs_pkey",
+      "definition": "CREATE UNIQUE INDEX generation_jobs_pkey ON public.generation_jobs USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "name": "generation_jobs_status_created_idx",
+      "definition": "CREATE INDEX generation_jobs_status_created_idx ON public.generation_jobs USING btree (status, created_at)"
+    },
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "name": "generation_jobs_user_status_idx",
+      "definition": "CREATE INDEX generation_jobs_user_status_idx ON public.generation_jobs USING btree (user_id, status)"
+    },
+    {
+      "schema": "public",
+      "table": "generations",
+      "name": "generations_one_per_job_idx",
+      "definition": "CREATE UNIQUE INDEX generations_one_per_job_idx ON public.generations USING btree (job_id) WHERE (job_id IS NOT NULL)"
+    },
+    {
+      "schema": "public",
+      "table": "generations",
+      "name": "generations_pkey",
+      "definition": "CREATE UNIQUE INDEX generations_pkey ON public.generations USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "generations",
+      "name": "generations_workspace_idx",
+      "definition": "CREATE INDEX generations_workspace_idx ON public.generations USING btree (user_id, workspace_id, created_at DESC)"
+    },
+    {
+      "schema": "public",
+      "table": "memberships",
+      "name": "memberships_paddle_subscription_id_key",
+      "definition": "CREATE UNIQUE INDEX memberships_paddle_subscription_id_key ON public.memberships USING btree (paddle_subscription_id)"
+    },
+    {
+      "schema": "public",
+      "table": "memberships",
+      "name": "memberships_pkey",
+      "definition": "CREATE UNIQUE INDEX memberships_pkey ON public.memberships USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "memberships",
+      "name": "memberships_user_expires_idx",
+      "definition": "CREATE INDEX memberships_user_expires_idx ON public.memberships USING btree (user_id, expires_at DESC)"
+    },
+    {
+      "schema": "public",
+      "table": "paddle_webhook_events",
+      "name": "paddle_webhook_events_pkey",
+      "definition": "CREATE UNIQUE INDEX paddle_webhook_events_pkey ON public.paddle_webhook_events USING btree (event_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pricing_snapshots",
+      "name": "pricing_snapshots_generation_idx",
+      "definition": "CREATE INDEX pricing_snapshots_generation_idx ON public.pricing_snapshots USING btree (generation_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pricing_snapshots",
+      "name": "pricing_snapshots_pkey",
+      "definition": "CREATE UNIQUE INDEX pricing_snapshots_pkey ON public.pricing_snapshots USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "profiles",
+      "name": "profiles_access_role_idx",
+      "definition": "CREATE INDEX profiles_access_role_idx ON public.profiles USING btree (access_role) WHERE (access_role IS NOT NULL)"
+    },
+    {
+      "schema": "public",
+      "table": "profiles",
+      "name": "profiles_pkey",
+      "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "workspaces",
+      "name": "workspaces_owner_idx",
+      "definition": "CREATE INDEX workspaces_owner_idx ON public.workspaces USING btree (owner_id, sort_order)"
+    },
+    {
+      "schema": "public",
+      "table": "workspaces",
+      "name": "workspaces_pkey",
+      "definition": "CREATE UNIQUE INDEX workspaces_pkey ON public.workspaces USING btree (id)"
+    }
+  ],
+  "constraints": [
+    {
+      "table": "credit_orders",
+      "name": "credit_orders_membership_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (membership_id) REFERENCES memberships(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "credit_orders",
+      "name": "credit_orders_order_kind_check",
+      "type": "c",
+      "definition": "CHECK (((order_kind IS NULL) OR (order_kind = ANY (ARRAY['plan_purchase'::text, 'plan_renewal'::text, 'plan_upgrade'::text, 'topup'::text, 'business_payment'::text]))))"
+    },
+    {
+      "table": "credit_orders",
+      "name": "credit_orders_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "credit_orders",
+      "name": "credit_orders_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_amount_check",
+      "type": "c",
+      "definition": "CHECK ((amount >= 0))"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_membership_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (membership_id) REFERENCES memberships(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_order_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (order_id) REFERENCES credit_orders(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_type_check",
+      "type": "c",
+      "definition": "CHECK ((type = ANY (ARRAY['reserve'::text, 'charge'::text, 'release'::text, 'refund'::text, 'manual_adjustment'::text, 'plan_purchase'::text, 'plan_renewal'::text, 'plan_upgrade'::text, 'topup'::text, 'admin_grant'::text, 'admin_adjustment'::text])))"
+    },
+    {
+      "table": "credit_transactions",
+      "name": "credit_transactions_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "generation_internal_prompts",
+      "name": "generation_internal_prompts_generation_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "generation_internal_prompts",
+      "name": "generation_internal_prompts_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (generation_id)"
+    },
+    {
+      "table": "generation_jobs",
+      "name": "generation_jobs_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "generation_jobs",
+      "name": "generation_jobs_status_check",
+      "type": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'reserved'::text, 'processing'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])))"
+    },
+    {
+      "table": "generation_jobs",
+      "name": "generation_jobs_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "generations",
+      "name": "generations_job_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (job_id) REFERENCES generation_jobs(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "generations",
+      "name": "generations_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "generations",
+      "name": "generations_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "generations",
+      "name": "generations_workspace_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_paddle_origin_order_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (paddle_origin_order_id) REFERENCES credit_orders(id)"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_paddle_subscription_id_key",
+      "type": "u",
+      "definition": "UNIQUE (paddle_subscription_id)"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_plan_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (plan_id) REFERENCES commerce_plans(id)"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_renewal_mode_check",
+      "type": "c",
+      "definition": "CHECK ((renewal_mode = ANY (ARRAY['manual'::text, 'automatic'::text])))"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_renewed_from_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (renewed_from_id) REFERENCES memberships(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "memberships",
+      "name": "memberships_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "paddle_webhook_events",
+      "name": "paddle_webhook_events_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (event_id)"
+    },
+    {
+      "table": "pricing_snapshots",
+      "name": "pricing_snapshots_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "pricing_snapshots",
+      "name": "pricing_snapshots_user_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_access_role_check",
+      "type": "c",
+      "definition": "CHECK (((access_role IS NULL) OR (access_role = ANY (ARRAY['super_admin'::text, 'administrator'::text, 'developer'::text, 'editor'::text]))))"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_active_workspace_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (active_workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_maro_plan_check",
+      "type": "c",
+      "definition": "CHECK (((maro_plan IS NULL) OR (maro_plan = ANY (ARRAY['standard'::text, 'pro'::text, 'biz'::text]))))"
+    },
+    {
+      "table": "profiles",
+      "name": "profiles_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table": "workspaces",
+      "name": "workspaces_owner_id_fkey",
+      "type": "f",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "workspaces",
+      "name": "workspaces_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "abuse_events",
+      "policyname": "abuse_events_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "app_settings",
+      "policyname": "settings_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "app_settings",
+      "policyname": "settings_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(auth.role() = 'authenticated'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "audit_events",
+      "policyname": "audit_events_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "budget_guards",
+      "policyname": "budget_guards_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "business_leads",
+      "policyname": "business_leads_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "business_leads",
+      "policyname": "business_leads_user_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "commerce_plans",
+      "policyname": "commerce_plans_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "commerce_plans",
+      "policyname": "commerce_plans_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((enabled = true) OR has_admin_access())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "commerce_topups",
+      "policyname": "commerce_topups_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "commerce_topups",
+      "policyname": "commerce_topups_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((enabled = true) OR has_admin_access())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "creator_applications",
+      "policyname": "creator apply admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "is_admin()",
+      "with_check": "is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "creator_applications",
+      "policyname": "creator apply insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "true"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "creator_commissions",
+      "policyname": "creator_commissions_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(has_admin_access() OR (auth.uid() = creator_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "credit_transactions",
+      "policyname": "credit_tx_user_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_retention_policies",
+      "policyname": "data_retention_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "email_logs",
+      "policyname": "email_logs_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "email_settings",
+      "policyname": "email_settings_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "email_template_versions",
+      "policyname": "email_template_versions_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "email_templates",
+      "policyname": "email_templates_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "engine_shadow_comparisons",
+      "policyname": "engine_shadow_comparisons_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "generation_jobs",
+      "policyname": "jobs_user_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "generations",
+      "policyname": "generations_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "help_articles",
+      "policyname": "help_articles_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "help_articles",
+      "policyname": "help_articles_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(published = true)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "memberships",
+      "policyname": "memberships_admin_all",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "memberships",
+      "policyname": "memberships_user_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR has_admin_access())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notification_campaigns",
+      "policyname": "notification_campaigns_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notification_campaigns",
+      "policyname": "notification_campaigns_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((active = true) AND ((starts_at IS NULL) OR (starts_at <= now())) AND ((ends_at IS NULL) OR (ends_at > now())))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notification_dismissals",
+      "policyname": "notification_dismissals_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "preset_categories",
+      "policyname": "preset_categories_admin_all",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "preset_categories",
+      "policyname": "preset_categories_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(active = true)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "pricing_snapshots",
+      "policyname": "pricing_snapshots_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "product_events",
+      "policyname": "product_events_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "promo_codes",
+      "policyname": "promo admin write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "is_admin()",
+      "with_check": "is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "promo_codes",
+      "policyname": "promo read active",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(active OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "promo_events",
+      "policyname": "promo events admin read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "prompt_events",
+      "policyname": "prompt_events_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "prompt_layers",
+      "policyname": "prompt_layers_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "provider_cost_estimates",
+      "policyname": "provider_cost_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "refund_records",
+      "policyname": "refund_records_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "reports admin update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "is_admin()",
+      "with_check": "is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "reports insert own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "reports read own or admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "retention_execution_runs",
+      "policyname": "retention_runs_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "security_events",
+      "policyname": "security_events_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "signup_signals",
+      "policyname": "signup_signals_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "storage_usage",
+      "policyname": "storage_usage_user",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_ticket_messages",
+      "policyname": "support_messages_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(has_admin_access() OR (EXISTS ( SELECT 1\n   FROM support_tickets t\n  WHERE ((t.id = support_ticket_messages.ticket_id) AND (t.user_id = auth.uid()) AND (support_ticket_messages.internal = false)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_tickets",
+      "policyname": "support_tickets_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "has_admin_access()",
+      "with_check": "has_admin_access()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_tickets",
+      "policyname": "support_tickets_user_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_tickets",
+      "policyname": "support_tickets_user_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR has_admin_access())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "system_prompt_versions",
+      "policyname": "system_prompt_versions_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tool_engine_config",
+      "policyname": "tool_engine_config_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tool_input_fields",
+      "policyname": "tool_input_fields_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tool_model_configs",
+      "policyname": "tool_model_configs_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "has_admin_access()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_notifications",
+      "policyname": "user_notifications_admin_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_admin_access() OR (auth.uid() = user_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_notifications",
+      "policyname": "user_notifications_own",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((auth.uid() = user_id) OR has_admin_access())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_notifications",
+      "policyname": "user_notifications_own_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "workspace_sources",
+      "policyname": "workspace_sources_owner_all",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() = owner_id)",
+      "with_check": "(auth.uid() = owner_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "workspaces",
+      "policyname": "workspaces_owner_all",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "(auth.uid() = owner_id)",
+      "with_check": "(auth.uid() = owner_id)"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "generations_owner_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'generations'::text) AND ((auth.uid())::text = (storage.foldername(name))[1]))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "generations_public_prefix_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'generations'::text) AND (((storage.foldername(name))[1] = 'public'::text) OR ((storage.foldername(name))[1] = 'admin-icons'::text) OR ((storage.foldername(name))[1] = 'admin-ads'::text)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "maro_public_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(bucket_id = 'maro-public'::text)",
+      "with_check": null
+    }
+  ],
+  "rls": [
+    {
+      "schema": "public",
+      "table": "credit_orders",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "credit_transactions",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "generation_internal_prompts",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "generation_jobs",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "generations",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "memberships",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "paddle_webhook_events",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "pricing_snapshots",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "profiles",
+      "enabled": true,
+      "forced": false
+    },
+    {
+      "schema": "public",
+      "table": "workspaces",
+      "enabled": true,
+      "forced": false
+    }
+  ],
+  "columns": [
+    {
+      "table_name": "credit_orders",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "user_email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "credits",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "amount_cents",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "currency",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "provider",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "promo_code",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "item_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "item_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "billing_snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paid_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "provider_order_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "cancel_reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "order_kind",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "membership_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "commercial_snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "provider_transaction_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paddle_customer_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paddle_subscription_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paddle_price_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paddle_period_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_orders",
+      "column_name": "paddle_period_end",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "job_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "amount",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "balance_after",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "membership_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "credit_transactions",
+      "column_name": "reason",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_internal_prompts",
+      "column_name": "generation_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_internal_prompts",
+      "column_name": "compiled_prompt",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_internal_prompts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "module",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "credits_reserved",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "credits_charged",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "provider_cost_usd",
+      "data_type": "numeric",
+      "udt_name": "numeric",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "input_tokens",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "output_tokens",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "retry_count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "priority",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "error",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "finished_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generation_jobs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "user_email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "prompt",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "final_prompt",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "website_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "speed",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "credits_spent",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "tool_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "kind",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "output_urls",
+      "data_type": "ARRAY",
+      "udt_name": "_text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "reaction",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "selections",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "fort",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "workspace_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "thumbnail_path",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "generations",
+      "column_name": "job_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "plan_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "renewal_mode",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "renewed_from_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "cycle_renewal_fulfilled_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "business_overrides",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "suspended",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "persisted_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "payment_provider",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_subscription_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_customer_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_price_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_origin_order_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_event_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_scheduled_change",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "memberships",
+      "column_name": "paddle_paid_through",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "paddle_webhook_events",
+      "column_name": "event_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "paddle_webhook_events",
+      "column_name": "event_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "paddle_webhook_events",
+      "column_name": "occurred_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "paddle_webhook_events",
+      "column_name": "processed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "order_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "snapshot",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "kind",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "generation_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "job_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "pricing_snapshots",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "email",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "full_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "credits",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "is_admin",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "is_creator",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "plan",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "fort_until",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "credits_reserved",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "email_verified_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "risk_score",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "generation_paused",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "device_fingerprint_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "maro_plan",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "active_workspace_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "access_role",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "icon_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "sort_order",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_logo_url",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_primary_color",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_secondary_color",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_background_color",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brand_text_color",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "workspaces",
+      "column_name": "brain_profile",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    }
+  ],
+  "migration_ledger": [
+    {
+      "version": "20260929150544",
+      "name": "remote_schema",
+      "statements_count": 1024
+    },
+    {
+      "version": "20260929223117",
+      "name": "0047_paddle_billing",
+      "statements_count": 1
+    }
+  ],
+  "golden_body_comparison": [
+    {
+      "name": "admin_publish_v1_prompt",
+      "signature": "admin_publish_v1_prompt(uuid,uuid,boolean)",
+      "golden_migration": "0049_v1_operational_admin.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "d787c3c005a55cf280990e6832102816",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "admin_v1_operations",
+      "signature": "admin_v1_operations(timestamp with time zone,text)",
+      "golden_migration": "0049_v1_operational_admin.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "ea9cbb3536620c10a1485ceb1d053305",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "cancel_credit_order",
+      "signature": "cancel_credit_order(uuid,text)",
+      "golden_migration": "0014_payments_maro_plan.sql",
+      "body_exact_except_edge_whitespace": false,
+      "live_body_md5": "60ca399beb9ff3ace59755ba57417d70",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "fail_v1_image_job",
+      "signature": "fail_v1_image_job(uuid,text)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "6d6389157fe4d6ab5d0b2a7c082fad17",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "finalize_credit_charge",
+      "signature": "finalize_credit_charge(uuid)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "2791471e223250eb312bb66fe9a3fed6",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "fulfill_commerce_order",
+      "signature": "fulfill_commerce_order(uuid,text)",
+      "golden_migration": "0038_commerce_ledger_and_fulfillment.sql",
+      "body_exact_except_edge_whitespace": false,
+      "live_body_md5": "f89cc4ce199452ad8b66a9e1f0e293a4",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "guard_generation_job_transition",
+      "signature": "guard_generation_job_transition()",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "7e3c0e8790a2797ab119348153cab1bf",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "service_execute": true
+    },
+    {
+      "name": "mark_v1_image_provider_result",
+      "signature": "mark_v1_image_provider_result(uuid,text,jsonb)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "9da8c73f9a8facd371011736c81c113a",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "persist_v1_image_generation",
+      "signature": "persist_v1_image_generation(uuid)",
+      "golden_migration": "0048_v1_history_workspace_text.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "5ef1064189fe3a1c1e4cd0851a26a974",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reconcile_generation_job",
+      "signature": "reconcile_generation_job(uuid,integer)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "1e838ea90bf36efa1b70deb3004143e3",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reconcile_stale_generation_jobs",
+      "signature": "reconcile_stale_generation_jobs(integer)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "a45bc94e8e9051992bcb750f20424bbb",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "release_credit_reserve",
+      "signature": "release_credit_reserve(uuid,text)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "227d055a8b4bc12b6d63b06133ae68b4",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "reserve_credits",
+      "signature": "reserve_credits(uuid,integer,uuid,text)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "9a9360a2cbc9626a049c4e2977729773",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "settle_v1_image_job",
+      "signature": "settle_v1_image_job(uuid)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "8819bb89fc0aec5858cd51bfef79b6d9",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "start_v1_image_job",
+      "signature": "start_v1_image_job(uuid)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "ba0df957e92c6a7f8cda9d0feabe6030",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "v1_image_lifecycle_version",
+      "signature": "v1_image_lifecycle_version()",
+      "golden_migration": "0048_v1_history_workspace_text.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "101ae94b5c6da3fa9122a65a0470e525",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "name": "v1_image_success_evidence",
+      "signature": "v1_image_success_evidence(uuid)",
+      "golden_migration": "0047_v1_durable_settlement.sql",
+      "body_exact_except_edge_whitespace": true,
+      "live_body_md5": "afd2a2ef3f4d8d5bd194341064a78dab",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    }
+  ],
+  "v1_product_configuration": {
+    "models": [
+      {
+        "id": "60cd6a82-0ae5-47b6-8170-78bff047b77c",
+        "tool_id": "maro_imazh",
+        "model_id": "flare",
+        "provider": "openai",
+        "display_name": "Flare",
+        "enabled": true,
+        "is_default": true,
+        "coming_soon": false,
+        "sort_order": 0,
+        "metadata": {
+          "description": "Fast \u00b7 Recommended",
+          "providerModelId": "gpt-image-2.5-flare",
+          "verificationRun": null
+        },
+        "cost_metadata": {
+          "purpose": "Approved V1 product configuration \u2014 Phase 4",
+          "pricingStage": "launch",
+          "customerCredits": 5
+        },
+        "updated_at": "2026-09-17 01:37:21.108115+00"
+      },
+      {
+        "id": "d1840001-1606-4ad9-b090-d5ba7d9b5a8e",
+        "tool_id": "maro_imazh",
+        "model_id": "sunburst",
+        "provider": "openai",
+        "display_name": "Sunburst",
+        "enabled": true,
+        "is_default": false,
+        "coming_soon": false,
+        "sort_order": 1,
+        "metadata": {
+          "description": "Alternative \u00b7 More deliberate",
+          "providerModelId": "gpt-image-2.5-sunburst",
+          "verificationRun": null
+        },
+        "cost_metadata": {
+          "purpose": "Approved V1 product configuration \u2014 Phase 4",
+          "pricingStage": "launch",
+          "customerCredits": 5
+        },
+        "updated_at": "2026-09-17 01:37:21.187929+00"
+      },
+      {
+        "id": "a8f40b7c-cc37-4505-8c36-f30e1497f44f",
+        "tool_id": "maro_logo",
+        "model_id": "flare",
+        "provider": "openai",
+        "display_name": "Flare",
+        "enabled": true,
+        "is_default": true,
+        "coming_soon": false,
+        "sort_order": 0,
+        "metadata": {
+          "description": "Fast \u00b7 Recommended",
+          "providerModelId": "gpt-image-2.5-flare",
+          "verificationRun": null
+        },
+        "cost_metadata": {
+          "purpose": "Approved V1 product configuration \u2014 Phase 4",
+          "pricingStage": "launch",
+          "customerCredits": 5
+        },
+        "updated_at": "2026-09-17 01:37:21.269236+00"
+      }
+    ],
+    "published_prompt_summary": [
+      {
+        "tool_id": "maro_imazh",
+        "live_count": 1,
+        "minimum_content_length": 2096
+      },
+      {
+        "tool_id": "maro_logo",
+        "live_count": 1,
+        "minimum_content_length": 424
+      }
+    ],
+    "logo_content": [
+      {
+        "logo_wizard_content": null
+      }
+    ]
+  }
+}

@@ -181,7 +181,7 @@ export function AccessRolesPanel() {
       <section className="rounded-xl border border-line bg-surface p-4">
         <h2 className="text-[15px] font-semibold text-ink">Rolet administrative</h2>
         <p className="mt-1 text-[12px] text-ink-3">
-          Katër role të fiksuara RBAC. Përdoruesit normalë dhe Kreatorët nuk janë role admin — plani komercial (maroFort / maro plan) mbetet i ndarë.
+          Katër role të fiksuara RBAC. Përdoruesit normalë dhe Kreatorët nuk janë role admin — plani komercial mbetet i ndarë.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {data.roles.map((role) => (

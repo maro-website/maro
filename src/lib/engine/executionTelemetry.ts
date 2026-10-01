@@ -4,7 +4,7 @@ import { getJob, updateJob } from "@/lib/generation/jobs";
 import type { ProductionPipeline } from "./types";
 import type { WebEffectiveExecutionLabel } from "./webExecution";
 
-export type EffectiveExecutionLabel = WebEffectiveExecutionLabel;
+export type EffectiveExecutionLabel = WebEffectiveExecutionLabel | "canonical_v1";
 
 export type WebEngineFailureStage =
   | "eligibility"
@@ -18,9 +18,10 @@ export type WebEngineFailureStage =
 export type ImageEngineFailureStage = WebEngineFailureStage;
 
 export interface GenerationExecutionTelemetry {
+  image_provider?: import("@/lib/ai/imageObservation").ImageProviderObservation;
   configured_pipeline: ProductionPipeline;
   effective_execution: EffectiveExecutionLabel;
-  compiler: "legacy" | "maro_engine_v1" | null;
+  compiler: "legacy" | "maro_engine_v1" | "maro_v1_canonical" | null;
   system_prompt_version?: string | null;
   system_prompt_status?: string | null;
   model?: string | null;
@@ -47,16 +48,6 @@ export interface GenerationExecutionTelemetry {
   fort_enabled?: boolean | null;
   brain_used?: boolean | null;
   preset_present?: boolean | null;
-  /** Safe canonical brand-context proof; hashes only, never prompt/profile text. */
-  context_source?: "maro_brain" | "workspace_brand" | "none" | null;
-  context_configured?: boolean | null;
-  context_workspace_hash?: string | null;
-  context_brand_hash?: string | null;
-  context_fingerprint?: string | null;
-  context_brand_name_present?: boolean | null;
-  context_category_present?: boolean | null;
-  context_description_present?: boolean | null;
-  brand_reference_role?: "workspace_brand_asset" | "user_product" | "none" | null;
   /** ISO timestamp when execution decision + initial stamp were persisted. */
   execution_started_at?: string | null;
 }
@@ -102,6 +93,7 @@ export async function stampJobExecutionTelemetry(
     internal_canary: prev.internal_canary ?? false,
     provider_request_count: prev.provider_request_count ?? 0,
     provider: prev.provider ?? "anthropic",
+    ...prev,
     ...patch,
   };
 

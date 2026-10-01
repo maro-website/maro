@@ -4,9 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
 import { Check, Lock, Sparkles } from "lucide-react";
@@ -43,17 +41,12 @@ export default function PricingPage() {
 function PricingPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, ready } = useMaro();
 
   const [catalog, setCatalog] = React.useState<{
     plans: CatalogPlan[];
     topups: CatalogTopup[];
     listPriceEurPerCredit: number;
   } | null>(null);
-  const [canTopUp, setCanTopUp] = React.useState(false);
-  const [renewalAvailable, setRenewalAvailable] = React.useState(false);
-  const [planExpired, setPlanExpired] = React.useState(false);
-
   const initialTab = searchParams.get("tab") === "topup" ? "topup" : "plans";
   const [tab, setTab] = React.useState<Tab>(initialTab);
 
@@ -65,21 +58,6 @@ function PricingPageInner() {
   }, []);
 
   React.useEffect(() => {
-    if (!user) return;
-    fetch("/api/commerce/entitlements")
-      .then((r) => r.json())
-      .then((data) => {
-        setCanTopUp(Boolean(data.entitlements?.can_top_up));
-        setRenewalAvailable(Boolean(data.entitlements?.renewal_available));
-        setPlanExpired(
-          data.entitlements?.plan_status === "EXPIRED" ||
-            data.entitlements?.plan_status === "NO_PLAN"
-        );
-      })
-      .catch(() => null);
-  }, [user]);
-
-  React.useEffect(() => {
     const t = searchParams.get("tab") === "topup" ? "topup" : "plans";
     setTab(t);
   }, [searchParams]);
@@ -89,19 +67,6 @@ function PricingPageInner() {
     router.replace(next === "topup" ? "/pricing?tab=topup" : "/pricing", { scroll: false });
   };
 
-  const promoParam = searchParams.get("promo")?.trim() ?? "";
-
-  const goCheckout = (itemId: string) => {
-    const promoQs = promoParam ? `&promo=${encodeURIComponent(promoParam)}` : "";
-    if (!user) {
-      router.push(
-        `/sign-in?next=${encodeURIComponent(`/checkout?item=${itemId}${promoParam ? `&promo=${encodeURIComponent(promoParam)}` : ""}`)}`
-      );
-      return;
-    }
-    router.push(`/checkout?item=${itemId}${promoQs}`);
-  };
-
   const plans = catalog?.plans ?? [];
   const topups = catalog?.topups ?? [];
 
@@ -109,12 +74,12 @@ function PricingPageInner() {
     <AppShell showFooter>
       <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="max-w-2xl">
-          <p className="text-[13px] font-semibold uppercase tracking-wider text-brand">Planet maro</p>
-          <h1 className="mt-2 text-[clamp(32px,6vw,48px)] font-bold tracking-brand text-ink">
-            Zgjidh planin tënd
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand">Planet maro</p>
+          <h1 className="mt-2 maro-text-h1 font-bold tracking-brand text-ink">
+            Planet maro
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
-            Plan 30-ditor. Pagesë njëherëshe, pa rinovim automatik. Kreditet nuk skadojnë.
+          <p className="mt-3 text-base leading-relaxed text-ink-2">
+            Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria.
           </p>
         </div>
 
@@ -134,7 +99,7 @@ function PricingPageInner() {
                 tab === t.id ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
               )}
             >
-              {t.id === "topup" && !canTopUp && ready && user && (
+              {t.id === "topup" && (
                 <Lock className="h-3.5 w-3.5" />
               )}
               {t.label}
@@ -164,44 +129,20 @@ function PricingPageInner() {
                   </div>
                   <p className="mt-1 text-[14px] text-ink-2">{plan.tagline}</p>
 
-                  {plan.contactOnly ? (
-                    <div className="mt-6 text-[28px] font-bold tracking-brand text-ink">
-                      Marrëveshje
-                    </div>
-                  ) : (
-                    <div className="mt-6 flex items-baseline gap-2">
-                      <span className="text-[36px] font-bold tracking-brand text-ink">
-                        {formatEur(plan.priceEur)}
-                      </span>
-                      <span className="text-[14px] text-ink-3">· {plan.credits} kredite</span>
-                    </div>
-                  )}
+                  <p className="mt-5 text-[36px] font-bold tracking-brand text-ink">
+                    {plan.contactOnly ? "Sipas marrëveshjes" : formatEur(plan.priceEur)}
+                  </p>
 
                   <ul className="mt-6 flex flex-1 flex-col gap-2.5">
                     {plan.features.map((text) => (
                       <li key={text} className="flex items-start gap-2.5 text-[14px] text-ink-2">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                        {text}
+                        {text.startsWith("Top-up") ? "Blerjet e reja janë të mbyllura" : text}
                       </li>
                     ))}
                   </ul>
 
-                  {plan.contactOnly ? (
-                    <Link
-                      href="/contact"
-                      className="mt-8 flex h-11 items-center justify-center rounded-maro12 bg-surface-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-hover"
-                    >
-                      Na kontakto
-                    </Link>
-                  ) : renewalAvailable && plan.id !== "business" ? (
-                    <Button className="mt-8 w-full" onClick={() => goCheckout("renew")}>
-                      Rinovo planin
-                    </Button>
-                  ) : (
-                    <Button className="mt-8 w-full" onClick={() => goCheckout(plan.id)}>
-                      {planExpired ? "Aktivizo planin" : "Aktivizo planin"}
-                    </Button>
-                  )}
+                  <p className="mt-8 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
                 </div>
               ))}
             </div>
@@ -209,7 +150,7 @@ function PricingPageInner() {
             <div className="mt-12 rounded-maro16 bg-surface p-6">
               <h3 className="text-[16px] font-semibold text-ink">Krahasim i shkurtër</h3>
               <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-[13px]">
+                <table className="w-full min-w-[520px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-border-subtle text-ink-3">
                       <th className="py-2 pr-4 font-semibold"> </th>
@@ -225,7 +166,7 @@ function PricingPageInner() {
                       ["Kreditet skadojnë?", "Jo", "Jo", "Jo"],
                       ["Workspaces", "1", "Deri në 5", "Sipas nevojës"],
                       ["Gjenerime njëkohësisht", "1", "Deri në 3", "Sipas marrëveshjes"],
-                      ["Top-up", "Po", "Po", "Po"],
+                      ["Top-up", "I mbyllur", "I mbyllur", "I mbyllur"],
                     ].map(([label, ...vals]) => (
                       <tr key={label} className="border-b border-border-subtle/60">
                         <td className="py-2.5 pr-4 font-medium text-ink">{label}</td>
@@ -246,7 +187,7 @@ function PricingPageInner() {
               {[
                 {
                   q: "A është ky abonim automatik?",
-                  a: "Jo. Planet paguhen një herë dhe zgjasin 30 ditë. Nuk ka pagesë të përsëritur automatikisht.",
+                  a: "Blerjet e reja janë të mbyllura. Për një plan ekzistues, mënyra e rinovimit dhe afati shfaqen te llogaria.",
                 },
                 {
                   q: "A skadojnë kreditet?",
@@ -254,11 +195,11 @@ function PricingPageInner() {
                 },
                 {
                   q: "Kur mund ta rinovoj planin?",
-                  a: "Gjatë 7 ditëve të fundit para skadimit.",
+                  a: "Rinovimet manuale janë të mbyllura. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të tij.",
                 },
                 {
                   q: "A mund të blej vetëm kredite?",
-                  a: "Top-up kërkon plan aktiv (maroStandard ose maroPro).",
+                  a: "Blerjet e reja të krediteve janë të mbyllura në këtë version.",
                 },
               ].map((item) => (
                 <div key={item.q} className="rounded-maro12 bg-surface px-5 py-4">
@@ -272,14 +213,13 @@ function PricingPageInner() {
 
         {tab === "topup" && (
           <div className="mt-10">
-            {!canTopUp && ready && (
+            {(
               <div className="mb-8 flex items-start gap-3 rounded-maro16 bg-surface-2 px-5 py-4">
                 <Lock className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" />
                 <div>
-                  <p className="text-[15px] font-semibold text-ink">Top-up kërkon plan aktiv</p>
+                  <p className="text-base font-semibold text-ink">Blerjet janë të mbyllura</p>
                   <p className="mt-1 text-[14px] text-ink-2">
-                    Bli maroStandard ose maroPro fillimisht për të rimbushur kredite me çmime të
-                    preferuara.
+                    Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen.
                   </p>
                   <button
                     type="button"
@@ -294,7 +234,7 @@ function PricingPageInner() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {topups.map((tier) => {
-                const locked = !canTopUp;
+                const locked = false;
                 return (
                   <div
                     key={tier.id}
@@ -306,19 +246,12 @@ function PricingPageInner() {
                     <p className="text-[24px] font-bold tracking-brand text-ink">
                       {formatCredits(tier.credits)}
                     </p>
-                    <p className="text-[13px] text-ink-3">kredite</p>
+                    <p className="text-sm text-ink-3">kredite</p>
                     <p className="mt-4 text-[22px] font-semibold text-ink">{formatEur(tier.priceEur)}</p>
                     {tier.discountPct ? (
                       <p className="mt-1 text-[12px] text-ink-3">−{tier.discountPct}% nga çmimi bazë</p>
                     ) : null}
-                    <Button
-                      className="mt-5 w-full"
-                      variant={locked ? "secondary" : "primary"}
-                      disabled={locked}
-                      onClick={() => goCheckout(tier.id)}
-                    >
-                      {locked ? "I kyçur" : "Blej Top-up"}
-                    </Button>
+                    <p className="mt-5 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
                   </div>
                 );
               })}
@@ -326,8 +259,8 @@ function PricingPageInner() {
           </div>
         )}
 
-        <p className="mt-12 text-center text-[13px] text-ink-3">
-          Vlera bazë: €0,09/kredit · Blerja minimale €9 ·{" "}
+        <p className="mt-12 text-center text-sm text-ink-3">
+          Vlera bazë e katalogut: €0,09/kredit ·{" "}
           <Link href="/legal/refund" className="font-semibold text-ink-2 hover:text-ink">
             Politika e rimbursimit
           </Link>

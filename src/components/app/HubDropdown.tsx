@@ -10,6 +10,7 @@ import { useWorkspace } from "@/context/workspace";
 import { HUB_MENU_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import { ChevronDown, Home } from "lucide-react";
 
 function NavIcon({ name, className, hub }: { name: string; className?: string; hub?: boolean }) {
@@ -32,6 +33,7 @@ export function HubDropdown() {
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
   const btnRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
+  useMenuKeyboard(open && Boolean(pos), panelRef, btnRef, () => { setOpen(false); setWsOpen(false); });
 
   const hubActive = pathname === "/";
 
@@ -41,7 +43,7 @@ export function HubDropdown() {
     const r = el.getBoundingClientRect();
     const width = Math.min(320, window.innerWidth - 16);
     const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
-    setPos({ top: r.bottom + 10, left });
+    setPos({ top: Math.min(r.bottom + 10, window.innerHeight - 100), left });
   }, []);
 
   React.useEffect(() => {
@@ -60,9 +62,13 @@ export function HubDropdown() {
     };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
     };
   }, [open, place]);
 
@@ -96,8 +102,8 @@ export function HubDropdown() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                style={{ position: "fixed", top: pos.top, left: pos.left, width: "min(var(--hub-dropdown-w), calc(100vw - 16px))", zIndex: 130 }}
-                className="maro-menu overflow-visible p-[30px]"
+                style={{ position: "fixed", top: pos.top, left: pos.left, width: "min(var(--hub-dropdown-w), calc(100vw - 16px))", maxHeight: `calc(100dvh - ${pos.top + 8}px)`, zIndex: "var(--maro-z-dropdown)" }}
+                className="maro-menu overflow-y-auto p-4"
                 role="menu"
               >
                 <div className="relative flex items-center gap-[10px]">
@@ -105,7 +111,7 @@ export function HubDropdown() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={activeWorkspace.iconUrl} alt="" className="h-[52px] w-[52px] shrink-0 rounded-maro16 object-cover" />
                   ) : (
-                    <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-maro16 bg-brand text-[16px] font-bold text-white">
+                    <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-maro16 bg-brand text-[16px] font-bold text-brand-fg">
                       {(wsLabel || "M").charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -121,7 +127,7 @@ export function HubDropdown() {
                       />
                     </button>
                     {wsOpen && workspaces.length > 0 && (
-                      <div className="maro-menu absolute inset-x-0 top-[calc(100%+10px)] z-10 p-[10px]">
+                      <div className="maro-menu absolute inset-x-0 top-[calc(100%+8px)] z-10 min-w-0 p-2">
                         {workspaces.map((ws) => (
                           <button
                             key={ws.id}
@@ -170,7 +176,7 @@ export function HubDropdown() {
                         {isSeparatorBefore && <div className="my-[20px] h-px bg-line" />}
                         {item.disabled ? (
                           <span
-                            className="flex min-h-8 cursor-not-allowed items-center gap-[20px] rounded-maro12 text-[15px] font-semibold text-ink-3"
+                            className="flex min-h-8 cursor-not-allowed items-center gap-[20px] rounded-maro12 text-base font-semibold text-ink-3"
                             role="menuitem"
                             aria-disabled
                           >
@@ -181,7 +187,7 @@ export function HubDropdown() {
                             href={item.route}
                             onClick={() => setOpen(false)}
                             className={cn(
-                              "flex min-h-8 items-center gap-[20px] rounded-maro12 text-[15px] font-semibold transition-colors hover:bg-surface-2",
+                              "maro-menu__item hover:bg-surface-2",
                               active ? "text-brand" : "text-ink"
                             )}
                             role="menuitem"

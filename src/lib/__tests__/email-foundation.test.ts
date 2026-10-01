@@ -249,13 +249,13 @@ describe("email render + layout", () => {
       paragraphs: ["Body"],
       cta: { label: "Konfirmo", url: "https://maro.al/auth/callback?preview=1" },
     });
-    expect(html).toContain('bgcolor="#00FF72"');
-    expect(html).toContain("background-color:#00FF72 !important");
-    expect(html).toContain("background-image:linear-gradient(#00FF72,#00FF72) !important");
+    expect(html).toContain('bgcolor="#00ff72"');
+    expect(html).toContain("background-color:#00ff72 !important");
+    expect(html).toContain("background-image:linear-gradient(#00ff72,#00ff72) !important");
     expect(html).toContain('class="maro-cta"');
     expect(html).toContain('class="maro-cta-text"');
-    expect(html).toContain("color:#FFFFFF !important");
-    expect(html).toContain("-webkit-text-fill-color:#FFFFFF !important");
+    expect(html).toContain("color:#111111 !important");
+    expect(html).toContain("-webkit-text-fill-color:#111111 !important");
     expect(html).toContain("text-decoration:none !important");
     expect(html).toContain("font-weight:700 !important");
     expect(html).toContain("<span class=\"maro-cta-text\"");
@@ -264,7 +264,7 @@ describe("email render + layout", () => {
       expect(gradient.toLowerCase()).toBe("linear-gradient(#00ff72,#00ff72)");
     }
     const ctaBlock =
-      html.match(/<td align="center" bgcolor="#00FF72" class="maro-cta"[\s\S]*?<!--<!\[endif\]-->/)?.[0] ?? "";
+      html.match(/<td align="center" bgcolor="#00ff72" class="maro-cta"[\s\S]*?<!--<!\[endif\]-->/)?.[0] ?? "";
     expect(ctaBlock.length).toBeGreaterThan(0);
     expect(ctaBlock).not.toMatch(/#(?:ffc0cb|dda0dd|e6e6fa|f0a0d0|e0b0ff|d8b4fe)/i);
     expect(html).not.toMatch(/opacity/i);
@@ -281,7 +281,7 @@ describe("email render + layout", () => {
     expect(html).toContain('href="mailto:info@maro.al"');
     expect(html).toContain("text-decoration:underline");
     expect(html).toContain('class="maro-cta-text"');
-    expect(html).toContain("color:#FFFFFF !important");
+    expect(html).toContain("color:#111111 !important");
   });
 
   it("uses readable secondary and footer contrast colors", () => {

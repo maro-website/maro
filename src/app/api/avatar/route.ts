@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseMaroStorageAsset, resolveAssetForClient, toStorageRef } from "@/lib/storage/assets";
 import {
   getUserFromToken,
   supabaseServerConfigured,
@@ -18,6 +19,18 @@ function bearer(req: Request): string | null {
   const h = req.headers.get("authorization") || req.headers.get("Authorization");
   if (!h) return null;
   return h.startsWith("Bearer ") ? h.slice(7) : h;
+}
+
+/** Recover legacy avatar URLs after the generations bucket became private. */
+export async function GET(req: Request) {
+  if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  const user = await getUserFromToken(bearer(req));
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const stored = user.user_metadata?.avatar_url;
+  const ref = typeof stored === "string" ? parseMaroStorageAsset(stored) : null;
+  if (!ref || !ref.path.startsWith("public/avatars/")) return NextResponse.json({ url: null });
+  const url = await resolveAssetForClient(toStorageRef(ref.path, ref.bucket));
+  return NextResponse.json({ url: url.startsWith("https://") ? url : null }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: Request) {

@@ -2,6 +2,7 @@
 // Fills admin fort_config with sane defaults and exposes small predicates used
 // by both the composer UI and the server pipeline.
 
+import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import { FORT_DEFAULTS, type FortConfig, type FortModuleId } from "./types";
 
 export interface ResolvedFortConfig {
@@ -20,9 +21,8 @@ export interface ResolvedFortConfig {
 export function resolveFortConfig(config?: FortConfig): ResolvedFortConfig {
   const c = config ?? {};
   return {
-    // Global maroFort defaults ON so the feature is live once a user is entitled;
-    // admins can hard-disable it from the maroFort admin page.
-    enabled: c.enabled !== false,
+    // The parked-feature switch overrides saved admin and cached settings.
+    enabled: MARO_FORT_ENABLED && c.enabled !== false,
     label: c.label || FORT_DEFAULTS.label,
     description: c.description || FORT_DEFAULTS.description,
     ctaText: c.ctaText || FORT_DEFAULTS.ctaText,

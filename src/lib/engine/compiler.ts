@@ -3,6 +3,7 @@
  * Does NOT call AI providers. Used by admin dry run + future Phase 2B migration.
  */
 
+import { withoutParkedFort } from "@/lib/shadow/maroFort";
 import { buildFortBrief } from "@/lib/fort/briefBuilder";
 import { compileBrief } from "@/lib/fort/compile";
 import type { FortValues } from "@/lib/fort/types";
@@ -141,6 +142,7 @@ export function compileGenerationBrief(
   input: CompileGenerationBriefInput,
   ctx: EngineCompileContext
 ): CompiledGenerationBrief {
+  input = withoutParkedFort(input);
   const engineId = resolveEngineToolId(input.toolId);
   if (!engineId) throw new Error(`Unknown tool: ${input.toolId}`);
 
@@ -275,7 +277,9 @@ export function compileGenerationBrief(
         ? { websiteType: input.webRequest?.websiteType ?? selections.type }
         : {}),
     },
-    estimatedCredits: estimateGenerationCredits(engineId, selections, ctx.pricingOverrides),
+    estimatedCredits: ctx.trustedImageModel
+      ? { total: ctx.trustedImageModel.customerCredits, lines: [{ label: ctx.trustedImageModel.label, cost: ctx.trustedImageModel.customerCredits }] }
+      : estimateGenerationCredits(engineId, selections, ctx.pricingOverrides),
   };
 
   if (fortBriefText && engineId !== "maro_web") {

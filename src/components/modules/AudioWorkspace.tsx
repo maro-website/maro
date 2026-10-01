@@ -1,4 +1,6 @@
 "use client";
+import { isModuleLive } from "@/lib/modules/availability";
+import { ModuleComingSoon } from "./ModuleComingSoon";
 
 import { ToolComposer } from "@/components/app/ToolComposer";
 import { ModuleHero } from "@/components/modules/ModuleHero";
@@ -6,6 +8,11 @@ import { InspirationCarousel } from "@/components/modules/InspirationCarousel";
 import { AUDIO_INSPIRATION } from "@/lib/modules/audio/inspiration";
 
 export function AudioWorkspace({ toolId }: { toolId: string }) {
+  if (!isModuleLive("audio")) return <ModuleComingSoon moduleId="audio" />;
+  return <AudioWorkspaceContent toolId={toolId} />;
+}
+
+function AudioWorkspaceContent({ toolId }: { toolId: string }) {
   const headerSlot = (
     <>
       <ModuleHero

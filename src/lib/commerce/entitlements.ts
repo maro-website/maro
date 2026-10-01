@@ -4,8 +4,6 @@ import {
   countUserWorkspaces,
   deriveMembershipStatus,
   getLatestMembership,
-  isActivePlanStatus,
-  renewalAlreadyFulfilledForCycle,
   resolveLimitsFromPlan,
 } from "@/lib/commerce/memberships";
 import { getCommercePlan } from "@/lib/commerce/plans";
@@ -22,7 +20,8 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
 
   const creditsBalance = profile?.credits ?? 0;
   const creditsReserved = profile?.credits_reserved ?? 0;
-  const creditsAvailable = Math.max(0, creditsBalance - creditsReserved);
+  // Production reserve_credits debits spendable credits exactly once.
+  const creditsAvailable = Math.max(0, creditsBalance);
 
   if (!membership) {
     return {
@@ -50,24 +49,23 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
 
   const plan = await getCommercePlan(membership.plan_id);
   const status = deriveMembershipStatus(membership);
-  const active = isActivePlanStatus(status);
   const limits = resolveLimitsFromPlan(plan, status, membership.business_overrides);
-
-  const renewalAvailable =
-    status === "RENEWAL_WINDOW" && !renewalAlreadyFulfilledForCycle(membership);
 
   return {
     plan_id: membership.plan_id,
+    payment_provider: membership.payment_provider,
+    paddle_status: membership.paddle_status,
+    paddle_scheduled_change: membership.paddle_scheduled_change,
     plan_status: status,
     plan_display_name: plan?.display_name ?? membership.plan_id,
     started_at: membership.started_at,
     expires_at: membership.expires_at,
     renewal_mode: membership.renewal_mode,
-    renewal_available: renewalAvailable,
+    renewal_available: false,
     credits_balance: creditsBalance,
     credits_reserved: creditsReserved,
     credits_available: creditsAvailable,
-    can_top_up: active,
+    can_top_up: false,
     workspace_limit: limits.workspace_limit,
     current_workspace_count: workspaceCount,
     can_create_workspace: workspaceCount < limits.workspace_limit,

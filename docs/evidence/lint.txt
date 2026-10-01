@@ -1,0 +1,16 @@
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+
+
+./src/components/app/cards.tsx
+484:6  Warning: React Hook React.useEffect has missing dependencies: 'creation.prompt', 'creation.toolId', and 'creation.urls'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/app/ToolComposer.tsx
+406:6  Warning: React Hook React.useEffect has a missing dependency: 'latestMessage'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/marologo/MaroLogoWizard.tsx
+149:6  Warning: React Hook React.useEffect has missing dependencies: 'activeWorkspace' and 'user'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

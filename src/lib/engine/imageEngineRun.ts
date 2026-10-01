@@ -1,4 +1,6 @@
 import "server-only";
+import type { ImageObservationCallback } from "@/lib/ai/imageObservation";
+import type { TrustedV1ImageRequest } from "@/lib/generation/v1ImageRequest";
 
 import { editImages, generateImages, type OpenAIImageError } from "@/lib/ai/openai";
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
@@ -11,20 +13,24 @@ import type { CompileAttachmentMeta, CompiledGenerationBrief, CompileGenerationB
 import type { ImageEngineFailureStage } from "./executionTelemetry";
 
 export type ImageEngineGenerateCall = (opts: {
+  model: string;
   prompt: string;
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
   abortSignal?: AbortSignal;
+  onObservation?: ImageObservationCallback;
 }) => Promise<string[]>;
 
 export type ImageEngineEditCall = (opts: {
+  model: string;
   prompt: string;
   images: string[];
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
   abortSignal?: AbortSignal;
+  onObservation?: ImageObservationCallback;
 }) => Promise<string[]>;
 
 export interface ImageEngineProviderCalls {
@@ -75,6 +81,7 @@ export function buildEngineCompileAttachments(attachments?: string[]): CompileAt
 
 export async function runImageEngineInternalGeneration(input: {
   engineToolId: EngineToolId;
+  trustedImageRequest?: Readonly<TrustedV1ImageRequest>;
   userId: string;
   workspaceId?: string | null;
   userPrompt: string;
@@ -96,12 +103,23 @@ export async function runImageEngineInternalGeneration(input: {
   size?: ImageSize;
   provider?: ImageEngineProviderCalls;
   abortSignal?: AbortSignal;
+  onObservation?: ImageObservationCallback;
   /** Persist provider attempt telemetry immediately before the single OpenAI call. */
   onProviderAttemptStart?: (info: {
     operation: "generate" | "edit";
     providerRequestCount: 1;
   }) => void | Promise<void>;
 }): Promise<ImageEngineRunResult> {
+  const snapshot = input.trustedImageRequest;
+  if (snapshot) {
+    input = { ...input, engineToolId: snapshot.module, userId: snapshot.userId,
+      workspaceId: snapshot.workspaceId, userPrompt: snapshot.prompt, selections: snapshot.selections,
+      model: snapshot.model.providerModelId, useBrain: snapshot.useBrain,
+      presetId: snapshot.presetId, quality: snapshot.quality, n: snapshot.imageCount, size: snapshot.size,
+      attachments: snapshot.references.map((ref) => ref.id), fort: undefined,
+    };
+  }
+  const useBrain = input.engineToolId === "maro_imazh" && input.useBrain;
   const started = Date.now();
   let providerRequestCount = 0;
   const fetchedSet = new Set(input.fetchedUrls);
@@ -116,7 +134,7 @@ export async function runImageEngineInternalGeneration(input: {
     selections: input.selections,
     attachments: compileAttachments,
     fort: input.fort,
-    useBrain: input.useBrain,
+    useBrain,
     presetId: input.presetId,
     presetPrompt: input.presetPrompt,
     workspaceBrandBrief: input.workspaceBrandBrief,
@@ -130,7 +148,8 @@ export async function runImageEngineInternalGeneration(input: {
   try {
     ctx = await loadCompileContext(input.engineToolId, {
       ownerUserId: input.userId,
-      workspaceId: input.workspaceId ?? undefined,
+      workspaceId: useBrain ? input.workspaceId ?? undefined : undefined,
+      trustedImageModel: snapshot?.model,
     });
     brief = compileGenerationBrief(compileInput, ctx);
   } catch (e) {
@@ -182,11 +201,13 @@ export async function runImageEngineInternalGeneration(input: {
           providerRequestCount = 1;
           await input.onProviderAttemptStart?.({ operation: "generate", providerRequestCount: 1 });
           b64s = await provider.generate({
+            model: req.model,
             prompt: req.prompt,
             size: (req.size as ImageSize | undefined) ?? input.size,
             quality: input.quality,
             n: req.n ?? input.n,
             abortSignal: input.abortSignal,
+            onObservation: input.onObservation,
           });
         } else {
           return {
@@ -202,23 +223,27 @@ export async function runImageEngineInternalGeneration(input: {
         providerRequestCount = 1;
         await input.onProviderAttemptStart?.({ operation: "edit", providerRequestCount: 1 });
         b64s = await provider.edit({
+          model: req.model,
           prompt: req.prompt,
           images,
           size: (req.size as ImageSize | undefined) ?? input.size,
           quality: input.quality,
           n: req.n ?? input.n,
           abortSignal: input.abortSignal,
+          onObservation: input.onObservation,
         });
       }
     } else {
       providerRequestCount = 1;
       await input.onProviderAttemptStart?.({ operation: "generate", providerRequestCount: 1 });
       b64s = await provider.generate({
+        model: req.model,
         prompt: req.prompt,
         size: (req.size as ImageSize | undefined) ?? input.size,
         quality: input.quality,
         n: req.n ?? input.n,
         abortSignal: input.abortSignal,
+        onObservation: input.onObservation,
       });
     }
   } catch (e) {
@@ -245,9 +270,7 @@ export async function runImageEngineInternalGeneration(input: {
     };
   }
 
-  // Persist exactly what the image provider received. The Engine mapper can
-  // refine reference-role semantics beyond the generic debug preview.
-  const finalPrompt = req.prompt;
+  const finalPrompt = brief.renderedProviderPrompt ?? req.prompt;
 
   return {
     ok: true,

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "apply_paddle_event",
+    "current_source": "0047_paddle_billing.sql",
+    "body_exact_except_edge_whitespace": true,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "name": "cancel_credit_order",
+    "current_source": "0047_paddle_billing.sql",
+    "body_exact_except_edge_whitespace": true,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "name": "create_paddle_order",
+    "current_source": "0047_paddle_billing.sql",
+    "body_exact_except_edge_whitespace": true,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "name": "fulfill_commerce_order",
+    "current_source": "0047_paddle_billing.sql",
+    "body_exact_except_edge_whitespace": true,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "name": "maro_mcp_custom_access_token_hook",
+    "current_source": "0046_maro_mcp_oauth_claims.sql",
+    "body_exact_except_edge_whitespace": true,
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  }
+]

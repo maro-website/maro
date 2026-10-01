@@ -1,10 +1,8 @@
 import "server-only";
 import OpenAI, { toFile } from "openai";
+import { buildImageObservation, type ImageObservationCallback } from "./imageObservation";
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
 import { MODULE_LIMITS } from "@/lib/generation/limits";
-
-// "chatgpt image 2.0" == gpt-image-2 (OpenAI's flagship image model).
-export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
 
 /** Wall-clock budget for a single OpenAI image generate/edit call. */
 export const OPENAI_TIMEOUT_MS =
@@ -13,6 +11,9 @@ export const OPENAI_TIMEOUT_MS =
 export class OpenAIImageError extends Error {
   code: string;
   detail: string;
+  requestId?: string;
+  providerCode?: string;
+  status?: number;
   constructor(code: string, detail = "") {
     super(code);
     this.name = "OpenAIImageError";
@@ -29,7 +30,7 @@ let cached: OpenAI | null = null;
 function client(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("NO_OPENAI_KEY");
-  if (!cached) cached = new OpenAI({ apiKey });
+  if (!cached) cached = new OpenAI({ apiKey, maxRetries: 0 });
   return cached;
 }
 
@@ -96,7 +97,12 @@ async function withOpenAITimeout<T>(
     }
     if (err instanceof OpenAIImageError) throw err;
     const message = (err as Error)?.message ?? "openai_failed";
-    throw new OpenAIImageError("provider_failed", message);
+    const wrapped = new OpenAIImageError("provider_failed", message);
+    const source = err as { requestID?: string; request_id?: string; code?: string; status?: number };
+    wrapped.requestId = source.requestID ?? source.request_id;
+    wrapped.providerCode = source.code;
+    wrapped.status = source.status;
+    throw wrapped;
   } finally {
     unlinkExternal();
     clearTimeout(timer);
@@ -106,36 +112,27 @@ async function withOpenAITimeout<T>(
 // Generate one or more images. Returns base64-encoded PNG strings (gpt-image
 // models return b64_json by default — no expiring URLs).
 export async function generateImages(opts: {
+  model: string;
   prompt: string;
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
   timeoutMs?: number;
   abortSignal?: AbortSignal;
+  onObservation?: ImageObservationCallback;
 }): Promise<string[]> {
   const params = {
-    model: IMAGE_MODEL,
+    model: opts.model,
     prompt: opts.prompt,
     size: opts.size ?? "1024x1024",
     quality: opts.quality ?? "high",
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageGenerateParams;
 
-  const res = await withOpenAITimeout(
-    async (signal) => {
-      return (await client().images.generate(params, { signal })) as unknown as {
-        data?: Array<{ b64_json?: string }>;
-      };
-    },
-    opts.timeoutMs,
-    opts.abortSignal
-  );
-
-  const images = extractB64Images(res);
-  if (!images.length) {
-    throw new OpenAIImageError("empty", "openai returned no image data");
-  }
-  return images;
+  return observedImages(opts, "generate", 0, async () => withOpenAITimeout(
+    async (signal) => await client().images.generate(params, { signal }) as unknown as ImageResponse,
+    opts.timeoutMs, opts.abortSignal
+  ));
 }
 
 // Convert a data URL ("data:image/png;base64,....") into an OpenAI upload File.
@@ -151,6 +148,7 @@ async function dataUrlToFile(dataUrl: string, index: number) {
 // Generate images using one or more reference images as extra context
 // (gpt-image edit endpoint). References are data URLs.
 export async function editImages(opts: {
+  model: string;
   prompt: string;
   images: string[];
   size?: ImageSize;
@@ -158,13 +156,14 @@ export async function editImages(opts: {
   n?: number;
   timeoutMs?: number;
   abortSignal?: AbortSignal;
+  onObservation?: ImageObservationCallback;
 }): Promise<string[]> {
   const files = await Promise.all(
     opts.images.slice(0, 4).map((d, i) => dataUrlToFile(d, i))
   );
 
   const params = {
-    model: IMAGE_MODEL,
+    model: opts.model,
     prompt: opts.prompt,
     image: files,
     size: opts.size ?? "1024x1024",
@@ -172,19 +171,35 @@ export async function editImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
   } as unknown as OpenAI.ImageEditParams;
 
-  const res = await withOpenAITimeout(
-    async (signal) => {
-      return (await client().images.edit(params, { signal })) as unknown as {
-        data?: Array<{ b64_json?: string }>;
-      };
-    },
-    opts.timeoutMs,
-    opts.abortSignal
-  );
+  return observedImages(opts, "edit", files.length, async () => withOpenAITimeout(
+    async (signal) => await client().images.edit(params, { signal }) as unknown as ImageResponse,
+    opts.timeoutMs, opts.abortSignal
+  ));
+}
 
-  const images = extractB64Images(res);
-  if (!images.length) {
-    throw new OpenAIImageError("empty", "openai returned no image data");
+
+type ImageResponse = Record<string, unknown> & { data?: Array<{ b64_json?: string }> };
+async function observedImages(
+  opts: { model: string; prompt: string; size?: string; quality?: string; n?: number; onObservation?: ImageObservationCallback },
+  operation: "generate" | "edit", referenceCount: number, run: () => Promise<ImageResponse>
+): Promise<string[]> {
+  const startedAt = new Date().toISOString();
+  let response: ImageResponse | undefined;
+  let failure: unknown;
+  try {
+    response = await run();
+    const images = extractB64Images(response);
+    if (!images.length) throw new OpenAIImageError("empty", "openai returned no image data");
+    return images;
+  } catch (error) {
+    failure = error;
+    throw error;
+  } finally {
+    if (opts.onObservation) {
+      const observation = buildImageObservation({ ...opts, operation, referenceCount, startedAt, response, error: failure });
+      // Observability must not turn a completed provider request into a retry/fallback.
+      try { await opts.onObservation(observation); }
+      catch { console.error("[ai/image] provider observation could not be persisted"); }
+    }
   }
-  return images;
 }

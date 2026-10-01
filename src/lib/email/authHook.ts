@@ -1,10 +1,11 @@
 import "server-only";
+import { createHash } from "node:crypto";
 
 import { Webhook } from "standardwebhooks";
 import type { EmailTemplateKey } from "./types";
 import { sendEmail } from "./engine";
 import { buildAuthCallbackUrl, hookActionToOtpType } from "./authUrls";
-import { resolveEmailChangeDelivery, type SupabaseAuthHookPayload } from "./secureEmailChange";
+import { resolveEmailChangeDeliveries, type SupabaseAuthHookPayload } from "./secureEmailChange";
 import { getAppOrigin } from "@/lib/config/appOrigin";
 import { isAuthEmailHookConfigured } from "@/lib/config/serverEnv";
 import { sanitizeInternalRedirectPath } from "@/lib/auth/safeRedirect";
@@ -99,6 +100,9 @@ function safeNextFromRedirectTo(redirectTo?: string): string | undefined {
     const parsed = new URL(trimmed);
     const appOrigin = new URL(getAppOrigin()).origin;
     if (parsed.origin !== appOrigin) return undefined;
+    if (parsed.pathname === "/auth/callback") {
+      return sanitizeInternalRedirectPath(parsed.searchParams.get("next"), "/");
+    }
     const internal = `${parsed.pathname}${parsed.search}`;
     const path = sanitizeInternalRedirectPath(internal, "/");
     return path === "/" ? undefined : path;
@@ -182,14 +186,15 @@ export async function processAuthEmailHook(rawBody: string): Promise<AuthHookPro
     };
   }
 
-  let recipient = payload.user.email?.trim() ?? "";
-  let tokenHash = payload.email_data.token_hash?.trim() ?? "";
-  let recipientRole: "current" | "new" | undefined;
+  let deliveries: { recipient: string; tokenHash: string; recipientRole?: "current" | "new" }[] = [{
+    recipient: payload.user.email?.trim() ?? "",
+    tokenHash: payload.email_data.token_hash?.trim() ?? "",
+  }];
   let nextPath = safeNextFromRedirectTo(payload.email_data.redirect_to);
 
   if (action === "email_change") {
-    const delivery = resolveEmailChangeDelivery(payload);
-    if (!delivery) {
+    deliveries = resolveEmailChangeDeliveries(payload);
+    if (!deliveries.length) {
       return {
         ok: false,
         status: 422,
@@ -198,17 +203,14 @@ export async function processAuthEmailHook(rawBody: string): Promise<AuthHookPro
         message: "email_change_delivery_unresolved",
       };
     }
-    recipient = delivery.recipient;
-    tokenHash = delivery.tokenHash;
-    recipientRole = delivery.recipientRole;
     if (!nextPath) nextPath = "/account";
   } else if (action === "recovery") {
-    if (!nextPath) nextPath = "/reset-password";
+    nextPath = "/reset-password";
   } else if (action === "signup") {
-    if (!nextPath) nextPath = "/";
+    nextPath = "/sign-in?confirmed=1";
   }
 
-  if (!recipient || !tokenHash) {
+  if (deliveries.some(({ recipient, tokenHash }) => !recipient || !tokenHash)) {
     return {
       ok: false,
       status: 422,
@@ -218,49 +220,55 @@ export async function processAuthEmailHook(rawBody: string): Promise<AuthHookPro
     };
   }
 
-  const actionUrl = buildAuthCallbackUrl({
-    tokenHash,
-    type: otpType,
-    next: nextPath,
-  });
+  for (const { recipient, tokenHash, recipientRole } of deliveries) {
+    const actionUrl = buildAuthCallbackUrl({
+      tokenHash,
+      type: otpType,
+      next: nextPath,
+    });
 
-  const variables = buildTemplateVariables({
-    templateKey,
-    actionUrl,
-    userEmail: payload.user.email,
-    recipientEmail: recipient,
-    recipientRole,
-  });
+    const variables = buildTemplateVariables({
+      templateKey,
+      actionUrl,
+      userEmail: payload.user.email,
+      recipientEmail: recipient,
+      recipientRole,
+    });
 
-  const result = await sendEmail({
-    templateKey,
-    to: recipient,
-    variables,
-    recipientUserId: payload.user.id ?? null,
-    channel: "auth",
-    idempotencyKey: `auth:${action}:${payload.user.id ?? recipient}:${recipientRole ?? "default"}`,
-  });
+    const result = await sendEmail({
+      templateKey,
+      to: recipient,
+      variables,
+      // Signup hooks run inside the auth transaction. A FK to its uncommitted user
+      // would block email logging until the hook returned, causing a timeout.
+      recipientUserId: action === "signup" ? null : payload.user.id ?? null,
+      channel: "auth",
+      // Same token retry deduplicates; a newly issued confirmation/recovery still sends.
+      // The one-way digest contains no reusable confirmation credential.
+      idempotencyKey: `auth:${action}:${createHash("sha256").update(`${recipient}:${tokenHash}`).digest("hex")}`,
+    });
 
-  if (!result.ok) {
-    const retryable = result.retryable ?? false;
-    const status =
-      result.errorCategory === "CONFIG_MISSING"
-        ? 503
-        : result.errorCategory === "VALIDATION"
-          ? 422
-          : retryable
-            ? 503
-            : 502;
+    if (!result.ok) {
+      const retryable = result.retryable ?? false;
+      const status =
+        result.errorCategory === "CONFIG_MISSING"
+          ? 503
+          : result.errorCategory === "VALIDATION"
+            ? 422
+            : retryable
+              ? 503
+              : 502;
 
-    return {
-      ok: false,
-      status,
-      retryable,
-      category: result.errorCategory === "CONFIG_MISSING" ? "config" : "provider",
-      message: result.message ?? "send_failed",
-    };
+      return {
+        ok: false,
+        status,
+        retryable,
+        category: result.errorCategory === "CONFIG_MISSING" ? "config" : "provider",
+        message: "auth_email_delivery_failed",
+      };
+    }
+
   }
-
   return { ok: true, status: 200, retryable: false };
 }
 

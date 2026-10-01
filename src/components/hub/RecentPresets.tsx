@@ -1,5 +1,8 @@
 "use client";
 
+import { StableImage } from "@/components/app/StableImage";
+import { isModuleLive } from "@/lib/modules/availability";
+
 import * as React from "react";
 import Link from "next/link";
 import { fetchPrompts } from "@/lib/services/promptsService";
@@ -12,7 +15,7 @@ export function RecentPresets() {
     let alive = true;
     void fetchPrompts().then((result) => {
       if (!alive) return;
-      setItems(result.items.filter((item) => Boolean(item.featured_url)).slice(0, 8));
+      setItems(result.items.filter((item) => isModuleLive(item.tool) && Boolean(item.featured_url)).slice(0, 8));
     });
     return () => {
       alive = false;
@@ -41,8 +44,9 @@ export function RecentPresets() {
             aria-label={`Hap maroPreset ${item.code}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={item.featured_url!}
+            <StableImage
+              src={item.featured_url}
+              module={item.tool}
               alt=""
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"

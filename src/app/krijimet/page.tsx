@@ -1,5 +1,9 @@
 "use client";
 
+import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
+import { StableImage } from "@/components/app/StableImage";
+import { PreviewFallback } from "@/components/app/PreviewFallback";
+
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,9 +14,8 @@ import { useWorkspace } from "@/context/workspace";
 import { useToast } from "@/components/ui/Toast";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { getTool } from "@/lib/tools/registry";
-import { ToolIcon as ProductToolIcon } from "@/components/app/OptionIcon";
-import { toolIconSrc } from "@/lib/tools/iconMap";
-import { initials } from "@/lib/utils/format";
+import { ToolIcon as ProductIcon } from "@/components/app/OptionIcon";
+import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 import type { ImageCreation, Project } from "@/lib/types";
 import {
@@ -24,7 +27,6 @@ import {
   AudioLines,
   FileText,
   Image as ImageIcon,
-  Play,
 } from "lucide-react";
 
 type Row =
@@ -57,7 +59,8 @@ const SIZE_PRESETS = [148, 190, 240, 300];
 
 function ToolIcon({ toolId, media, className }: { toolId: string; media?: "image" | "audio" | "text"; className?: string }) {
   const cls = className ?? "h-4 w-4";
-  if (toolIconSrc(toolId)) return <ProductToolIcon toolId={toolId} className={cls} />;
+  const brand = getProductBrand(toolId);
+  if (brand && brand.id !== "maroFort") return <ProductIcon toolId={brand.id} className={cls} />;
   if (toolId === "website") return <Globe className={cls} />;
   if (media === "audio") return <AudioLines className={cls} />;
   if (media === "text") return <FileText className={cls} />;
@@ -97,7 +100,7 @@ function KrijimetInner() {
       id: p.id,
       title: p.name || p.businessName || "Website",
       toolId: "website",
-      toolName: getTool("website")!.name,
+      toolName: "maro Web",
       time: p.updatedAt,
       fort: Boolean(p.fort?.enabled),
       favourite: Boolean(p.favourite),
@@ -381,54 +384,12 @@ function AssetCard({ row, index, onOpen }: { row: Row; index: number; onOpen: ()
 
 function AssetThumb({ row }: { row: Row }) {
   if (row.kind === "project") {
-    return (
-      <div
-        className="grid h-full w-full place-items-center text-[28px] font-black text-white"
-        style={{ background: row.project.theme?.primaryColor ?? "#0f1419" }}
-      >
-        {initials(row.title)}
-      </div>
-    );
+    return <PreviewThumb project={row.project} height="100%" />;
   }
-  if (row.media === "image" && row.creation.urls[0]) {
-    return <CreationImage src={row.creation.urls[0]} />;
+  if (row.media === "image") {
+    return <StableImage src={row.creation.urls[0]} module={row.toolId} refreshKey={row.creation.storageRefs?.[0] ?? row.id} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />;
   }
-  return (
-    <div className="grid h-full w-full place-items-center text-ink-3">
-      {row.media === "audio" ? (
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-surface text-brand">
-          <Play className="h-5 w-5" />
-        </span>
-      ) : (
-        <FileText className="h-8 w-8" />
-      )}
-    </div>
-  );
-}
-
-function CreationImage({ src }: { src: string }) {
-  const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => setFailed(false), [src]);
-
-  if (failed) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-surface-2 px-4 text-center text-ink-3">
-        <ImageIcon className="h-7 w-7" />
-        <span className="text-[11.5px] font-medium">Imazhi nuk është më i disponueshëm</span>
-      </div>
-    );
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-    />
-  );
+  return <PreviewFallback module={row.media} />;
 }
 
 function RowMenu({ row }: { row: Row }) {

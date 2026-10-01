@@ -1,4 +1,5 @@
 import "server-only";
+import type { V1ImageModelConfiguration } from "./v1ImageModels";
 
 import { getSupabaseAdmin, getAppSettings } from "@/lib/supabase/server";
 import { isFeatureEnabled, FEATURE_PROMPT_COMPILER_V2 } from "@/lib/features/flags";
@@ -134,6 +135,8 @@ export async function loadToolEngineConfigs(): Promise<Map<EngineToolId, Registe
       map.set(cfg.toolId, {
         ...base,
         ...cfg,
+        status: base.functional ? cfg.status : "coming_soon",
+        usesFort: base.usesFort,
         legacyRegistryId: base.legacyRegistryId,
         functional: base.functional,
         comingSoon: base.comingSoon,
@@ -197,7 +200,7 @@ export async function listEngineToolsWithMeta(): Promise<
   });
 }
 
-export async function getEngineToolDetail(toolId: EngineToolId) {
+export async function getEngineToolDetail(toolId: EngineToolId, trustedImageModel?: V1ImageModelConfiguration) {
   const configs = await loadToolEngineConfigs();
   const tool = configs.get(toolId);
   if (!tool) return null;
@@ -213,7 +216,7 @@ export async function getEngineToolDetail(toolId: EngineToolId) {
       admin.from("system_prompt_versions").select("*").eq("tool_id", toolId).order("created_at", { ascending: false }),
       admin.from("prompt_layers").select("*").eq("tool_id", toolId).order("priority", { ascending: false }),
       admin.from("tool_input_fields").select("*").eq("tool_id", toolId).order("sort_order"),
-      admin.from("tool_model_configs").select("*").eq("tool_id", toolId).order("sort_order"),
+      trustedImageModel ? Promise.resolve({ data: [] }) : admin.from("tool_model_configs").select("*").eq("tool_id", toolId).order("sort_order"),
     ]);
     prompts = (pRes.data ?? []).map((r) => rowToSystemPrompt(r as Record<string, unknown>));
     layers = (lRes.data ?? []).map((r) => rowToLayer(r as Record<string, unknown>));
@@ -223,7 +226,17 @@ export async function getEngineToolDetail(toolId: EngineToolId) {
     /* ignore */
   }
 
-  if (models.length === 0) models = defaultModelsFromRegistry(toolId);
+  if (trustedImageModel) {
+    if (trustedImageModel.module !== toolId) throw new Error("image_configuration_mismatch");
+    const selected = trustedImageModel;
+    models = [{
+      id: selected.id, toolId, modelId: selected.providerModelId, displayName: selected.label,
+      provider: selected.provider, enabled: selected.enabled, isDefault: selected.isDefault,
+      isFallback: false, comingSoon: false, sortOrder: selected.order,
+      costMetadata: { customerCredits: selected.customerCredits, pricingStage: selected.pricingStage },
+      metadata: { logicalModel: selected.logicalModel, fingerprint: selected.fingerprint },
+    }];
+  } else if (models.length === 0) models = defaultModelsFromRegistry(toolId);
 
   const settings = await getAppSettings();
   const promptCompilerV2 = await isFeatureEnabled(FEATURE_PROMPT_COMPILER_V2);
@@ -258,9 +271,10 @@ export async function loadCompileContext(
     workspaceId?: string;
     presetPrompt?: string | null;
     adminInspection?: boolean;
+    trustedImageModel?: V1ImageModelConfiguration;
   }
 ): Promise<EngineCompileContext> {
-  const detail = await getEngineToolDetail(toolId);
+  const detail = await getEngineToolDetail(toolId, options?.trustedImageModel);
   if (!detail) throw new Error("Tool not found");
 
   const live = detail.prompts.find((p) => p.status === "live") ?? null;
@@ -270,7 +284,7 @@ export async function loadCompileContext(
   let brainSources: import("@/lib/workspaces/brainTypes").WorkspaceSource[] = [];
   let brainLoad = undefined;
 
-  if (options?.ownerUserId && options?.workspaceId) {
+  if (toolId !== "maro_logo" && options?.ownerUserId && options?.workspaceId) {
     brainLoad = await loadBrainContext({
       ownerUserId: options.ownerUserId,
       workspaceId: options.workspaceId,
@@ -282,7 +296,7 @@ export async function loadCompileContext(
 
   return {
     tool: detail.tool,
-    model: detail.tool.defaultModelId ?? detail.models.find((m) => m.isDefault)?.modelId ?? "",
+    model: options?.trustedImageModel?.providerModelId ?? detail.tool.defaultModelId ?? detail.models.find((m) => m.isDefault)?.modelId ?? "",
     models: detail.models,
     systemPrompt: live,
     draftPrompt: draft,
@@ -296,6 +310,7 @@ export async function loadCompileContext(
     brainLoad,
     presetPrompt: options?.presetPrompt ?? null,
     pricingOverrides: detail.pricingOverrides,
+    trustedImageModel: options?.trustedImageModel,
     promptCompilerV2: detail.promptCompilerV2,
   };
 }

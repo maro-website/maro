@@ -1,7 +1,9 @@
 "use client";
 
+import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import * as React from "react";
 import { getAccessToken } from "@/lib/supabase/client";
+import { DEFAULT_WIZARD_STATE } from "@/lib/marologo/defaults";
 
 export function EngineDryRunPanel({
   toolId,
@@ -13,15 +15,21 @@ export function EngineDryRunPanel({
   const [dryPrompt, setDryPrompt] = React.useState("Create a premium product photo on white background");
   const [ownerUserId, setOwnerUserId] = React.useState("");
   const [workspaceId, setWorkspaceId] = React.useState("");
-  const [model, setModel] = React.useState(defaultModel ?? "");
+  const isV1Image = toolId === "maro_imazh" || toolId === "maro_logo";
+  const [model, setModel] = React.useState(isV1Image ? "flare" : defaultModel ?? "");
+  const [useBrain, setUseBrain] = React.useState(false);
+  const [presetId, setPresetId] = React.useState("");
+  const [referenceJson, setReferenceJson] = React.useState("[]");
+  const [wizardJson, setWizardJson] = React.useState(JSON.stringify({ ...DEFAULT_WIZARD_STATE, brand: { ...DEFAULT_WIZARD_STATE.brand, name: "Example", description: "An independent design studio" } }, null, 2));
   const [selectionsJson, setSelectionsJson] = React.useState("{}");
   const [fortJson, setFortJson] = React.useState('{"enabled":false,"values":{}}');
   const [result, setResult] = React.useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
-    if (defaultModel) setModel(defaultModel);
-  }, [defaultModel]);
+    if (isV1Image) setModel("flare");
+    else if (defaultModel) setModel(defaultModel);
+  }, [defaultModel, isV1Image]);
 
   const run = async () => {
     setBusy(true);
@@ -30,9 +38,13 @@ export function EngineDryRunPanel({
     if (token) headers.Authorization = `Bearer ${token}`;
     let selections: Record<string, string> = {};
     let fort: { enabled: boolean; values: Record<string, unknown> } = { enabled: false, values: {} };
+    let logoWizard: unknown;
+    let referenceIds: string[] = [];
     try {
       selections = JSON.parse(selectionsJson) as Record<string, string>;
       fort = JSON.parse(fortJson) as typeof fort;
+      if (isV1Image) referenceIds = JSON.parse(referenceJson);
+      if (toolId === "maro_logo") logoWizard = JSON.parse(wizardJson);
     } catch {
       setResult({ error: "invalid_json" });
       setBusy(false);
@@ -48,9 +60,10 @@ export function EngineDryRunPanel({
         model: model || undefined,
         ownerUserId: ownerUserId || undefined,
         workspaceId: workspaceId || undefined,
-        useBrain: Boolean(workspaceId && ownerUserId),
+        useBrain: isV1Image ? toolId === "maro_imazh" && useBrain : Boolean(workspaceId && ownerUserId),
+        ...(isV1Image ? { logoWizard, referenceIds, presetId: presetId || undefined } : {}),
         selections,
-        fort,
+        fort: MARO_FORT_ENABLED ? fort : undefined,
       }),
     });
     setResult((await res.json()) as Record<string, unknown>);
@@ -74,8 +87,14 @@ export function EngineDryRunPanel({
           <label className="block text-[12px] md:col-span-2"><span className="text-ink-3">Workspace ID</span><input value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 text-[12px]" /></label>
         </div>
         <label className="block text-[12px]"><span className="text-ink-3">Selections JSON</span><textarea value={selectionsJson} onChange={(e) => setSelectionsJson(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono text-[11px]" /></label>
-        <label className="block text-[12px]"><span className="text-ink-3">maroFort JSON</span><textarea value={fortJson} onChange={(e) => setFortJson(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono text-[11px]" /></label>
-        <button type="button" onClick={() => void run()} disabled={busy} className="rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50">
+        {isV1Image && <>
+          {toolId === "maro_imazh" && <label className="block text-[12px]"><input type="checkbox" checked={useBrain} onChange={(e) => setUseBrain(e.target.checked)} /> Include the owner's Brain context</label>}
+          <label className="block text-[12px]">Published preset ID<input value={presetId} onChange={(e) => setPresetId(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5" /></label>
+          <label className="block text-[12px]">Owned reference IDs (JSON)<textarea value={referenceJson} onChange={(e) => setReferenceJson(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5" /></label>
+          {toolId === "maro_logo" && <label className="block text-[12px]">Validated Logo Wizard answers (JSON)<textarea rows={8} value={wizardJson} onChange={(e) => setWizardJson(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono" /></label>}
+        </>}
+        {MARO_FORT_ENABLED && <label className="block text-[12px]"><span className="text-ink-3">maroFort JSON</span><textarea value={fortJson} onChange={(e) => setFortJson(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono text-[11px]" /></label>}
+        <button type="button" onClick={() => void run()} disabled={busy} className="rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-brand-fg disabled:opacity-50">
           Compile
         </button>
       </section>

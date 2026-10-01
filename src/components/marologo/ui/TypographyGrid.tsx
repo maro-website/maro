@@ -1,4 +1,6 @@
 "use client";
+import { useLogoContent } from "../LogoContent";
+import { logoOptions } from "@/lib/marologo/content";
 
 import { cn } from "@/lib/utils/cn";
 import { Check } from "lucide-react";
@@ -12,11 +14,12 @@ export function TypographyGrid({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const content = useLogoContent();
   return (
     <div className="grid grid-cols-2 gap-[20px] sm:grid-cols-3">
-      {TYPOGRAPHY_OPTIONS.map((opt) => {
+      {logoOptions(content, "look.typography").map((opt) => {
         const active = value === opt.value;
-        const fontClass = PREVIEW_FONT_CLASS[opt.previewFont] ?? "";
+        const fontClass = PREVIEW_FONT_CLASS[TYPOGRAPHY_OPTIONS.find((v) => v.value === opt.value)!.previewFont] ?? "";
         return (
           <button
             key={opt.value}
@@ -32,7 +35,7 @@ export function TypographyGrid({
               {active && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
             <span className={cn("text-[22px] font-semibold text-ink", fontClass)}>maro</span>
-            <span className={cn("text-center text-[12px] font-medium", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
+            <span className={cn("text-center text-[12px] font-medium", active ? "text-ink" : "text-ink-2")}>
               {opt.label}
             </span>
           </button>

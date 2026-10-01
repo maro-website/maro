@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import {
   hasElevenKey,
   textToSpeech,
@@ -44,6 +45,9 @@ function bearer(req: Request): string | null {
 }
 
 export async function POST(req: Request) {
+  const unavailable = denyUnavailableGeneration("audio");
+  if (unavailable) return unavailable;
+
   if (!hasElevenKey()) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }

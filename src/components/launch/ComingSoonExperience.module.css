@@ -1,0 +1,329 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+  color: var(--maro-color-text-primary);
+  background: var(--maro-color-bg-canvas);
+}
+
+.symbolField {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.symbolPiece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16rem;
+  height: 16rem;
+  opacity: 0.05;
+  color: var(--maro-color-accent);
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+  user-select: none;
+  will-change: transform;
+}
+
+.symbolPiece:active {
+  cursor: grabbing;
+}
+
+.symbolPiece svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: currentColor;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: clamp(8rem, 22vh, 13rem) 1.25rem 3rem;
+  pointer-events: none;
+}
+
+.title {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.12em;
+  margin: 0;
+  color: var(--maro-color-text-primary);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: clamp(3.25rem, 4.6vw, 5rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+}
+
+.title img {
+  display: block;
+  width: auto;
+  height: 0.7em;
+  transform: translateY(0.035em);
+}
+
+.waitlist,
+.success {
+  width: min(73rem, calc(100vw - 2.5rem));
+  margin-top: clamp(9rem, 21vh, 13rem);
+  pointer-events: auto;
+}
+
+.emailBox,
+.success {
+  min-height: clamp(6rem, 11vh, 7rem);
+  border-radius: var(--maro-radius-12);
+  background: var(--maro-color-bg-surface);
+}
+
+.emailBox {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1.25rem 2.5rem;
+}
+
+.emailBox[data-invalid] {
+  outline: 1px solid var(--maro-color-danger);
+  outline-offset: 0;
+}
+
+.emailBox input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--maro-color-text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: clamp(1.125rem, 1.55vw, 1.5rem);
+  font-weight: var(--maro-font-weight-regular);
+  letter-spacing: var(--maro-tracking-body);
+}
+
+.emailBox input::placeholder {
+  color: var(--maro-color-text-disabled);
+  opacity: 1;
+}
+
+.emailBox input:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.emailBox button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  min-width: 7.5rem;
+  flex: 0 0 auto;
+  padding-inline: 1.25rem;
+  border: 0;
+  border-radius: var(--maro-radius-12);
+  color: var(--generate-fg);
+  background: var(--generate-bg);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: var(--maro-font-weight-bold);
+  letter-spacing: var(--maro-tracking-brand);
+  cursor: pointer;
+  transition: opacity var(--maro-duration-fast) var(--maro-ease-standard);
+}
+
+.emailBox button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.emailBox button:focus-visible {
+  outline: 2px solid var(--maro-color-border-focus);
+  outline-offset: 3px;
+}
+
+.emailBox button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.generateIcon {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  background: currentColor;
+  -webkit-mask: url("/icons/generate.svg") center / contain no-repeat;
+  mask: url("/icons/generate.svg") center / contain no-repeat;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 1rem;
+  color: var(--maro-color-text-primary);
+  font-size: 0.875rem;
+  font-weight: var(--maro-font-weight-semibold);
+  line-height: 1.45;
+  letter-spacing: var(--maro-tracking-body);
+  cursor: pointer;
+}
+
+.consent input {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  margin: 0.05rem 0 0;
+  accent-color: var(--maro-color-accent);
+  cursor: pointer;
+}
+
+.formMessage {
+  min-height: 1.25rem;
+  margin: 0.35rem 0 0 1.875rem;
+  color: var(--maro-color-danger);
+  font-size: 0.75rem;
+  font-weight: var(--maro-font-weight-medium);
+}
+
+.honeypot {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.success strong {
+  font-size: 1.25rem;
+  font-weight: var(--maro-font-weight-bold);
+  letter-spacing: var(--maro-tracking-brand);
+}
+
+.success span {
+  color: var(--maro-color-text-secondary);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .content {
+    justify-content: flex-start;
+    padding: 22vh 1rem 2rem;
+  }
+
+  .title {
+    font-size: clamp(2.8rem, 14vw, 4rem);
+  }
+
+  .waitlist,
+  .success {
+    width: min(100%, 32rem);
+    margin-top: clamp(5rem, 12vh, 7rem);
+  }
+
+  .emailBox,
+  .success {
+    min-height: 5.5rem;
+  }
+
+  .emailBox {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .emailBox input {
+    font-size: 0.95rem;
+  }
+
+  .emailBox button {
+    min-width: 6.75rem;
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .generateIcon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .consent {
+    gap: 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .consent input {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .formMessage {
+    margin-left: 1.625rem;
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .emailBox button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .emailBox button {
+    min-width: 2.75rem;
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (max-height: 650px) {
+  .content {
+    padding-top: 16vh;
+  }
+
+  .waitlist,
+  .success {
+    margin-top: 15vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .symbolPiece {
+    will-change: auto;
+  }
+
+  .emailBox button {
+    transition: none;
+  }
+}

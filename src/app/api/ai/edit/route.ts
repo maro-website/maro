@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import { AI_MODEL, callClaudeJSON, hasAiKey } from "@/lib/ai/anthropic";
 import { buildEditSystem, buildEditUser } from "@/lib/ai/prompts";
 import type { AiEditRequest, AiEditResponse } from "@/lib/ai/types";
@@ -22,6 +23,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 900;
 
 export async function POST(req: Request) {
+  const unavailable = denyUnavailableGeneration("web");
+  if (unavailable) return unavailable;
+
   if (!hasAiKey()) {
     return NextResponse.json({ error: "no-key", fallback: true }, { status: 503 });
   }

@@ -27,6 +27,23 @@ export interface EmailChangeDelivery {
   tokenHash: string;
 }
 
+/** A secure change can include both inbox confirmations in one hook request. */
+export function resolveEmailChangeDeliveries(payload: SupabaseAuthHookPayload): EmailChangeDelivery[] {
+  const currentEmail = payload.user.email?.trim();
+  const newEmail = payload.user.new_email?.trim();
+  const currentHash = payload.email_data.token_hash_new?.trim();
+  const newHash = payload.email_data.token_hash?.trim();
+  if (currentHash && newHash) {
+    if (!currentEmail || !newEmail) return [];
+    return [
+      { recipient: currentEmail, recipientRole: "current", tokenHash: currentHash },
+      { recipient: newEmail, recipientRole: "new", tokenHash: newHash },
+    ];
+  }
+  const delivery = resolveEmailChangeDelivery(payload);
+  return delivery ? [delivery] : [];
+}
+
 function hasSecureEmailChangeTokens(data: SupabaseAuthHookEmailData): boolean {
   return Boolean(data.token_hash_new || data.token_new);
 }

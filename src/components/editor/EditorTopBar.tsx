@@ -9,7 +9,6 @@ import { useEditor, type Device } from "@/context/editor";
 import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/components/ui/Toast";
 import {
-  type LucideIcon,
   ArrowLeft,
   Undo2,
   Redo2,
@@ -24,7 +23,7 @@ import {
   Save,
 } from "lucide-react";
 
-const DEVICES: { key: Device; icon: LucideIcon; label: string }[] = [
+const DEVICES: { key: Device; icon: React.ElementType; label: string }[] = [
   { key: "desktop", icon: Monitor, label: "Desktop" },
   { key: "tablet", icon: Tablet, label: "Tablet" },
   { key: "mobile", icon: Smartphone, label: "Mobile" },

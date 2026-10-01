@@ -187,7 +187,7 @@ const WEB_SCHEMA: FortModuleSchema = {
           id: "primaryColor",
           type: "color",
           label: "Ngjyra kryesore",
-          default: "#00FF72",
+          default: "#253FDA",
           mapsTo: "primaryColor",
           briefSection: "creative",
           priority: 35,

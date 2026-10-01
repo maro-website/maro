@@ -1,24 +1,22 @@
 "use client";
 
 import * as React from "react";
+import { readLogoDraft, saveLogoDraft } from "@/lib/marologo/draft";
+import { LogoContentContext } from "./LogoContent";
+import { validateLogoContent, logoInitialState, logoContentAnswerErrors, type LogoContent } from "@/lib/marologo/content";
 import { useRouter } from "next/navigation";
 import { Eraser, Sparkles } from "lucide-react";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
-import { useSettings } from "@/lib/hooks/useSettings";
-import { getTool, toolSelectionCost } from "@/lib/tools/registry";
+import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
 import { generateImages, ImageGenerationError, InsufficientCreditsError } from "@/lib/services/imageService";
-import { buildGenerationRequest, buildGenerationSelections } from "@/lib/marologo/generation";
+import { buildGenerationRequest } from "@/lib/marologo/generation";
+import { V1_IMAGE_ERRORS } from "@/lib/services/imageErrors";
 import { INITIAL_APP_STATE, DEFAULT_WIZARD_STATE } from "@/lib/marologo/defaults";
 import { PRESENTATION_LABELS } from "@/lib/marologo/constants";
 import { validateStep } from "@/lib/marologo/validation";
 import type { MaroLogoAppState, MaroLogoWizardState, PresentationMode, UploadedReference, WizardPhase, WizardStep } from "@/lib/marologo/types";
-import { defaultFortValues } from "@/lib/fort/schema";
-import { isFortModuleEnabled, resolveFortConfig } from "@/lib/fort/config";
-import type { FortValue } from "@/lib/fort/types";
-import { loadFortValues, saveFortValues } from "@/lib/tools/selections";
-import { FortPanel } from "@/components/fort/FortPanel";
 import { useToast } from "@/components/ui/Toast";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
@@ -36,6 +34,7 @@ import { StepDirection } from "./steps/StepDirection";
 import { StepPresentation } from "./steps/StepPresentation";
 
 type Action =
+  | { type: "RESTORE"; state: MaroLogoAppState }
   | { type: "SET_PHASE"; phase: WizardPhase }
   | { type: "SET_HIGHEST"; step: WizardStep }
   | { type: "PATCH_BRAND"; patch: Partial<MaroLogoWizardState["brand"]> }
@@ -45,10 +44,12 @@ type Action =
   | { type: "PATCH_PRESENTATION"; mode: PresentationMode }
   | { type: "SET_REFERENCES"; references: UploadedReference[] }
   | { type: "APPLY_PRESET"; config: LogoPresetConfig }
+  | { type: "CONTENT_DEFAULTS"; wizard: MaroLogoWizardState }
   | { type: "RESET" };
 
 function reducer(state: MaroLogoAppState, action: Action): MaroLogoAppState {
   switch (action.type) {
+    case "RESTORE": return action.state;
     case "SET_PHASE": return { ...state, phase: action.phase };
     case "SET_HIGHEST": return { ...state, highestStepReached: Math.max(state.highestStepReached, action.step) as WizardStep };
     case "PATCH_BRAND": return { ...state, wizard: { ...state.wizard, brand: { ...state.wizard.brand, ...action.patch } } };
@@ -76,12 +77,14 @@ function reducer(state: MaroLogoAppState, action: Action): MaroLogoAppState {
         },
       };
     }
+    case "CONTENT_DEFAULTS": return { ...state, wizard: action.wizard };
     case "RESET": return { ...INITIAL_APP_STATE, wizard: structuredClone(DEFAULT_WIZARD_STATE) };
     default: return state;
   }
 }
 
 const IMG_ERRORS: Record<string, string> = {
+  ...V1_IMAGE_ERRORS,
   "no-key": "Gjenerimi nuk është i disponueshëm.",
   "ai-failed": "Gjenerimi dështoi. Provo përsëri.",
   empty: "Modeli nuk ktheu imazh.",
@@ -91,37 +94,66 @@ const IMG_ERRORS: Record<string, string> = {
 
 export function MaroLogoWizard() {
   const router = useRouter();
+  const [content, setContent] = React.useState<LogoContent | null>(null);
+  const [contentError, setContentError] = React.useState(false);
+  React.useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/ai/image/logo-content", { cache: "no-store", signal: controller.signal }).then(async (r) => {
+      if (!r.ok) throw new Error("unavailable");
+      const config = validateLogoContent((await r.json()).content);
+      setContent(config);
+    }).catch(() => { if (!controller.signal.aborted) setContentError(true); });
+    return () => controller.abort();
+  }, []);
   const [state, dispatch] = React.useReducer(reducer, INITIAL_APP_STATE);
   const [stepErrors, setStepErrors] = React.useState<Record<string, string>>({});
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
   const [resultCreation, setResultCreation] = React.useState<ImageCreation | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [fortActive, setFortActive] = React.useState(false);
-  const [fortModalOpen, setFortModalOpen] = React.useState(false);
-  const [fortValues, setFortValues] = React.useState<Record<string, FortValue>>({});
   const [presetAttach, setPresetAttach] = React.useState<PromptAttach | null>(null);
   const generatingRef = React.useRef(false);
   const pendingGenerateRef = React.useRef(false);
 
-  const { user, credits, hasFort, spendCredits, addCreation, activeWorkspaceScope } = useMaro();
+  const { ready, user, credits, spendCredits, addCreation, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
-  const { pricing, fortConfig } = useSettings(Boolean(user));
   const { toast } = useToast();
-  const tool = getTool("logo")!;
-  const selections = buildGenerationSelections(state.wizard);
-  const cost = toolSelectionCost(tool, selections, pricing.options);
-  const fortAvailable = isFortModuleEnabled(fortConfig, "logo");
-  const fortResolved = resolveFortConfig(fortConfig);
-
+  const model = useV1ImageModels("logo").find((entry) => entry.key === "flare" && entry.enabled);
+  const cost = model?.customerCredits ?? 0;
+  const draftKey = `${user?.id ?? "guest"}:${workspaceId}`;
+  const [loadedDraftKey, setLoadedDraftKey] = React.useState<string | null>(null);
+  const restoredPreset = React.useRef(false);
+  const previousDraftKey = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const defaults = defaultFortValues("logo", fortConfig) as Record<string, FortValue>;
-    const saved = loadFortValues("logo") as Record<string, FortValue>;
-    setFortValues({ ...defaults, ...saved });
-  }, [fortConfig]);
-
+    if (!content || !ready || (user && !activeWorkspace)) return;
+    let active = true;
+    const guestKey = previousDraftKey.current?.startsWith("guest:") && user ? previousDraftKey.current : null;
+    void readLogoDraft(draftKey).then(async (saved) => {
+      const draft = saved ?? (guestKey ? await readLogoDraft(guestKey) : null);
+      if (!active) return;
+      if (draft?.state?.wizard?.brand && draft.state.wizard.look && draft.state.wizard.logo) {
+        dispatch({ type: "RESTORE", state: { ...draft.state, phase: draft.state.phase === "generating" ? 3 : draft.state.phase } });
+        setPresetAttach(draft.preset);
+      } else {
+        dispatch({ type: "RESET" });
+        dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) });
+        setPresetAttach(null);
+      }
+      if (guestKey && draft) { void saveLogoDraft(draftKey, draft); void saveLogoDraft(guestKey, null); }
+      previousDraftKey.current = draftKey;
+      restoredPreset.current = false;
+      setLoadedDraftKey(draftKey);
+    });
+    return () => { active = false; };
+  }, [content, ready, draftKey, user?.id, activeWorkspace?.id]);
   React.useEffect(() => {
+    if (loadedDraftKey !== draftKey || isGenerating || state.phase === "generating" || state.phase === "result") return;
+    void saveLogoDraft(draftKey, { state, preset: presetAttach });
+  }, [loadedDraftKey, draftKey, state, presetAttach, isGenerating]);
+  React.useEffect(() => {
+    if (!content || loadedDraftKey !== draftKey || restoredPreset.current) return;
+    restoredPreset.current = true;
     try {
       const raw = sessionStorage.getItem(PROMPT_ATTACH_KEY);
       if (!raw) return;
@@ -129,11 +161,12 @@ export function MaroLogoWizard() {
       sessionStorage.removeItem(PROMPT_ATTACH_KEY);
       if (parsed?.tool !== "logo" || parsed.targetTool !== "logo") return;
       setPresetAttach(parsed);
-      dispatch({ type: "APPLY_PRESET", config: parsed.config as LogoPresetConfig });
+      const config = parsed.config as LogoPresetConfig;
+      dispatch({ type: "APPLY_PRESET", config: { ...config, creativeDirection: content["logo.symbolMeaning"].enabled ? config.creativeDirection : undefined } });
     } catch {
       sessionStorage.removeItem(PROMPT_ATTACH_KEY);
     }
-  }, []);
+  }, [content, loadedDraftKey, draftKey]);
 
   const goToStep = (step: WizardStep) => {
     if (step > state.highestStepReached) return;
@@ -143,6 +176,8 @@ export function MaroLogoWizard() {
 
   const advanceFromStep = (step: 1 | 2) => {
     const result = validateStep(step, state.wizard);
+    if (content) Object.assign(result.errors, Object.fromEntries(Object.entries(logoContentAnswerErrors(state.wizard, content)).filter(([key]) => step === 1 ? ["audience", "slogan"].includes(key) : !["audience", "slogan"].includes(key))));
+    result.valid = !Object.keys(result.errors).length;
     setStepErrors(result.errors);
     if (!result.valid) return;
     const next = (step + 1) as WizardStep;
@@ -154,16 +189,20 @@ export function MaroLogoWizard() {
   const runGenerate = React.useCallback(async () => {
     if (generatingRef.current) return;
     const validation = validateStep(3, state.wizard);
+    if (!content) return;
+    Object.assign(validation.errors, logoContentAnswerErrors(state.wizard, content));
+    validation.valid = !Object.keys(validation.errors).length;
     setStepErrors(validation.errors);
-    if (!validation.valid) return;
+    if (!validation.valid) { dispatch({ type: "SET_PHASE", phase: validation.errors.audience || validation.errors.slogan ? 1 : 2 }); return; }
     if (!user) { pendingGenerateRef.current = true; setShowAuth(true); return; }
+    if (!model) { toast("Konfigurimi i gjenerimit nuk është i disponueshëm.", "error"); return; }
     if (credits < cost) { setShowBuy(true); return; }
 
     generatingRef.current = true;
     setIsGenerating(true);
     dispatch({ type: "SET_PHASE", phase: "generating" });
     const now = new Date().toISOString();
-    const fort = fortAvailable && fortActive && hasFort ? { enabled: true, values: fortValues } : undefined;
+    const fort = undefined;
 
     try {
       const canonicalReferences = await Promise.all(
@@ -171,16 +210,23 @@ export function MaroLogoWizard() {
           (await uploadImageReferenceDataUrl(reference.dataUrl, `maro-logo-reference-${index + 1}`)).storageRef
         )
       );
-      const res = await generateImages(buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences, presetAttach?.id));
+      const res = await generateImages({
+        ...buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences, presetAttach?.id),
+        workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
+      });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"), serverId: res.generationId, storageRefs: res.storageRefs, workspaceId,
         toolId: "logo", prompt: state.wizard.brand.name.trim() || "Logo", urls: res.images,
-        formatLabel: PRESENTATION_LABELS[state.wizard.presentation.mode], modelLabel: "GPT Image 2", speedLabel: "Normal",
+        formatLabel: PRESENTATION_LABELS[state.wizard.presentation.mode], modelLabel: model.label, speedLabel: "Normal",
         fort: Boolean(fort), createdAt: now,
       };
       addCreation(creation);
       setResultCreation(creation);
+      await saveLogoDraft(draftKey, null);
+      dispatch({ type: "RESET" });
+      dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) });
+      setPresetAttach(null);
       dispatch({ type: "SET_PHASE", phase: "result" });
     } catch (err) {
       dispatch({ type: "SET_PHASE", phase: 3 });
@@ -191,16 +237,20 @@ export function MaroLogoWizard() {
       generatingRef.current = false;
       setIsGenerating(false);
     }
-  }, [state.wizard, state.references, user, credits, cost, fortAvailable, fortActive, hasFort, fortValues, presetAttach, spendCredits, addCreation, workspaceId, toast]);
+  }, [draftKey, content, state.wizard, state.references, user, credits, cost, model, presetAttach, spendCredits, addCreation, workspaceId, toast]);
 
-  const onAuthDone = () => { setShowAuth(false); if (pendingGenerateRef.current) { pendingGenerateRef.current = false; setTimeout(() => void runGenerate(), 400); } };
-  const openFort = () => { if (!hasFort) { router.push("/pricing"); return; } setFortModalOpen(true); };
-  const saveFort = () => { saveFortValues("logo", fortValues); setFortActive(true); setFortModalOpen(false); };
-  const clearFort = () => { const defaults = defaultFortValues("logo", fortConfig) as Record<string, FortValue>; setFortValues(defaults); saveFortValues("logo", defaults); setFortActive(false); setFortModalOpen(false); };
-  const restart = () => { setResultCreation(null); dispatch({ type: "RESET" }); };
+  React.useEffect(() => {
+    if (user && loadedDraftKey === draftKey && pendingGenerateRef.current) {
+      pendingGenerateRef.current = false;
+      void runGenerate();
+    }
+  }, [user, loadedDraftKey, draftKey, runGenerate]);
+  const onAuthDone = () => setShowAuth(false);
+  const restart = () => { setResultCreation(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
 
+  if (!content || loadedDraftKey !== draftKey) return <p className="p-8 text-ink-3">{contentError ? "Konfigurimi nuk është në dispozicion. Rifresko faqen." : "Duke ngarkuar…"}</p>;
   return (
-    <div className="marologo-page flex-1 overflow-y-auto">
+    <LogoContentContext.Provider value={content}><div className="marologo-page flex-1 overflow-y-auto">
       {presetAttach && state.phase !== "generating" && state.phase !== "result" && (
         <div className="mx-auto mt-4 flex w-[min(1040px,calc(100%-32px))] items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-2">
           <span><strong className="text-ink">{presetAttach.title ?? presetAttach.code}</strong> po përdoret si drejtim fillestar. Çdo zgjedhje që ndryshon ti ka përparësi.</span>
@@ -210,21 +260,14 @@ export function MaroLogoWizard() {
       {state.phase === "intro" && <MaroLogoIntro onStart={() => dispatch({ type: "SET_PHASE", phase: 1 })} />}
       {state.phase === 1 && <StepBrand step={1} highestStepReached={state.highestStepReached} wizard={state.wizard} errors={stepErrors} onChange={(patch) => dispatch({ type: "PATCH_BRAND", patch })} onNext={() => advanceFromStep(1)} onStepClick={goToStep} />}
       {state.phase === 2 && <StepDirection step={2} highestStepReached={state.highestStepReached} wizard={state.wizard} references={state.references} errors={stepErrors} onChangeTraits={(traits) => dispatch({ type: "PATCH_DIRECTION", patch: { traits } })} onChangeLogo={(patch) => dispatch({ type: "PATCH_LOGO", patch })} onChangeLook={(patch) => dispatch({ type: "PATCH_LOOK", patch })} onChangeReferences={(references) => dispatch({ type: "SET_REFERENCES", references })} onMaxTraits={() => toast("Zgjedh maksimum 3 tipare.", "info")} onToast={(message) => toast(message, "error")} onNext={() => advanceFromStep(2)} onStepClick={goToStep} />}
-      {state.phase === 3 && <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={cost} generating={isGenerating} fortAvailable={fortAvailable} fortActive={fortActive} hasFort={hasFort} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onOpenFort={openFort} onGenerate={() => void runGenerate()} onStepClick={goToStep} />}
+      {state.phase === 3 && <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} />}
       {state.phase === "generating" && <MaroLogoGenerating />}
       {state.phase === "result" && resultCreation && <MaroLogoResult creation={resultCreation} onRestart={restart} />}
 
       <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm"><AuthPanel onDone={onAuthDone} /></Modal>
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
 
-      <Modal open={fortModalOpen} onClose={() => setFortModalOpen(false)} size="lg" className="max-w-2xl overflow-hidden bg-canvas" hideClose>
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-surface"><Sparkles className="h-5 w-5" /></span><div><div className="text-[16px] font-extrabold text-ink">{fortResolved.label}</div><div className="text-[12.5px] text-ink-3">Kontrolle eksperte për këtë identitet</div></div></div>
-          <button type="button" onClick={clearFort} className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-ink-2"><Eraser className="h-3.5 w-3.5" />Pastroje</button>
-        </div>
-        <div className="scroll-thin max-h-[60vh] overflow-y-auto px-5 pb-4"><FortPanel module="logo" config={fortConfig} values={fortValues} onChange={(id, value) => setFortValues((current) => ({ ...current, [id]: value }))} /></div>
-        <div className="flex gap-2 px-5 py-4"><button type="button" onClick={() => setFortModalOpen(false)} className="flex-1 rounded-xl bg-surface px-4 py-3 text-[14px] font-semibold text-ink">Anulo</button><button type="button" onClick={saveFort} className="flex-1 rounded-xl bg-brand px-4 py-3 text-[14px] font-semibold text-brand-fg">Apliko maroFort</button></div>
-      </Modal>
-    </div>
+
+    </div></LogoContentContext.Provider>
   );
 }

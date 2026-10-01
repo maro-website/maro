@@ -1,5 +1,5 @@
 "use client";
-
+import { MODULE_AVAILABILITY } from "@/lib/modules/availability";
 import { ProductLogo } from "@/components/ui/ProductLogo";
 
 export function MarketingBanner() {
@@ -11,7 +11,7 @@ export function MarketingBanner() {
         </h2>
         <p className="text-[16px] text-ink-2">Prej produktit te kampanja.</p>
         <span className="inline-flex h-11 w-fit items-center rounded-maro12 bg-surface-2 px-5 text-[14px] font-semibold tracking-brand text-ink-3">
-          Së shpejti
+          Së shpejti · {MODULE_AVAILABILITY.marketing.version}
         </span>
       </div>
       <div className="relative flex min-h-[220px] flex-1 items-end justify-center overflow-hidden px-6 pb-0 lg:min-h-[var(--hub-banner-min-h)] lg:justify-end lg:p-0">

@@ -10,6 +10,7 @@ export type CostSource =
   | "fallback_maximum";
 
 export interface RecordProviderCostInput {
+  imageEstimate?: import("./v1ImageCost").V1ImageCostEstimate;
   generationId?: string | null;
   jobId?: string | null;
   toolId?: string | null;
@@ -35,6 +36,14 @@ function resolveCost(input: RecordProviderCostInput): {
       estimatedUsd: input.providerReportedUsd,
       costSource: "provider_reported",
       reconciliationStatus: "provider_reported",
+    };
+  }
+
+  if (input.imageEstimate) {
+    return {
+      estimatedUsd: input.imageEstimate.usd ?? input.fallbackMaximumUsd ?? 0,
+      costSource: input.imageEstimate.usd === null ? "fallback_maximum" : "usage_calculated",
+      reconciliationStatus: "estimated",
     };
   }
 

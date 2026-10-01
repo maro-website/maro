@@ -44,8 +44,8 @@
   /* Brand */
   --brand: var(--accent);
   --brand-hover: var(--accent-hover);
-  --brand-soft: color-mix(in srgb, var(--accent) 10%, transparent);
-  --brand-fg: var(--maro-color-text-inverse);
+  --brand-soft: var(--maro-color-accent-subtle);
+  --brand-fg: var(--maro-color-text-on-accent);
   --accent-teal: var(--accent);
   --accent-soft: var(--brand-soft);
   --accent-teal-soft: var(--brand-soft);
@@ -57,13 +57,13 @@
   --success: var(--maro-color-success);
   --warning: var(--maro-color-warning);
   --danger: var(--maro-color-danger);
-  --info: var(--text-secondary);
+  --info: var(--maro-color-info);
 
   /* Overlays */
   --overlay: var(--maro-color-bg-overlay);
   --scrim: rgb(0 0 0 / 72%);
   --dim: rgb(0 0 0 / 40%);
-  --on-scrim: var(--maro-color-text-inverse);
+  --on-scrim: var(--maro-color-text-on-scrim);
 
   /* Logo loader monochrome */
   --c-blue: var(--accent);
@@ -89,7 +89,7 @@
   --dock-btn: var(--maro-color-bg-inverse);
   --fort-pill: var(--maro-red);
   --dock-tool-btn: var(--accent);
-  --dock-tool-fg: var(--maro-color-text-inverse);
+  --dock-tool-fg: var(--maro-color-text-on-accent);
   --dock-muted: var(--text-muted);
   --dock-pill-bg: var(--maro-color-bg-inverse);
   --dock-pill-fg: var(--maro-color-text-inverse);
@@ -104,33 +104,33 @@
   --meta-pill-border: transparent;
 
   /* Menus — no default stroke */
-  --menu-bg: var(--surface-01);
+  --menu-bg: var(--maro-color-bg-surface-raised);
   --menu-fg: var(--text-primary);
   --menu-muted: var(--text-muted);
   --menu-divider: var(--border-subtle);
   --menu-row-hover: var(--surface-02);
   --menu-chip-bg: var(--surface-02);
   --menu-border: transparent;
-  --menu-logout-bg: var(--danger);
-  --menu-logout-fg: var(--maro-color-text-inverse);
+  --menu-logout-bg: var(--maro-color-bg-danger);
+  --menu-logout-fg: var(--maro-color-text-on-danger);
 
   /* Top bar */
   --topbar-credits-bg: var(--surface-01);
-  --topbar-credits-fg: var(--accent);
+  --topbar-credits-fg: var(--maro-color-text-brand);
   --topbar-credits-muted: var(--text-muted);
   --topbar-wallet-bg: var(--surface-01);
   --topbar-wallet-fg: var(--text-primary);
 
   /* Product rail — active nav uses Surface 01 + accent text */
-  --card-active-bg: var(--surface-01);
-  --card-active-fg: var(--accent);
+  --card-active-bg: var(--maro-color-accent-subtle);
+  --card-active-fg: var(--maro-color-text-brand);
   --card-idle-bg: transparent;
   --card-idle-fg: var(--text-primary);
   --card-idle-border: transparent;
   --card-hover-bg: var(--surface-hover);
   --card-locked-bg: var(--surface-02);
   --card-locked-fg: var(--text-muted);
-  --card-active-ring: transparent;
+  --card-active-ring: var(--maro-color-border-focus);
 
   /* Hub / chat / footer */
   --hub-tool: var(--text-primary);
@@ -162,13 +162,21 @@
   --footer-fg: var(--text-primary);
   --footer-muted: var(--text-secondary);
 
-  /* Z-index scale */
-  --maro-z-base: 0;
-  --maro-z-sticky: 10;
-  --maro-z-dropdown: 20;
-  --maro-z-overlay: 30;
-  --maro-z-dialog: 40;
-  --maro-z-toast: 50;
+}
+
+/* Legacy hover utilities share Mshelt's semantic interaction tone. Qelt stays unchanged. */
+:root[data-theme="mshelt"] :is(.hover\:bg-surface, .hover\:bg-surface-2, .hover\:bg-surface-02, .hover\:bg-menu-row):hover:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([aria-current="page"]):not(.text-danger) {
+  background-color: var(--maro-color-bg-surface-hover);
+}
+
+:root[data-theme="mshelt"] :is(.hover\:bg-surface, .hover\:bg-surface-2, .hover\:bg-surface-02, .hover\:bg-surface-hover, .hover\:bg-menu-row):active:not(:disabled):not([aria-disabled="true"]):not([aria-selected="true"]):not([aria-pressed="true"]):not([aria-current="page"]):not(.text-danger) {
+  background-color: var(--maro-color-bg-surface-active);
+}
+
+/* Existing neutral selections in menus and the navigation drawer remain stronger than hover. */
+:root[data-theme="mshelt"] .maro-menu button.bg-surface-2:not(:disabled):not(.hover\:bg-surface-hover),
+:root[data-theme="mshelt"] .bg-surface.text-brand[aria-current="page"] {
+  background-color: var(--maro-color-bg-surface-selected);
 }
 
 /* maroFort / maroPreset chips — approved gradient exceptions */
@@ -180,7 +188,7 @@
   padding: 0 var(--maro-space-4);
   border-radius: var(--maro-radius-12);
   background: var(--maro-gradient-fort);
-  color: #fff;
+  color: var(--maro-color-text-on-danger);
   font-size: var(--maro-font-size-14);
   font-weight: var(--maro-font-weight-semibold);
   letter-spacing: var(--maro-tracking-brand);
@@ -194,7 +202,7 @@
   padding: 0 var(--maro-space-4);
   border-radius: var(--maro-radius-12);
   background: var(--maro-gradient-preset);
-  color: #fff;
+  color: var(--maro-color-text-on-accent);
   font-size: var(--maro-font-size-14);
   font-weight: var(--maro-font-weight-semibold);
   letter-spacing: var(--maro-tracking-brand);
@@ -202,5 +210,5 @@
 
 .cta-gradient {
   background: var(--maro-gradient-cta);
-  color: #fff;
+  color: var(--maro-color-text-on-accent);
 }

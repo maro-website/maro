@@ -4,6 +4,7 @@
  */
 
 import { getTool, type ToolId } from "@/lib/tools/registry";
+import { isModuleLive, moduleAvailabilityFlags } from "@/lib/modules/availability";
 import type { EngineToolId, RegisteredEngineTool, RegistryToolId } from "./types";
 
 export interface EngineToolDefinition {
@@ -31,8 +32,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: true,
     usesFort: true,
     presetSupport: true,
-    functional: true,
-    comingSoon: false,
+    ...moduleAvailabilityFlags("imazh"),
     brainSections: ["brand", "target", "content", "goal"],
   },
   {
@@ -44,8 +44,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: false,
     usesFort: true,
     presetSupport: true,
-    functional: true,
-    comingSoon: false,
+    ...moduleAvailabilityFlags("logo"),
     brainSections: [],
   },
   {
@@ -57,8 +56,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: true,
     usesFort: true,
     presetSupport: true,
-    functional: true,
-    comingSoon: false,
+    ...moduleAvailabilityFlags("web"),
     brainSections: ["brand", "target", "goal", "market", "content"],
   },
   {
@@ -70,8 +68,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: false,
     usesFort: false,
     presetSupport: false,
-    functional: false,
-    comingSoon: true,
+    ...moduleAvailabilityFlags("filma"),
     brainSections: [],
   },
   {
@@ -83,8 +80,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: false,
     usesFort: false,
     presetSupport: false,
-    functional: false,
-    comingSoon: true,
+    ...moduleAvailabilityFlags("audio"),
     brainSections: [],
   },
   {
@@ -96,8 +92,7 @@ export const ENGINE_TOOL_DEFINITIONS: EngineToolDefinition[] = [
     usesBrain: true,
     usesFort: true,
     presetSupport: true,
-    functional: false,
-    comingSoon: true,
+    ...moduleAvailabilityFlags("marketing"),
     brainSections: ["brand", "target", "goal", "content"],
   },
 ];
@@ -141,11 +136,9 @@ export function toRegisteredEngineTool(
     registryToolId: def.registryToolId,
     legacyRegistryId: def.registryToolId,
     route: def.route,
-    status: def.functional ? "active" : "coming_soon",
     productionPipeline: "legacy",
     defaultModelId: registryTool?.settings.find((s) => s.id === "model")?.default ?? null,
     usesBrain: def.usesBrain,
-    usesFort: def.usesFort,
     presetSupport: def.presetSupport,
     brainMapping: {
       usesBrain: def.usesBrain,
@@ -153,9 +146,10 @@ export function toRegisteredEngineTool(
       prioritySections: def.brainSections.slice(0, 3),
     },
     metadata: {},
-    functional: def.functional,
-    comingSoon: def.comingSoon,
     ...overrides,
+    ...moduleAvailabilityFlags(def.id),
+    status: def.functional ? (overrides?.status ?? "active") : "coming_soon",
+    usesFort: def.usesFort && isModuleLive("fort"),
   };
 }
 
@@ -163,9 +157,8 @@ export function listRegisteredEngineTools(
   dbConfigs?: Map<EngineToolId, Partial<RegisteredEngineTool>>
 ): RegisteredEngineTool[] {
   return ENGINE_TOOL_DEFINITIONS.map((def) => {
-    const base = toRegisteredEngineTool(def);
     const db = dbConfigs?.get(def.id);
-    return db ? { ...base, ...db, brainMapping: { ...base.brainMapping, ...db.brainMapping } } : base;
+    return toRegisteredEngineTool(def, db);
   });
 }
 

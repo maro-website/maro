@@ -131,7 +131,7 @@ export const emptyDraft = (): WizardDraft => ({
   language: "sq",
   hasLogo: true,
   images: [],
-  primaryColor: "#00FF72",
+  primaryColor: "#253FDA",
   secondaryColor: "#111114",
   style: "auto",
   generationMode: "smart",

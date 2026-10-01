@@ -92,7 +92,7 @@ function testWebGenerateBody(overrides: Partial<AiGenerateRequest> = {}): AiGene
     goal: "Website",
     category: "generic",
     language: "sq",
-    primaryColor: "#00FF72",
+    primaryColor: "#253FDA",
     ...overrides,
   };
 }

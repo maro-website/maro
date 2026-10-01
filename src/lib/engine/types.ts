@@ -347,6 +347,7 @@ export interface CompiledGenerationBrief {
 }
 
 export interface EngineCompileContext {
+  trustedImageModel?: import("./v1ImageModels").V1ImageModelConfiguration;
   tool: RegisteredEngineTool;
   model: string;
   modelConfig?: ToolModelConfigRecord;

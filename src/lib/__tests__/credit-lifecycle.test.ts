@@ -11,6 +11,7 @@ const createJob = vi.fn();
 const countActiveJobs = vi.fn(async () => 0);
 
 const supabaseFrom = vi.fn();
+const supabaseRpc = vi.fn(async () => ({ data: "released", error: null }));
 
 vi.mock("@/lib/credits/ledger", () => ({
   releaseCreditReserve,
@@ -104,7 +105,7 @@ vi.mock("@/lib/supabase/server", () => ({
     plan: "free",
     generation_paused: false,
   })),
-  getSupabaseAdmin: vi.fn(() => ({ from: supabaseFrom })),
+  getSupabaseAdmin: vi.fn(() => ({ from: supabaseFrom, rpc: supabaseRpc })),
 }));
 
 function job(overrides: Partial<GenerationJob> = {}): GenerationJob {
@@ -139,6 +140,18 @@ function mockReq(): Request {
 }
 
 describe("P0 credit lifecycle hardening", () => {
+  it("records V1 image usage cost under the resolved OpenAI provider, without the legacy image fee", async () => {
+    const { completeGeneration } = await import("@/lib/generation/orchestrator");
+    const { buildImageObservation } = await import("@/lib/ai/imageObservation");
+    const { recordProviderCostEstimate } = await import("@/lib/cost/recordEstimate");
+    const observation = buildImageObservation({ model: "gpt-image-2.5-sunburst", prompt: "example", operation: "generate", referenceCount: 0,
+      startedAt: new Date().toISOString(), response: { usage: { input_tokens: 100, input_tokens_details: { text_tokens: 100, image_tokens: 0 }, output_tokens: 1000 } } });
+    await completeGeneration({ jobId: "image-job", userId: "user-1", module: "reklama", cost: 1,
+      model: observation.requestedModel, provider: "openai", imageCount: 1, imageObservation: observation });
+    expect(finalizeCreditCharge).toHaveBeenCalledWith("image-job");
+    expect(updateJob).toHaveBeenCalledWith("image-job", expect.objectContaining({ provider_cost_usd: 0.0305, input_tokens: 100, output_tokens: 1000, credits_charged: 1 }));
+    expect(recordProviderCostEstimate).toHaveBeenCalledWith(expect.objectContaining({ provider: "openai", modelId: "gpt-image-2.5-sunburst", imageEstimate: expect.objectContaining({ usd: 0.0305, source: "usage_calculated" }) }));
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     releaseCreditReserve.mockResolvedValue(true);
@@ -147,6 +160,30 @@ describe("P0 credit lifecycle hardening", () => {
     countActiveJobs.mockResolvedValue(0);
     findJobByIdempotency.mockResolvedValue(null);
     createJob.mockResolvedValue({ ok: true, job: job({ status: "pending", credits_reserved: 0 }) });
+  });
+
+  it.each([4001, 8000])("does not reapply the legacy 4000 cap to non-admin V1 Imazh (%i)", async (length) => {
+    const { getProfileCredits } = await import("@/lib/supabase/server");
+    vi.mocked(getProfileCredits).mockResolvedValueOnce({ credits: 100, email: "test@example.invalid", is_admin: false } as Awaited<ReturnType<typeof getProfileCredits>>);
+    const stale = { in: vi.fn(), lt: vi.fn(), eq: vi.fn(async () => ({ data: [], error: null })) };
+    stale.in.mockReturnValue(stale); stale.lt.mockReturnValue(stale);
+    supabaseFrom.mockReturnValue({ select: () => stale });
+    supabaseRpc.mockReset().mockResolvedValue({ data: "released", error: null });
+    supabaseRpc.mockResolvedValueOnce({ data: 2, error: null } as never);
+    supabaseRpc.mockResolvedValueOnce({ data: true, error: null } as never);
+    const { prepareGeneration } = await import("@/lib/generation/orchestrator");
+    await expect(prepareGeneration({ req: mockReq(), module: "reklama", cost: 5,
+      promptText: "a".repeat(length), metadata: { v1_durable: true } })).resolves.toBeDefined();
+    expect(reserveCredits).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the existing non-V1 prompt guard", async () => {
+    const { getProfileCredits } = await import("@/lib/supabase/server");
+    vi.mocked(getProfileCredits).mockResolvedValueOnce({ credits: 100, email: "test@example.invalid", is_admin: false } as Awaited<ReturnType<typeof getProfileCredits>>);
+    const { prepareGeneration } = await import("@/lib/generation/orchestrator");
+    await expect(prepareGeneration({ req: mockReq(), module: "reklama", cost: 5, promptText: "a".repeat(4001) }))
+      .rejects.toMatchObject({ code: "prompt_too_long" });
+    expect(reserveCredits).not.toHaveBeenCalled();
   });
 
   describe("Test 1 — stale cleanup releases reserved credits", () => {
@@ -190,13 +227,13 @@ describe("P0 credit lifecycle hardening", () => {
 
       await cleanupStaleJobs("user-1");
 
-      expect(releaseCreditReserve).toHaveBeenCalledTimes(1);
-      expect(releaseCreditReserve).toHaveBeenCalledWith("stale-job-1", "stale-stale-job-1");
-      expect(updateEq).toHaveBeenCalledWith("id", "stale-job-1");
+      expect(releaseCreditReserve).not.toHaveBeenCalled();
+      expect(supabaseRpc).toHaveBeenCalledExactlyOnceWith("reconcile_generation_job", { p_job_id: "stale-job-1", p_stale_minutes: 15 });
+      expect(updateEq).not.toHaveBeenCalled();
 
       selectChain.eq.mockResolvedValueOnce({ data: [], error: null });
       await cleanupStaleJobs("user-1");
-      expect(releaseCreditReserve).toHaveBeenCalledTimes(1);
+      expect(supabaseRpc).toHaveBeenCalledTimes(1);
     });
 
     it("does not release when job has no reservation", async () => {
@@ -213,7 +250,8 @@ describe("P0 credit lifecycle hardening", () => {
       await cleanupStaleJobs();
 
       expect(releaseCreditReserve).not.toHaveBeenCalled();
-      expect(updateEq).toHaveBeenCalledWith("id", "stale-job-2");
+      expect(updateEq).not.toHaveBeenCalled();
+      expect(supabaseRpc).toHaveBeenCalledWith("reconcile_generation_job", { p_job_id: "stale-job-2", p_stale_minutes: 15 });
     });
   });
 
@@ -226,7 +264,7 @@ describe("P0 credit lifecycle hardening", () => {
       await expect(
         prepareGeneration({
           req: mockReq(),
-          module: "web",
+          module: "reklama",
           cost: 5,
           idempotencyKey: "idem-1",
         })
@@ -251,7 +289,7 @@ describe("P0 credit lifecycle hardening", () => {
       await expect(
         prepareGeneration({
           req: mockReq(),
-          module: "web",
+          module: "reklama",
           cost: 5,
           idempotencyKey: "idem-race",
         })
@@ -263,6 +301,16 @@ describe("P0 credit lifecycle hardening", () => {
       expect(reserveCredits).not.toHaveBeenCalled();
     });
 
+    it("does not return database job-creation diagnostics to the customer", async () => {
+      createJob.mockResolvedValue({ ok: false, code: "job_create_failed", detail: "PRIVATE DATABASE DIAGNOSTIC" });
+      const { prepareGeneration, guardErrorResponse } = await import("@/lib/generation/orchestrator");
+      const error = await prepareGeneration({ req: mockReq(), module: "reklama", cost: 5 }).catch((e) => e);
+      const response = guardErrorResponse(error);
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({ error: "job_create_failed", message: "job_create_failed" });
+      expect(reserveCredits).not.toHaveBeenCalled();
+    });
+
     it("preserves completed duplicate semantics", async () => {
       findJobByIdempotency.mockResolvedValue(job({ status: "completed" }));
 
@@ -271,7 +319,7 @@ describe("P0 credit lifecycle hardening", () => {
       await expect(
         prepareGeneration({
           req: mockReq(),
-          module: "web",
+          module: "reklama",
           cost: 5,
           idempotencyKey: "idem-done",
         })
@@ -283,6 +331,24 @@ describe("P0 credit lifecycle hardening", () => {
   });
 
   describe("Test 3 — finalize idempotency", () => {
+    it("requires the corrected lifecycle migration before creating a durable V1 job", async () => {
+      const { prepareGeneration } = await import("@/lib/generation/orchestrator");
+      await expect(prepareGeneration({ req: mockReq(), module: "reklama", cost: 5, metadata: { v1_durable: true } })).rejects.toMatchObject({ code: "image_lifecycle_unavailable" });
+      expect(createJob).not.toHaveBeenCalled(); expect(reserveCredits).not.toHaveBeenCalled();
+    });
+    it("false finalization is an error, not a completed generation", async () => {
+      finalizeCreditCharge.mockResolvedValue(false);
+      const { completeGeneration } = await import("@/lib/generation/orchestrator");
+      await expect(completeGeneration({ jobId: "missing", userId: "user-1", module: "reklama", cost: 5 })).rejects.toMatchObject({ code: "credit_finalization_unverified" });
+      expect(updateJob).not.toHaveBeenCalled();
+    });
+    it("remaining credits can fund another request while another reserve exists", async () => {
+      const { getProfileCredits } = await import("@/lib/supabase/server");
+      vi.mocked(getProfileCredits).mockResolvedValueOnce({ credits: 5, credits_reserved: 5, email: "test@example.invalid", is_admin: true } as Awaited<ReturnType<typeof getProfileCredits>>);
+      const { prepareGeneration } = await import("@/lib/generation/orchestrator");
+      await expect(prepareGeneration({ req: mockReq(), module: "reklama", cost: 5 })).resolves.toBeDefined();
+      expect(reserveCredits).toHaveBeenCalledOnce();
+    });
     it("calls finalizeCreditCharge once on success and allows safe second settle attempt", async () => {
       const { settlePreparedGeneration } = await import("@/lib/generation/orchestrator");
       type GenerationFinancialState = import("@/lib/generation/orchestrator").GenerationFinancialState;
@@ -412,7 +478,7 @@ describe("P0 credit lifecycle hardening", () => {
 
       const prep = await prepareGeneration({
         req: mockReq(),
-        module: "web",
+        module: "reklama",
         cost: 5,
         idempotencyKey: "idem-success",
       });

@@ -5,42 +5,42 @@
  * product below. Internal tool IDs intentionally remain compatible with the
  * generation routes (for example, maroAudio still uses the canonical `zo`).
  */
+import { isModuleLive } from "@/lib/modules/availability";
+
 export const HUB_TOOLS = [
   {
     id: "imazh",
     label: "maroImazh",
     toolId: "reklama",
     href: "/imazh",
-    backgroundImage: "/images/hub/marketing-stack.png",
+    backgroundImage: undefined,
   },
   {
     id: "logo",
     label: "maroLogo",
     toolId: "logo",
     href: "/marologo",
-    backgroundImage: "/images/hub/marketing-stack.png",
+    backgroundImage: undefined,
   },
   {
     id: "web",
     label: "maroWeb",
     toolId: "website",
     href: "/web",
-    backgroundImage: "/images/hub/marketing-stack.png",
+    backgroundImage: undefined,
   },
   {
     id: "filma",
     label: "maroFilma",
     toolId: "filma",
     href: "/filma",
-    backgroundImage: "/images/hub/marketing-stack.png",
-    locked: true,
+    backgroundImage: undefined,
   },
   {
     id: "audio",
     label: "maroAudio",
     toolId: "zo",
     href: "/audio",
-    backgroundImage: "/images/hub/marketing-stack.png",
-    locked: true,
+    backgroundImage: undefined,
   },
-] as const;
+].map((tool) => ({ ...tool, locked: !isModuleLive(tool.toolId) }));

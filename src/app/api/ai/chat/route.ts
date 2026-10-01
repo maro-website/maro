@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import { CHAT_MODEL, completeChat, hasChatKey, streamChat } from "@/lib/ai/anthropic";
 import { CHAT_HISTORY_LIMIT, type AiChatRequest, type ChatMsg } from "@/lib/ai/chatTypes";
 import {
@@ -57,6 +58,9 @@ function buildSystem(toolPrompts: Record<string, string>, toolId?: string): stri
 }
 
 export async function POST(req: Request) {
+  const unavailable = denyUnavailableGeneration("chat");
+  if (unavailable) return unavailable;
+
   if (!hasChatKey()) {
     return NextResponse.json({ error: "no-key" }, { status: 503 });
   }

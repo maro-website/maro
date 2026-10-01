@@ -283,3 +283,41 @@ describe("auth hook error mapping", () => {
     expect(mapped.category).toBe("signature");
   });
 });
+
+describe("Phase 9 hook delivery", () => {
+  it("delivers both secure email-change confirmations to their correct inboxes", async () => {
+    vi.mocked(sendEmail).mockReset().mockResolvedValue({ ok: true });
+    const result = await processAuthEmailHook(JSON.stringify({
+      user: { id: "existing-user", email: "old@example.org", new_email: "new@example.org" },
+      email_data: { email_action_type: "email_change", token_hash_new: "current-hash", token_hash: "new-hash" },
+    }));
+    expect(result.ok).toBe(true);
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    const [current, next] = vi.mocked(sendEmail).mock.calls.map(([input]) => input);
+    expect(current.to).toBe("old@example.org");
+    expect(new URL(current.variables.confirmation_url as string).searchParams.get("token_hash")).toBe("current-hash");
+    expect(next.to).toBe("new@example.org");
+    expect(new URL(next.variables.confirmation_url as string).searchParams.get("token_hash")).toBe("new-hash");
+    expect(current.idempotencyKey).not.toBe(next.idempotencyKey);
+  });
+  it("does not wait on an uncommitted signup user through the email-log FK", async () => {
+    vi.mocked(sendEmail).mockReset().mockResolvedValue({ ok: true });
+    await processAuthEmailHook(JSON.stringify({ user: { id: "new-uncommitted-user", email: "test@example.org" }, email_data: { email_action_type: "signup", token_hash: "test-only-hash" } }));
+    expect(vi.mocked(sendEmail).mock.calls[0][0].recipientUserId).toBeNull();
+  });
+  it("unwraps recovery callbacks and gives new tokens distinct resend keys", async () => {
+    vi.mocked(sendEmail).mockReset().mockResolvedValue({ ok: true });
+    vi.stubEnv("APP_ORIGIN", "https://maro.al");
+    const payload = { user: { id: "mock-user", email: "owner@example.org" }, email_data: { email_action_type: "recovery", token_hash: "fake-first", redirect_to: "https://maro.al/auth/callback?type=recovery&next=%2Freset-password" } };
+    await processAuthEmailHook(JSON.stringify(payload));
+    const first = vi.mocked(sendEmail).mock.calls[0][0];
+    expect(new URL(first.variables.recovery_url as string).searchParams.get("next")).toBe("/reset-password");
+    await processAuthEmailHook(JSON.stringify(payload));
+    expect(vi.mocked(sendEmail).mock.calls[1][0].idempotencyKey).toBe(first.idempotencyKey);
+    payload.email_data.token_hash = "fake-second";
+    await processAuthEmailHook(JSON.stringify(payload));
+    expect(vi.mocked(sendEmail).mock.calls[2][0].idempotencyKey).not.toBe(first.idempotencyKey);
+    expect(first.idempotencyKey).not.toContain("fake-first");
+    vi.unstubAllEnvs();
+  });
+});

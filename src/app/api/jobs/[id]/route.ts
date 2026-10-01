@@ -23,5 +23,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!job || job.user_id !== user.id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+  if (job.metadata?.v1_durable === true) {
+    // Owner polling needs lifecycle state, not provider diagnostics or snapshots.
+    return NextResponse.json({ job: {
+      id: job.id, status: job.status, module: job.module,
+      credits_reserved: job.credits_reserved, credits_charged: job.credits_charged,
+      created_at: job.created_at, started_at: job.started_at, finished_at: job.finished_at,
+    } });
+  }
   return NextResponse.json({ job });
 }

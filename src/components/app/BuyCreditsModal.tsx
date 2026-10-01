@@ -25,7 +25,7 @@ export function BuyCreditsModal({
       <ModalHeader
         icon={<Coins className="h-5 w-5" />}
         title="Kredite të pamjaftueshme"
-        description="Zgjidh një plan ose rimbush kredite për të vazhduar."
+        description="Blerjet e reja janë të mbyllura. Kontrollo kreditet dhe planin te llogaria."
       />
       <div className="px-6 pb-2">
         <div className="rounded-maro12 bg-surface-2 p-4">
@@ -44,10 +44,10 @@ export function BuyCreditsModal({
           className="mt-4 w-full"
           onClick={() => {
             onClose();
-            router.push("/pricing");
+            router.push("/account");
           }}
         >
-          <Coins className="h-4 w-4" /> Shiko planet & kredite
+          <Coins className="h-4 w-4" /> Shiko llogarinë
         </Button>
       </div>
       <ModalFooter>

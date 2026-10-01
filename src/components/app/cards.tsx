@@ -1,14 +1,16 @@
 "use client";
 
+import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
+import { PreviewFallback } from "@/components/app/PreviewFallback";
+
 import * as React from "react";
-import { ToolIcon } from "@/components/app/OptionIcon";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMaro } from "@/context/store";
 import { resolveAspectBox } from "@/lib/design/aspectRatio";
 import { getTool } from "@/lib/tools/registry";
-import { initials, timeAgo } from "@/lib/utils/format";
+import { timeAgo } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { StableImage } from "@/components/app/StableImage";
 import type { Project, ImageCreation } from "@/lib/types";
@@ -29,7 +31,6 @@ import {
   ThumbsDown,
   Flag,
   AudioLines,
-  FileText,
   Image as ImageIcon,
 } from "lucide-react";
 
@@ -50,15 +51,9 @@ function mediaOf(c: ImageCreation): "image" | "audio" | "text" {
 function CreationThumb({ creation, className }: { creation: ImageCreation; className?: string }) {
   const media = mediaOf(creation);
   if (media === "image") {
-    return creation.urls[0] ? (
-      <StableImage src={creation.urls[0]} alt="" className={cn("h-full w-full object-cover", className)} />
-    ) : null;
+    return <StableImage src={creation.urls[0]} module={creation.toolId} refreshKey={creation.storageRefs?.[0] ?? creation.id} alt="" className={cn("h-full w-full object-cover", className)} />;
   }
-  return (
-    <span className="grid h-full w-full place-items-center text-ink-3">
-      {media === "audio" ? <AudioLines className="h-7 w-7" /> : <FileText className="h-7 w-7" />}
-    </span>
-  );
+  return <PreviewFallback module={media} className={className} />;
 }
 
 // ---- 3-dot menu (Rename / Favourite / Delete) -----------------------------
@@ -275,11 +270,8 @@ export function ProjectCard({
         onClick={() => onOpen(project)}
         className="block w-full text-left"
       >
-        <div
-          className="grid h-32 w-full place-items-center rounded-t-2xl text-[26px] font-black text-white"
-          style={{ background: project.theme?.primaryColor ?? "#0f1419" }}
-        >
-          {initials(project.name)}
+        <div className="h-32 w-full overflow-hidden rounded-t-2xl">
+          <PreviewThumb project={project} height="100%" />
         </div>
       </button>
       {project.favourite && (
@@ -557,8 +549,11 @@ export function CreationLightbox({
           ) : (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <StableImage
                 src={url}
+                module={creation.toolId}
+                refreshKey={creation.storageRefs?.[active] ?? `${creation.id}-${active}`}
+                fallbackClassName="aspect-square"
                 alt=""
                 className="max-h-[70vh] w-full rounded-xl object-contain"
               />
@@ -574,7 +569,7 @@ export function CreationLightbox({
                       )}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={u} alt="" className="h-full w-full object-cover" />
+                      <StableImage src={u} module={creation.toolId} alt="" className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -585,7 +580,7 @@ export function CreationLightbox({
 
         <div className="flex flex-col p-5">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-brand">
-            {tool && <ToolIcon toolId={tool.id} fallback={tool.icon} className="h-4 w-4" />}
+            {tool?.icon && <tool.icon className="h-4 w-4" />}
             {tool?.name ?? "Imazh"}
           </div>
           <div className="mt-3 text-[12px] font-bold uppercase tracking-wider text-ink-3">

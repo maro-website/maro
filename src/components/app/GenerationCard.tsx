@@ -1,55 +1,38 @@
 "use client";
 
-import { MARO_PRODUCTS } from "@/lib/design/maro-system";
-import { ToolIcon } from "@/components/app/OptionIcon";
+import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
+import { StableImage } from "./StableImage";
+import { PreviewFallback } from "./PreviewFallback";
 
 import * as React from "react";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
+import { ToolIcon } from "./OptionIcon";
+import { getProductBrand } from "@/lib/design/maro-system";
 import { AlertCircle, BrainCircuit, Check, Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
+import { GenerationLoader } from "./GenerationLoader";
 import { MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
 import { fallbackFormatLabel } from "@/lib/design/generationMeta";
 import type { ImageCreation } from "@/lib/types";
-import { initials } from "@/lib/utils/format";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils/cn";
 
-function UserAvatar({
-  user,
-  className,
-}: {
-  user: { name: string; avatarColor: string; avatarUrl?: string };
-  className?: string;
-}) {
-  if (user.avatarUrl) {
-    return (
-      <span className={cn("block shrink-0 overflow-hidden rounded-full", className)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-      </span>
-    );
-  }
-  return (
-    <span
-      className={cn("grid shrink-0 place-items-center rounded-full font-bold text-white", className)}
-      style={{ background: user.avatarColor }}
-    >
-      {initials(user.name)}
-    </span>
-  );
-}
 
 function MetaPill({
   variant,
   icon: Icon,
+  product,
   children,
 }: {
   variant: "fort" | "brain" | "muted";
   icon?: LucideIcon;
+  product?: string;
   children: React.ReactNode;
 }) {
+  const brand = product ? getProductBrand(product) : undefined;
   return (
     <span
       className={cn(
@@ -57,12 +40,12 @@ function MetaPill({
         variant === "fort"
           ? "bg-fort-pill text-white"
           : variant === "brain"
-            ? ""
+            ? "bg-generate text-generate-fg"
             : "bg-meta-pill text-ink"
       )}
-      style={variant === "brain" ? { background: MARO_PRODUCTS.maroBrain.color, color: "var(--maro-color-text-on-accent)" } : undefined}
+      style={brand && brand.id !== "maroFort" ? { backgroundColor: brand.color, color: "var(--maro-color-text-on-accent)" } : undefined}
     >
-      {variant === "brain" ? <ToolIcon toolId="brain" className="h-3.5 w-3.5 shrink-0" /> : Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+      {brand && brand.id !== "maroFort" ? <ToolIcon toolId={brand.id} className="h-3.5 w-3.5 shrink-0" /> : Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
       {children}
     </span>
   );
@@ -71,6 +54,8 @@ function MetaPill({
 function GenerationImageBox({
   format,
   size,
+  module,
+  refreshKey,
   status,
   url,
   error,
@@ -78,22 +63,19 @@ function GenerationImageBox({
 }: {
   format?: string;
   size?: string;
+  module?: string;
+  refreshKey?: string;
   status: "thinking" | "done" | "error";
   url?: string;
   error?: string;
   onOpen?: () => void;
 }) {
   const { ratio, maxW } = resolveAspectBox(format, size);
-  const [loaded, setLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    setLoaded(false);
-  }, [url]);
-
   if (status === "error") {
     return (
       <div
         className="relative mx-auto grid w-full overflow-hidden rounded-maro16 bg-danger/10 px-6 py-8 text-center text-danger"
+        data-generation-result
         style={{ aspectRatio: ratio, maxWidth: maxW }}
         role="alert"
       >
@@ -113,29 +95,11 @@ function GenerationImageBox({
   return (
     <div
       className="relative mx-auto w-full overflow-hidden rounded-maro16 bg-surface"
+      data-generation-result
       style={{ aspectRatio: ratio, maxWidth: maxW }}
     >
-      {/* Watermark */}
-      <div className="pointer-events-none absolute inset-0 grid place-items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/brand/maro-symbol.svg"
-          alt=""
-          className="h-16 w-16 select-none opacity-[0.08]"
-          draggable={false}
-        />
-      </div>
-
-      {status === "thinking" && (
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="flex flex-col items-center gap-3 text-[13px] font-semibold text-ink-3">
-            <span className="grid h-11 w-11 place-items-center rounded-maro12 bg-ink text-white">
-              <MaroBuildingSpinner className="h-5 w-5 brightness-0 invert" />
-            </span>
-            <span>maro po maron</span>
-          </div>
-        </div>
-      )}
+      {status === "thinking" && <GenerationLoader className="absolute inset-0 h-full !aspect-auto" />}
+      {status === "done" && !url && <PreviewFallback module={module} className="absolute inset-0" />}
 
       {status === "done" && url && (
         <button
@@ -144,15 +108,7 @@ function GenerationImageBox({
           className="group absolute inset-0 block h-full w-full overflow-hidden"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt=""
-            onLoad={() => setLoaded(true)}
-            className={cn(
-              "h-full w-full object-cover transition-transform group-hover:scale-[1.01]",
-              loaded && "image-reveal"
-            )}
-          />
+          <StableImage src={url} refreshKey={refreshKey} alt="" module={module} loading="eager" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
         </button>
       )}
     </div>
@@ -186,6 +142,9 @@ export function GenerationCard({
   onOpen?: (c: ImageCreation) => void;
 }) {
   const { user } = useMaro();
+  const [promptExpanded, setPromptExpanded] = React.useState(false);
+  const promptId = React.useId();
+  const longPrompt = message.text.length > 320 || message.text.split("\n").length > 4;
   const isAudio = message.mediaType === "audio";
   const isText = message.mediaType === "text";
 
@@ -202,23 +161,24 @@ export function GenerationCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
+      data-generation-id={message.id}
       className="flex flex-col gap-2.5"
     >
       {/* Header — attribute pills like mockup */}
       <div className="flex flex-wrap items-center gap-2">
         {user && <UserAvatar user={user} className="h-9 w-9 text-[13px]" />}
-        {message.fort && (
+        {MARO_FORT_ENABLED && message.fort && (
           <MetaPill variant="fort" icon={Flame}>
             maroFort
           </MetaPill>
         )}
         {brain && (
-          <MetaPill variant="brain" icon={BrainCircuit}>
+          <MetaPill variant="brain" product="brain" icon={BrainCircuit}>
             maroBrain
           </MetaPill>
         )}
         {message.promptCode && (
-          <MetaPill variant="muted" icon={Lightbulb}>
+          <MetaPill variant="muted" product="presets" icon={Lightbulb}>
             {message.promptCode}
           </MetaPill>
         )}
@@ -252,14 +212,15 @@ export function GenerationCard({
             ))}
           </div>
         )}
-        <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-ink">{message.text}</p>
+        <p id={promptId} className={cn("whitespace-pre-wrap break-words text-[15px] font-medium leading-relaxed text-ink", longPrompt && !promptExpanded && "line-clamp-4")} style={{ overflowWrap: "anywhere" }}>{message.text}</p>
+        {longPrompt && <button type="button" aria-expanded={promptExpanded} aria-controls={promptId} onClick={() => setPromptExpanded((value) => !value)} className="mt-2 text-[13px] font-bold text-brand underline underline-offset-4">{promptExpanded ? "Show less" : "Show more"}</button>}
       </div>
 
       {/* One stable result box carries all three states: loading, success and error. */}
       {!isAudio && !isText && (
         <>
           <div className="mt-2.5 flex items-center gap-2 px-0.5 text-[13px] font-semibold text-ink-3" aria-live="polite">
-            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-ink-inv">
               {message.status === "thinking" ? (
                 <MaroBuildingSpinner className="h-4 w-4 brightness-0 invert" />
               ) : message.status === "done" ? (
@@ -279,6 +240,8 @@ export function GenerationCard({
           <GenerationImageBox
             format={message.format}
             size={message.size ?? message.creation?.size}
+            module={message.creation?.toolId ?? "imazh"}
+            refreshKey={message.creation?.storageRefs?.[0] ?? message.id}
             status={message.status}
             url={message.creation?.urls[0]}
             error={message.error}

@@ -16,11 +16,11 @@ function SignInContent() {
   const authErrorMessage = React.useMemo(() => {
     switch (authError) {
       case "expired_link":
-        return "Linku ka skaduar. Kërko një link të ri për rivendosjen e fjalëkalimit.";
+        return "Linku ka skaduar ose është përdorur. Nëse e ke konfirmuar email-in, hyr. Përndryshe kërko një link të ri.";
       case "invalid_link":
       case "missing_token":
       case "malformed_callback":
-        return "Linku i autentikimit nuk është i vlefshëm. Kërko një link të ri.";
+        return "Linku nuk është i vlefshëm ose është përdorur. Nëse e ke konfirmuar email-in, hyr. Përndryshe kërko një link të ri.";
       case "code_exchange_failed":
         return "Sesioni nuk u krijua dot. Provo përsëri me linkun e fundit.";
       case "invalid_type":
@@ -40,17 +40,19 @@ function SignInContent() {
   );
 
   return (
-    <AuthLayout title="Mirë se erdhe përsëri" subtitle="Hyr në llogarinë tënde për të vazhduar.">
+    <AuthLayout title="Mirë se erdhe përsëri" subtitle="Hyr në llogarinë tënde për të vazhduar." showSocials>
+      {searchParams.get("confirmed") === "1" && <p className="mb-4 text-sm text-success">Email-i u konfirmua. Hyr në llogarinë tënde.</p>}
+      {searchParams.get("password_updated") === "1" && <p className="mb-4 text-sm text-success">Fjalëkalimi u përditësua. Hyr me fjalëkalimin e ri.</p>}
       {authErrorMessage ? (
         <div className="mb-4 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
           {authErrorMessage}
         </div>
       ) : null}
-      <AuthPanel initialMode="sign-in" onDone={() => router.push(destination)} />
-      <p className="mt-6 text-center text-[13.5px] text-ink-2">
-        Nuk ke llogari?{" "}
+      <AuthPanel initialMode="sign-in" dedicatedPage onDone={() => router.push(destination)} />
+      <p className="mt-5 text-center text-[13px] text-ink-2">
+        S’ki llogari hala?{" "}
         <Link href="/sign-up" className="font-semibold text-brand hover:underline">
-          Krijo llogari
+          maro njo t’re
         </Link>
       </p>
     </AuthLayout>

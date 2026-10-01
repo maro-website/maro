@@ -44,6 +44,7 @@ export async function maybeScheduleImageShadow(input: ImageShadowSchedulePayload
     });
 
     const shadowInput: ShadowCompileInput = {
+      trustedImageModel: input.trustedImageModel,
       toolId: input.registryToolId,
       registryToolId: input.registryToolId,
       model: input.model,

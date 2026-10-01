@@ -14,7 +14,7 @@ export function BrandWorkspace({ toolId }: { toolId: string }) {
         title="Logo dhe identitet visual."
         subtitle="Gjenero logo, simbole dhe variante brandi që reflektojnë identitetin e workspace-it tënd."
       />
-      <InspirationCarousel items={BRAND_INSPIRATION} />
+      <InspirationCarousel module="brand" items={BRAND_INSPIRATION} />
     </>
   );
 

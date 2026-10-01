@@ -51,7 +51,7 @@ describe("maroMCP OAuth resource boundary", () => {
 
   it("keeps direct Maro sessions unchanged in the deployable OAuth claims hook", () => {
     const migration = fs.readFileSync(
-      path.join(process.cwd(), "supabase/migrations/0046_maro_mcp_oauth_claims.sql"),
+      path.join(process.cwd(), "docs/db-history/current-main/0046_maro_mcp_oauth_claims.sql"),
       "utf8"
     );
     expect(migration).toContain("claims ->> 'client_id'");

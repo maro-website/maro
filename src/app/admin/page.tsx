@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CommandCenterDashboard } from "@/components/admin/CommandCenterDashboard";
+import { V1Overview } from "@/components/admin/v1/V1Overview";
 import { resolveLegacyAdminTabRedirect } from "@/lib/admin/routes";
 
 type Props = { searchParams: Promise<{ tab?: string }> };
@@ -8,5 +8,5 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
   const { tab } = await searchParams;
   const dest = resolveLegacyAdminTabRedirect(tab);
   if (dest) redirect(dest);
-  return <CommandCenterDashboard />;
+  return <V1Overview />;
 }

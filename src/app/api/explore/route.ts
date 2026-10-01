@@ -127,7 +127,7 @@ export async function POST(req: Request) {
 
   const tool = getTool(body.toolId ?? "");
   if (!tool) return NextResponse.json({ error: "bad-tool" }, { status: 400 });
-  if (!body.url || body.url.startsWith("data:")) {
+  if (typeof body.url !== "string" || !body.url || body.url.startsWith("data:")) {
     return NextResponse.json({ error: "bad-url" }, { status: 400 });
   }
 
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
   const authorAvatar = (user.user_metadata?.avatar_url as string | undefined) || null;
 
   const slug = slugify();
-  const publicUrl = await publishStoredUrlToExplore({ storedUrl: body.url, slug });
+  const publicUrl = await publishStoredUrlToExplore({ storedUrl: body.url, slug, userId: user.id });
   if (!publicUrl) {
     return NextResponse.json({ error: "publish-failed" }, { status: 400 });
   }

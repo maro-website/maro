@@ -1,3 +1,4 @@
+import { validatePromptContent } from "@/lib/admin/v1Configuration";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -69,6 +70,7 @@ export async function POST(
   }
 
   if (body.content != null) {
+    try { validatePromptContent(body.content); } catch { return NextResponse.json({ error: "invalid_prompt_content" }, { status: 400 }); }
     const draft = await createDraftFromLive(toolId as EngineToolId, auth.admin.userId);
     const updated = await updateDraftContent(draft.id, {
       content: body.content,

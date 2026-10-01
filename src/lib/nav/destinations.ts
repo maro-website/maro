@@ -3,6 +3,8 @@
  * Used by AppTopNav, HubDropdown, NavDrawer, and HomeHub.
  */
 
+import { getModuleAvailability } from "@/lib/modules/availability";
+
 export type NavGroup = "home" | "discover" | "tools" | "studio" | "community" | "later";
 
 export interface NavDestination {
@@ -38,19 +40,27 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 };
 
 /** Top bar module links (Hub trigger is separate). */
-export const TOP_BAR_DESTINATIONS: NavDestination[] = [
+const MODULE_DESTINATIONS: NavDestination[] = [
   { id: "imazh", label: "maroImazh", route: "/imazh", group: "tools", showInTopBar: true, toolId: "reklama", iconName: "maro-imazh" },
   { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
-  { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma", comingSoon: true },
-  { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo", comingSoon: true },
-  { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea", comingSoon: true },
+  { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma" },
+  { id: "audio", label: "maroZo", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo" },
+  { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea" },
   { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
 ];
 
+export const TOP_BAR_DESTINATIONS: NavDestination[] = MODULE_DESTINATIONS.map((destination) => {
+  const productModule = getModuleAvailability(destination.toolId ?? destination.id);
+  return {
+    ...destination,
+    comingSoon: productModule?.status === "coming_soon",
+    badge: productModule?.status === "coming_soon" ? `Së shpejti · ${productModule.version}` : undefined,
+  };
+});
+
 export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
   { id: "hub", label: "Hub", route: "/", iconName: "maro-imazh" },
-  { id: "case-studies", label: "Case Studies", route: "/case-studies", iconName: "idea" },
   { id: "krijimet", label: "Cka ke maru", route: "/krijimet", iconName: "history" },
   { id: "brain", label: "maroBrain", route: "/brain", iconName: "maro-brain" },
   { id: "workspaces", label: "Cilesimet", route: "/account/workspaces", iconName: "settings" },
@@ -60,9 +70,7 @@ export const NAV_DESTINATIONS: NavDestination[] = [
   { id: "home", label: "Hub", route: "/", group: "home" },
   ...TOP_BAR_DESTINATIONS,
   { id: "explore", label: "Explore", route: "/explore", group: "discover" },
-  { id: "contests", label: "Kontestet", route: "/contests", group: "community" },
-  { id: "kreator", label: "Kreator", route: "/kreator", group: "community" },
-  { id: "academy", label: "Academy", route: "/academy", group: "later", badge: "së shpejti", comingSoon: true },
+  { id: "case_studies", label: "Case Studies", route: "/case-studies", group: "later", badge: "Së shpejti · V1.5", comingSoon: true },
   { id: "mcp", label: "MCP & CLI", route: "/mcp", group: "later", badge: "së shpejti", comingSoon: true },
 ];
 

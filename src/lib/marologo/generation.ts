@@ -1,6 +1,5 @@
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import type { FortPayload } from "@/lib/fort/types";
-import { buildMaroLogoBrief } from "./briefBuilder";
 import type { LogoTypeValue, MaroLogoWizardState, UploadedReference } from "./types";
 
 export function mapLogoTypeToRegistry(type: LogoTypeValue): string {
@@ -25,7 +24,7 @@ export function buildGenerationSelections(wizard: MaroLogoWizardState): Record<s
     visual_style: wizard.look.visualStyle,
     concept_intent: wizard.logo.conceptIntent,
     speed: "normal",
-    model: "gpt-image-2",
+    model: "flare",
   };
 }
 
@@ -37,12 +36,13 @@ export function buildGenerationRequest(
   presetId?: string
 ): AiImageRequest {
   const refs = (canonicalReferences ?? []).slice(0, 3);
-  const brief = buildMaroLogoBrief(wizard, refs.length > 0);
 
   return {
     toolId: "logo",
-    prompt: brief,
+    // The server builds all Logo instructions from the structured answers.
+    prompt: "",
     selections: buildGenerationSelections(wizard),
+    logoWizard: structuredClone(wizard),
     attachments: refs.length ? refs : undefined,
     fort,
     maroPrompt: presetId ? { id: presetId } : undefined,

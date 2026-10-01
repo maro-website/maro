@@ -3,6 +3,7 @@
  * Mirrors current generate/image routes without provider calls.
  */
 
+import { withoutParkedFort } from "@/lib/shadow/maroFort";
 import {
   defaultSelections,
   findOption,
@@ -53,6 +54,7 @@ export interface LegacyComposeResult {
 }
 
 export function legacyComposePrompt(input: LegacyComposeInput): LegacyComposeResult {
+  input = withoutParkedFort(input);
   const registryId = getRegistryToolId(input.toolId);
   const tool = getTool(registryId);
   if (!tool) return { prompt: input.userPrompt };

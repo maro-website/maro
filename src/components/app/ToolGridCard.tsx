@@ -41,8 +41,8 @@ export function ToolGridCard({
         locked
           ? "cursor-default bg-card-locked text-card-locked-fg"
           : filled
-          ? "bg-ink text-white"
-          : "bg-surface text-ink hover:bg-ink hover:text-white"
+          ? "bg-ink text-ink-inv"
+          : "bg-surface text-ink hover:bg-ink hover:text-ink-inv"
       )}
     >
       {locked ? (

@@ -1,0 +1,32 @@
+[
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\components\\marologo\\steps\\StepPresentation.tsx",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\fort-ui-original\\src\\components\\marologo\\steps\\StepPresentation.tsx",
+    "sha256": "3cb324f4c88fc50b9307a19d1f01f9c8984a998ca0ffe40833ace3770791e3ce"
+  },
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\components\\admin\\legacy\\LegacyAdminTabs.tsx",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\fort-admin-original\\src\\components\\admin\\legacy\\LegacyAdminTabs.tsx",
+    "sha256": "1e320c7dedf4e59a515eab2e15d069ab5c4bdcd74dc76b7ff776390efc545d86"
+  },
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\app\\api\\commerce\\checkout-preview\\route.ts",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\legacy-product-flow\\src\\app\\api\\commerce\\checkout-preview\\route.ts",
+    "sha256": "5c8d5074f662bce36f9908c596c79cc884bbf82f7205263268090bfa53fa08e2"
+  },
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\app\\pricing\\page.tsx",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\legacy-product-flow\\src\\app\\pricing\\page.tsx",
+    "sha256": "45c523846a5c1ff93efb838f44d8b9d0e02d6db8c70ef38e0ca76bfb672d3690"
+  },
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\components\\account\\BillingSection.tsx",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\legacy-product-flow\\src\\components\\account\\BillingSection.tsx",
+    "sha256": "70b827a286317de9839e2871bb3f477fa76a2fcd2310cd59f8c67595a98f3776"
+  },
+  {
+    "source": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\src\\components\\app\\BuyCreditsModal.tsx",
+    "target": "C:\\Users\\nicep\\Desktop\\maro-al\\maro-v1-recovery-20260930\\quarantine\\20260930\\legacy-product-flow\\src\\components\\app\\BuyCreditsModal.tsx",
+    "sha256": "15ec5b50ce94e1d62758a6e7e5e3029698742d4ae4a9b5eadc201b4b0e04bc42"
+  }
+]

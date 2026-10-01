@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { resolveAccessRole, hasPermission, ADMIN_ENTRY_PERMISSION } from "@/lib/admin/permissions";
+import {
+  isComingSoonMode,
+  isLaunchPublicRoute,
+  LAUNCH_PAGE_PATH,
+  LAUNCH_REQUEST_HEADER,
+} from "@/lib/launch/config";
 
 const ipBuckets = new Map<string, { count: number; reset: number }>();
 const IP_LIMIT = 600;
@@ -55,8 +61,74 @@ async function getAdminAccessFromRequest(
   return "admin";
 }
 
+async function hasAuthenticatedUser(req: NextRequest): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return false;
+
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll();
+      },
+      setAll() {
+        /* The auth pages/callback own session cookie refreshes. */
+      },
+    },
+  });
+
+  const authorization = req.headers.get("authorization");
+  const bearer = authorization?.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : null;
+
+  try {
+    const { data } = bearer
+      ? await supabase.auth.getUser(bearer)
+      : await supabase.auth.getUser();
+    return Boolean(data.user);
+  } catch {
+    return false;
+  }
+}
+
+function launchRequestHeaders(req: NextRequest): Headers {
+  const headers = new Headers(req.headers);
+  headers.set(LAUNCH_REQUEST_HEADER, "1");
+  return headers;
+}
+
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
+
+  if (isComingSoonMode() && !isLaunchPublicRoute(path)) {
+    const authenticated = await hasAuthenticatedUser(req);
+    if (!authenticated) {
+      if (path.startsWith("/api/") || !["GET", "HEAD"].includes(req.method)) {
+        return NextResponse.json({ error: "not_found" }, { status: 404 });
+      }
+
+      const destination = req.nextUrl.clone();
+      destination.pathname = LAUNCH_PAGE_PATH;
+      destination.search = "";
+      const response = NextResponse.rewrite(destination, {
+        request: { headers: launchRequestHeaders(req) },
+      });
+      response.headers.set("Cache-Control", "private, no-store");
+      response.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return response;
+    }
+  }
+
+  if (path === LAUNCH_PAGE_PATH) {
+    if (!isComingSoonMode()) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    if (await hasAuthenticatedUser(req)) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next({ request: { headers: launchRequestHeaders(req) } });
+  }
 
   if (path.startsWith("/admin")) {
     const access = await getAdminAccessFromRequest(req);
@@ -97,5 +169,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|brand/|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
+  ],
 };

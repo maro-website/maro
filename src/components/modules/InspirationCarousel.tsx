@@ -1,5 +1,8 @@
 "use client";
 
+import { StableImage } from "@/components/app/StableImage";
+import { PreviewFallback } from "@/components/app/PreviewFallback";
+
 import * as React from "react";
 import type { InspirationItem } from "@/lib/modules/imazh/inspiration";
 import {
@@ -13,10 +16,14 @@ import { cn } from "@/lib/utils/cn";
 /** Full-width auto-scrolling preset/inspiration strip — 1:1 tiles, no pause on hover. */
 export function InspirationCarousel({
   items,
+  module = "imazh",
+  loading = false,
   activePresetId,
   onPresetSelect,
 }: {
   items: InspirationItem[];
+  module?: string;
+  loading?: boolean;
   activePresetId?: string | null;
   onPresetSelect?: (attach: PromptAttach) => void;
 }) {
@@ -49,7 +56,8 @@ export function InspirationCarousel({
             <button
               key={`${item.id}-${i}`}
               type="button"
-              draggable
+              draggable={!loading && Boolean(item.imageUrl || item.preset)}
+              disabled={loading || (!item.imageUrl && !item.preset)}
               onClick={() => onItemClick(item)}
               onDragStart={(e) => onDragStart(e, item)}
               className={cn(
@@ -60,12 +68,13 @@ export function InspirationCarousel({
               aria-label={item.preset ? `maroPreset ${item.preset.code}` : item.label ?? item.category ?? "Inspirim"}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {loading ? <PreviewFallback state="loading" /> : <StableImage
                 src={item.imageUrl}
+                module={module}
                 alt=""
                 className="aspect-square h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                 draggable={false}
-              />
+              />}
             </button>
           );
         })}

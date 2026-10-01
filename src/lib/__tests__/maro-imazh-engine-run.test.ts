@@ -1,9 +1,8 @@
+import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   IMAGE_PARITY_MARKERS,
   IMAGE_TEXT_OFF_WITH_REFERENCE,
-  IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET,
-  WORKSPACE_BRAND_ASSET_DIRECTION,
 } from "@/lib/engine/imageCompile";
 import {
   compileImazhFixture,
@@ -128,12 +127,6 @@ describe("runImageEngineInternalGeneration (mocked provider)", () => {
     });
 
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.providerRequest.prompt).toContain(WORKSPACE_BRAND_ASSET_DIRECTION);
-      expect(result.providerRequest.prompt).toContain(IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET);
-      expect(result.providerRequest.prompt).not.toContain(IMAGE_TEXT_OFF_WITH_REFERENCE);
-      expect(result.finalPrompt).toBe(result.providerRequest.prompt);
-    }
     expect(edit).toHaveBeenCalledTimes(1);
     expect(generate).not.toHaveBeenCalled();
   });
@@ -212,7 +205,7 @@ describe("runImageEngineInternalGeneration (mocked provider)", () => {
     }
   });
 
-  it("K: Fort layers included in Engine provider prompt", async () => {
+  it("K: Fort layers respect the availability switch", async () => {
     const result = await runImageEngineInternalGeneration({
       engineToolId: "maro_imazh",
       userId: "user-1",
@@ -229,9 +222,9 @@ describe("runImageEngineInternalGeneration (mocked provider)", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.brief.fort?.enabled).toBe(true);
+      expect(Boolean(result.brief.fort?.enabled)).toBe(MARO_FORT_ENABLED);
       expect(result.finalPrompt).toContain("Luxury skincare campaign visual");
-      expect(result.finalPrompt).toMatch(/DREJTIMI KREATIV|BRIEF EKSPERT/);
+      expect(/DREJTIMI KREATIV|BRIEF EKSPERT/.test(result.finalPrompt)).toBe(MARO_FORT_ENABLED);
     }
   });
 

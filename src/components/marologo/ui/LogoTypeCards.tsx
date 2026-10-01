@@ -1,4 +1,6 @@
 "use client";
+import { useLogoContent } from "../LogoContent";
+import { logoOptions } from "@/lib/marologo/content";
 
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
@@ -14,9 +16,10 @@ export function LogoTypeCards({
   value: LogoTypeValue;
   onChange: (v: LogoTypeValue) => void;
 }) {
+  const content = useLogoContent();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {LOGO_TYPES.map((opt) => {
+      {logoOptions(content, "logo.type").map((opt) => {
         const active = value === opt.value;
         return (
           <button
@@ -32,7 +35,7 @@ export function LogoTypeCards({
               </span>
               <LogoTypePreview type={opt.value as LogoTypeValue} />
             </span>
-            <span className={cn("text-center text-[14px] font-semibold", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
+            <span className={cn("text-center text-[14px] font-semibold", active ? "text-ink" : "text-ink-2")}>
               {opt.label}
             </span>
           </button>
@@ -57,7 +60,7 @@ function LogoTypePreview({ type }: { type: LogoTypeValue }) {
       </div>
     );
   }
-  return <span className="text-[13px] text-ink-2">maro vendos</span>;
+  return <span className="text-sm text-ink-2">maro vendos</span>;
 }
 
 export function MaroDecidesCheckbox({
@@ -69,6 +72,7 @@ export function MaroDecidesCheckbox({
   onChange: (v: boolean) => void;
   label?: string;
 }) {
+  const content = useLogoContent();
   return (
     <button
       type="button"

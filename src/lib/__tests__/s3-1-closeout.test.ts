@@ -12,7 +12,7 @@ const AI_ROUTES = [
   },
   {
     route: "/api/ai/image",
-    file: "src/app/api/ai/image/route.ts",
+    file: "src/lib/generation/v1ImageApplication.ts",
     limitKey: "jsonAi" as const,
   },
   {
@@ -89,7 +89,7 @@ describe("Batch S3.1 — oversized AI routes reject before providers", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 413 for oversized /api/ai/chat without calling Anthropic", async () => {
+  it("rejects parked /api/ai/chat before reading an oversized body or calling Anthropic", async () => {
     vi.stubEnv("ANTHROPIC_CHAT_API_KEY", "test-key");
     vi.stubEnv("NODE_ENV", "development");
     const streamChat = vi.fn();
@@ -107,11 +107,12 @@ describe("Batch S3.1 — oversized AI routes reject before providers", () => {
         body: oversizedJson(REQUEST_LIMITS.jsonAiChat),
       })
     );
-    expect(res.status).toBe(413);
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("module_unavailable");
     expect(streamChat).not.toHaveBeenCalled();
   });
 
-  it("returns 413 for oversized /api/ai/edit without calling Anthropic", async () => {
+  it("rejects parked /api/ai/edit before reading an oversized body or calling Anthropic", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     vi.stubEnv("NODE_ENV", "development");
     const callClaudeJSON = vi.fn();
@@ -128,11 +129,12 @@ describe("Batch S3.1 — oversized AI routes reject before providers", () => {
         body: oversizedJson(REQUEST_LIMITS.jsonAiEdit),
       })
     );
-    expect(res.status).toBe(413);
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("module_unavailable");
     expect(callClaudeJSON).not.toHaveBeenCalled();
   });
 
-  it("returns 413 for oversized /api/ai/edit-html without calling Anthropic", async () => {
+  it("rejects parked /api/ai/edit-html before reading an oversized body or calling Anthropic", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     vi.stubEnv("NODE_ENV", "development");
     const callClaudeText = vi.fn();
@@ -148,11 +150,12 @@ describe("Batch S3.1 — oversized AI routes reject before providers", () => {
         body: oversizedJson(REQUEST_LIMITS.jsonEditHtml),
       })
     );
-    expect(res.status).toBe(413);
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("module_unavailable");
     expect(callClaudeText).not.toHaveBeenCalled();
   });
 
-  it("returns 413 for oversized /api/ai/audio without calling ElevenLabs", async () => {
+  it("rejects parked /api/ai/audio before reading an oversized body or calling ElevenLabs", async () => {
     vi.stubEnv("ELEVENLABS_API_KEY", "test-key");
     vi.stubEnv("NODE_ENV", "development");
     const textToSpeech = vi.fn();
@@ -173,7 +176,8 @@ describe("Batch S3.1 — oversized AI routes reject before providers", () => {
         body: oversizedJson(REQUEST_LIMITS.jsonAiAudio),
       })
     );
-    expect(res.status).toBe(413);
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("module_unavailable");
     expect(textToSpeech).not.toHaveBeenCalled();
   });
 });

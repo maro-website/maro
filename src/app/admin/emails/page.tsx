@@ -6,11 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { EmailsWorkspace } from "@/components/admin/emails/EmailsWorkspace";
 import { cn } from "@/lib/utils/cn";
-import { FileText, LayoutDashboard, ScrollText, Settings, type LucideIcon } from "lucide-react";
+import { FileText, LayoutDashboard, ScrollText, Settings } from "lucide-react";
 
 type Tab = "overview" | "templates" | "logs" | "settings";
 
-const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
+const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "overview", label: "Përmbledhje", icon: LayoutDashboard },
   { key: "templates", label: "Shabllonet", icon: FileText },
   { key: "logs", label: "Logs", icon: ScrollText },

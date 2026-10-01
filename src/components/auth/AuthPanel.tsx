@@ -16,10 +16,12 @@ export function AuthPanel({
   initialMode = "sign-in",
   onDone,
   signupDisabledMessage,
+  dedicatedPage = false,
 }: {
   initialMode?: "sign-in" | "sign-up";
   onDone?: () => void;
   signupDisabledMessage?: string;
+  dedicatedPage?: boolean;
 }) {
   const signupEnabled = isSignupEnabled();
   const { signIn, signUp, supabaseReady } = useMaro();
@@ -32,6 +34,7 @@ export function AuthPanel({
   const [loading, setLoading] = React.useState(false);
   const [legalAccepted, setLegalAccepted] = React.useState(false);
   const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
+  const [captchaAttempt, setCaptchaAttempt] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
 
@@ -65,15 +68,18 @@ export function AuthPanel({
         ? await signIn(email.trim(), password)
         : await signUp(name.trim(), email.trim(), password, turnstileToken ?? undefined);
     setLoading(false);
+    if (mode === "sign-up") { setTurnstileToken(null); setCaptchaAttempt(n => n + 1); }
     if (res.error) {
       setError(res.error);
       return;
     }
     if (mode === "sign-up") {
       setNotice(
-        "Llogaria u krijua. Kontrollo email-in për të konfirmuar llogarinë, pastaj hyr."
+        "Nëse email-i mund të regjistrohet, do të marrësh konfirmimin. Nëse ke llogari, hyr ose kërko konfirmim të ri."
       );
       setTurnstileToken(null);
+      setPassword("");
+      return;
     }
     onDone?.();
   };
@@ -81,13 +87,13 @@ export function AuthPanel({
   return (
     <div className="flex flex-col gap-4">
       {!supabaseReady && (
-        <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3.5 py-3 text-[13px] text-ink-2">
+        <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3.5 py-3 text-sm text-ink-2">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          Supabase nuk është konfiguruar ende. Shto çelësat te .env.local për të aktivizuar autentikimin.
+          Autentikimi nuk është i disponueshëm për momentin. Provo përsëri më vonë.
         </div>
       )}
 
-      {signupEnabled ? (
+      {signupEnabled && !dedicatedPage ? (
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
           {(["sign-in", "sign-up"] as const).map((m) => (
             <button
@@ -99,7 +105,7 @@ export function AuthPanel({
                 setNotice(null);
                 if (m === "sign-in") setLegalAccepted(false);
               }}
-              className={`h-9 rounded-lg text-[13.5px] font-semibold transition-all ${
+              className={`h-9 rounded-lg text-sm font-semibold transition-all ${
                 mode === m ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
               }`}
             >
@@ -112,7 +118,7 @@ export function AuthPanel({
       {mode === "sign-up" && !signupEnabled && (
         <div className="rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink-2">
           {signupDisabledMessage ??
-            "Platforma është në development mode. Regjistrimi hapet së shpejti — hyr nëse ke llogari."}
+            "Regjistrimet e reja janë përkohësisht të mbyllura."}
         </div>
       )}
 
@@ -135,7 +141,7 @@ export function AuthPanel({
         <Field label="Fjalëkalimi">
           <Input
             type="password"
-            placeholder={mode === "sign-up" ? "Të paktën 6 karaktere" : "••••••••"}
+            placeholder={mode === "sign-up" ? `Të paktën ${MIN_PASSWORD_LENGTH} karaktere` : "••••••••"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
@@ -144,12 +150,12 @@ export function AuthPanel({
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
+          <div role="alert" className="maro-alert" data-tone="error">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
           </div>
         )}
         {notice && (
-          <div className="flex items-start gap-2 rounded-xl bg-success/5 px-3.5 py-2.5 text-[13px] text-success">
+          <div role="status" className="maro-alert" data-tone="success">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {notice}
           </div>
         )}
@@ -164,6 +170,7 @@ export function AuthPanel({
 
         {mode === "sign-up" && signupEnabled && turnstileConfigured() && (
           <TurnstileWidget
+            key={captchaAttempt}
             onToken={(t) => setTurnstileToken(t)}
             onExpire={() => setTurnstileToken(null)}
           />
@@ -171,6 +178,7 @@ export function AuthPanel({
 
         <Button
           type="submit"
+          variant={dedicatedPage ? "brand" : "primary"}
           className="mt-1 w-full"
           loading={loading}
           disabled={
@@ -180,17 +188,18 @@ export function AuthPanel({
             (mode === "sign-up" && signupEnabled && turnstileConfigured() && !turnstileToken)
           }
         >
-          {mode === "sign-in" ? "Hyr" : "Krijo llogari"}
+          {mode === "sign-in" ? (dedicatedPage ? "Hin e maro" : "Hyr") : (dedicatedPage ? "Regjistrohu e maro" : "Krijo llogari")}
         </Button>
       </form>
 
       {mode === "sign-in" && (
-        <p className="text-center text-[13px] text-ink-3">
+        <p className="text-center text-sm text-ink-3">
           <a href="/forgot-password" className="font-semibold text-brand hover:underline">
-            Harrove fjalëkalimin?
+            {dedicatedPage ? "E ke harru?" : "Harrove fjalëkalimin?"}
           </a>
         </p>
       )}
+      <a href="/confirm-email" className="text-center text-sm font-semibold text-brand hover:underline">Dërgo përsëri konfirmimin e email-it</a>
     </div>
   );
 }
