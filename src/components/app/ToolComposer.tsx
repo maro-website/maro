@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { BuyCreditsModal } from "@/components/app/BuyCreditsModal";
 import { PlatformNotices } from "@/components/app/PlatformNotices";
@@ -1031,7 +1033,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-ink shadow-sm lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
+        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-ink shadow-float lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
           <span className="min-w-0 truncate text-sm font-semibold">{mobileComposerOpen ? "Mbyll promptbox" : prompt || "Shkruaj idenë tënde…"}</span>
           <ChevronDown className={cn("h-5 w-5 shrink-0", !mobileComposerOpen && "rotate-180")} />
         </button>
@@ -1206,7 +1208,7 @@ export function ToolComposer({
                     disabled={(isImage ? privateImageAttachments.length : attachments.length) >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
-                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5 text-white" />
+                    <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -1223,7 +1225,7 @@ export function ToolComposer({
                     }}
                   />
                   <IconBtn onClick={() => audioFileRef.current?.click()} label="Ngarko audio">
-                    <Mic className="h-5 w-5 text-white" />
+                    <Mic className="h-5 w-5" />
                   </IconBtn>
                 </>
               )}
@@ -1267,30 +1269,20 @@ export function ToolComposer({
                   <span className="maro-dock-pill shrink-0">
                     <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
                     {isImage && !selectedImageModel ? "—" : cost}
-                    <span className="text-ink-3">kredite</span>
+                    <span className="opacity-80">kredite</span>
                   </span>
                 )}
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
+                <Button
+                  variant="primary"
+                  loading={loading}
+                  icon={<MaroIcon name="generate" className="h-5 w-5" />}
                   onClick={onGenerate}
                   disabled={functional && (!canGenerate || loading)}
-                  className={cn(
-                    "inline-flex h-10 min-w-[4.5rem] shrink-0 items-center justify-center gap-2 rounded-maro12 px-5 text-[16px] font-bold transition-all focus:outline-none",
-                    functional && canGenerate && !loading
-                      ? "bg-generate text-generate-fg hover:opacity-90"
-                      : "cursor-not-allowed bg-generate-idle text-generate-fg-idle"
-                  )}
+                  className="min-w-[4.5rem] shrink-0"
                   aria-label="Gjenero"
                 >
-                  {loading ? (
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-transparent border-t-generate-fg" />
-                  ) : (
-                    <>
-                      <MaroIcon name="generate" className={cn("h-5 w-5", functional && canGenerate ? "text-white" : "text-ink-3")} />
-                      maro
-                    </>
-                  )}
-                </motion.button>
+                  maro
+                </Button>
               </div>
             </div>
           </div>
@@ -1420,12 +1412,14 @@ function ToolSwitcher({
   const btnRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const current = getTool(currentId);
+  useMenuKeyboard(open && Boolean(pos), menuRef, btnRef, () => setOpen(false));
 
   const place = React.useCallback(() => {
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+    const width = Math.min(256, window.innerWidth - 16);
+    setPos({ bottom: window.innerHeight - r.top + 8, left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)), width });
   }, []);
 
   React.useEffect(() => {
@@ -1471,8 +1465,8 @@ function ToolSwitcher({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="maro-menu overflow-hidden p-1.5"
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: `calc(100dvh - ${pos.bottom + 8}px)`, zIndex: "var(--maro-z-dropdown)" }}
+                className="maro-menu overflow-y-auto p-2" role="menu"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">Ndrysho tool</div>
                 {tools.map((t) => {
@@ -1560,6 +1554,7 @@ function SettingSelect({
   const current = findOption(setting, value) ?? setting.options[0];
   const Icon = setting.icon;
   const currentId = current?.id ?? value;
+  useMenuKeyboard(open && Boolean(pos), menuRef, btnRef, () => setOpen(false));
   const compactLabel = setting.id === "format"
     ? ({ "ig-post": "4:5", "ig-story": "9:16", "fb-post": "1:1", "yt-thumb": "16:9" } as Record<string, string>)[currentId] ?? current?.label
     : current?.label;
@@ -1568,7 +1563,8 @@ function SettingSelect({
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ bottom: window.innerHeight - r.top + 8, left: r.left, width: 256 });
+    const width = Math.min(256, window.innerWidth - 16);
+    setPos({ bottom: window.innerHeight - r.top + 8, left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)), width });
   }, []);
 
   React.useEffect(() => {
@@ -1595,7 +1591,7 @@ function SettingSelect({
         ref={btnRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="maro-dock-pill max-w-none shrink-0"
+        aria-expanded={open} aria-haspopup="menu" className="maro-dock-pill max-w-none shrink-0"
         title={setting.label}
       >
         <OptionIcon
@@ -1619,8 +1615,8 @@ function SettingSelect({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, zIndex: 200 }}
-                className="maro-menu overflow-hidden p-1.5"
+                style={{ position: "fixed", bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: `calc(100dvh - ${pos.bottom + 8}px)`, zIndex: "var(--maro-z-dropdown)" }}
+                className="maro-menu overflow-y-auto p-2" role="menu"
               >
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-ink-3">
                   {setting.label}

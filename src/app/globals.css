@@ -35,13 +35,6 @@
   color: var(--maro-color-text-brand);
 }
 
-/* The final system does not outline generic surfaces. Structural separators
-   use dedicated elements/tokens instead of card borders. */
-.border-line,
-.border-line\/60 {
-  border-color: transparent !important;
-}
-
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -103,7 +96,7 @@ body {
 }
 
 .text-accent-teal {
-  color: var(--accent);
+  color: var(--maro-color-text-brand);
 }
 
 .bg-accent-teal {
@@ -264,9 +257,9 @@ body {
   gap: 0.5rem;
   height: var(--ui-btn-h);
   padding-inline: 0.75rem;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--maro-radius-12);
+  font-size: var(--maro-font-size-14);
+  font-weight: var(--maro-font-weight-semibold);
   white-space: nowrap;
 }
 
@@ -276,7 +269,7 @@ body {
   width: var(--ui-btn-h);
   height: var(--ui-btn-h);
   min-width: var(--ui-btn-h);
-  border-radius: 12px;
+  border-radius: var(--maro-radius-12);
   flex-shrink: 0;
 }
 
@@ -497,27 +490,20 @@ body {
   }
 }
 
-/* Remove default browser focus ring on buttons (custom focus handled per component) */
-button:focus {
-  outline: none;
-}
-textarea:focus {
-  outline: none;
-}
-
 /* Explicit geometry and colors keep all switches legible across themes. */
-.maro-switch-track { display: inline-block; position: relative; flex: none; width: 36px; height: 20px; border: 1px solid #767e89; border-radius: 999px; background: #767e89; vertical-align: middle; transition: background-color .18s, border-color .18s; }
-.maro-switch-track[data-checked="true"] { background: #00ff72; border-color: #00ff72; }
-.maro-switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0003; transition: transform .18s; }
+.maro-switch { min-height: var(--maro-control-height-md); }
+.maro-switch-track { display: inline-block; position: relative; flex: none; width: 36px; height: 20px; border: 1px solid var(--maro-color-switch-off); border-radius: var(--maro-radius-pill); background: var(--maro-color-switch-off); vertical-align: middle; transition: background-color var(--maro-duration-fast), border-color var(--maro-duration-fast); }
+.maro-switch-track[data-checked="true"] { background: var(--maro-color-accent); border-color: var(--maro-color-accent); }
+.maro-switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: var(--maro-radius-pill); background: var(--maro-white); transition: transform var(--maro-duration-fast); }
+.maro-switch-track[data-checked="true"] > .maro-switch-knob { background: var(--maro-color-text-on-accent); }
 .maro-switch-track[data-checked="true"] > .maro-switch-knob { transform: translateX(16px); }
 .maro-switch-track[data-size="md"] { width: 44px; height: 24px; }
 .maro-switch-track[data-size="md"] > .maro-switch-knob { width: 18px; height: 18px; }
 .maro-switch-track[data-size="md"][data-checked="true"] > .maro-switch-knob { transform: translateX(20px); }
-.maro-switch:focus-visible { outline: 2px solid #00ff72; outline-offset: 4px; }
 html[data-theme="mshelt"] .logo-lockup-light,
 html[data-theme="mshelt"] .maro-text-logo { filter: brightness(0) invert(1); }
 html[data-theme="mshelt"] .maro-symbol-inverse { filter: brightness(0); }
-html[data-theme="mshelt"] { --on-scrim: #fff; --skeleton-shine: rgb(255 255 255 / 6%); }
+html[data-theme="mshelt"] { --skeleton-shine: rgb(255 255 255 / 8%); }
 @media (prefers-reduced-motion: reduce) {
   .maro-switch-knob, .maro-switch-track { transition: none; }
   .maro-generation-loader * { animation: none !important; }

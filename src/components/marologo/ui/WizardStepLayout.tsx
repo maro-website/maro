@@ -48,7 +48,7 @@ export function WizardStepLayout({
         {nextExtra ?? (
           <Button
             type="button"
-            className="h-[52px] w-full rounded-maro16 text-[15px] font-semibold"
+            className="h-[52px] w-full rounded-maro16 text-base font-semibold"
             onClick={onNext}
             disabled={nextDisabled}
           >

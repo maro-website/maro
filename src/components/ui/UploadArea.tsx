@@ -46,6 +46,14 @@ export function UploadArea({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault(); inputRef.current?.click();
+        }
+      }}
       onClick={() => inputRef.current?.click()}
       onDragOver={(e) => {
         e.preventDefault();
@@ -67,13 +75,13 @@ export function UploadArea({
       <div
         className={cn(
           "grid place-items-center rounded-2xl text-ink transition-transform group-hover:scale-105",
-          inline ? "h-11 w-11 bg-transparent text-[var(--maro-gray-300)]" : "bg-surface",
+          inline ? "h-11 w-11 bg-transparent text-ink-2" : "bg-surface",
           compact ? "h-9 w-9" : !inline && "h-12 w-12"
         )}
       >
         <UploadCloud className={compact ? "h-4 w-4" : inline ? "h-7 w-7" : "h-5 w-5"} />
       </div>
-      <div className={cn("font-semibold", inline ? "text-[15px] text-[var(--maro-gray-300)]" : compact ? "text-[13px]" : "text-[14px]")}>
+      <div className={cn("font-semibold", inline ? "text-base text-ink-2" : "text-sm")}>
         {label}
       </div>
       {hint && <div className={cn("text-[12px]", dragging ? "text-brand-fg/70" : "text-ink-3")}>{hint}</div>}

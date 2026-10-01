@@ -7,7 +7,7 @@ import { ImagePlus } from "lucide-react";
 export function MaroLogoIntro({ onStart }: { onStart: () => void }) {
   return (
     <div className="marologo-shell flex min-h-[70vh] flex-col items-center justify-center text-center">
-      <span className="mb-6 text-[13px] font-semibold text-brand">maroLogo · wizard</span>
+      <span className="mb-6 text-sm font-semibold text-brand">maroLogo · wizard</span>
       <div className="marologo-intro-icon mb-6">
         <ToolIcon toolId="logo" fallback={ImagePlus} className="h-14 w-14 text-brand" />
       </div>
@@ -17,7 +17,7 @@ export function MaroLogoIntro({ onStart }: { onStart: () => void }) {
       </p>
       <Button
         type="button"
-        className="mt-10 h-[52px] min-w-[220px] rounded-maro16 px-8 text-[15px] font-semibold"
+        className="mt-10 h-[52px] min-w-[220px] rounded-maro16 px-8 text-base font-semibold"
         onClick={onStart}
       >
         Nise brief-in

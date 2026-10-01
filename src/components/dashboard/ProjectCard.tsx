@@ -42,8 +42,8 @@ export function ProjectCard({
 
       <div className="flex items-center justify-between gap-2 px-4 py-3.5">
         <button onClick={open} className="min-w-0 flex-1 text-left">
-          <div className="truncate text-[15px] font-bold tracking-tight text-ink">{project.name}</div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink-3">
+          <div className="truncate text-base font-bold tracking-tight text-ink">{project.name}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-3">
             {project.status === "published" ? (
               <>
                 <Globe className="h-3.5 w-3.5 text-success" />
@@ -58,8 +58,8 @@ export function ProjectCard({
         </button>
         <Dropdown
           trigger={
-            <button className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink">
-              <MoreHorizontal className="h-4.5 w-4.5" />
+            <button type="button" aria-label={`Veprimet për ${project.name}`} className="maro-icon-button shrink-0 text-ink-3">
+              <MoreHorizontal className="h-5 w-5" />
             </button>
           }
           items={[

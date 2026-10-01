@@ -35,7 +35,7 @@ export function TypographyGrid({
               {active && <Check className="h-4 w-4" strokeWidth={3} />}
             </span>
             <span className={cn("text-[22px] font-semibold text-ink", fontClass)}>maro</span>
-            <span className={cn("text-center text-[12px] font-medium", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
+            <span className={cn("text-center text-[12px] font-medium", active ? "text-ink" : "text-ink-2")}>
               {opt.label}
             </span>
           </button>

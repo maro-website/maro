@@ -3,6 +3,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 import { Check, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 
 export function SearchableSelect({
   label,
@@ -32,6 +34,12 @@ export function SearchableSelect({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const rootRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const labelId = React.useId();
+  const listId = React.useId();
+  const errorId = React.useId();
+  useMenuKeyboard(open, panelRef, triggerRef, () => setOpen(false));
 
   const filtered = options.filter((o) => (optionLabels[o] ?? o).toLowerCase().includes(query.toLowerCase()));
 
@@ -48,45 +56,51 @@ export function SearchableSelect({
 
   return (
     <div ref={rootRef} className="relative">
-      <span className="marologo-field-label mb-[10px] block">{label}</span>
+      <span id={labelId} className="marologo-field-label mb-2 block">{label}</span>
       <button
+        ref={triggerRef}
+        aria-labelledby={labelId}
+        aria-controls={listId}
+        data-invalid={error ? "true" : undefined}
+        aria-describedby={error ? errorId : undefined}
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "marologo-card flex h-[52px] w-full items-center justify-between px-[20px] text-left text-[15px]",
+          "maro-input flex h-[var(--maro-control-height-lg)] w-full items-center justify-between text-left",
           value ? "text-ink" : "text-ink-3"
         )}
       >
         <span className="truncate">{display}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
       </button>
-      {error && <p className="mt-1.5 text-[12px] text-danger">{error}</p>}
+      {error && <p id={errorId} role="alert" className="mt-2 text-xs text-danger">{error}</p>}
 
       {value === otherTrigger && onOtherChange && (
-        <input
+        <Input
+          aria-label={otherLabel}
           type="text"
           value={otherValue ?? ""}
           placeholder={otherLabel}
           onChange={(e) => onOtherChange(e.target.value)}
-          className="marologo-card mt-[10px] h-[52px] w-full px-[20px] text-[15px] text-ink outline-none placeholder:text-[var(--maro-gray-300)]"
+          className="mt-2"
         />
       )}
 
       {open && (
-        <div className="maro-menu absolute z-50 mt-[10px] w-full overflow-hidden p-[10px]">
+        <div ref={panelRef} className="maro-menu absolute z-[var(--maro-z-dropdown)] mt-2 min-w-0 w-full overflow-hidden p-4">
           <div className="mb-[10px]">
-            <input
+            <Input
+              aria-label={`Kërko ${label.toLowerCase()}`}
               type="text"
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Kërko…"
-              className="h-[44px] w-full rounded-maro12 bg-surface-2 px-[20px] text-[14px] outline-none"
             />
           </div>
-          <ul role="listbox" className="max-h-56 space-y-[10px] overflow-y-auto">
+          <ul id={listId} role="listbox" aria-labelledby={labelId} className="max-h-56 space-y-1 overflow-y-auto">
             {filtered.map((opt) => (
               <li key={opt}>
                 <button

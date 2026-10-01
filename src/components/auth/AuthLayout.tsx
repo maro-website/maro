@@ -27,8 +27,8 @@ function GoogleIcon() {
 function SocialPlaceholders() {
   return (
     <div className="grid gap-2.5">
-      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-[13px] font-semibold text-ink opacity-100"><FacebookIcon /> Hin me Facebook/Meta</button>
-      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-[13px] font-semibold text-ink opacity-100"><GoogleIcon /> Hin me Google/Gmail</button>
+      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-sm font-semibold text-ink opacity-100"><FacebookIcon /> Hin me Facebook/Meta</button>
+      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-sm font-semibold text-ink opacity-100"><GoogleIcon /> Hin me Google/Gmail</button>
     </div>
   );
 }

@@ -212,7 +212,7 @@ export function VisualEditPanel() {
               type="button"
               disabled={uploading}
               onClick={() => fileRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-[12.5px] font-semibold text-white disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-[12.5px] font-semibold text-ink-inv disabled:opacity-50"
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {uploading ? "Duke ngarkuar…" : "Zëvendëso imazhin"}

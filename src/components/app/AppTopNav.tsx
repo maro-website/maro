@@ -124,7 +124,7 @@ export function AppTopNav({
         {user && (
           <Link
             href="/pricing"
-            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-5 text-[13px] font-semibold transition-colors hover:bg-surface-hover sm:text-[14px]"
+            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-5 text-sm font-semibold transition-colors hover:bg-surface-hover sm:text-[14px]"
             aria-label={`${credits} kredite`}
           >
             <MaroIcon name="coins" fallback={Coins} className="h-4 w-4 text-brand" />

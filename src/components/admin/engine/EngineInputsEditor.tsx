@@ -155,7 +155,7 @@ export function EngineInputsEditor({ toolId }: { toolId: string }) {
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => void move(selected.fieldKey, -1)} className="rounded-lg border border-line px-2 py-1 text-[12px]">↑</button>
                 <button type="button" onClick={() => void move(selected.fieldKey, 1)} className="rounded-lg border border-line px-2 py-1 text-[12px]">↓</button>
-                <button type="button" onClick={() => void save()} disabled={busy} className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">
+                <button type="button" onClick={() => void save()} disabled={busy} className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg disabled:opacity-50">
                   Save override
                 </button>
               </div>

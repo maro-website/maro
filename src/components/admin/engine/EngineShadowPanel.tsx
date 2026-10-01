@@ -248,7 +248,7 @@ export function EngineShadowPanel({
                     onClick={() => void saveReview(o.id)}
                     className={cn(
                       "rounded-lg border border-line px-2 py-1 text-[11px] font-semibold",
-                      selected.review_status === o.id ? "bg-brand text-white" : "hover:bg-surface-2"
+                      selected.review_status === o.id ? "bg-brand text-brand-fg" : "hover:bg-surface-2"
                     )}
                   >
                     {o.label}

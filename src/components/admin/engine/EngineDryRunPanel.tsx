@@ -94,7 +94,7 @@ export function EngineDryRunPanel({
           {toolId === "maro_logo" && <label className="block text-[12px]">Validated Logo Wizard answers (JSON)<textarea rows={8} value={wizardJson} onChange={(e) => setWizardJson(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono" /></label>}
         </>}
         {MARO_FORT_ENABLED && <label className="block text-[12px]"><span className="text-ink-3">maroFort JSON</span><textarea value={fortJson} onChange={(e) => setFortJson(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line px-2 py-1.5 font-mono text-[11px]" /></label>}
-        <button type="button" onClick={() => void run()} disabled={busy} className="rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={() => void run()} disabled={busy} className="rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-brand-fg disabled:opacity-50">
           Compile
         </button>
       </section>

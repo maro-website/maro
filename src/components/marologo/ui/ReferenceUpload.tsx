@@ -62,7 +62,7 @@ export function ReferenceUpload({
 
   return (
     <div className="space-y-[20px]">
-      <h3 className="text-[15px] font-semibold text-ink">{content.references.label}</h3>
+      <h3 className="text-base font-semibold text-ink">{content.references.label}</h3>
       {references.length < MAX_REFERENCE_IMAGES && (
         <div
           onDrop={(e) => {
@@ -92,7 +92,7 @@ export function ReferenceUpload({
                   type="button"
                   aria-label={`Hiq ${ref.name}`}
                   onClick={() => onChange(references.filter((r) => r.id !== ref.id))}
-                  className="rounded-lg p-[10px] text-[var(--maro-gray-300)] hover:bg-surface-2 hover:text-ink"
+                  className="rounded-lg p-[10px] text-ink-2 hover:bg-surface-2 hover:text-ink"
                 >
                   <X className="h-4 w-4" />
                 </button>

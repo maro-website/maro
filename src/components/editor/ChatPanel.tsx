@@ -87,7 +87,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
         {messages.map((m) =>
           m.role === "user" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-brand px-3.5 py-2.5 text-[13px] font-medium leading-relaxed text-white">
+              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-brand px-3.5 py-2.5 text-[13px] font-medium leading-relaxed text-brand-fg">
                 {m.content}
               </div>
             </div>
@@ -131,7 +131,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
             disabled={!input.trim() || sending}
             aria-label={`Dërgo ndryshimin, ${editCost} kredite`}
             title={`Ky ndryshim me AI kushton ${editCost} kredite`}
-            className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand px-2 text-white transition-all hover:bg-brand-hover disabled:opacity-40"
+            className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-brand px-2 text-brand-fg transition-all hover:bg-brand-hover disabled:opacity-40"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
             <span className="h-4 w-px bg-white/30" />

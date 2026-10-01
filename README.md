@@ -11,10 +11,10 @@ Pagesat përmes **Raiffeisen Bank Kosova** (hosted checkout).
 - Next.js (App Router) + TypeScript
 - Tailwind CSS (centralized design tokens)
 - Lucide icons
-- Plus Jakarta Sans (self-hosted via `@fontsource`)
+- Manrope (self-hosted via `@fontsource`)
 - pnpm
 
-Brand primary color: `#253FDA`. Canvas: `#F5F5F5`.
+Protected brand primary: `#00ff72`. Dark-first Mshelt and supported Qelt use the semantic tokens in `maro-final-design-system`. See [MARO_UI_SYSTEM.md](MARO_UI_SYSTEM.md), [MARO_UI_RULES.md](MARO_UI_RULES.md) and [UI_REFINEMENT_RESTORE.md](UI_REFINEMENT_RESTORE.md).
 
 ## Getting started
 

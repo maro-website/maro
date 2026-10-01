@@ -113,13 +113,13 @@ function AccountInner() {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="text-[22px] font-bold tracking-[-0.01em] text-ink">{user?.name}</div>
-                    <div className="truncate text-[13.5px] text-ink-3">{user?.email}</div>
+                    <div className="truncate text-sm text-ink-3">{user?.email}</div>
                     <div className="mt-[10px] flex flex-wrap items-center gap-[10px]">
                       <Badge tone="brand" className="capitalize">
                         Plani {user?.plan || "free"}
                       </Badge>
                       {memberSince && (
-                        <span className="text-[12.5px] text-ink-3">Anëtar që nga {memberSince}</span>
+                        <span className="text-xs text-ink-3">Anëtar që nga {memberSince}</span>
                       )}
                     </div>
                   </div>
@@ -164,13 +164,13 @@ function AccountInner() {
                 </div>
 
                 <div className="maro-panel relative flex flex-col overflow-hidden">
-                  <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-2">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-ink-2">
                     <Coins className="h-4 w-4 text-brand" /> maro Credits
                   </span>
                   <div className="mt-2 text-[40px] font-extrabold leading-none tracking-tight text-ink">
                     {credits}
                   </div>
-                  <div className="text-[12.5px] text-ink-3">kredite të disponueshme</div>
+                  <div className="text-xs text-ink-3">kredite të disponueshme</div>
                   <button
                     onClick={() => router.push("/pricing")}
                     className="maro-button mt-[20px]" data-variant="brand"
@@ -253,7 +253,7 @@ function EditableField({
 
   return (
     <div>
-      <div className="mb-1.5 text-[12.5px] font-semibold text-ink-2">{label}</div>
+      <div className="mb-1.5 text-xs font-semibold text-ink-2">{label}</div>
       {editing ? (
         <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2">
           <input
@@ -265,7 +265,7 @@ function EditableField({
               if (e.key === "Enter") void save();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none"
           />
           <button
             onClick={save}
@@ -289,7 +289,7 @@ function EditableField({
         </div>
       ) : (
         <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5">
-          <span className="truncate text-[15px] text-ink">{value || "Shto…"}</span>
+          <span className="truncate text-base text-ink">{value || "Shto…"}</span>
           <button
             onClick={() => setEditing(true)}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-hover hover:text-ink"
@@ -353,7 +353,7 @@ function PreferencesSection() {
         />
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[13.5px] font-medium text-ink-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-ink-2">
           <Globe className="h-4 w-4 text-ink-3" /> Gjuha e platformës
         </div>
         <span className="inline-flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[14px] font-medium text-ink">
@@ -386,7 +386,7 @@ function ToggleRow({
     <div className="flex items-center justify-between gap-3 py-3">
       <div className="min-w-0">
         <div className="text-[14px] font-medium text-ink">{label}</div>
-        <div className="text-[12.5px] text-ink-3">{hint}</div>
+        <div className="text-xs text-ink-3">{hint}</div>
       </div>
       <Switch checked={on} onChange={onToggle} aria-label={label} />
     </div>
@@ -401,12 +401,12 @@ function DangerZone() {
       <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
         <Trash2 className="h-4 w-4 text-danger" /> Zona e rrezikut
       </div>
-      <p className="mt-1 text-[13px] text-ink-2">
+      <p className="mt-1 text-sm text-ink-2">
         Fshirja e llogarisë është e përhershme dhe heq të gjitha të dhënat.
       </p>
       <button
         onClick={() => toast("Për të fshirë llogarinë, na shkruaj te info@maro.al.")}
-        className="mt-3 rounded-xl border border-danger/40 bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-danger transition-colors hover:bg-danger/10"
+        className="mt-3 rounded-xl border border-danger/40 bg-surface px-4 py-2.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
       >
         Fshi llogarinë
       </button>
@@ -479,7 +479,7 @@ function SecuritySection() {
             onChange={(e) => setPhone(e.target.value)}
             inputMode="tel"
             placeholder="44 123 456"
-            className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3.5 text-base text-ink outline-none placeholder:text-ink-3"
           />
         </div>
         <button
@@ -502,14 +502,14 @@ function SecuritySection() {
             value={pw}
             onChange={(e) => setPw(e.target.value)}
             placeholder="Fjalëkalimi i ri"
-            className="h-11 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 rounded-xl bg-surface px-3.5 text-base text-ink outline-none placeholder:text-ink-3"
           />
           <input
             type="password"
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
             placeholder="Konfirmo fjalëkalimin"
-            className="h-11 rounded-xl bg-surface px-3.5 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="h-11 rounded-xl bg-surface px-3.5 text-base text-ink outline-none placeholder:text-ink-3"
           />
         </div>
         <button
@@ -528,13 +528,13 @@ function SecuritySection() {
             <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
               <ShieldCheck className="h-4 w-4 text-ink-2" /> Verifikimi me dy hapa (2FA)
             </div>
-            <p className="mt-1 text-[13px] text-ink-2">
+            <p className="mt-1 text-sm text-ink-2">
               Shto një shtresë sigurie me Google Authenticator. Integrimi aktivizohet së shpejti.
             </p>
           </div>
           <button
             disabled
-            className="shrink-0 cursor-not-allowed rounded-xl bg-surface-2 px-4 py-2.5 text-[13.5px] font-semibold text-ink-3"
+            className="shrink-0 cursor-not-allowed rounded-xl bg-surface-2 px-4 py-2.5 text-sm font-semibold text-ink-3"
           >
             Së shpejti
           </button>

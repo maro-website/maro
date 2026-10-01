@@ -96,7 +96,7 @@ export function AppShell({
 
           "relative z-30 shrink-0",
 
-          isHubHome ? "h-0" : "h-[var(--maro-shell-header-height)]"
+          "h-[var(--maro-shell-header-height)]"
 
         )}
 

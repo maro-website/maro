@@ -65,7 +65,7 @@ function WebWorkspaceContent({ toolId }: { toolId: string }) {
       />
       {recentProjects.length > 0 && (
         <section className="mx-auto mt-4 w-full max-w-[var(--module-content-max)] px-4 sm:px-0">
-          <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-ink-3">
             Website-et e fundit
           </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,7 +90,7 @@ function WebWorkspaceContent({ toolId }: { toolId: string }) {
                   <Link
                     href={`/projects/${p.id}/editor`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-white"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-ink-inv"
                   >
                     <Pencil className="h-3 w-3" /> Editor
                   </Link>
@@ -119,7 +119,7 @@ function WebWorkspaceContent({ toolId }: { toolId: string }) {
       {previewOpen && (
       <aside className="mx-4 mb-4 flex min-h-[320px] flex-col overflow-hidden rounded-maro20 bg-surface lg:mb-4 lg:ml-0 lg:mr-4 lg:mt-4 lg:min-h-0 lg:w-[min(440px,38%)]">
         <div className="flex min-h-14 items-center justify-between gap-2 px-4 py-3">
-          <span className="text-[13px] font-semibold text-ink">Preview live</span>
+          <span className="text-sm font-semibold text-ink">Preview live</span>
           <div className="flex items-center gap-1">
             {previewProject && (
             <button
@@ -149,7 +149,7 @@ function WebWorkspaceContent({ toolId }: { toolId: string }) {
               className="h-full min-h-[240px] w-full rounded-maro12 bg-surface"
             />
           ) : (
-            <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-[13px] text-ink-3">
+            <div className="grid h-full min-h-[240px] place-items-center px-6 text-center text-sm text-ink-3">
               {previewProject
                 ? "Ky projekt nuk ka HTML ende. Gjenero ose hap editorin."
                 : "Gjenero një website ose zgjidh një projekt nga lista."}

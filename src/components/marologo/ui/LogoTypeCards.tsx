@@ -35,7 +35,7 @@ export function LogoTypeCards({
               </span>
               <LogoTypePreview type={opt.value as LogoTypeValue} />
             </span>
-            <span className={cn("text-center text-[14px] font-semibold", active ? "text-ink" : "text-[var(--maro-gray-300)]")}>
+            <span className={cn("text-center text-[14px] font-semibold", active ? "text-ink" : "text-ink-2")}>
               {opt.label}
             </span>
           </button>
@@ -60,7 +60,7 @@ function LogoTypePreview({ type }: { type: LogoTypeValue }) {
       </div>
     );
   }
-  return <span className="text-[13px] text-ink-2">maro vendos</span>;
+  return <span className="text-sm text-ink-2">maro vendos</span>;
 }
 
 export function MaroDecidesCheckbox({

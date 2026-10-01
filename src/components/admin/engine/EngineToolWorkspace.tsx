@@ -373,7 +373,7 @@ function Action({
       disabled={disabled}
       className={cn(
         "rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50",
-        primary ? "bg-brand text-white" : "border border-line bg-surface-2 text-ink",
+        primary ? "bg-brand text-brand-fg" : "border border-line bg-surface-2 text-ink",
         className
       )}
     >

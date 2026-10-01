@@ -214,7 +214,7 @@ export function GenerationCard({
       {!isAudio && !isText && (
         <>
           <div className="mt-2.5 flex items-center gap-2 px-0.5 text-[13px] font-semibold text-ink-3" aria-live="polite">
-            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-ink-inv">
               {message.status === "thinking" ? (
                 <MaroBuildingSpinner className="h-4 w-4 brightness-0 invert" />
               ) : message.status === "done" ? (

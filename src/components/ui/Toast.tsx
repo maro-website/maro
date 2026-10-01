@@ -40,11 +40,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {mounted &&
         createPortal(
-          <div className="pointer-events-none fixed bottom-[20px] left-1/2 z-[200] flex w-[calc(100%_-_40px)] max-w-md -translate-x-1/2 flex-col items-center gap-[10px]">
+          <div className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-[var(--maro-z-toast)] flex w-[calc(100%_-_32px)] max-w-md -translate-x-1/2 flex-col items-center gap-2">
             {toasts.map((t) => (
               <div
                 key={t.id}
-                className="pointer-events-auto flex w-full items-center gap-[10px] rounded-maro16 bg-surface p-[20px] animate-fade-up"
+                role={t.tone === "error" ? "alert" : "status"}
+                aria-atomic="true"
+                className="maro-floating-notice pointer-events-auto flex w-full items-center gap-3 rounded-maro16 p-4 animate-fade-up"
               >
                 <span
                   className={cn(
@@ -56,8 +58,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 >
                   {icons[t.tone]}
                 </span>
-                <span className="text-[13px] font-medium text-ink">{t.message}</span>
+                <span className="maro-text-body min-w-0 break-words font-medium text-ink">{t.message}</span>
                 <button
+                  type="button"
+                  aria-label="Mbyll njoftimin"
                   onClick={() => setToasts((x) => x.filter((y) => y.id !== t.id))}
                   className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink"
                 >

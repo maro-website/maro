@@ -16,6 +16,6 @@ export function Switch({ checked, onChange, size = "md", disabled, "aria-label":
     disabled={disabled} onClick={() => onChange(!checked)}
     className="maro-switch inline-flex shrink-0 items-center gap-2.5 rounded-full disabled:cursor-not-allowed disabled:opacity-45">
     <SwitchTrack checked={checked} size={size} />
-    {label && <span className="text-[13px] font-medium text-ink">{label}</span>}
+    {label && <span className="text-sm font-medium text-ink">{label}</span>}
   </button>;
 }

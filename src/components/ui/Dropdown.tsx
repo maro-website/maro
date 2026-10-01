@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
+import { Button } from "./Button";
+import { useMenuKeyboard } from "./useMenuKeyboard";
 
 interface DropdownItem {
   label: string;
@@ -26,36 +28,56 @@ export function Dropdown({
 }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const menuId = React.useId();
+  const nativeTrigger = React.isValidElement(trigger) && ["button", "a", Button].includes(trigger.type as typeof Button);
+  const triggerContent = nativeTrigger && React.isValidElement<React.ButtonHTMLAttributes<HTMLButtonElement>>(trigger)
+    ? React.cloneElement(trigger, { "aria-expanded": open, "aria-haspopup": "menu", "aria-controls": menuId })
+    : trigger;
+  useMenuKeyboard(open, panelRef, triggerRef, () => setOpen(false));
 
   React.useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
   return (
     <div ref={ref} className={cn("relative", className)}>
       <div
+        ref={triggerRef}
+        role={nativeTrigger ? undefined : "button"}
+        tabIndex={nativeTrigger ? undefined : 0}
+        aria-expanded={nativeTrigger ? undefined : open}
+        aria-haspopup={nativeTrigger ? undefined : "menu"}
+        aria-controls={nativeTrigger ? undefined : menuId}
+        onKeyDown={(event) => {
+          if (["Enter", " ", "ArrowDown"].includes(event.key)) {
+            event.preventDefault();
+            setOpen(event.key === "ArrowDown" ? true : !open);
+          }
+        }}
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
           setOpen((v) => !v);
         }}
       >
-        {trigger}
+        {triggerContent}
       </div>
       {open && (
         <div
+          ref={panelRef}
+          id={menuId}
+          role="menu"
           className={cn(
-            "maro-menu absolute z-50 mt-[10px] min-w-[240px] overflow-hidden animate-scale-in",
+            "maro-menu absolute z-[var(--maro-z-dropdown)] mt-2 min-w-[240px] max-w-[calc(100vw-2rem)] overflow-hidden animate-scale-in",
             align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"
           )}
         >
@@ -67,6 +89,8 @@ export function Dropdown({
               <div key={i} className="my-[20px] h-px bg-line" />
             ) : (
               <button
+                type="button"
+                role="menuitem"
                 key={i}
                 onClick={(e) => {
                   e.stopPropagation();

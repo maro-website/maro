@@ -32,7 +32,7 @@ export function LoginAdPanel() {
           <button type="button" onClick={() => setConfirming(true)} className="group absolute inset-0 h-full w-full cursor-pointer overflow-hidden text-left" aria-label={`Vizito reklamën në ${host}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={ad.imageUrl} alt="Reklamë" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]" />
-            <span className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-surface/90 text-ink opacity-0 backdrop-blur transition group-hover:opacity-100"><ArrowUpRight size={18} /></span>
+            <span className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-maro-raised text-ink opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100"><ArrowUpRight size={18} /></span>
           </button>
         ) : (
           <div className="absolute inset-0 grid place-items-center text-center text-[22px] font-semibold leading-tight text-ink/80 sm:text-[28px]"><span>ADVERTISING<br />860×627px</span></div>

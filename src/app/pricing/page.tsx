@@ -74,11 +74,11 @@ function PricingPageInner() {
     <AppShell showFooter>
       <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="max-w-2xl">
-          <p className="text-[13px] font-semibold uppercase tracking-wider text-brand">Planet maro</p>
-          <h1 className="mt-2 text-[clamp(32px,6vw,48px)] font-bold tracking-brand text-ink">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand">Planet maro</p>
+          <h1 className="mt-2 maro-text-h1 font-bold tracking-brand text-ink">
             Planet maro
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
+          <p className="mt-3 text-base leading-relaxed text-ink-2">
             Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria.
           </p>
         </div>
@@ -142,7 +142,7 @@ function PricingPageInner() {
                     ))}
                   </ul>
 
-                  <p className="mt-8 text-[13px] text-ink-3">Blerjet janë të mbyllura.</p>
+                  <p className="mt-8 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
                 </div>
               ))}
             </div>
@@ -150,7 +150,7 @@ function PricingPageInner() {
             <div className="mt-12 rounded-maro16 bg-surface p-6">
               <h3 className="text-[16px] font-semibold text-ink">Krahasim i shkurtër</h3>
               <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-[13px]">
+                <table className="w-full min-w-[520px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-border-subtle text-ink-3">
                       <th className="py-2 pr-4 font-semibold"> </th>
@@ -217,7 +217,7 @@ function PricingPageInner() {
               <div className="mb-8 flex items-start gap-3 rounded-maro16 bg-surface-2 px-5 py-4">
                 <Lock className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" />
                 <div>
-                  <p className="text-[15px] font-semibold text-ink">Blerjet janë të mbyllura</p>
+                  <p className="text-base font-semibold text-ink">Blerjet janë të mbyllura</p>
                   <p className="mt-1 text-[14px] text-ink-2">
                     Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen.
                   </p>
@@ -246,12 +246,12 @@ function PricingPageInner() {
                     <p className="text-[24px] font-bold tracking-brand text-ink">
                       {formatCredits(tier.credits)}
                     </p>
-                    <p className="text-[13px] text-ink-3">kredite</p>
+                    <p className="text-sm text-ink-3">kredite</p>
                     <p className="mt-4 text-[22px] font-semibold text-ink">{formatEur(tier.priceEur)}</p>
                     {tier.discountPct ? (
                       <p className="mt-1 text-[12px] text-ink-3">−{tier.discountPct}% nga çmimi bazë</p>
                     ) : null}
-                    <p className="mt-5 text-[13px] text-ink-3">Blerjet janë të mbyllura.</p>
+                    <p className="mt-5 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
                   </div>
                 );
               })}
@@ -259,7 +259,7 @@ function PricingPageInner() {
           </div>
         )}
 
-        <p className="mt-12 text-center text-[13px] text-ink-3">
+        <p className="mt-12 text-center text-sm text-ink-3">
           Vlera bazë e katalogut: €0,09/kredit ·{" "}
           <Link href="/legal/refund" className="font-semibold text-ink-2 hover:text-ink">
             Politika e rimbursimit

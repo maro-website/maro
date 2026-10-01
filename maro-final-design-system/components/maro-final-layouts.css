@@ -4,13 +4,9 @@
  */
 
 body[data-maro-ui="final"] {
-  min-width: 20rem;
+  min-width: 0;
   color: var(--maro-color-text-primary);
   background: var(--maro-color-bg-canvas);
-}
-
-body[data-maro-ui="final"] :where([class*="shadow-"]) {
-  box-shadow: none !important;
 }
 
 body[data-maro-ui="final"] :where([class*="backdrop-blur"]) {
@@ -28,10 +24,7 @@ body[data-maro-ui="final"] :where(
   textarea
 ) {
   min-height: var(--maro-control-height-md);
-  border-color: transparent;
-  border-radius: var(--maro-radius-16);
-  outline: 0;
-  background-color: var(--maro-color-bg-surface);
+  color: var(--maro-color-text-primary);
 }
 
 body[data-maro-ui="final"] :where(
@@ -40,6 +33,27 @@ body[data-maro-ui="final"] :where(
   textarea
 ):focus-visible {
   box-shadow: var(--maro-focus-ring);
+}
+
+/* Explicitly outrank legacy outline-none utilities on functional controls. */
+body[data-maro-ui="final"] :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--maro-color-border-focus);
+  outline-offset: 3px;
+}
+body[data-maro-ui="final"] :where(input, textarea)::placeholder {
+  color: var(--maro-color-text-muted);
+  opacity: 1;
+}
+body[data-maro-ui="final"] :where(input[type="range"]) { accent-color: var(--maro-color-text-brand); }
+body[data-maro-ui="final"] :where(input[type="file"])::file-selector-button {
+  min-height: var(--maro-control-height-md);
+  padding-inline: var(--maro-space-4);
+  margin-right: var(--maro-space-3);
+  border: 0;
+  border-radius: var(--maro-radius-8);
+  background: var(--maro-color-bg-surface-02);
+  color: var(--maro-color-text-primary);
+  cursor: pointer;
 }
 
 body[data-maro-ui="final"] :where(input[type="checkbox"], input[type="radio"]) {
@@ -84,7 +98,7 @@ body[data-maro-ui="final"] :where(input[type="checkbox"], input[type="radio"]) {
 .maro-page-title {
   margin: 0;
   color: var(--maro-color-text-primary);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(1.75rem, 3vw, 2rem);
   font-weight: var(--maro-font-weight-bold);
   line-height: var(--maro-line-height-heading);
   letter-spacing: var(--maro-tracking-brand);
@@ -114,6 +128,18 @@ body[data-maro-ui="final"] :where(input[type="checkbox"], input[type="radio"]) {
   background: var(--maro-color-bg-surface);
   box-shadow: none;
 }
+
+.maro-dialog {
+  background: var(--maro-color-bg-surface-raised);
+  border: 1px solid var(--maro-color-border-subtle);
+  box-shadow: var(--maro-shadow-overlay);
+}
+
+.maro-content-shell { max-width: var(--maro-layout-content-max); }
+.maro-workspace-shell { width: 100%; max-width: var(--maro-layout-workspace-max); margin-inline: auto; min-width: 0; }
+.maro-dialog-header { padding: var(--maro-space-6); padding-right: 5rem; }
+.maro-dialog-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--maro-space-2); padding: var(--maro-space-4) var(--maro-space-6) var(--maro-space-6); }
+.maro-floating-notice { border: 1px solid var(--maro-color-border-subtle); background: var(--maro-color-bg-surface-raised); box-shadow: var(--maro-shadow-float); }
 
 .maro-panel {
   padding: var(--maro-gap-30);

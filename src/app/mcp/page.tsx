@@ -20,7 +20,7 @@ export default function McpPage() {
           </pre>
           <Link
             href="/contact"
-            className="mt-6 inline-flex h-11 items-center rounded-xl bg-ink px-5 text-[14px] font-bold text-white"
+            className="mt-6 inline-flex h-11 items-center rounded-xl bg-ink px-5 text-[14px] font-bold text-ink-inv"
           >
             Na kontakto për akses të hershëm
           </Link>

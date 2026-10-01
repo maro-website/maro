@@ -1,0 +1,514 @@
+{
+  "fixture": "real components with local fake data",
+  "modes": {
+    "qelt": [
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1920
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1440
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 1280
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 768
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 390
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "qelt",
+        "width": 320
+      }
+    ],
+    "mshelt": [
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1920
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1440
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 1280
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 768
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 390
+      },
+      {
+        "route": "hub",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "imazh",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "brain",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "marologo",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "account",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "pricing",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      },
+      {
+        "route": "sign-in",
+        "overflow": false,
+        "theme": "mshelt",
+        "width": 320
+      }
+    ]
+  },
+  "failures": []
+}

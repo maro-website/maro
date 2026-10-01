@@ -40,7 +40,7 @@ export function AccountSidebar({
 
   return (
     <aside className="m-[30px] mr-0 hidden w-60 shrink-0 flex-col self-start rounded-maro20 bg-surface p-[30px] md:flex">
-      <div className="pb-[20px] text-[13px] font-bold uppercase tracking-wider text-ink-3">
+      <div className="pb-[20px] text-sm font-bold uppercase tracking-wider text-ink-3">
         Llogaria
       </div>
       {ACCOUNT_TABS.map((tab) => (
@@ -49,7 +49,7 @@ export function AccountSidebar({
           type="button"
           onClick={() => onSelect(tab.id)}
           className={cn(
-            "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-left text-[13.5px] font-semibold transition-colors",
+            "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-left text-sm font-semibold transition-colors",
             active === tab.id ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
           )}
         >
@@ -63,7 +63,7 @@ export function AccountSidebar({
       <Link
         href="/account/workspaces"
         className={cn(
-          "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-[13.5px] font-semibold transition-colors",
+          "flex min-h-11 items-center gap-[20px] rounded-maro12 px-[10px] text-sm font-semibold transition-colors",
           workspacesActive ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
         )}
       >

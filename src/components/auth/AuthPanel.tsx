@@ -87,7 +87,7 @@ export function AuthPanel({
   return (
     <div className="flex flex-col gap-4">
       {!supabaseReady && (
-        <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3.5 py-3 text-[13px] text-ink-2">
+        <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3.5 py-3 text-sm text-ink-2">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           Autentikimi nuk është i disponueshëm për momentin. Provo përsëri më vonë.
         </div>
@@ -105,7 +105,7 @@ export function AuthPanel({
                 setNotice(null);
                 if (m === "sign-in") setLegalAccepted(false);
               }}
-              className={`h-9 rounded-lg text-[13.5px] font-semibold transition-all ${
+              className={`h-9 rounded-lg text-sm font-semibold transition-all ${
                 mode === m ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
               }`}
             >
@@ -150,12 +150,12 @@ export function AuthPanel({
         </Field>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl bg-danger/5 px-3.5 py-2.5 text-[13px] text-danger">
+          <div role="alert" className="maro-alert" data-tone="error">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
           </div>
         )}
         {notice && (
-          <div className="flex items-start gap-2 rounded-xl bg-success/5 px-3.5 py-2.5 text-[13px] text-success">
+          <div role="status" className="maro-alert" data-tone="success">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {notice}
           </div>
         )}
@@ -193,13 +193,13 @@ export function AuthPanel({
       </form>
 
       {mode === "sign-in" && (
-        <p className="text-center text-[13px] text-ink-3">
+        <p className="text-center text-sm text-ink-3">
           <a href="/forgot-password" className="font-semibold text-brand hover:underline">
             {dedicatedPage ? "E ke harru?" : "Harrove fjalëkalimin?"}
           </a>
         </p>
       )}
-      <a href="/confirm-email" className="text-center text-[13px] font-semibold text-brand hover:underline">Dërgo përsëri konfirmimin e email-it</a>
+      <a href="/confirm-email" className="text-center text-sm font-semibold text-brand hover:underline">Dërgo përsëri konfirmimin e email-it</a>
     </div>
   );
 }
