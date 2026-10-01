@@ -29,6 +29,8 @@ import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft } from "@/lib/workspaces/brainDraft";
+import { workspaceErrorMessage } from "@/lib/workspaces/request";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -40,44 +42,121 @@ const CHANNEL_PLATFORMS = ["Instagram", "TikTok", "Facebook", "LinkedIn", "YouTu
 
 export function BrainWorkspace() {
   const { user } = useMaro();
+  const { activeWorkspace } = useWorkspace();
+  return <BrainWorkspaceEditor key={`${user?.id ?? "guest"}:${activeWorkspace?.id ?? "none"}`} />;
+}
+
+function BrainWorkspaceEditor() {
+  const { user } = useMaro();
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { toast } = useToast();
   const workspaceId = activeWorkspace?.id;
+  const userId = user?.id;
 
   const [tab, setTab] = React.useState<BrainTabId>("brand");
-  const [profile, setProfile] = React.useState<WorkspaceBrainProfile>(emptyBrainProfile());
+  const [profile, setProfileState] = React.useState<WorkspaceBrainProfile>(() =>
+    userId && workspaceId ? readBrainDraft(userId, workspaceId) ?? emptyBrainProfile() : emptyBrainProfile()
+  );
+  const profileRef = React.useRef(profile);
+  const dirtyRef = React.useRef(Boolean(userId && workspaceId && readBrainDraft(userId, workspaceId)));
+  const storageWarning = React.useRef(false);
+  const setProfile = React.useCallback<React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>>((update) => {
+    const next = typeof update === "function" ? update(profileRef.current) : update;
+    profileRef.current = next;
+    dirtyRef.current = true;
+    setProfileState(next);
+    if (userId && workspaceId && !writeBrainDraft(userId, workspaceId, next) && !storageWarning.current) {
+      storageWarning.current = true;
+      toast("Shfletuesi nuk po e ruan draftin. Shtyp Ruaje para se të largohesh.", "error");
+    }
+  }, [userId, workspaceId, toast]);
   const [sources, setSources] = React.useState<WorkspaceSource[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
+  const mounted = React.useRef(true);
+  const canAutosave = React.useRef(false);
+  canAutosave.current = !loading && !loadError;
+  const inFlight = React.useRef<{ profile: WorkspaceBrainProfile; task: Promise<void> } | null>(null);
 
   const progress = brainProgress(profile, sources.length);
 
-  const load = React.useCallback(async () => {
-    if (!user || !workspaceId) {
+  const refreshSources = React.useCallback(async () => {
+    if (!userId || !workspaceId) return;
+    setSources(await fetchWorkspaceSources(userId, workspaceId));
+  }, [userId, workspaceId]);
+
+  React.useEffect(() => {
+    if (!userId || !workspaceId) {
       setLoading(false);
       return;
     }
+    let active = true;
     setLoading(true);
-    const [p, s] = await Promise.all([
-      fetchBrainProfile(user.id, workspaceId),
-      fetchWorkspaceSources(user.id, workspaceId),
-    ]);
-    setProfile(p);
-    setSources(s);
-    setLoading(false);
-  }, [user, workspaceId]);
+    setLoadError(null);
+    void Promise.all([
+      fetchBrainProfile(userId, workspaceId),
+      fetchWorkspaceSources(userId, workspaceId),
+    ]).then(([p, s]) => {
+      if (!active) return;
+      // Server hydration and source refreshes must never overwrite an unsaved draft.
+      if (!dirtyRef.current) {
+        profileRef.current = p;
+        setProfileState(p);
+      }
+      setSources(s);
+    }).catch((error) => {
+      if (active) setLoadError(workspaceErrorMessage(error, "maroBrain nuk u ngarkua. Drafti yt është ruajtur; provo përsëri."));
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [userId, workspaceId, loadAttempt]);
+
+  const persistDraft = React.useCallback((snapshot: WorkspaceBrainProfile, manual = false): Promise<void> => {
+    if (!userId || !workspaceId) return Promise.resolve();
+    if (inFlight.current?.profile === snapshot) return inFlight.current.task;
+    if (mounted.current) { setSaving(true); setSaveError(null); }
+    const task = saveBrainProfile(userId, workspaceId, snapshot).then(() => {
+      clearSavedBrainDraft(userId, workspaceId, snapshot);
+      if (profileRef.current === snapshot) dirtyRef.current = false;
+      if (manual && mounted.current) toast("maroBrain u ruajt.");
+    }).catch((error) => {
+      const message = workspaceErrorMessage(error, "Ruajtja dështoi. Drafti yt është ruajtur; provo përsëri.");
+      if (mounted.current) {
+        setSaveError(message);
+        if (manual) toast(message, "error");
+      }
+    }).finally(() => {
+      if (inFlight.current?.task === task) {
+        inFlight.current = null;
+        if (mounted.current) setSaving(false);
+      }
+    });
+    inFlight.current = { profile: snapshot, task };
+    return task;
+  }, [userId, workspaceId, toast]);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    if (loading || loadError || !dirtyRef.current) return;
+    const timer = setTimeout(() => void persistDraft(profileRef.current), saveError ? 10_000 : 800);
+    return () => clearTimeout(timer);
+  }, [profile, loading, loadError, saveError, persistDraft]);
 
-  const onSave = async () => {
-    if (!user || !workspaceId) return;
-    setSaving(true);
-    await saveBrainProfile(user.id, workspaceId, profile);
-    setSaving(false);
-    toast("maroBrain u ruajt.");
-  };
+  React.useEffect(() => {
+    mounted.current = true;
+    const onOnline = () => { if (dirtyRef.current && canAutosave.current) void persistDraft(profileRef.current); };
+    window.addEventListener("online", onOnline);
+    return () => {
+      mounted.current = false;
+      window.removeEventListener("online", onOnline);
+      if (dirtyRef.current && canAutosave.current) void persistDraft(profileRef.current);
+    };
+  }, [persistDraft]);
+
+  const onSave = () => persistDraft(profileRef.current, true);
 
   const onClear = () => {
     if (!confirm("Pastro të gjitha fushat e maroBrain për këtë workspace?")) return;
@@ -107,6 +186,9 @@ export function BrainWorkspace() {
                 />
               </div>
               <p className="mt-2 text-[14px] font-semibold text-ink-2">{progress}% e përfunduar</p>
+              <p role="status" className="mt-1 text-[12px] text-ink-3">
+                {saveError ?? (saving ? "Duke ruajtur automatikisht…" : "Ndryshimet ruhen automatikisht.")}
+              </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -120,7 +202,7 @@ export function BrainWorkspace() {
             <Button variant="brand" loading={saving}
               type="button"
               onClick={() => void onSave()}
-              disabled={saving || !workspaceId}
+              disabled={saving || loading || Boolean(loadError) || !workspaceId}
             >
               {saving ? "Duke ruajtur…" : "Ruaje"}
             </Button>
@@ -137,7 +219,9 @@ export function BrainWorkspace() {
           <div className="relative mb-8">
             <select
               value={workspaceId ?? ""}
-              onChange={(e) => void setActiveWorkspace(e.target.value)}
+              onChange={(e) => void setActiveWorkspace(e.target.value).catch((error) =>
+                toast(workspaceErrorMessage(error, "Workspace nuk u aktivizua. Provo përsëri."), "error")
+              )}
               className="h-11 w-full appearance-none rounded-maro12 bg-surface-2 px-4 pr-9 text-[14px] font-semibold text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface"
             >
               {workspaces.map((w) => (
@@ -168,6 +252,12 @@ export function BrainWorkspace() {
 
         {/* Main panel */}
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scroll-thin rounded-maro16 bg-surface p-6 sm:p-8">
+          {loadError && (
+            <div role="alert" className="mb-4 text-sm text-danger">
+              {loadError}
+              <Button variant="ghost" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Provo përsëri</Button>
+            </div>
+          )}
           {loading ? (
             <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>
           ) : tab === "brand" ? (
@@ -185,7 +275,7 @@ export function BrainWorkspace() {
               userId={user.id}
               workspaceId={workspaceId!}
               sources={sources}
-              onRefresh={load}
+              onRefresh={refreshSources}
             />
           )}
         </main>
@@ -572,6 +662,8 @@ function SourcesTab({
       setFileUrl(null);
       await onRefresh();
       toast("Burimi u shtua.");
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Burimi nuk u ruajt. Provo përsëri."), "error");
     } finally {
       setBusy(false);
     }
@@ -651,9 +743,13 @@ function SourcesTab({
               <button
                 type="button"
                 onClick={async () => {
-                  await deleteWorkspaceSource(userId, workspaceId, s.id);
-                  await onRefresh();
-                  toast("Burimi u fshi.");
+                  try {
+                    await deleteWorkspaceSource(userId, workspaceId, s.id);
+                    await onRefresh();
+                    toast("Burimi u fshi.");
+                  } catch (error) {
+                    toast(workspaceErrorMessage(error, "Burimi nuk u fshi. Provo përsëri."), "error");
+                  }
                 }}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-danger"
                 aria-label="Fshi"

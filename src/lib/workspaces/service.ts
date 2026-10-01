@@ -3,6 +3,7 @@ import type { Workspace, WorkspaceBrand } from "@/lib/workspaces/types";
 import { DEFAULT_WORKSPACE_NAME, MAX_WORKSPACES } from "@/lib/workspaces/types";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { uid } from "@/lib/utils/format";
+import { workspaceRequest } from "./request";
 
 const LOCAL_KEY = "maro:workspaces";
 const LOCAL_ACTIVE_KEY = "maro:activeWorkspace";
@@ -72,16 +73,15 @@ function defaultWorkspace(userId: string): Workspace {
 export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data, error } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
       .select(
         "id, owner_id, name, icon_url, sort_order, created_at, brand_name, brand_logo_url, brand_primary_color, brand_secondary_color, brand_background_color, brand_text_color"
       )
       .eq("owner_id", userId)
-      .order("sort_order", { ascending: true });
-    if (!error && data?.length) {
-      return data.map((r) => mapWorkspaceRow(r as Record<string, unknown>));
-    }
+      .order("sort_order", { ascending: true }).abortSignal(signal));
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => mapWorkspaceRow(r as Record<string, unknown>));
   }
   const local = readLocal(userId);
   return local.length ? local : [];
@@ -90,40 +90,49 @@ export async function fetchWorkspaces(userId: string): Promise<Workspace[]> {
 export async function fetchActiveWorkspaceId(userId: string): Promise<string | null> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("profiles")
       .select("active_workspace_id")
       .eq("id", userId)
-      .maybeSingle();
-    if (data?.active_workspace_id) return data.active_workspace_id as string;
+      .abortSignal(signal).maybeSingle());
+    if (error) throw new Error(error.message);
+    return data?.active_workspace_id ?? null;
   }
   return localStorage.getItem(`${LOCAL_ACTIVE_KEY}:${userId}`);
 }
 
 export async function setActiveWorkspaceId(userId: string, workspaceId: string): Promise<void> {
-  localStorage.setItem(`${LOCAL_ACTIVE_KEY}:${userId}`, workspaceId);
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    await supabase.from("profiles").update({ active_workspace_id: workspaceId }).eq("id", userId);
+    const { error } = await workspaceRequest((signal) => supabase.from("profiles")
+      .update({ active_workspace_id: workspaceId }).eq("id", userId).select("id").abortSignal(signal).single());
+    if (error) throw new Error(error.message);
   }
+  if (!supabaseConfigured) localStorage.setItem(`${LOCAL_ACTIVE_KEY}:${userId}`, workspaceId);
 }
 
 export async function createWorkspace(userId: string, name: string): Promise<Workspace> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error } = await workspaceRequest(() => supabase.auth.getSession());
+    if (error) throw new Error(error.message);
     const token = sessionData.session?.access_token;
+    if (!token) throw new Error("unauthorized");
 
-    const res = await fetch("/api/workspaces", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ name }),
+    const { res, payload } = await workspaceRequest(async (signal) => {
+      const res = await fetch("/api/workspaces", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
+        signal,
+      });
+      const payload = (await res.json()) as { workspace?: Record<string, unknown>; error?: string };
+      return { res, payload };
     });
 
-    const payload = (await res.json()) as { workspace?: Record<string, unknown>; error?: string };
     if (!res.ok) {
       if (payload.error === "WORKSPACE_LIMIT") throw new Error("WORKSPACE_LIMIT");
       throw new Error(payload.error ?? "create_failed");
@@ -131,6 +140,7 @@ export async function createWorkspace(userId: string, name: string): Promise<Wor
     if (payload.workspace) {
       return mapWorkspaceRow(payload.workspace);
     }
+    throw new Error("create_failed");
   }
 
   const existing = await fetchWorkspaces(userId);
@@ -152,7 +162,7 @@ export async function updateWorkspace(
 ): Promise<Workspace | null> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data, error } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
       .update({
         ...(patch.name != null ? { name: patch.name } : {}),
@@ -164,8 +174,10 @@ export async function updateWorkspace(
       .select(
         "id, owner_id, name, icon_url, sort_order, created_at, brand_name, brand_logo_url, brand_primary_color, brand_secondary_color, brand_background_color, brand_text_color"
       )
-      .single();
-    if (!error && data) return mapWorkspaceRow(data as Record<string, unknown>);
+      .abortSignal(signal).single());
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("workspace_not_found");
+    return mapWorkspaceRow(data as Record<string, unknown>);
   }
 
   const items = readLocal(userId);
@@ -183,12 +195,13 @@ export async function updateWorkspace(
 export async function deleteWorkspace(userId: string, workspaceId: string): Promise<boolean> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { error } = await supabase
+    const { error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
       .delete()
       .eq("id", workspaceId)
-      .eq("owner_id", userId);
-    if (!error) return true;
+      .eq("owner_id", userId).abortSignal(signal));
+    if (error) throw new Error(error.message);
+    return true;
   }
 
   const items = readLocal(userId).filter((w) => w.id !== workspaceId);

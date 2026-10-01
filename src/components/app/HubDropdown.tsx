@@ -12,6 +12,7 @@ import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import { ChevronDown, Home } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 function NavIcon({ name, className, hub }: { name: string; className?: string; hub?: boolean }) {
   if (hub) {
@@ -27,6 +28,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
 
 export function HubDropdown() {
   const pathname = usePathname();
+  const { toast } = useToast();
   const { workspaces, activeWorkspace, setActiveWorkspace, ready } = useWorkspace();
   const [open, setOpen] = React.useState(false);
   const [wsOpen, setWsOpen] = React.useState(false);
@@ -133,7 +135,7 @@ export function HubDropdown() {
                             key={ws.id}
                             type="button"
                             onClick={() => {
-                              setActiveWorkspace(ws.id);
+                              void setActiveWorkspace(ws.id).catch(() => toast("Workspace nuk u aktivizua. Provo përsëri.", "error"));
                               setWsOpen(false);
                             }}
                             className={cn(

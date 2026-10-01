@@ -5,9 +5,11 @@ import { normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
 import { getSupabaseBrowser, supabaseConfigured, getAccessToken } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
 import { resolvePrivateAssetRefs } from "@/lib/services/projectAssetService";
+import { workspaceRequest } from "./request";
 
 const LOCAL_BRAIN_KEY = "maro:ws-brain";
 const LOCAL_SOURCES_KEY = "maro:ws-sources";
+const pendingSaves = new Map<string, Promise<void>>();
 
 function readLocalBrain(workspaceId: string): WorkspaceBrainProfile {
   if (typeof window === "undefined") return normalizeBrainProfile(null);
@@ -41,14 +43,18 @@ export async function fetchBrainProfile(
   userId: string,
   workspaceId: string
 ): Promise<WorkspaceBrainProfile> {
+  // Navigation to a tool must observe the autosave started when the editor unmounted.
+  await pendingSaves.get(`${userId}:${workspaceId}`)?.catch(() => {});
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
       .select("brain_profile, brand_name, brand_logo_url")
       .eq("id", workspaceId)
       .eq("owner_id", userId)
-      .maybeSingle();
+      .abortSignal(signal).maybeSingle());
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("workspace_not_found");
     if (data) {
       const profile = normalizeBrainProfile(
         (data.brain_profile as WorkspaceBrainProfile | null) ?? null
@@ -77,6 +83,20 @@ export async function saveBrainProfile(
   workspaceId: string,
   profile: WorkspaceBrainProfile
 ): Promise<void> {
+  const key = `${userId}:${workspaceId}`;
+  const previous = pendingSaves.get(key) ?? Promise.resolve();
+  const task = previous.catch(() => {}).then(() => persistBrainProfile(userId, workspaceId, profile));
+  pendingSaves.set(key, task);
+  const cleanup = () => { if (pendingSaves.get(key) === task) pendingSaves.delete(key); };
+  void task.then(cleanup, cleanup);
+  return task;
+}
+
+async function persistBrainProfile(
+  userId: string,
+  workspaceId: string,
+  profile: WorkspaceBrainProfile
+): Promise<void> {
   const normalized = normalizeBrainProfile(profile);
   const persisted = normalizeBrainProfile({
     ...normalized,
@@ -85,11 +105,9 @@ export async function saveBrainProfile(
       logoUrl: normalized.brand.logoStorageRef ?? normalized.brand.logoUrl,
     },
   });
-  writeLocalBrain(workspaceId, persisted);
-
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
       .update({
         brain_profile: persisted,
@@ -97,8 +115,12 @@ export async function saveBrainProfile(
         brand_logo_url: persisted.brand.logoUrl,
       })
       .eq("id", workspaceId)
-      .eq("owner_id", userId);
+      .eq("owner_id", userId).select("id").abortSignal(signal).single());
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("workspace_not_found");
+    return;
   }
+  writeLocalBrain(workspaceId, persisted);
 }
 
 export async function fetchWorkspaceSources(
@@ -107,12 +129,13 @@ export async function fetchWorkspaceSources(
 ): Promise<WorkspaceSource[]> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspace_sources")
       .select("id, workspace_id, name, keywords, file_url, mime_type, created_at")
       .eq("workspace_id", workspaceId)
       .eq("owner_id", userId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }).abortSignal(signal));
+    if (error) throw new Error(error.message);
     if (data) {
       const items = data.map((r) => ({
         id: r.id,
@@ -156,7 +179,7 @@ export async function addWorkspaceSource(input: {
 
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data, error } = await supabase
+    const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspace_sources")
       .insert({
         id: item.id,
@@ -168,7 +191,9 @@ export async function addWorkspaceSource(input: {
         mime_type: item.mimeType ?? null,
       })
       .select()
-      .single();
+      .abortSignal(signal).single());
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("source_save_failed");
     if (!error && data) {
       return {
         id: data.id,
@@ -194,12 +219,14 @@ export async function deleteWorkspaceSource(
 ): Promise<void> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    await supabase
+    const { error } = await workspaceRequest((signal) => supabase
       .from("workspace_sources")
       .delete()
       .eq("id", sourceId)
       .eq("workspace_id", workspaceId)
-      .eq("owner_id", userId);
+      .eq("owner_id", userId).abortSignal(signal));
+    if (error) throw new Error(error.message);
+    return;
   }
   writeLocalSources(
     workspaceId,

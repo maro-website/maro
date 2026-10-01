@@ -15,6 +15,8 @@ import type { ImageCreation, Project, User } from "@/lib/types";
 import type { Profile } from "@/lib/supabase/types";
 import { StorageKeys, readJSON, writeJSON, projectsKey, creationsKey, LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
+import { subscribeToSession } from "@/lib/supabase/sessionSubscription";
+import { workspaceRequest } from "@/lib/workspaces/request";
 import {
   fetchMyCreations,
   updateMyCreation,
@@ -269,7 +271,10 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     const sb = getSupabaseBrowser();
     // select("*") so newly-added columns (e.g. is_creator) don't break login
     // before the migration has run.
-    const { data } = await sb.from("profiles").select("*").eq("id", userId).single();
+    const { data, error } = await workspaceRequest((signal) =>
+      sb.from("profiles").select("*").eq("id", userId).abortSignal(signal).single()
+    );
+    if (error) throw new Error(error.message);
     return (data as Profile) ?? null;
   }, []);
 
@@ -282,8 +287,12 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, profile: null }));
       return;
     }
-    const profile = await fetchProfile(u.id);
-    setState((s) => ({ ...s, profile }));
+    try {
+      const profile = await fetchProfile(u.id);
+      setState((s) => s.session?.user.id === u.id ? { ...s, profile } : s);
+    } catch {
+      // A transient profile failure must not sign out the user or reset their forms.
+    }
   }, [fetchProfile]);
 
   useEffect(() => {
@@ -292,24 +301,36 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const sb = getSupabaseBrowser();
-    let unsub: (() => void) | undefined;
-
-    (async () => {
-      const { data } = await sb.auth.getSession();
-      const session = data.session;
-      const profile = session?.user ? await fetchProfile(session.user.id) : null;
-      setState((s) => ({ ...s, ready: true, session, profile }));
+    let active = true;
+    let currentUserId: string | null | undefined;
+    let profileRequest = 0;
+    // INITIAL_SESSION also initializes the store; no late subscription/getSession race.
+    const unsubscribe = subscribeToSession(sb.auth, (event, session) => {
+      const id = session?.user.id ?? null;
+      const identityChanged = id !== currentUserId;
+      currentUserId = id;
+      setState((s) => ({
+        ...s,
+        session,
+        profile: identityChanged ? null : s.profile,
+        ready: id ? s.ready : true,
+      }));
       void prefetchPublicSettings(session?.access_token ?? null);
-
-      const { data: sub } = sb.auth.onAuthStateChange(async (_event, newSession) => {
-        const p = newSession?.user ? await fetchProfile(newSession.user.id) : null;
-        setState((s) => ({ ...s, session: newSession, profile: p }));
-        void prefetchPublicSettings(newSession?.access_token ?? null);
+      // SIGNED_IN can fire on tab focus. Only a real identity change reloads profile data.
+      if (!identityChanged && event !== "USER_UPDATED") return;
+      const request = ++profileRequest;
+      if (!id) return;
+      void fetchProfile(id).then((profile) => {
+        if (!active || request !== profileRequest || currentUserId !== id) return;
+        setState((s) => s.session?.user.id === id ? { ...s, ready: true, profile } : s);
+      }).catch(() => {
+        if (active && request === profileRequest) setState((s) => ({ ...s, ready: true }));
       });
-      unsub = () => sub.subscription.unsubscribe();
-    })();
-
-    return () => unsub?.();
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signIn = useCallback(

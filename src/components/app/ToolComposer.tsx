@@ -235,6 +235,7 @@ export function ToolComposer({
   const isAudio = tool.kind === "audio";
   const canAttachImages = isImage || isWebsite;
   const [brainReady, setBrainReady] = React.useState(false);
+  const brainUserId = user?.id;
   const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(false);
   React.useEffect(() => { setServerPromptLimit(null); }, [tool.id, selections.model, promptAttach?.id, useWorkspaceBrand, workspaceId]);
   // Temporarily down for technical reasons (distinct from "coming soon").
@@ -262,25 +263,28 @@ export function ToolComposer({
     : setting);
 
   React.useEffect(() => {
-    if (!user || !workspaceId) {
+    setBrainReady(false);
+    setUseWorkspaceBrand(false);
+    if (!brainUserId || !workspaceId) {
       setBrainReady(false);
       setUseWorkspaceBrand(false);
       return;
     }
     let alive = true;
     void Promise.all([
-      fetchBrainProfile(user.id, workspaceId),
-      fetchWorkspaceSources(user.id, workspaceId),
+      fetchBrainProfile(brainUserId, workspaceId),
+      fetchWorkspaceSources(brainUserId, workspaceId),
     ]).then(([profile, sources]) => {
       if (!alive) return;
       const ready = isBrainConfigured(profile, sources.length);
       setBrainReady(ready);
-      setUseWorkspaceBrand(false);
+    }).catch(() => {
+      if (alive) setBrainReady(false);
     });
     return () => {
       alive = false;
     };
-  }, [user, workspaceId]);
+  }, [brainUserId, workspaceId]);
 
   React.useEffect(() => {
     // Reload when the tool changes (e.g. client-side nav between tools).

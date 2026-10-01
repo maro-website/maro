@@ -9,20 +9,25 @@ import { useWorkspace } from "@/context/workspace";
 import { MAX_WORKSPACES } from "@/lib/workspaces/types";
 import { cn } from "@/lib/utils/cn";
 import { Plus, Settings } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
+import { workspaceErrorMessage } from "@/lib/workspaces/request";
 
 function WorkspacesListInner() {
   const router = useRouter();
-  const { workspaces, activeWorkspace, setActiveWorkspace, createWorkspace, ready } = useWorkspace();
+  const { toast } = useToast();
+  const { workspaces, activeWorkspace, setActiveWorkspace, createWorkspace, ready, error, refreshWorkspaces } = useWorkspace();
   const [creating, setCreating] = React.useState(false);
 
   const onCreate = async () => {
-    if (workspaces.length >= MAX_WORKSPACES) return;
+    if (creating || workspaces.length >= MAX_WORKSPACES) return;
     setCreating(true);
     try {
       const n = workspaces.length + 1;
       const ws = await createWorkspace(`Maro Workspace #${n}`);
       await setActiveWorkspace(ws.id);
       router.push(`/account/workspaces/${ws.id}`);
+    } catch (cause) {
+      toast(workspaceErrorMessage(cause, "Workspace nuk u krijua. Provo përsëri."), "error");
     } finally {
       setCreating(false);
     }
@@ -38,6 +43,11 @@ function WorkspacesListInner() {
 
         {!ready ? (
           <p className="mt-[30px] text-ink-3">Duke ngarkuar…</p>
+        ) : error ? (
+          <div role="alert" className="mt-[30px] text-danger">
+            {error}
+            <button type="button" className="ml-2 underline" onClick={() => void refreshWorkspaces()}>Provo përsëri</button>
+          </div>
         ) : (
           <ul className="maro-list mt-[30px]">
             {workspaces.map((ws) => (
@@ -76,11 +86,11 @@ function WorkspacesListInner() {
           <button
             type="button"
             onClick={onCreate}
-            disabled={creating}
+            disabled={creating || !ready || Boolean(error)}
             className="maro-button mt-[30px]" data-variant="inverse"
           >
             <Plus className="h-4 w-4" />
-            Shto workspace
+            {creating ? "Duke krijuar…" : "Shto workspace"}
           </button>
         )}
       </div>

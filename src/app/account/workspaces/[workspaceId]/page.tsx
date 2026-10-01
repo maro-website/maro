@@ -10,12 +10,17 @@ import { useWorkspace } from "@/context/workspace";
 import { DEFAULT_WORKSPACE_BRAND, type WorkspaceBrand } from "@/lib/workspaces/types";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
 import { Check, Trash2 } from "lucide-react";
+import { workspaceErrorMessage } from "@/lib/workspaces/request";
+import { useMaro } from "@/context/store";
 
 function WorkspaceSettingsInner() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const workspaceId = params.workspaceId as string;
+  const { user } = useMaro();
+  const draftKey = `${user?.id ?? "guest"}:${workspaceId}`;
+  const hydrated = React.useRef<string | null>(null);
   const { workspaces, updateWorkspace, deleteWorkspace, setActiveWorkspace } = useWorkspace();
   const ws = workspaces.find((w) => w.id === workspaceId);
 
@@ -33,11 +38,12 @@ function WorkspaceSettingsInner() {
   const logoRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (ws) {
+    if (ws && hydrated.current !== draftKey) {
+      hydrated.current = draftKey;
       setName(ws.name);
       setBrand(normalizeWorkspaceBrand(ws.brand ?? DEFAULT_WORKSPACE_BRAND));
     }
-  }, [ws]);
+  }, [ws, draftKey]);
 
   if (!ws) {
     return (
@@ -49,9 +55,14 @@ function WorkspaceSettingsInner() {
 
   const saveName = async () => {
     setSaving(true);
-    await updateWorkspace(workspaceId, { name: name.trim() || ws.name });
-    setSaving(false);
-    toast("Emri u ruajt.");
+    try {
+      await updateWorkspace(workspaceId, { name: name.trim() || ws.name });
+      toast("Emri u ruajt.");
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Emri nuk u ruajt. Provo përsëri."), "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveIcon = async (dataUrl: string) => {
@@ -60,6 +71,8 @@ function WorkspaceSettingsInner() {
       await updateWorkspace(workspaceId, { iconUrl: dataUrl });
       setCropSrc(null);
       toast("Ikona u ndryshua.");
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Ikona nuk u ruajt. Provo përsëri."), "error");
     } finally {
       setUploadingIcon(false);
     }
@@ -67,9 +80,14 @@ function WorkspaceSettingsInner() {
 
   const saveBrand = async () => {
     setSavingBrand(true);
-    await updateWorkspace(workspaceId, { brand });
-    setSavingBrand(false);
-    toast("Brand u ruajt.");
+    try {
+      await updateWorkspace(workspaceId, { brand });
+      toast("Brand u ruajt.");
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Brand nuk u ruajt. Provo përsëri."), "error");
+    } finally {
+      setSavingBrand(false);
+    }
   };
 
   const saveLogo = async (dataUrl: string) => {
@@ -80,6 +98,8 @@ function WorkspaceSettingsInner() {
       await updateWorkspace(workspaceId, { brand: next });
       setLogoCropSrc(null);
       toast("Logo u vendos.");
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Logo nuk u ruajt. Provo përsëri."), "error");
     } finally {
       setUploadingLogo(false);
     }
@@ -87,12 +107,16 @@ function WorkspaceSettingsInner() {
 
   const onDelete = async () => {
     if (!confirm("Fshi këtë workspace? Ky veprim nuk kthehet mbrapsht.")) return;
+    try {
     const ok = await deleteWorkspace(workspaceId);
     if (ok) {
       toast("Workspace u fshi.");
       router.push("/account/workspaces");
     } else {
       toast("Duhet të kesh të paktën një workspace.");
+    }
+    } catch (error) {
+      toast(workspaceErrorMessage(error, "Workspace nuk u fshi. Provo përsëri."), "error");
     }
   };
 
@@ -202,8 +226,12 @@ function WorkspaceSettingsInner() {
                       onClick={async () => {
                         const next = { ...brand, logoUrl: null };
                         setBrand(next);
-                        await updateWorkspace(workspaceId, { brand: next });
-                        toast("Logo u hoq.");
+                        try {
+                          await updateWorkspace(workspaceId, { brand: next });
+                          toast("Logo u hoq.");
+                        } catch (error) {
+                          toast(workspaceErrorMessage(error, "Ndryshimi nuk u ruajt. Provo përsëri."), "error");
+                        }
                       }}
                       className="text-[13px] font-semibold text-ink-3 hover:text-ink"
                     >
@@ -271,8 +299,12 @@ function WorkspaceSettingsInner() {
             <button
               type="button"
               onClick={async () => {
-                await setActiveWorkspace(workspaceId);
-                toast("Workspace u aktivizua.");
+                try {
+                  await setActiveWorkspace(workspaceId);
+                  toast("Workspace u aktivizua.");
+                } catch (error) {
+                  toast(workspaceErrorMessage(error, "Workspace nuk u aktivizua. Provo përsëri."), "error");
+                }
               }}
               className="mb-4 text-[14px] font-semibold text-brand hover:underline"
             >
