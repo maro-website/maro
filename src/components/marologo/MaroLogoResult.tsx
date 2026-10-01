@@ -1,7 +1,5 @@
 "use client";
 
-import { StableImage } from "@/components/app/StableImage";
-
 import * as React from "react";
 import { Download, ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,14 +41,16 @@ export function MaroLogoResult({
   return (
     <div className="marologo-shell pb-12">
       <h1 className="marologo-step-title mb-8">Logo e gatshme</h1>
+      {url && (
         <button
           type="button"
           onClick={() => setLightbox(true)}
           className="marologo-card mx-auto block w-full max-w-md overflow-hidden p-4"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <StableImage src={url} module="logo" refreshKey={storageRef ?? creation.id} alt="Logo e gjeneruar" fallbackClassName="aspect-square" className="mx-auto max-h-[360px] w-full object-contain" />
+          <img src={url} alt="Logo e gjeneruar" className="mx-auto max-h-[360px] w-auto object-contain" />
         </button>
+      )}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
         <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} onClick={download}>
           Shkarko

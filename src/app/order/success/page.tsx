@@ -8,7 +8,14 @@ import { useMaro } from "@/context/store";
 import { formatEur } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
 import { CheckCircle2 } from "lucide-react";
-import { loadConfirmedOrder, type ConfirmedOrder } from "@/lib/payments/confirmedOrder";
+
+interface OrderDetails {
+  id: string;
+  label: string;
+  priceEur: number;
+  credits: number;
+  billing?: { fullName?: string; email?: string };
+}
 
 export default function OrderSuccessPage() {
   return (
@@ -20,43 +27,22 @@ export default function OrderSuccessPage() {
 
 function OrderSuccessPageInner() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("order")?.trim() ?? "";
+  const orderId = searchParams.get("order") ?? "";
   const { credits, user, getAccessToken } = useMaro();
-  const userId = user?.id;
-  const [confirmation, setConfirmation] = React.useState<{ userId: string; order: ConfirmedOrder } | null>(null);
-  const order = confirmation?.userId === userId && confirmation?.order.id === orderId
-    ? confirmation.order
-    : null;
+  const [order, setOrder] = React.useState<OrderDetails | null>(null);
 
   React.useEffect(() => {
-    setConfirmation(null);
-    if (!orderId || !userId) return;
-    const controller = new AbortController();
-    void loadConfirmedOrder(orderId, getAccessToken, controller.signal).then((verified) => {
-      if (!controller.signal.aborted && verified) {
-        setConfirmation({ userId, order: verified });
-      }
-    });
-    return () => controller.abort();
-  }, [orderId, userId, getAccessToken]);
-
-  if (!order) {
-    return (
-      <AppShell showFooter>
-        <div className="mx-auto w-full max-w-lg px-5 py-16 text-center sm:px-8">
-          <h1 className="text-[clamp(26px,5vw,36px)] font-bold tracking-brand text-ink">
-            Nuk u gjet një pagesë e konfirmuar.
-          </h1>
-          <Link
-            href="/"
-            className="mt-8 inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-6 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover"
-          >
-            Kthehu te Maro
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
+    if (!orderId) return;
+    void (async () => {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/payments/order?orderId=${encodeURIComponent(orderId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { order: OrderDetails & { billing?: OrderDetails["billing"] } };
+      setOrder(data.order);
+    })();
+  }, [orderId, getAccessToken]);
 
   return (
     <AppShell showFooter>

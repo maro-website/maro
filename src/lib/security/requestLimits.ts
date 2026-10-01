@@ -43,32 +43,14 @@ export async function readJsonBody(
     };
   }
 
-  let text = "";
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let text: string;
   try {
-    reader = req.body?.getReader();
-    const decoder = new TextDecoder();
-    let bytes = 0;
-    if (reader) {
-      for (;;) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        bytes += chunk.value.byteLength;
-        if (bytes > maxBytes) {
-          await reader.cancel();
-          return { ok: false, response: NextResponse.json({ error: "payload_too_large" }, { status: 413 }) };
-        }
-        text += decoder.decode(chunk.value, { stream: true });
-      }
-      text += decoder.decode();
-    }
+    text = await req.text();
   } catch {
     return {
       ok: false,
       response: NextResponse.json({ error: "bad-json" }, { status: 400 }),
     };
-  } finally {
-    reader?.releaseLock();
   }
 
   if (text.length > maxBytes) {

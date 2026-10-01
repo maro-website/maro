@@ -4,8 +4,6 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minimize2, ArrowUp, X } from "lucide-react";
-import { useDialogFocus } from "@/components/ui/useDialogFocus";
-import { Button } from "@/components/ui/Button";
 
 // Fullscreen "text board" for writing longer prompts comfortably. Bound to the
 // same prompt state as the composer's textarea.
@@ -17,7 +15,6 @@ export function PromptExpand({
   onSubmit,
   placeholder,
   canSubmit = true,
-  maxChars,
 }: {
   open: boolean;
   value: string;
@@ -26,25 +23,23 @@ export function PromptExpand({
   onSubmit?: () => void;
   placeholder?: string;
   canSubmit?: boolean;
-  maxChars?: number;
 }) {
-  const overLimit = maxChars !== undefined && value.length > maxChars;
-  const submitAllowed = canSubmit && !overLimit && Boolean(value.trim());
   const [mounted, setMounted] = React.useState(false);
-  const dialogRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => setMounted(true), []);
-  useDialogFocus(mounted && open, dialogRef, onClose);
 
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (submitAllowed) onSubmit?.(); }
+      if (e.key === "Escape") onClose();
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmit?.();
     };
     document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
     };
-  }, [open, onClose, onSubmit, submitAllowed]);
+  }, [open, onClose, onSubmit]);
 
   if (!mounted) return null;
 
@@ -52,15 +47,10 @@ export function PromptExpand({
     <AnimatePresence>
       {open && (
         <motion.div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Redakto promptin"
-          tabIndex={-1}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[var(--maro-z-dialog)] bg-canvas"
+          className="fixed inset-0 z-[110] bg-canvas"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -73,7 +63,7 @@ export function PromptExpand({
               <span className="text-[14px] font-semibold text-ink-2">Redakto promptin</span>
               <button
                 onClick={onClose}
-                className="maro-icon-button text-ink-2"
+                className="grid h-9 w-9 place-items-center rounded-xl text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
                 aria-label="Mbyll"
                 title="Zvogëlo"
               >
@@ -82,30 +72,30 @@ export function PromptExpand({
             </div>
 
             <textarea
-              aria-label="Prompti"
-              aria-invalid={overLimit}
               autoFocus
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
-              className="min-h-0 flex-1 w-full resize-none rounded-maro16 bg-surface p-5 text-base leading-relaxed text-ink placeholder:text-ink-3"
+              className="min-h-0 flex-1 w-full resize-none rounded-3xl bg-surface p-5 text-[17px] leading-relaxed text-ink outline-none placeholder:text-ink-3"
             />
 
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-ink-3">{value.length.toLocaleString("en-US")}{maxChars !== undefined ? ` / ${maxChars.toLocaleString("en-US")}` : ""} shkronja{overLimit && " · Shkurto promptin për të gjeneruar."}</span>
+              <span className="text-[12.5px] text-ink-3">{value.trim().length} shkronja</span>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" icon={<X className="h-4 w-4" />}
+                <button
                   onClick={onClose}
+                  className="flex items-center gap-1.5 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
                 >
-                  Mbyll
-                </Button>
+                  <X className="h-4 w-4" /> Mbyll
+                </button>
                 {onSubmit && (
-                  <Button variant="brand" iconRight={<ArrowUp className="h-4 w-4" />}
+                  <button
                     onClick={onSubmit}
-                    disabled={!submitAllowed}
+                    disabled={!canSubmit || !value.trim()}
+                    className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-[14px] font-semibold text-brand-fg transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Gjenero
-                  </Button>
+                    Gjenero <ArrowUp className="h-4 w-4" />
+                  </button>
                 )}
               </div>
             </div>

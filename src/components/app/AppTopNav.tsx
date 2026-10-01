@@ -11,6 +11,7 @@ import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
 import { TOP_BAR_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
 import { iconSrc } from "@/lib/tools/iconMap";
+import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 import { formatCredits } from "@/lib/credits/format";
 import { Coins, Menu, Megaphone } from "lucide-react";
@@ -23,6 +24,8 @@ function ModuleNavIcon({
   active: boolean;
 }) {
   const cls = cn("h-5 w-5 shrink-0", active ? "text-brand" : "text-ink");
+  const brand = getProductBrand(dest.label);
+  if (brand) return <ToolIcon toolId={brand.id} className={cls} />;
   if (dest.toolId) {
     return <ToolIcon toolId={dest.toolId} fallback={Megaphone} className={cls} />;
   }
@@ -124,7 +127,7 @@ export function AppTopNav({
         {user && (
           <Link
             href="/pricing"
-            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-5 text-sm font-semibold transition-colors hover:bg-surface-hover sm:text-[14px]"
+            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-5 text-[13px] font-semibold transition-colors hover:bg-surface-hover sm:text-[14px]"
             aria-label={`${credits} kredite`}
           >
             <MaroIcon name="coins" fallback={Coins} className="h-4 w-4 text-brand" />

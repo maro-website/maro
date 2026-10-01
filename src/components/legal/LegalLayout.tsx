@@ -38,7 +38,6 @@ export function LegalLayout({
                 <Link
                   key={p.href}
                   href={p.href}
-                  aria-current={p.label === current ? "page" : undefined}
                   className={
                     "flex min-h-11 items-center rounded-maro12 px-[20px] text-[13.5px] font-semibold transition-colors " +
                     (p.label === current
@@ -65,13 +64,7 @@ export function LegalLayout({
             <p className="mt-[10px] text-[13.5px] text-ink-3">Përditësuar: {LEGAL_UPDATED}</p>
           </header>
 
-          <p className="mt-5 rounded-maro12 bg-surface px-5 py-4 text-[14px] text-ink-2">
-            V1: maroImazh, maroLogo, maroBrain dhe maroPresets. maroWeb dhe Case Studies vijnë në V1.5;
-            maroFilma, maroZo dhe maroMarketing në V2. Blerjet dhe regjistrimet e reja janë të mbyllura.
-            Të drejtat për llogaritë dhe blerjet ekzistuese ruhen.
-          </p>
-
-          <article className="legal-prose mt-[30px] break-words [&_a]:font-semibold [&_a]:text-ink [&_a]:underline [&_a]:underline-offset-2 [&_code]:break-all [&_code]:text-[0.9em]">{children}</article>
+          <article className="legal-prose mt-[30px]">{children}</article>
 
           <nav className="mt-[30px] border-t border-line pt-[20px] lg:hidden">
             <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
@@ -82,7 +75,6 @@ export function LegalLayout({
                 <Link
                   key={p.href}
                   href={p.href}
-                  aria-current={p.label === current ? "page" : undefined}
                   className={
                     "flex min-h-11 items-center rounded-maro12 px-[20px] text-[14px] font-semibold transition-colors " +
                     (p.label === current

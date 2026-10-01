@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import { mapWebBriefToClaude } from "@/lib/engine/adapters/claudeWeb";
 import { compileGenerationBrief } from "@/lib/engine/compiler";
 import { legacyComposePrompt } from "@/lib/engine/legacyCompose";
@@ -21,7 +20,7 @@ function asWebBody(body: Partial<AiGenerateRequest>): AiGenerateRequest {
     category: body.category ?? "generic",
     language: body.language ?? "sq",
     goal: body.goal ?? body.userPrompt ?? "Website",
-    primaryColor: body.primaryColor ?? "#253FDA",
+    primaryColor: body.primaryColor ?? "#00FF72",
     ...body,
   };
 }
@@ -67,7 +66,7 @@ function assertCoreWebSemantics(
   }
 
   if (fixture.legacy.fort?.enabled) {
-    expect(user.includes(WEB_PARITY_MARKERS.fortHeader)).toBe(MARO_FORT_ENABLED);
+    expect(user).toContain(WEB_PARITY_MARKERS.fortHeader);
     expect(system).not.toContain(WEB_PARITY_MARKERS.fortHeader);
   }
 
@@ -123,13 +122,13 @@ describe("maroWeb semantic parity fixtures", () => {
     }
   });
 
-  it("web-fort-brain: Brain survives the Fort availability switch", () => {
+  it("web-fort-brain: Fort in user + brain when enabled", () => {
     const fixture = WEB_PARITY_FIXTURES.find((f) => f.id === "web-fort-brain")!;
     const { brief, claude } = compileWebFixture(fixture, { useBrain: true });
     expect(brief.metadata.brainUsed).toBe(true);
     expect(claude.ok).toBe(true);
     if (claude.ok && claude.request) {
-      expect(claude.request.user.includes(WEB_PARITY_MARKERS.fortHeader)).toBe(MARO_FORT_ENABLED);
+      expect(claude.request.user).toContain(WEB_PARITY_MARKERS.fortHeader);
       expect(claude.request.user).toContain("## maroBrain");
     }
   });

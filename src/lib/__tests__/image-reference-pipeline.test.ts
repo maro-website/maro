@@ -43,8 +43,6 @@ describe("private image reference request pipeline", () => {
     );
 
     expect(request.attachments).toEqual(["storage:generations/user-1/project-assets/logo.png"]);
-    expect(request.prompt).toBe("");
-    expect(request.logoWizard).toEqual(DEFAULT_WIZARD_STATE);
     expect(JSON.stringify(request)).not.toContain("SECRET");
     expect(JSON.stringify(request)).not.toContain("data:image/");
   });

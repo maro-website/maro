@@ -1,5 +1,4 @@
 import { callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
-import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import { resolveWebModel } from "@/lib/ai/webModels";
 import { getTool } from "@/lib/tools/registry";
 import { buildHtmlEditSystem, buildHtmlEditUser } from "@/lib/ai/prompts";
@@ -25,9 +24,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 900;
 
 export async function POST(req: Request) {
-  const unavailable = denyUnavailableGeneration("web");
-  if (unavailable) return unavailable;
-
   if (!hasAiKey()) {
     return new Response(JSON.stringify({ error: "no-key", fallback: true }), {
       status: 503,

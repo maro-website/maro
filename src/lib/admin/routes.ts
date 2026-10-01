@@ -1,7 +1,9 @@
 /** Canonical Control Center routes and legacy tab aliases. */
 
 import type { PermissionKey } from "@/lib/admin/permissions";
+import type { MaroProductId } from "@/lib/design/maro-system";
 import {
+  type LucideIcon,
   LayoutDashboard,
   Users,
   Star,
@@ -12,15 +14,14 @@ import {
   LifeBuoy,
   BarChart3,
   Shield,
-  Image as ImageIcon,
 } from "lucide-react";
-import type React from "react";
 
 export interface AdminNavItem {
   href: string;
   label: string;
   permission?: PermissionKey;
-  icon?: React.ElementType;
+  icon?: LucideIcon;
+  product?: MaroProductId;
 }
 
 export interface AdminNavGroup {
@@ -37,7 +38,6 @@ export const ADMIN_ROUTES = {
   engine: "/admin/engine",
   presets: "/admin/engine/presets",
   notifications: "/admin/notifications",
-  loginAds: "/admin/login-ads",
   emails: "/admin/emails",
   help: "/admin/help",
   commerce: {
@@ -72,8 +72,8 @@ export const ADMIN_ROUTES = {
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     id: "command",
-    label: "Maro V1",
-    items: [{ href: ADMIN_ROUTES.dashboard, label: "Overview", permission: "admin.access", icon: LayoutDashboard }],
+    label: "Command Center",
+    items: [{ href: ADMIN_ROUTES.dashboard, label: "Dashboard", permission: "admin.access", icon: LayoutDashboard }],
   },
   {
     id: "users",
@@ -86,13 +86,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     id: "engine",
-    label: "Product",
+    label: "Maro Engine",
     items: [
-      { href: "/admin/engine/tools/maro_imazh", label: "maroImazh", permission: "engine.view", icon: ImageIcon },
-      { href: "/admin/engine/tools/maro_logo", label: "maroLogo", permission: "engine.view", icon: Cpu },
-      { href: "/admin/engine/brain", label: "maroBrain", permission: "engine.view", icon: Cpu },
-      { href: "/admin/engine/generations", label: "Generations", permission: "operations.view", icon: LayoutDashboard },
-      { href: ADMIN_ROUTES.presets, label: "maroPresets", permission: "presets.manage", icon: Cpu },
+      { href: ADMIN_ROUTES.engine, label: "Përmbledhje", permission: "engine.view", icon: Cpu },
+      { href: ADMIN_ROUTES.presets, label: "maroPresets", permission: "presets.manage", product: "maroPresets" },
     ],
   },
   {
@@ -100,7 +97,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Përmbajtja",
     items: [
       { href: ADMIN_ROUTES.notifications, label: "Njoftimet", permission: "notifications.manage", icon: Megaphone },
-      { href: ADMIN_ROUTES.loginAds, label: "Login Ads", permission: "notifications.manage", icon: ImageIcon },
       { href: ADMIN_ROUTES.emails, label: "Emailat", permission: "emails.manage", icon: Mail },
       { href: ADMIN_ROUTES.help, label: "Help Center", permission: "help.manage" },
     ],
@@ -142,7 +138,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: ADMIN_ROUTES.operations.audit, label: "Audit Log", permission: "audit.view" },
       { href: ADMIN_ROUTES.operations.logs, label: "Logs", permission: "operations.view" },
       { href: ADMIN_ROUTES.operations.security, label: "Siguria & Kostot", permission: "security.manage" },
-
+      { href: ADMIN_ROUTES.operations.flags, label: "Flags", permission: "security.manage" },
       { href: ADMIN_ROUTES.operations.retention, label: "Retention", permission: "security.manage" },
     ],
   },
@@ -189,7 +185,7 @@ export function adminNavGroupForPath(pathname: string): string | null {
   if (pathname === ADMIN_ROUTES.dashboard) return "command";
   if (pathname.startsWith("/admin/users") || pathname.startsWith(ADMIN_ROUTES.access) || pathname.startsWith(ADMIN_ROUTES.creators)) return "users";
   if (pathname.startsWith("/admin/engine")) return "engine";
-  if (pathname.startsWith("/admin/notifications") || pathname.startsWith("/admin/login-ads") || pathname.startsWith("/admin/help") || pathname.startsWith("/admin/emails")) return "content";
+  if (pathname.startsWith("/admin/notifications") || pathname.startsWith("/admin/help") || pathname.startsWith("/admin/emails")) return "content";
   if (pathname.startsWith("/admin/commerce")) return "commerce";
   if (pathname.startsWith("/admin/support")) return "support";
   if (pathname.startsWith("/admin/analytics")) return "analytics";

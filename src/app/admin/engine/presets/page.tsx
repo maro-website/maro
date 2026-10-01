@@ -5,12 +5,12 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { cn } from "@/lib/utils/cn";
-import { BarChart3, LayoutGrid, List, Plus } from "lucide-react";
+import { BarChart3, LayoutGrid, List, Plus, type LucideIcon } from "lucide-react";
 import { MaroPresetsWorkspace } from "@/components/admin/presets/MaroPresetsWorkspace";
 
 type Tab = "stats" | "add" | "list" | "categories";
 
-const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
+const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "stats", label: "Përmbledhje", icon: BarChart3 },
   { key: "list", label: "Presetet", icon: List },
   { key: "add", label: "Shto preset", icon: Plus },

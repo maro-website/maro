@@ -76,7 +76,7 @@ export function StyleThumb({ style }: { style: StyleKey }) {
       );
     default:
       return (
-        <div className={base} style={{ background: "linear-gradient(135deg,#253FDA,#4f6bff)" }}>
+        <div className={base} style={{ background: "linear-gradient(135deg,#00FF72,#3dff8a)" }}>
           <div className="m-auto text-center text-[10px] font-bold uppercase tracking-widest text-white/90">
             Auto
           </div>

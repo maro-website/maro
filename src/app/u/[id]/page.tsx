@@ -41,7 +41,7 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
     <AppShell>
       <div className="mx-auto w-full max-w-[900px] px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="grid h-16 w-16 place-items-center rounded-full bg-ink text-ink-inv">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-ink text-white">
             <User className="h-8 w-8" />
           </span>
           <div>

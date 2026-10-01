@@ -1,3 +1,15 @@
+"use client";
+
+import * as React from "react";
 import { AppShell } from "@/components/app/AppShell";
-import { ModuleComingSoon } from "@/components/modules/ModuleComingSoon";
-export default function Page() { return <AppShell><ModuleComingSoon moduleId="filma" /></AppShell>; }
+import { FilmaWorkspace } from "@/components/modules/FilmaWorkspace";
+
+export default function FilmaToolPage() {
+  return (
+    <AppShell>
+      <React.Suspense fallback={null}>
+        <FilmaWorkspace toolId="filma" />
+      </React.Suspense>
+    </AppShell>
+  );
+}

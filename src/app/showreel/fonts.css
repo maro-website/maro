@@ -1,0 +1,14 @@
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/playfair-display/400-italic.css";
+@import "@fontsource/playfair-display/500-italic.css";
+@import "@fontsource/playfair-display/600-italic.css";
+@import "@fontsource/playfair-display/700-italic.css";
+
+html.showreel-on,
+html.showreel-on body {
+  background: #e6e0d4;
+}
+
+html.showreel-on nextjs-portal {
+  display: none !important;
+}

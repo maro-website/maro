@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ProductLogo } from "@/components/ui/ProductLogo";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { useToast } from "@/components/ui/Toast";
@@ -26,7 +27,6 @@ import {
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -96,7 +96,7 @@ export function BrainWorkspace() {
       <div className="shrink-0 bg-canvas px-4 py-6 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="maro-text-h1 text-ink">maroBrain</h1>
+            <h1 className="text-[clamp(28px,4vw,40px)] font-bold tracking-brand text-ink"><ProductLogo product="maroBrain" className="h-10 w-[144px] sm:h-12 sm:w-[172px]" /></h1>
             <div className="mt-4 max-w-md">
               <div className="h-2 overflow-hidden rounded-full bg-surface-selected">
                 <div
@@ -108,20 +108,22 @@ export function BrainWorkspace() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <Button variant="ghost"
+            <button
               type="button"
               onClick={onClear}
-              className="text-danger"
+              className="h-10 rounded-maro12 px-4 text-[14px] font-semibold text-danger hover:bg-surface-2"
             >
               Pastroje
-            </Button>
-            <Button variant="brand" loading={saving}
+            </button>
+            <button
               type="button"
               onClick={() => void onSave()}
               disabled={saving || !workspaceId}
+              className="maro-button h-10 px-5"
+              data-variant="brand"
             >
               {saving ? "Duke ruajtur…" : "Ruaje"}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -204,19 +206,19 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="maro-text-label mb-2 block text-ink-2">{label}</span>
+    <div>
+      <label className="mb-2 block text-[13px] font-semibold text-ink-2">{label}</label>
       {children}
-    </label>
+    </div>
   );
 }
 
 function inputCls() {
-  return "maro-input h-[var(--maro-control-height-lg)] transition-colors duration-fast";
+  return "h-11 w-full rounded-maro12 bg-surface-2 px-4 text-[14px] text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface";
 }
 
 function textareaCls() {
-  return "maro-input min-h-32 resize-y transition-colors duration-fast";
+  return "min-h-[100px] w-full rounded-maro12 bg-surface-2 px-4 py-3 text-[14px] leading-relaxed text-ink outline-none transition-colors hover:bg-surface-hover focus:bg-surface";
 }
 
 function BrandTab({
@@ -291,7 +293,7 @@ function BrandTab({
               type="button"
               onClick={() => setBrand({ salesChannel: o.id })}
               className={cn(
-                "rounded-maro12 px-4 py-2 text-sm font-bold tracking-wide",
+                "rounded-maro12 px-4 py-2 text-[13px] font-bold tracking-wide",
                 b.salesChannel === o.id
                   ? "bg-brand text-brand-fg"
                   : "bg-surface-2 text-ink-2 hover:bg-surface-hover"
@@ -311,10 +313,10 @@ function BrandTab({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoUrl} alt="" className="max-h-14 max-w-[160px] object-contain" />
             ) : (
-              <span className="text-sm text-ink-3">Pa logo</span>
+              <span className="text-[13px] text-ink-3">Pa logo</span>
             )}
           </div>
-          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface-2 px-4 text-sm font-semibold text-ink hover:bg-surface-hover">
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface-2 px-4 text-[13px] font-semibold text-ink hover:bg-surface-hover">
             <Upload className="h-4 w-4" />
             Ndrysho logo / Upload
             <input
@@ -405,7 +407,7 @@ function BrandTab({
                 ],
               })
             }
-            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-dashed border-line px-4 text-sm font-bold text-brand"
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-dashed border-line px-4 text-[13px] font-bold text-brand"
           >
             <Plus className="h-4 w-4" /> SHTO +
           </button>
@@ -604,7 +606,7 @@ function SourcesTab({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={fileUrl} alt="" className="h-20 w-20 rounded-maro8 object-cover" />
             )}
-            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface px-4 text-sm font-semibold hover:bg-surface-hover">
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-maro12 bg-surface px-4 text-[13px] font-semibold hover:bg-surface-hover">
               <Upload className="h-4 w-4" /> Upload
               <input
                 type="file"
@@ -625,7 +627,7 @@ function SourcesTab({
           type="button"
           disabled={busy}
           onClick={() => void onAdd()}
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-brand-fg disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-[13px] font-bold text-brand-fg disabled:opacity-50"
         >
           <Plus className="h-4 w-4" /> Shto burim
         </button>
@@ -633,7 +635,7 @@ function SourcesTab({
 
       <div className="space-y-3">
         {sources.length === 0 ? (
-          <p className="text-sm text-ink-3">Asnjë burim ende.</p>
+          <p className="text-[13px] text-ink-3">Asnjë burim ende.</p>
         ) : (
           sources.map((s) => (
             <div

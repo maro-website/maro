@@ -1,17 +1,11 @@
 import { optionKey } from "@/lib/tools/registry";
-import { MARO_ICONS } from "@/lib/design/maro-system";
+import { MARO_ICONS, MARO_PRODUCTS, getProductBrand } from "@/lib/design/maro-system";
 
 /** Public SVG assets used by maro-final-design-system. */
 export const ICONS_BASE = MARO_ICONS.base;
 
-/** Tool cards in sidebar grid — keyed by registry tool id. */
+/** Non-product tool fallback; product artwork comes from MARO_PRODUCTS. */
 export const TOOL_ICON_FILES: Partial<Record<string, string>> = {
-  reklama: "maro-imazh.svg",
-  logo: "maroLogo.svg",
-  website: "maro-web.svg",
-  filma: "maro-filma.svg",
-  zo: "maro-zo.svg",
-  prompte: "idea.svg",
   plan: "idea.svg",
 };
 
@@ -51,7 +45,7 @@ export const UI_ICON_FILES = {
   lock: "lock.svg",
   maroFort: "maro-fort.svg",
   history: "history.svg",
-  prompts: "idea.svg",
+  prompts: MARO_PRODUCTS.maroPresets.symbol.dark,
   admin: "admin.svg",
   user: "user.svg",
   settings: "settings.svg",
@@ -60,16 +54,19 @@ export const UI_ICON_FILES = {
   creator: "maro-kreator.svg",
   sidebarFlip: "sidebar-toggle.svg",
   tekst: "text.svg",
-  toolActive: "maro-imazh.svg",
+  toolActive: MARO_PRODUCTS.maroImazh.symbol.dark,
 } as const;
 
 export type UiIconKey = keyof typeof UI_ICON_FILES;
 
 export function iconSrc(file: string): string {
+  if (file.startsWith("/")) return file;
   return `${ICONS_BASE}/${encodeURI(file)}`;
 }
 
 export function toolIconSrc(toolId: string): string | undefined {
+  const brand = getProductBrand(toolId);
+  if (brand && brand.id !== "maroFort") return brand.symbol.dark;
   const file = TOOL_ICON_FILES[toolId];
   return file ? iconSrc(file) : undefined;
 }

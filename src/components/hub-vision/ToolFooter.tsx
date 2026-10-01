@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ProductLogo } from "@/components/ui/ProductLogo";
+import { getProductBrand } from "@/lib/design/maro-system";
 import s from "./HubVision.module.css";
 
 /** One shared name/action band for available and upcoming tools. */
@@ -11,8 +13,9 @@ export function ToolFooter({ name, href, action, release, heading = "h2" }: {
   heading?: "h2" | "h3";
 }) {
   const Heading = heading;
+  const brand = getProductBrand(name);
   return <div className={s.launchFooter}>
-    <Heading>{name}</Heading>
-    {href && action ? <Link href={href} className={s.createButton}>{action}<ArrowUpRight size={19} aria-hidden /></Link> : <span className={s.release}>Vjen në {release?.toLowerCase()}</span>}
+    <Heading className="min-w-0">{brand ? <ProductLogo product={brand.id} className="h-[38px] w-[144px] sm:h-11 sm:w-[170px]" /> : name}</Heading>
+    {href && action ? <Link href={href} className={s.createButton} style={brand ? { backgroundColor: brand.color, color: "var(--maro-color-text-on-accent)" } : undefined}>{action}<ArrowUpRight size={19} aria-hidden /></Link> : <span className={s.release}>Vjen në {release?.toLowerCase()}</span>}
   </div>;
 }

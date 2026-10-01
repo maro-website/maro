@@ -4,9 +4,10 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { Project } from "@/lib/types";
 import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
+import { StableImage } from "@/components/app/StableImage";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Dropdown } from "@/components/ui/Dropdown";
-
+import { Spinner } from "@/components/ui/Misc";
 import { timeAgo } from "@/lib/utils/format";
 import { MoreHorizontal, Copy, Pencil, Trash2, ExternalLink, Globe } from "lucide-react";
 
@@ -33,7 +34,16 @@ export function ProjectCard({
     <div className="group overflow-hidden rounded-2xl bg-surface transition-all hover:-translate-y-0.5">
       <button onClick={open} className="relative block w-full">
         <div className="relative h-[188px] overflow-hidden bg-surface-2">
-          <PreviewThumb project={project} height={188} />
+          {generating ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-surface-2">
+              <Spinner className="h-5 w-5" />
+              <span className="text-[13px] font-medium text-ink-2">Duke ndërtuar website...</span>
+            </div>
+          ) : (
+            project.thumbnailUrl
+              ? <StableImage src={project.thumbnailUrl} alt={`Preview i ${project.name}`} className="h-full w-full object-cover object-top" />
+              : <PreviewThumb project={project} height={188} />
+          )}
           <div className="absolute left-3 top-3">
             <StatusBadge status={project.status} />
           </div>
@@ -42,8 +52,8 @@ export function ProjectCard({
 
       <div className="flex items-center justify-between gap-2 px-4 py-3.5">
         <button onClick={open} className="min-w-0 flex-1 text-left">
-          <div className="truncate text-base font-bold tracking-tight text-ink">{project.name}</div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-3">
+          <div className="truncate text-[15px] font-bold tracking-tight text-ink">{project.name}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink-3">
             {project.status === "published" ? (
               <>
                 <Globe className="h-3.5 w-3.5 text-success" />
@@ -58,8 +68,8 @@ export function ProjectCard({
         </button>
         <Dropdown
           trigger={
-            <button type="button" aria-label={`Veprimet për ${project.name}`} className="maro-icon-button shrink-0 text-ink-3">
-              <MoreHorizontal className="h-5 w-5" />
+            <button className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink">
+              <MoreHorizontal className="h-4.5 w-4.5" />
             </button>
           }
           items={[

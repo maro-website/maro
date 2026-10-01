@@ -145,7 +145,7 @@ export default function ExplorePage() {
                 className={cn(
                   "rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors",
                   sort === s.id
-                    ? "border-ink bg-ink text-ink-inv"
+                    ? "border-ink bg-ink text-white"
                     : "border-line bg-surface text-ink-2 hover:border-ink"
                 )}
               >
@@ -169,7 +169,7 @@ export default function ExplorePage() {
             </div>
             <Link
               href="/imazh"
-              className="inline-flex h-10 items-center rounded-xl bg-ink px-4 text-[13px] font-bold text-ink-inv"
+              className="inline-flex h-10 items-center rounded-xl bg-ink px-4 text-[13px] font-bold text-white"
             >
               Merr pjesë
             </Link>
@@ -186,7 +186,7 @@ export default function ExplorePage() {
             </p>
             <Link
               href="/imazh"
-              className="mt-6 inline-flex h-11 items-center rounded-xl bg-ink px-5 text-[14px] font-bold text-ink-inv"
+              className="mt-6 inline-flex h-11 items-center rounded-xl bg-ink px-5 text-[14px] font-bold text-white"
             >
               Shko te maro Imazh
             </Link>

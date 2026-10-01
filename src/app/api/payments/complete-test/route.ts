@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { legacyPaymentsEnabled } from "@/lib/payments/legacy";
 import { isPaymentModeValid } from "@/lib/config/serverEnv";
 import { requireUser } from "@/lib/payments/auth";
 import { fulfillCommerceOrder } from "@/lib/payments/fulfill";
@@ -9,7 +8,6 @@ import { emitProductEvent } from "@/lib/events/productEvents";
 import { syncMaroPlanCache, resolveEntitlements } from "@/lib/commerce/entitlements";
 
 export async function POST(req: Request) {
-  if (!legacyPaymentsEnabled()) return NextResponse.json({ error: "legacy_payments_disabled" }, { status: 404 });
   if (!isPaymentModeValid()) {
     return NextResponse.json({ error: "forbidden", reason: "invalid_payment_mode" }, { status: 403 });
   }
@@ -32,7 +30,6 @@ export async function POST(req: Request) {
 
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (order.provider === "paddle") return NextResponse.json({ error: "paddle_webhook_required" }, { status: 403 });
   if (order.status === "cancelled") {
     return NextResponse.json({ error: "cancelled" }, { status: 409 });
   }

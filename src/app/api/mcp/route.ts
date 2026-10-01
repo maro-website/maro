@@ -6,7 +6,6 @@ import {
   getMaroMcpResource,
 } from "@/lib/mcp/config";
 import { createMaroMcpServer } from "@/lib/mcp/server";
-import { readJsonBody } from "@/lib/security/requestLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,15 +94,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = await readJsonBody(request, MAX_MCP_BODY_BYTES);
-  if (!parsed.ok) {
-    const tooLarge = parsed.response.status === 413;
+  let parsedBody: unknown;
+  try {
+    const text = await request.clone().text();
+    if (new TextEncoder().encode(text).byteLength > MAX_MCP_BODY_BYTES) {
+      return NextResponse.json(
+        { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request too large" } },
+        { status: 413, headers: CORS_HEADERS }
+      );
+    }
+    parsedBody = JSON.parse(text);
+  } catch {
     return NextResponse.json(
-      { jsonrpc: "2.0", id: null, error: { code: tooLarge ? -32600 : -32700, message: tooLarge ? "Request too large" : "Parse error" } },
-      { status: tooLarge ? 413 : 400, headers: CORS_HEADERS }
+      { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } },
+      { status: 400, headers: CORS_HEADERS }
     );
   }
-  const parsedBody = parsed.body;
 
   const isToolCall =
     !Array.isArray(parsedBody) &&

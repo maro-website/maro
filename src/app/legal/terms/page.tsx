@@ -1,5 +1,5 @@
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
-import { LEGAL_ADDRESS, LEGAL_ENTITY, LEGAL_SOURCES } from "@/components/legal/legal-config";
+import { LEGAL_ADDRESS, LEGAL_ENTITY } from "@/components/legal/legal-config";
 import Link from "next/link";
 
 export const metadata = { title: "Kushtet e Përdorimit · maro" };
@@ -7,65 +7,164 @@ export const metadata = { title: "Kushtet e Përdorimit · maro" };
 export default function TermsPage() {
   return (
     <LegalLayout title="Kushtet e Përdorimit" current="Kushtet e Përdorimit">
-      <LegalSection title="1. Operatori dhe zbatimi i kushteve">
-        <p>maro.al operohet nga <strong>{LEGAL_ENTITY.name}</strong>, shoqëri e regjistruar në Republikën e Kosovës, NUI/NRB {LEGAL_ENTITY.nui}, me adresë {LEGAL_ADDRESS}. Kontakt: <a href={`mailto:${LEGAL_ENTITY.contactEmail}`}>{LEGAL_ENTITY.contactEmail}</a>, tel. <a href={`tel:${LEGAL_ENTITY.phone}`}>{LEGAL_ENTITY.phone}</a>.</p>
-        <p>Këto kushte rregullojnë llogarinë, veglat AI, planet, kreditet dhe komunitetin. Duke i pranuar gjatë regjistrimit ose porosisë, lidhni marrëveshje me operatorin. Ato plotësohen nga <Link href="/legal/fair-use">Përdorimi i drejtë</Link> dhe <Link href="/legal/refund">Politika e Rimbursimit</Link>. <Link href="/legal/privacy">Privatësia</Link> dhe <Link href="/legal/cookies">Cookies</Link> shpjegojnë përpunimin e të dhënave; leximi i tyre nuk është pëlqim i përgjithshëm për marketing ose përpunim opsional.</p>
-        <p>Konsumator është personi fizik që blen jashtë veprimtarisë së vet tregtare ose profesionale. Të drejtat e detyrueshme të konsumatorit kanë përparësi ndaj këtyre kushteve. Për maroBiz mund të zbatohen edhe kushte të posaçme të pranuara me shkrim.</p>
+      <LegalSection title="1. Hyrje">
+        <p>
+          Këto Kushte të Përdorimit (&quot;Kushtet&quot;) rregullojnë aksesin dhe përdorimin tuaj të platformës{" "}
+          <strong className="text-ink">{LEGAL_ENTITY.product}</strong> (&quot;maro&quot;, &quot;Platforma&quot;,
+          &quot;Shërbimi&quot;), e operuar nga <strong className="text-ink">{LEGAL_ENTITY.name}</strong> (NRB{" "}
+          {LEGAL_ENTITY.nrb}), me seli në {LEGAL_ADDRESS}.
+        </p>
+        <p>
+          Duke krijuar llogari, hyrë ose përdorur maro, ju pranoni këto Kushte dhe{" "}
+          <Link href="/legal/privacy" className="font-semibold text-ink underline-offset-2 hover:underline">
+            Politikën e Privatësisë
+          </Link>
+          . Nëse nuk jeni dakord, mos përdorni Shërbimin.
+        </p>
       </LegalSection>
-      <LegalSection title="2. Shërbimet e Maro-s">
+
+      <LegalSection title="2. Përshkrimi i Shërbimit">
+        <p>
+          maro është një platformë me inteligjencë artificiale (AI) që ju lejon të gjeneroni dhe redaktoni
+          materiale dixhitale (website, logo, imazhe reklamash, audio dhe përmbajtje të ngjashme) duke
+          përdorur kredite. Rezultatet prodhohen automatikisht nga modele AI dhe mund të kërkojnë rishikim
+          manual nga ana juaj para publikimit.
+        </p>
+        <p>
+          Funksionalitete, çmime dhe kufizime mund të ndryshojnë; do të informojmë përdoruesit për ndryshime
+          materiale.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="3. Kualifikimi dhe llogaria">
+        <p>
+          Duhet të jeni të paktën 18 vjeç dhe të keni aftësi ligjore për të lidhur marrëveshje për të
+          përdorur maro. Informacioni që jepni gjatë regjistrimit duhet të jetë i saktë dhe i përditësuar.
+        </p>
+        <p>
+          Jeni përgjegjës për ruajtjen e konfidencialitetit të kredencialeve të llogarisë dhe për çdo
+          aktivitet që ndodh nën llogarinë tuaj. Na njoftoni menjëherë në{" "}
+          <a href={`mailto:${LEGAL_ENTITY.supportEmail}`} className="font-semibold text-ink hover:underline">
+            {LEGAL_ENTITY.supportEmail}
+          </a>{" "}
+          nëse dyshoni për akses të paautorizuar.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="4. Kreditet dhe pagesat">
+        <p>
+          Shërbimi funksionon me sistem kreditesh. Çmimi i blerjes së krediteve është €0,09 për kredit.
+          Planet maroStandard (€9 / 100 kredite) dhe maroPro (€35 / 500 kredite) shfaqen në{" "}
+          <Link href="/pricing" className="font-semibold text-ink underline-offset-2 hover:underline">
+            Planet & Kreditet
+          </Link>
+          . Blerja minimale është €9.
+        </p>
+        <p>
+          Kreditet zbriten kur inicirohet një veprim që konsumon burime (p.sh. gjenerim website, imazh,
+          redaktim AI). Çmimi në kredite shfaqet para konfirmimit të veprimit. Pagesat proces-ohen përmes
+          Raiffeisen Bank Kosova (hosted checkout). Çmimet përfshijnë TVSH-në ku aplikohet, sipas ligjit të
+          Kosovës.
+        </p>
+        <p>
+          Kreditet e blera nuk janë monedhë elektronike dhe nuk mund të shkëmbehen për para, përveç rasteve
+          të parashikuara në{" "}
+          <Link href="/legal/refund" className="font-semibold text-ink underline-offset-2 hover:underline">
+            Politikën e Rimbursimit
+          </Link>
+          .
+        </p>
+      </LegalSection>
+
+      <LegalSection title="5. maroFort dhe planet">
+        <p>
+          maroPro përfshin maroFort falas për 14 ditë. maroFort ofron akses shtesë (mode i avancuar,
+          vegla të reja). Detajet e planit dhe përfitimet shfaqen në Platformë. Planet janë blerje
+          njëherëshe — pa abonim mujor të detyrueshëm.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="6. Përmbajtja e përdoruesit dhe licenca">
+        <p>
+          Ju mbani të drejtat mbi promptet, materialet e ngarkuara dhe projektet tuaja (&quot;Përmbajtja e
+          Përdoruesit&quot;). Na jepni një licencë të kufizuar, jo-ekskluzive dhe të revokueshme për të
+          përpunuar Përmbajtjen e Përdoruesit vetëm sa nevojitet për të ofruar Shërbimin (p.sh. dërgim te
+          modelet AI, ruajtje, shfaqje në editor).
+        </p>
+        <p>
+          Output-et e gjeneruara nga AI (&quot;Output&quot;) ju ofrohen për përdorim tuajin, në masën e
+          lejuar nga ligji dhe këto Kushte. Ne nuk garantojmë ekskluzivitetin e Output-it; modele AI mund
+          të prodhojnë rezultate të ngjashme për përdorues të tjerë.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="7. Përdorimi i pranueshëm">
+        <p>Ju bini dakord të mos përdorni maro për të:</p>
         <ul className="list-disc space-y-2 pl-5">
-          <li><strong>maroWeb dhe Case Studies:</strong> së shpejti në V1.5; nuk janë të disponueshme në V1.</li>
-          <li><strong>maroLogo dhe maro Imazh:</strong> gjenerim e përpunim logosh, imazhesh, reklamash dhe variantesh, përfshirë përdorimin e referencave që ngarkoni.</li>
-          <li><strong>Workspaces dhe maroBrain:</strong> organizim sipas biznesit ose projektit; profil i brendit, audiencës, objektivave, tregut, stilit dhe burimeve që mund të përdoren si kontekst për gjenerimet.</li>
-          <li><strong>maroPresets dhe cilësimet e avancuara:</strong> modele të gatshme dhe përshtatje e kërkesës. Përdorimi i një preset-i nuk përfshin blerjen ose zbulimin e udhëzimeve të brendshme të sistemit.</li>
-          <li><strong>Explore:</strong> publikim vullnetar i krijimeve, pëlqime, ndarje dhe remix sipas funksioneve të aktivizuara. Llogaria përfshin edhe historikun, faturimin, njoftimet dhe mbështetjen.</li>
+          <li>shkelur ligjin, të drejtat e palëve të treta ose rregulloret e zbatueshme;</li>
+          <li>gjeneruar përmbajtje ilegale, mashtruese, dëmshme, urrejtëse, diskriminuese ose që shkel të drejtat e autorit;</li>
+          <li>imituar persona ose entitete pa autorizim;</li>
+          <li>anashkaluar kufizimet teknike, abuzuar me API ose shpërndarë malware;</li>
+          <li>rishitur, ri-paketuar ose ofruar Shërbimin si white-label pa leje të shkruar nga ne.</li>
         </ul>
-        <p>Veglat e shënuara “së shpejti”, përfshirë maro Filma dhe maro Audio kur paraqiten kështu, nuk janë pjesë e shërbimit të disponueshëm. Demonstrimet dhe funksionet eksperimentale nuk premtojnë datë lansimi. Kur audio aktivizohet, funksionet mund të përfshijnë tekst në zë, muzikë, efekte, ndryshim zëri, izolim dhe transkriptim sipas ofertës konkrete.</p>
+        <p>
+          Ne mund të suspendojmë ose mbyllim llogarinë tuaj, të heqim përmbajtje ose të refuzojmë shërbimin
+          nëse shkelni këto Kushte ose nëse kërkohet nga ligji.
+        </p>
       </LegalSection>
-      <LegalSection title="3. Llogaria dhe autorizimi">
-        <p>Duhet të jeni të paktën 18 vjeç dhe të keni aftësi për të lidhur kontratë. Për përdorim në emër të biznesit ose klientit duhet të keni autorizimin e nevojshëm. Jepni të dhëna të sakta dhe mbrojeni qasjen në llogari.</p>
-        <p>Mos ndani fjalëkalime, kode verifikimi ose çelësa qasjeje. Na njoftoni për qasje të dyshimtë. Përgjegjësia për veprimet e paautorizuara vlerësohet sipas rrethanave dhe ligjit; nuk ju ngarkohet automatikisht çdo incident sigurie.</p>
+
+      <LegalSection title="8. Pronësia intelektuale e maro">
+        <p>
+          Platforma, marka maro, dizajni, softueri dhe dokumentacioni janë pronë e {LEGAL_ENTITY.name} ose
+          licencuesve të saj. Asgjë në këto Kushte nuk ju transferon të drejta mbi to, përveç një licence
+          të kufizuar, personale dhe jo-transferueshme për të përdorur Shërbimin.
+        </p>
       </LegalSection>
-      <LegalSection title="4. Planet, afati dhe rinovimi">
-        <p>Oferta përfshin maroStandard, maroPro dhe maroBiz sipas marrëveshjes. Çmimi, kreditet, kohëzgjatja, numri i Workspaces dhe gjenerimet e lejuara njëkohësisht shfaqen te <Link href="/pricing">Planet &amp; Kreditet</Link> dhe në porosi. Detajet e ruajtura për porosinë tuaj vlejnë për atë blerje; ndryshimet e mëvonshme në katalog nuk e ndryshojnë prapa në kohë.</p>
-        <p>Blerjet, rinovimet manuale dhe kalimet e reja të planit janë të mbyllura në këtë version. Afati dhe mënyra e rinovimit të një plani ekzistues shfaqen në llogari. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të pranuara për atë blerje; mbyllja e blerjeve të reja nuk e anulon abonimin.</p>
-        <p>Afati i planit dhe balanca e krediteve janë të ndara. Kreditet e blera nuk skadojnë vetëm pse përfundon plani. Pas skadimit ndryshojnë përfitimet dhe kufijtë e planit; rimbushja kërkon plan aktiv. Bonuset mund të kenë afat ose kufizime të shpjeguara kur jepen. Cilësimet e avancuara nuk krijojnë vetvetiu abonim të veçantë ose provë falas.</p>
+
+      <LegalSection title="9. Mohimi i garancive">
+        <p>
+          Shërbimi ofrohet &quot;sic është&quot; dhe &quot;sic disponohet&quot;. Output-et AI mund të
+          përmbajnë gabime, informacion të pasaktë ose elemente të papërshtatshme. Ju jeni përgjegjës për
+          verifikimin e rezultateve para publikimit ose përdorimit komercial.
+        </p>
+        <p>
+          Ne nuk garantojmë disponueshmëri të pandërprerë, saktësi absolute ose përshtatshmëri për një qëllim
+          të veçantë, në masën maksimale të lejuar nga ligji.
+        </p>
       </LegalSection>
-      <LegalSection title="5. Porositë, pagesat dhe kreditet">
-        <p>Para konfirmimit kontrolloni produktin, të dhënat e faturimit, çmimin përfundimtar në EUR, tatimet e zbatueshme dhe zbritjen eventuale. Metodat reale të pagesës dhe disponueshmëria e tyre shfaqen gjatë blerjes. Kur ofrohet pagesa me kartë përmes Raiffeisen Bank Kosova, të dhënat e kartës jepen në faqen e sigurt të bankës/procesorit. Maro nuk kërkon ruajtjen e numrit të plotë të kartës ose CVV-së.</p>
-        <p>Krijimi i porosisë ose faqja e kthimit nuk dëshmon pagesë të suksesshme. Kreditet dhe përfitimet aktivizohen pas konfirmimit të vlefshëm të pagesës. Mjedisi i shënuar si test nuk kryen blerje reale. Faturat dhe gjendjen e porosive i kontrolloni në llogari.</p>
-        <p>Kostoja AI varet nga vegla, modeli, cilësia, sasia, shpejtësia dhe cilësimet e zgjedhura. Kreditet mund të rezervohen ose zbriten gjatë përpunimit; pjesa e rezervuar përkohësisht nuk është e disponueshme për veprime të tjera. Për dështime dhe ngarkesa të gabuara zbatohet <Link href="/legal/refund">Politika e Rimbursimit</Link>.</p>
-        <p>Kreditet janë njësi përdorimi të Maro-s, jo depozitë bankare, valutë ose instrument investimi. Nuk transferohen ose këmbehen lirisht për para. Kjo nuk kufizon rimbursimet që garanton ligji.</p>
+
+      <LegalSection title="10. Kufizimi i përgjegjësisë">
+        <p>
+          Në masën e lejuar nga ligji, {LEGAL_ENTITY.name} nuk mban përgjegjësi për dëme indirekte,
+          humbje fitimi, humbje të dhënash ose dëme të veçanta që rrjedhin nga përdorimi i Shërbimit. Përgjegjësia
+          jonë totale ndaj jush për çdo kërkesë nuk do të tejkalojë shumën që keni paguar ne për Shërbimin
+          në 12 muajt e fundit para ngjarjes, ose €50, çfarëdo që është më e lartë.
+        </p>
       </LegalSection>
-      <LegalSection title="6. Materialet tuaja dhe rezultatet AI">
-        <p>Ruani të drejtat që keni mbi tekstet, fotografitë, logot, regjistrimet, burimet e maroBrain dhe materialet që ngarkoni. Duhet të keni të drejtat, lejet dhe bazën ligjore për përdorimin e tyre, përfshirë pamjen, zërin dhe të dhënat e personave të tjerë.</p>
-        <p>Na jepni licencë joekskluzive, të kufizuar në ofrimin e funksionit të kërkuar, për t’i ruajtur, përpunuar, përshtatur dhe dërguar materialet te ofruesit përkatës. Publikimi bëhet sipas zgjedhjes suaj dhe pikës 7. Kjo licencë nuk na jep të drejtë të shesim materialet private ose t’i përdorim në reklama pa leje të veçantë.</p>
-        <p>Rezultatet mund t’i përdorni personalisht ose komercialisht, përfshirë punën për klientë, në masën që e lejojnë ligji dhe të drejtat e palëve të treta. AI mund të prodhojë rezultate të ngjashme për persona të ndryshëm. Nuk premtojmë ekskluzivitet, mbrojtje automatike nga e drejta e autorit ose mundësi regjistrimi të logos si markë. Licencat për fonte, fotografi, biblioteka dhe elemente të jashtme vazhdojnë të zbatohen.</p>
-        <p>Marka Maro, softueri, dizajni i platformës, preset-et dhe udhëzimet e brendshme mbeten pronë e operatorit ose licencuesve të tij. Ju lejohet përdorimi i platformës sipas këtyre kushteve; kjo nuk transferon pronësinë mbi vetë platformën.</p>
+
+      <LegalSection title="11. Ndryshime dhe ndërprerje">
+        <p>
+          Mund të përditësojmë këto Kushte. Data e përditësimit shfaqet në krye të faqes. Vazhdimi i
+          përdorimit pas ndryshimeve konsiderohet pranim. Mund të ndalojmë ose ndryshojmë pjesë të
+          Shërbimit për mirëmbajtje, siguri ose arsye biznesi.
+        </p>
       </LegalSection>
-      <LegalSection title="7. Explore, ndarja dhe remix">
-        <p>Kur zgjidhni publikimin në Explore, krijimi, emri i autorit, teksti/prompti që bashkëngjitni dhe të dhënat e ndërveprimit mund të bëhen publike. Materiali mund të shihet, ndahet, kopjohet dhe përdoret për remix përmes platformës. Kontrollojeni para publikimit dhe hiqni sekretet e biznesit e të dhënat personale që nuk doni t’i publikoni.</p>
-        <p>Publikimi na lejon ta shfaqim krijimin brenda Explore dhe të mundësojmë ndarjen e remix-in. Nuk transferon pronësinë e të gjitha materialeve tuaja dhe nuk jep licencë të pakufizuar mbi markat ose imazhet e personave. Për heqje përdorni funksionin përkatës, kur ofrohet, ose kontaktoni mbështetjen me lidhjen e krijimit. Kopjet e shkarkuara nga të tjerët dhe ruajtja nga motorët e kërkimit mund të mbeten jashtë kontrollit tonë.</p>
-      </LegalSection>
-      <LegalSection title="8. Promocione, kreatorë dhe gara">
-        <p>Kodet e zbritjes, referimet dhe bonuset vlejnë sipas kushteve e afatit të ofertës. Aplikimi si kreator nuk është pranim automatik. Komisionet, pagesat, tatimet dhe kriteret përcaktohen në marrëveshjen përkatëse; shifrat e vlerësuara në panel nuk janë garanci pagese.</p>
-        <p>Garat, kur hapen, kanë rregulla për pjesëmarrjen, afatin, vlerësimin, çmimet dhe përdorimin e krijimeve. Ndalohet manipulimi i referimeve, porosive, votave dhe pëlqimeve. Rimbursimi i porosisë mund të korrigjojë bonusin ose komisionin përkatës.</p>
-      </LegalSection>
-      <LegalSection title="9. Siguria, kufizimet dhe pezullimi">
-        <p>Respektoni <Link href="/legal/fair-use">Përdorimin e drejtë</Link>. Ndalohet shkelja e ligjit, abuzimi me të dhënat, mashtrimi, përmbajtja shfrytëzuese, sulmet teknike dhe anashkalimi i pagesave ose kufijve. Qasjen në shërbim nuk mund ta rishisni si platformë tuajën pa marrëveshje; mund të shisni punën tuaj të krijuar ligjërisht me Maro.</p>
-        <p>Mund të kufizojmë një veprim, heqim përmbajtje ose pezullojmë llogarinë për arsye të bazuara sigurie, shkelje ose detyrim ligjor. Masa duhet të jetë proporcionale. Ju njoftojmë për arsyen dhe mundësinë e rishikimit, përveç kur ligji ose siguria e hetimit e pengon. Pezullimi nuk konfiskon automatikisht çdo pagesë ose të drejtë rimbursimi.</p>
-      </LegalSection>
-      <LegalSection title="10. Cilësia dhe përgjegjësia">
-        <p>Kontrolloni saktësinë, sigurinë, të drejtat dhe përshtatshmërinë e rezultateve para përdorimit. Kodi i gjeneruar mund të kërkojë testim dhe konfigurim shtesë. Përmbajtja AI nuk zëvendëson vlerësimin profesional kur nevojitet.</p>
-        <p>Mund të ketë ndërprerje, mirëmbajtje ose kufizime të ofruesve. Nuk garantojmë rezultat krijues të caktuar ose funksionim pa ndërprerje, por duhet të ofrojmë shërbimin e blerë sipas marrëveshjes. Asgjë këtu nuk përjashton përgjegjësi që ligji nuk lejon të përjashtohet, përfshirë mashtrimin, dashjen, pakujdesinë e rëndë dhe të drejtat e detyrueshme të konsumatorit.</p>
-      </LegalSection>
-      <LegalSection title="11. Mbyllja dhe ndryshimet">
-        <p>Mund të ndaloni përdorimin ose të kërkoni mbylljen e llogarisë në {LEGAL_ENTITY.supportEmail}. Eksportoni materialet e nevojshme para mbylljes. Fshirja, ruajtja e detyrueshme dhe rimbursimi trajtohen sipas politikave përkatëse. Nëse ndërpresim përfundimisht një shërbim të paguar, ju njoftojmë dhe trajtojmë pjesën e papërmbushur sipas ligjit.</p>
-        <p>Data e versionit shfaqet në këtë faqe. Për ndryshime thelbësore ju njoftojmë para zbatimit në platformë ose me email, përveç masave urgjente ligjore ose të sigurisë. Ndryshimet nuk heqin të drejta të fituara nga blerjet ekzistuese. Kur nevojitet pëlqim ose marrëveshje e re, vazhdimi i shfletimit nuk e zëvendëson atë.</p>
-      </LegalSection>
-      <LegalSection title="12. Ligji i Kosovës dhe mosmarrëveshjet">
-        <p>Zbatohet ligji i Republikës së Kosovës, përfshirë <a href={LEGAL_SOURCES.consumer}>Ligjin nr. 06/L-034 për Mbrojtjen e Konsumatorit</a>, me ndryshimet në fuqi, dhe dispozitat në fuqi të <a href={LEGAL_SOURCES.electronicServices}>Ligjit nr. 04/L-094 për Shërbimet e Shoqërisë Informatike</a>. Domeni .al nuk e ndryshon vendin e regjistrimit të operatorit ose ligjin e zgjedhur.</p>
-        <p>Ankesat dërgohen në {LEGAL_ENTITY.contactEmail} ose në adresën tonë. Për ankesat e konsumatorëve japim përgjigje me shkrim pa vonesë, jo më vonë se 15 ditë nga pranimi. Mund t’i drejtoheni edhe <a href={LEGAL_SOURCES.consumerAuthority}>Departamentit për Mbrojtjen e Konsumatorit</a> ose gjykatës kompetente në Kosovë, pa detyrim për ta përfunduar procedurën tonë të brendshme. Për përdoruesit jashtë Kosovës ruhen mbrojtjet dhe kompetencat gjyqësore të detyrueshme që zbatohen për ta.</p>
+
+      <LegalSection title="12. Ligji zbatues dhe kontakt">
+        <p>
+          Këto Kushte rregullohen nga ligji i Republikës së Kosovës. Mosmarrëveshjet do të zgjidhen
+          fillimisht me negociata të ndershme; në mungesë marrëveshjeje, kompetente janë gjykatat e
+          Republikës së Kosovës.
+        </p>
+        <p>
+          Kontakt:{" "}
+          <a href={`mailto:${LEGAL_ENTITY.contactEmail}`} className="font-semibold text-ink hover:underline">
+            {LEGAL_ENTITY.contactEmail}
+          </a>{" "}
+          · {LEGAL_ENTITY.name}, NRB {LEGAL_ENTITY.nrb}
+          <br />
+          {LEGAL_ADDRESS}
+        </p>
       </LegalSection>
     </LegalLayout>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ToolIcon } from "@/components/app/OptionIcon";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/Toast";
@@ -108,7 +109,7 @@ export function AssistantPanel({
       <div className="flex shrink-0 items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-surface-2 text-ink">
-            <MessageSquare className="h-5 w-5" />
+            <ToolIcon toolId="brain" className="h-5 w-5" />
           </span>
           <div>
             <div className="text-[15px] font-extrabold text-ink">maroBrain</div>

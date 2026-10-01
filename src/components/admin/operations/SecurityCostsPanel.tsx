@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/Misc";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/utils/format";
 import {
+  type LucideIcon,
   AlertTriangle,
   Activity,
   Pause,
@@ -236,7 +237,7 @@ function StatCard({
   value,
   sub,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   value: string;
   sub: string;

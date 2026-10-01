@@ -1,56 +1,40 @@
 "use client";
 
 import * as React from "react";
-import { useMaro } from "@/context/store";
-import { DEFAULT_THEME, resolveTheme, THEME_OWNER_KEY, themePreferenceKey } from "../../theme-preferences.mjs";
 
-export type Theme = "qelt" | "mshelt";
+/** App UI is light-only; kept for icon resolution hooks that read theme. */
+export type Theme = "mshelt";
+
+const THEME_COLOR = "#F9F9F9";
 
 interface ThemeCtx {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
 }
 
 const Ctx = React.createContext<ThemeCtx | null>(null);
 
-function applyTheme(theme: Theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "mshelt" ? "#111315" : "#F9F9F9");
+function applyLightTheme() {
+  document.documentElement.removeAttribute("data-theme");
+  try {
+    localStorage.setItem("maro.theme", "mshelt");
+  } catch {
+    /* private mode */
+  }
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", THEME_COLOR);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { ready, user } = useMaro();
-  const owner = ready ? user?.id ?? "guest" : null;
-  const [theme, updateTheme] = React.useState<Theme>(DEFAULT_THEME);
+  React.useEffect(() => {
+    applyLightTheme();
+  }, []);
 
-  React.useLayoutEffect(() => {
-    if (!owner) {
-      updateTheme(resolveTheme(document.documentElement.getAttribute("data-theme")));
-      return;
-    }
-    const restore = () => {
-      let next: Theme = DEFAULT_THEME;
-      try { next = resolveTheme(localStorage.getItem(themePreferenceKey(owner))); } catch { /* Optional browser storage. */ }
-      applyTheme(next);
-      updateTheme(next);
-    };
-    try { localStorage.setItem(THEME_OWNER_KEY, owner); } catch { /* Optional browser storage. */ }
-    restore();
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === themePreferenceKey(owner)) restore();
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [owner]);
-
-  const setTheme = React.useCallback((next: Theme) => {
-    applyTheme(next);
-    updateTheme(next);
-    try { localStorage.setItem(themePreferenceKey(owner ?? "guest"), next); } catch { /* The current tab can still switch. */ }
-  }, [owner]);
-
-  const value = React.useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ theme: "mshelt" }}>{children}</Ctx.Provider>;
 }
 
 export function useTheme(): ThemeCtx {

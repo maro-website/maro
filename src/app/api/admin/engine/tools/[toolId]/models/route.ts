@@ -1,5 +1,3 @@
-import { saveV1Models } from "@/lib/admin/v1Configuration";
-import { writeAuditEvent } from "@/lib/admin/audit";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { isEngineToolId } from "@/lib/engine/toolRegistry";
@@ -52,13 +50,6 @@ export async function POST(
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
 
-  if (toolId === "maro_imazh" || toolId === "maro_logo") {
-    try {
-      const models = await saveV1Models(toolId, body.models);
-      await writeAuditEvent({ actorId: auth.admin.userId, action: "v1.models.saved", targetType: "module", targetId: toolId, after: { models }, requestId: auth.requestId });
-      return NextResponse.json({ models });
-    } catch { return NextResponse.json({ error: "invalid_or_unavailable_model_configuration" }, { status: 400 }); }
-  }
   const modelId = String(body.modelId ?? body.model_id);
   const isDefault = Boolean(body.isDefault ?? body.is_default);
 

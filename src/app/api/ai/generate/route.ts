@@ -1,5 +1,3 @@
-import { withoutParkedFort } from "@/lib/shadow/maroFort";
-import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import { NextResponse } from "next/server";
 import { callClaudeText, hasAiKey } from "@/lib/ai/anthropic";
 import { resolveWebModel } from "@/lib/ai/webModels";
@@ -57,9 +55,6 @@ function bearer(req: Request): string | null {
 }
 
 export async function POST(req: Request) {
-  const unavailable = denyUnavailableGeneration("web");
-  if (unavailable) return unavailable;
-
   if (!hasAiKey()) {
     return NextResponse.json({ error: "no-key", fallback: true }, { status: 503 });
   }
@@ -79,8 +74,6 @@ export async function POST(req: Request) {
   if (!body?.businessName?.trim() && !body?.userPrompt?.trim()) {
     return NextResponse.json({ error: "missing-business" }, { status: 400 });
   }
-  body = withoutParkedFort(body);
-
   const references = validateWebReferenceImages(body.referenceImages, {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     production: process.env.NODE_ENV === "production",

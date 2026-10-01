@@ -1,44 +1,93 @@
-import type { NextRequest } from "next/server";
-import { createHash } from "node:crypto";
+import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { isSignupEnabled, MIN_PASSWORD_LENGTH } from "@/lib/config/features";
-import { isDisposableEmail } from "@/lib/security/disposableEmails";
+import { isDisposableEmail, normalizeEmail } from "@/lib/security/disposableEmails";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
-import { createSupabaseRouteHandlerClient, supabaseRouteHandlerConfigured } from "@/lib/supabase/routeHandler";
-import { buildPublicUrl } from "@/lib/config/appOrigin";
-import { authFailure, authJson, CONFIRMATION_NOTICE, readPublicAuthRequest } from "@/lib/auth/publicAuth";
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  if (!isSignupEnabled()) return authJson({ error: "signup_disabled" }, 403);
-  if (!supabaseServerConfigured() || !supabaseRouteHandlerConfigured()) return authJson({ error: "auth_temporarily_unavailable" }, 503);
-  try {
-    const input = await readPublicAuthRequest(req, "signup");
-    if (input.response) return input.response;
-    const { body, email, ip } = input;
-    const password = typeof body.password === "string" ? body.password : "";
-    const name = typeof body.name === "string" ? body.name.trim().slice(0, 100) : "";
-    if (password.length < MIN_PASSWORD_LENGTH || password.length > 256) return authJson({ error: "weak-password" }, 400);
-    if (isDisposableEmail(email)) return authJson({ error: "disposable-email" }, 400);
-    const response = authJson(CONFIRMATION_NOTICE);
-    const supabase = createSupabaseRouteHandlerClient(req, response);
-    const { data, error } = await supabase.auth.signUp({ email, password, options: {
-      data: { full_name: name || email.split("@")[0] },
-      emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: "/sign-in?confirmed=1" }),
-    } });
-    const failure = authFailure(error);
-    if (failure) return failure;
-    if (data.session) {
-      // Confirmation must be enabled; never expose an auto-confirmed session.
-      await supabase.auth.signOut({ scope: "local" });
-      return authJson({ error: "auth_temporarily_unavailable" }, 503);
+function uaHash(req: Request): string {
+  const ua = req.headers.get("user-agent") ?? "";
+  return createHash("sha256").update(ua).digest("hex").slice(0, 32);
+}
+
+export async function POST(req: Request) {
+  if (!isSignupEnabled()) {
+    return NextResponse.json({ error: "signup_disabled" }, { status: 403 });
+  }
+  if (!supabaseServerConfigured()) {
+    return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  }
+
+  const ip = clientIp(req);
+  const rl = await enforceRateLimit(req, "auth:signup", ip, 10, 3600, "strict");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retry_after: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
+  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body as {
+    name?: string;
+    email?: string;
+    password?: string;
+    turnstileToken?: string;
+  };
+
+  const name = body.name?.trim() ?? "";
+  const email = normalizeEmail(body.email ?? "");
+  const password = body.password ?? "";
+
+  if (!email || !password) {
+    return NextResponse.json({ error: "missing-fields" }, { status: 400 });
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return NextResponse.json({ error: "weak-password" }, { status: 400 });
+  }
+  if (isDisposableEmail(email)) {
+    return NextResponse.json({ error: "disposable-email" }, { status: 400 });
+  }
+
+  const ts = await verifyTurnstileToken(body.turnstileToken, ip);
+  if (!ts.ok) {
+    return NextResponse.json({ error: ts.reason }, { status: 403 });
+  }
+
+  const admin = getSupabaseAdmin();
+
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: false,
+    user_metadata: { full_name: name || email.split("@")[0] },
+  });
+
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("already") || msg.includes("registered")) {
+      return NextResponse.json({ error: "email-taken" }, { status: 409 });
     }
-    // Confirmed duplicates return an obfuscated identity: never write a signal for it.
-    if (!error && data.user?.id && data.user.identities?.length) {
-      await getSupabaseAdmin().from("signup_signals").insert({ user_id: data.user.id, ip,
-        user_agent_hash: createHash("sha256").update(req.headers.get("user-agent") ?? "").digest("hex").slice(0, 32) });
-    }
-    return response;
-  } catch { return authJson({ error: "auth_temporarily_unavailable" }, 503); }
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  const userId = created.user?.id;
+  if (userId) {
+    await admin.from("signup_signals").insert({
+      user_id: userId,
+      ip,
+      user_agent_hash: uaHash(req),
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    needsEmailConfirmation: true,
+  });
 }

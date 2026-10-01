@@ -19,8 +19,6 @@ export async function GET(req: Request) {
     order: {
       id: order.id,
       status: order.status,
-      provider: order.provider,
-      providerTransactionId: order.provider === "paddle" ? order.provider_transaction_id : undefined,
       credits: order.credits,
       amountCents: order.amount_cents,
       currency: order.currency,

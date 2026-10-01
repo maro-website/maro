@@ -55,7 +55,10 @@ export async function sendViaResend(input: ResendSendInput): Promise<EmailProvid
       html: input.html,
       text: input.text,
       replyTo: input.replyTo,
-    }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined);
+      headers: input.idempotencyKey
+        ? { "Idempotency-Key": input.idempotencyKey }
+        : undefined,
+    });
 
     if (error) {
       const msg = error.message ?? "Resend send failed";

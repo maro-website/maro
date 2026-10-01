@@ -9,7 +9,6 @@ import type { EngineToolId } from "./types";
 import { resolveEngineToolId } from "./toolRegistry";
 
 export interface ImageShadowSchedulePayload {
-  trustedImageModel?: import("./v1ImageModels").V1ImageModelConfiguration;
   registryToolId: string;
   finalPrompt: string;
   model: string;

@@ -18,6 +18,7 @@ import {
   type AdminNavItem,
 } from "@/lib/admin/routes";
 import { ChevronDown } from "lucide-react";
+import { ToolIcon } from "@/components/app/OptionIcon";
 
 export type { AdminNavGroup, AdminNavItem };
 
@@ -81,7 +82,7 @@ export function AdminSidebar({ role }: { role: AccessRole }) {
                         active ? "bg-ink text-ink-inv" : "text-ink-2 hover:bg-surface-2"
                       )}
                     >
-                      {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
+                      {item.product ? <ToolIcon toolId={item.product} className="h-3.5 w-3.5 shrink-0" /> : Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
                       <span className="truncate">{item.label}</span>
                     </Link>
                   );

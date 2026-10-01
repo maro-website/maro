@@ -6,7 +6,7 @@
  */
 
 /** Maro product UI accent — editor chrome only, never a generation fallback. */
-export const MARO_UI_BRAND_COLOR = "#00ff72";
+export const MARO_UI_BRAND_COLOR = "#00FF72";
 
 export type WebBrandColorSource = "user" | "brain" | "preset";
 

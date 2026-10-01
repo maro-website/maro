@@ -26,7 +26,6 @@ export function loadToolSelections(tool: ToolDef): ToolSelections {
       if (opt && opt.available !== false) base[s.id] = savedOpt;
     }
   }
-  if (tool.id === "reklama" && !saved.model) delete base.model;
   return base;
 }
 

@@ -13,42 +13,24 @@ export default function SignUpPage() {
 
   return (
     <AuthLayout
-      title={enabled ? "Krijo llogarinë tënde" : "Regjistrimet janë përkohësisht të mbyllura"}
+      title={enabled ? "Krijo llogarinë tënde" : "Regjistrimi së shpejti"}
       subtitle={
         enabled
           ? "Fillo me maro.al sot."
-          : "Regjistrimet e reja janë përkohësisht të mbyllura."
+          : "Platforma është në development mode. Regjistrimi hapet së shpejti."
       }
-      showSocials={enabled}
     >
-      {!enabled ? (
-        <div className="space-y-6 text-center">
-          <p className="text-[20px] font-semibold leading-snug text-ink">
-            Regjistrimet e reja janë përkohësisht të mbyllura.
-          </p>
-          <Link
-            href="/sign-in"
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-maro12 bg-brand px-5 py-3 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover"
-          >
-            Kyçu në llogarinë ekzistuese
-          </Link>
-        </div>
-      ) : (
-        <>
-          <AuthPanel
-            initialMode="sign-up"
-            dedicatedPage
-            onDone={() => router.push("/")}
-            signupDisabledMessage="Regjistrimet e reja janë përkohësisht të mbyllura."
-          />
-          <p className="mt-5 text-center text-[13px] text-ink-2">
-            E ki llogarinë?{" "}
-            <Link href="/sign-in" className="font-semibold text-brand hover:underline">
-              Hyn këtu
-            </Link>
-          </p>
-        </>
-      )}
+      <AuthPanel
+        initialMode="sign-up"
+        onDone={() => router.push("/")}
+        signupDisabledMessage="Platforma është në development mode. Regjistrimi hapet së shpejti — hyr nëse ke llogari."
+      />
+      <p className="mt-6 text-center text-[13.5px] text-ink-2">
+        Ke tashmë llogari?{" "}
+        <Link href="/sign-in" className="font-semibold text-brand hover:underline">
+          Hyr
+        </Link>
+      </p>
     </AuthLayout>
   );
 }

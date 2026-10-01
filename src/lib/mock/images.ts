@@ -23,7 +23,7 @@ const PALETTES: Record<string, string[][]> = {
     ["#1d4ed8", "#60a5fa", "#dbeafe"],
   ],
   agency: [
-    ["#253FDA", "#4f6bff", "#c7c7c7"],
+    ["#00FF72", "#3dff8a", "#c7c7c7"],
     ["#111114", "#3f3f46", "#a1a1aa"],
     ["#4c1d95", "#7c3aed", "#ddd6fe"],
   ],
@@ -34,11 +34,11 @@ const PALETTES: Record<string, string[][]> = {
   ],
   portfolio: [
     ["#111114", "#3f3f46", "#d4d4d8"],
-    ["#111111", "#253FDA", "#c7c7c7"],
+    ["#111111", "#00FF72", "#c7c7c7"],
     ["#1c1917", "#57534e", "#e7e5e4"],
   ],
   generic: [
-    ["#253FDA", "#4f6bff", "#efefef"],
+    ["#00FF72", "#3dff8a", "#efefef"],
     ["#0f172a", "#334155", "#cbd5e1"],
     ["#0e7490", "#0891b2", "#a5f3fc"],
   ],

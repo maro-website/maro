@@ -1,4 +1,5 @@
-import { ArrowUpRight, AudioLines, ScanLine } from "lucide-react";
+import { ArrowUpRight, ScanLine } from "lucide-react";
+import { ToolIcon } from "@/components/app/OptionIcon";
 import { copy, upcoming } from "./content";
 import { ToolFooter } from "./ToolFooter";
 import { FilmaPreview } from "./FilmaPreview";
@@ -19,8 +20,8 @@ function ToolStudy({ motif }: { motif: string }) {
         </div>
         <div className={s.audioBottom}>
           <span>00:00</span>
-          <AudioLines size={20} />
-          <span>maroZo</span>
+          <ToolIcon toolId="audio" className="h-5 w-5" />
+          <span>maroAudio</span>
         </div>
       </div>
     );

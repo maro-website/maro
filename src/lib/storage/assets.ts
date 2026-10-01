@@ -42,40 +42,6 @@ export function parseStorageRef(value: string): StoredAssetRef | null {
   return { bucket: rest.slice(0, slash), path: rest.slice(slash + 1) };
 }
 
-/** Reject path encodings/segments that could change the object after authorization. */
-function isCanonicalAssetPath(path: string): boolean {
-  return Boolean(path) &&
-    !/[\\%?#\u0000-\u001f\u007f]/.test(path) &&
-    path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
-}
-
-/** Private uploads and generated assets are stored under the authenticated user's ID. */
-export function isOwnedPrivateAssetPath(path: string, userId: string): boolean {
-  return Boolean(userId) && isCanonicalAssetPath(path) &&
-    path.split("/").length > 1 && path.split("/")[0] === userId;
-}
-
-/** Accept stable refs or legacy URLs from this project's object store only. */
-export function parseMaroStorageAsset(value: string): StoredAssetRef | null {
-  let ref = parseStorageRef(value);
-  if (!ref) {
-    try {
-      const configured = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
-      const url = new URL(value);
-      if (configured.protocol !== "https:" || url.origin !== configured.origin ||
-          url.username || url.password || url.hash) return null;
-      const match = url.pathname.match(/^\/storage\/v1\/object\/(?:public|sign)\/(generations|maro-public)\/(.+)$/);
-      if (!match) return null;
-      ref = { bucket: match[1], path: decodeURIComponent(match[2]) };
-    } catch {
-      return null;
-    }
-  }
-  if (![STORAGE_BUCKET, PUBLIC_STORAGE_BUCKET].includes(ref.bucket) ||
-      !isCanonicalAssetPath(ref.path)) return null;
-  return ref;
-}
-
 export function isPublicAssetPath(path: string): boolean {
   const normalized = path.replace(/^\/+/, "");
   return INTENTIONALLY_PUBLIC_PREFIXES.some((prefix) => normalized.startsWith(prefix));
@@ -165,17 +131,12 @@ export async function resolveAssetListForClient(stored: string[]): Promise<strin
 
 export async function copyToPublicExploreAsset(input: {
   sourcePath: string;
-  userId: string;
   slug: string;
   extension?: string;
 }): Promise<string | null> {
-  // This must run before creating a service-role client or reading any private bytes.
-  if (!isOwnedPrivateAssetPath(input.sourcePath, input.userId)) return null;
-  if (!/^[a-zA-Z0-9_-]+$/.test(input.slug)) return null;
   try {
     const admin = getSupabaseAdmin();
     const ext = input.extension ?? input.sourcePath.split(".").pop() ?? "png";
-    if (!/^[a-zA-Z0-9]+$/.test(ext)) return null;
     const dest = publicExploreAssetPath(input.slug, `asset.${ext}`);
     const { data: source, error: downloadError } = await admin.storage.from(STORAGE_BUCKET).download(input.sourcePath);
     if (downloadError || !source) return null;
@@ -190,19 +151,19 @@ export async function copyToPublicExploreAsset(input: {
 export async function publishStoredUrlToExplore(input: {
   storedUrl: string;
   slug: string;
-  userId: string;
 }): Promise<string | null> {
-  const ref = parseMaroStorageAsset(input.storedUrl);
-  if (!ref || !input.userId) return null;
-  // Existing intentionally public assets can be shared without copying private data.
-  if (isPublicAssetPath(ref.path)) {
-    return resolveAssetForClient(toStorageRef(ref.path, ref.bucket));
+  const ref = parseStorageRef(input.storedUrl);
+  const sourcePath =
+    ref?.path ??
+    extractStoragePathFromClientUrl(input.storedUrl) ??
+    null;
+  if (!sourcePath || isPublicAssetPath(sourcePath)) {
+    if (sourcePath && isPublicAssetPath(sourcePath)) return resolveAssetForClient(input.storedUrl);
+    return input.storedUrl.startsWith("http") ? input.storedUrl : null;
   }
-  if (ref.bucket !== STORAGE_BUCKET) return null;
   return copyToPublicExploreAsset({
-    sourcePath: ref.path,
-    userId: input.userId,
+    sourcePath,
     slug: input.slug,
-    extension: ref.path.split(".").pop(),
+    extension: sourcePath.split(".").pop(),
   });
 }

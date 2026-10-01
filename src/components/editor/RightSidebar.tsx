@@ -12,9 +12,9 @@ import { VersionsPanel } from "./panels/VersionsPanel";
 import { SeoPanel } from "./panels/SeoPanel";
 import { SourcePanel } from "./panels/SourcePanel";
 import { VisualEditPanel } from "./panels/VisualEditPanel";
-import { Code2, MousePointer2, Palette, Type, ImageIcon, Files, History, Search } from "lucide-react";
+import { Code2, MousePointer2, Palette, Type, ImageIcon, Files, History, Search, type LucideIcon } from "lucide-react";
 
-const SECTION_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
+const SECTION_TABS: { key: RightTab; icon: LucideIcon; label: string }[] = [
   { key: "design", icon: Palette, label: "Design" },
   { key: "content", icon: Type, label: "Content" },
   { key: "assets", icon: ImageIcon, label: "Assets" },
@@ -23,7 +23,7 @@ const SECTION_TABS: { key: RightTab; icon: React.ElementType; label: string }[] 
   { key: "seo", icon: Search, label: "SEO" },
 ];
 
-const HTML_TABS: { key: RightTab; icon: React.ElementType; label: string }[] = [
+const HTML_TABS: { key: RightTab; icon: LucideIcon; label: string }[] = [
   { key: "edit", icon: MousePointer2, label: "Edito" },
   { key: "code", icon: Code2, label: "Kodi" },
   { key: "pages", icon: Files, label: "Faqet" },

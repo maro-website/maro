@@ -31,6 +31,18 @@ export const IMAGE_TEXT_OFF_NO_REFERENCE =
 export const IMAGE_TEXT_OFF_WITH_REFERENCE =
   "Do not add any new text, headlines, captions, labels or watermarks to the generated scene. Existing brand names, logos, labels, packaging typography, product markings, numbers and printed details visible in the provided reference image are part of the referenced product and should be preserved faithfully. Do not remove, rewrite, translate, replace or invent them.";
 
+/** Workspace assets are identity evidence, never an implicit consumer product. */
+export const WORKSPACE_BRAND_ASSET_DIRECTION =
+  "IMPORTANT BRAND ASSET ROLE: The automatically supplied workspace reference is authoritative identity/business material for the active workspace, not a generic subject and not permission to invent a different company. Preserve its identity faithfully when used. Do not substitute another brand, industry, offering, category or logo.";
+
+/** Text OFF for automatic workspace identity/assets, distinct from user product refs. */
+export const IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET =
+  "Do not add any new headline, caption, label or watermark. The supplied workspace asset represents the active brand identity/business context. Preserve any existing logo or identity marks faithfully if shown, but do not invent new identity text, symbols, offerings or unrelated subjects.";
+
+/** Canonical workspace intelligence must outrank generic creative priors. */
+export const BRAND_CONTEXT_FIDELITY_DIRECTION =
+  "AUTHORITATIVE BRAND FIDELITY: Create specifically for the named active workspace brand, its actual business category, audience, offering and restrictions described above. A generic request such as ‘my active brand’ must be grounded in this context. Never replace it with an invented or unrelated company, offering, category, industry, product, service or identity.";
+
 /** @deprecated Use {@link buildImageTextOffInstruction} — kept for imports expecting a single constant. */
 export const IMAGE_TEXT_OFF = IMAGE_TEXT_OFF_NO_REFERENCE;
 
@@ -39,6 +51,9 @@ export const IMAGE_PARITY_MARKERS = {
   textOff: "Do not add any",
   textOffNoReference: IMAGE_TEXT_OFF_NO_REFERENCE,
   textOffWithReference: IMAGE_TEXT_OFF_WITH_REFERENCE,
+  textOffWithWorkspaceBrandAsset: IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET,
+  workspaceBrandAsset: WORKSPACE_BRAND_ASSET_DIRECTION,
+  brandFidelity: BRAND_CONTEXT_FIDELITY_DIRECTION,
   textOn: "Text: render any requested headline/text cleanly and legibly",
   fortHeader: "## BRIEF EKSPERT (maroFort)",
   brainHeader: "## maroBrain",
@@ -46,9 +61,13 @@ export const IMAGE_PARITY_MARKERS = {
 
 export function promptHasTextOffInstruction(prompt: string): boolean {
   return (
-    prompt.includes(IMAGE_TEXT_OFF_NO_REFERENCE) || prompt.includes(IMAGE_TEXT_OFF_WITH_REFERENCE)
+    prompt.includes(IMAGE_TEXT_OFF_NO_REFERENCE) ||
+    prompt.includes(IMAGE_TEXT_OFF_WITH_REFERENCE) ||
+    prompt.includes(IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET)
   );
 }
+
+export type ImageTextReferenceRole = "none" | "user_product" | "workspace_brand_asset";
 
 export function hasImageReferencesForTextOff(parts: {
   attachments?: Array<string | CompileAttachmentMeta>;
@@ -62,8 +81,15 @@ export function hasImageReferencesForTextOff(parts: {
   );
 }
 
-export function buildImageTextOffInstruction(hasReferences: boolean): string {
-  return hasReferences ? IMAGE_TEXT_OFF_WITH_REFERENCE : IMAGE_TEXT_OFF_NO_REFERENCE;
+export function buildImageTextOffInstruction(
+  hasReferences: boolean,
+  referenceRole: ImageTextReferenceRole = hasReferences ? "user_product" : "none"
+): string {
+  if (!hasReferences || referenceRole === "none") return IMAGE_TEXT_OFF_NO_REFERENCE;
+  if (referenceRole === "workspace_brand_asset") {
+    return IMAGE_TEXT_OFF_WITH_WORKSPACE_BRAND_ASSET;
+  }
+  return IMAGE_TEXT_OFF_WITH_REFERENCE;
 }
 
 export const IMAGE_PROVIDER_REF_LIMIT = 4;
@@ -239,7 +265,7 @@ export function resolveImageN(requested?: number): number {
 export function buildImageTextInstruction(
   toolId: EngineToolId,
   selections: ToolSelections,
-  opts?: { hasReferences?: boolean }
+  opts?: { hasReferences?: boolean; referenceRole?: ImageTextReferenceRole }
 ): string | undefined {
   const registryId = getRegistryToolId(toolId);
   const tool = getTool(registryId);
@@ -257,7 +283,7 @@ export function buildImageTextInstruction(
     const fontNote = fontOpt ? ` Use a ${fontOpt.label} typography style.` : "";
     return `${IMAGE_PARITY_MARKERS.textOn}, spelling every word correctly.${fontNote}`;
   }
-  return buildImageTextOffInstruction(Boolean(opts?.hasReferences));
+  return buildImageTextOffInstruction(Boolean(opts?.hasReferences), opts?.referenceRole);
 }
 
 export function hasImageReferenceAttachments(
@@ -305,6 +331,9 @@ export function assembleImageFlatPrompt(parts: {
     finalPrompt = `${finalPrompt}\n\n${parts.toolId === "maro_logo" ? LOGO_REFERENCE_DIRECTION : IMAGE_REFERENCE_PRESERVATION}`;
   }
 
+  const hasUserProductReferences = hasImageReferenceAttachments(parts.attachments);
+  const hasWorkspaceBrandAssets =
+    Boolean(parts.brainLogoUrl?.trim()) || (parts.matchedSourceUrls?.length ?? 0) > 0;
   const hasReferences = hasImageReferencesForTextOff({
     attachments: parts.attachments,
     brainLogoUrl: parts.brainLogoUrl,
@@ -312,6 +341,11 @@ export function assembleImageFlatPrompt(parts: {
   });
   const textInstruction = buildImageTextInstruction(parts.toolId, parts.selections, {
     hasReferences,
+    referenceRole: hasUserProductReferences
+      ? "user_product"
+      : hasWorkspaceBrandAssets
+        ? "workspace_brand_asset"
+        : "none",
   });
   if (textInstruction) {
     finalPrompt = `${finalPrompt}\n\n${textInstruction}`;
@@ -329,8 +363,17 @@ export function assembleImageFlatPrompt(parts: {
 
   if (parts.brainBrief?.trim()) {
     finalPrompt = `${finalPrompt}\n\n${parts.brainBrief.trim()}`;
-  } else if (parts.workspaceBrandBrief?.trim()) {
+  }
+  if (parts.workspaceBrandBrief?.trim()) {
     finalPrompt = `${finalPrompt}\n\n${parts.workspaceBrandBrief.trim()}`;
+  }
+
+  if (parts.brainBrief?.trim() || parts.workspaceBrandBrief?.trim()) {
+    finalPrompt = `${finalPrompt}\n\n${BRAND_CONTEXT_FIDELITY_DIRECTION}`;
+  }
+
+  if (hasWorkspaceBrandAssets) {
+    finalPrompt = `${finalPrompt}\n\n${WORKSPACE_BRAND_ASSET_DIRECTION}`;
   }
 
   if (parts.matchedSourcesBrief?.trim()) {

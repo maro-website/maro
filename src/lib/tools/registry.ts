@@ -9,6 +9,7 @@
 //   base tool prompt + each selected option's prompt fragment + the user text.
 
 import type { LucideIcon } from "lucide-react";
+import { MARO_PRODUCTS } from "@/lib/design/maro-system";
 import {
   Globe,
   Sparkles,
@@ -26,8 +27,6 @@ import {
   Lightbulb,
   Type,
 } from "lucide-react";
-
-import { moduleAvailabilityFlags } from "@/lib/modules/availability";
 
 export type ToolId = "website" | "logo" | "reklama" | "filma" | "zo" | "prompte";
 export type ToolKind = "website" | "image" | "video" | "audio" | "prompts";
@@ -128,8 +127,7 @@ const WEB_MODELS: ToolOption[] = [
   { id: "gpt-5-6-sol", label: "GPT 5.6 Sol", available: false },
 ];
 
-/** Compatibility data for retained legacy/shadow/admin paths, never V1 configuration. */
-export const LEGACY_IMAGE_MODELS: ToolOption[] = [
+const IMAGE_MODELS: ToolOption[] = [
   { id: "gpt-image-2", label: "GPT Image 2", available: true },
   { id: "nano-banana-2", label: "Nano Banana 2", available: false },
   { id: "nano-banana-2-lite", label: "Nano Banana 2 Lite", available: false },
@@ -138,26 +136,20 @@ export const LEGACY_IMAGE_MODELS: ToolOption[] = [
   { id: "maroart-1", label: "maroArt 1.0", available: false },
 ];
 
-// V1 input choices; enabled state, default validation and prices are resolved on the server.
-const IMAGE_MODELS: ToolOption[] = [
-  { id: "flare", label: "Flare", available: true },
-  { id: "sunburst", label: "Sunburst", available: true },
-];
-
 // ---------------------------------------------------------------------------
 // Tools
 // ---------------------------------------------------------------------------
 export const TOOLS: ToolDef[] = [
   {
     id: "website",
-    name: "maro Web",
+    name: MARO_PRODUCTS.maroWeb.displayName,
     tagline: "Website i plotë nga një fjali",
     description:
       "Përshkruaj biznesin dhe maro ndërton një website profesional me Claude Opus.",
     icon: Globe,
     kind: "website",
     route: "/web",
-    ...moduleAvailabilityFlags("web"),
+    functional: true,
     baseCost: 0,
     defaultPrompt: "",
     settings: [
@@ -186,18 +178,18 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "logo",
-    name: "maroLogo",
+    name: MARO_PRODUCTS.maroLogo.displayName,
     tagline: "Logo & ikona me AI",
     description: "Gjenero logo profesionale me wizard të drejtuar.",
     icon: Sparkles,
     kind: "image",
     route: "/marologo",
-    ...moduleAvailabilityFlags("logo"),
+    functional: true,
     baseCost: 0,
     defaultPrompt:
       "You are maroLogo, an expert identity designer. Translate the structured brief into one distinctive, coherent brand identity with vector-like clarity, strong silhouette, disciplined typography and professional spacing. Follow the selected presentation mode exactly. Multiple views must always show the same identity system, never unrelated concepts. Avoid stock-logo clichés, decorative clutter, watermarks and invented text.",
     settings: [
-      { id: "model", label: "Modeli", icon: Cpu, default: "flare", options: IMAGE_MODELS.filter((model) => model.id === "flare") },
+      { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
       {
         id: "type",
         label: "Lloji",
@@ -226,18 +218,18 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "reklama",
-    name: "maro Imazh",
+    name: MARO_PRODUCTS.maroImazh.displayName,
     tagline: "Imazhe & vizuale që konvertojnë",
     description: "Krijo imazhe dhe kreativë vizualë gati për rrjetet sociale.",
     icon: Megaphone,
     kind: "image",
     route: "/imazh",
-    ...moduleAvailabilityFlags("imazh"),
+    functional: true,
     baseCost: 0,
     defaultPrompt:
       "You are maro Imazh, an expert visual art director. Produce a scroll-stopping, high-quality image with a clear focal point, strong contrast and deliberate empty space for a short headline. Modern, premium and on-brand. Avoid clutter, watermarks and fake logos or unreadable text.",
     settings: [
-      { id: "model", label: "Modeli", icon: Cpu, default: "flare", options: IMAGE_MODELS },
+      { id: "model", label: "Modeli", icon: Cpu, default: "gpt-image-2", options: IMAGE_MODELS },
       {
         id: "format",
         label: "Formati",
@@ -280,26 +272,28 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "prompte",
-    name: "maroPresets",
+    name: MARO_PRODUCTS.maroPresets.displayName,
     tagline: "Preset gati për t'u përdorur",
     description:
       "Preset profesionale gati për t'u përdorur. Zgjidh një, shtoje te tooli dhe gjenero me produktin tënd.",
     icon: Lightbulb,
     kind: "prompts",
     route: "/prompts",
-    ...moduleAvailabilityFlags("presets"),
+    functional: true,
+    comingSoon: false,
     baseCost: 0,
     settings: [],
   },
   {
     id: "filma",
-    name: "maro Filma",
+    name: MARO_PRODUCTS.maroFilma.displayName,
     tagline: "AI Video Generator",
     description: "Gjenero video të shkurtra me AI nga një përshkrim. Së shpejti.",
     icon: Clapperboard,
     kind: "video",
     route: "/filma",
-    ...moduleAvailabilityFlags("filma"),
+    functional: false,
+    comingSoon: true,
     baseCost: 0,
     settings: [
       {
@@ -341,14 +335,15 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "zo",
-    name: "maro Audio",
+    name: MARO_PRODUCTS.maroAudio.displayName,
     tagline: "Zë, muzikë & efekte me AI",
     description:
       "Kthe tekstin në zë natyral, gjenero muzikë e efekte zanore, ose transkripto dhe pastro audio, me AI (ElevenLabs).",
     icon: AudioLines,
     kind: "audio",
     route: "/audio",
-    ...moduleAvailabilityFlags("audio"),
+    functional: false,
+    comingSoon: true,
     baseCost: 0,
     defaultPrompt: "",
     settings: [

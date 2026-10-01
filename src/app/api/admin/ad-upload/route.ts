@@ -37,5 +37,5 @@ export async function POST(req: Request) {
     validated.mime
   );
   if (!url) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
-  return NextResponse.json({ url, path: validated.storageKey });
+  return NextResponse.json({ url });
 }

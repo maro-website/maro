@@ -4,6 +4,10 @@ import * as React from "react";
 import type { InspirationItem } from "@/lib/modules/imazh/inspiration";
 import {
   IMAZH_INSPIRATION_FALLBACK,
+  IMAZH_INSPIRATION_FALLBACK_IMAGE,
+  MARO_IMAGE_URL_MIME,
+  MARO_PRESET_MIME,
+  presetAttachFromItem,
 } from "@/lib/modules/imazh/inspiration";
 import { fetchPromptDetail, fetchPrompts } from "@/lib/services/promptsService";
 import type { PromptAttach } from "@/lib/prompts/types";
@@ -17,7 +21,7 @@ const IMAZH_TARGET_TOOL = "reklama";
 function promptToCarouselItem(p: PromptItem): InspirationItem {
   return {
     id: p.id,
-    imageUrl: p.featured_url ?? "",
+    imageUrl: p.featured_url || IMAZH_INSPIRATION_FALLBACK_IMAGE,
     category: p.category,
     label: p.code,
     preset: {
@@ -31,7 +35,6 @@ function promptToCarouselItem(p: PromptItem): InspirationItem {
 
 export function ImazhWorkspace({ toolId }: { toolId: string }) {
   const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [carouselItems, setCarouselItems] = React.useState<InspirationItem[]>(IMAZH_INSPIRATION_FALLBACK);
 
   React.useEffect(() => {
@@ -42,7 +45,7 @@ export function ImazhWorkspace({ toolId }: { toolId: string }) {
       if (imazhPresets.length > 0) {
         setCarouselItems(imazhPresets.map(promptToCarouselItem));
       }
-    }).catch(() => undefined).finally(() => { if (alive) setLoading(false); });
+    });
     return () => {
       alive = false;
     };
@@ -65,7 +68,6 @@ export function ImazhWorkspace({ toolId }: { toolId: string }) {
       />
       <InspirationCarousel
         items={carouselItems}
-        loading={loading}
         activePresetId={promptAttach?.id ?? null}
         onPresetSelect={onPresetSelect}
       />

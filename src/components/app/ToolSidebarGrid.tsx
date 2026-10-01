@@ -4,11 +4,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { ToolGridCard } from "@/components/app/ToolGridCard";
 import { ACTIVE_MAIN_TOOLS, COMING_SOON_MAIN_TOOLS, type ToolDef } from "@/lib/tools/registry";
+import { MARO_PRODUCTS } from "@/lib/design/maro-system";
 
 const LOCKED_PLAN = { id: "plan", name: "maro Plan" };
 
 const utilityBtn =
-  "group flex h-[60px] w-full items-center justify-between rounded-maro16 bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-ink-inv focus:outline-none";
+  "group flex h-[60px] w-full items-center justify-between rounded-maro16 bg-surface px-5 text-[16px] font-bold tracking-brand text-ink transition-colors hover:bg-ink hover:text-white focus:outline-none";
 
 function SidebarLockedRow({ name }: { name: string }) {
   return (
@@ -59,7 +60,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="mt-[20px] flex flex-col gap-[9px]">
           <button type="button" onClick={() => go("/prompts")} className={utilityBtn}>
-            <span>maro Ide</span>
+            <span>{MARO_PRODUCTS.maroPresets.displayName}</span>
             <MaroIcon
               name="prompts"
               className="h-6 w-6 shrink-0 text-ink transition-colors group-hover:text-white"

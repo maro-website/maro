@@ -44,7 +44,7 @@ export function ContentPanel() {
     <div>
       <PanelSection>
         <div className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-fg">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white">
             <Meta.icon className="h-4 w-4" />
           </span>
           <div>

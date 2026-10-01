@@ -96,7 +96,7 @@ export function AppShell({
 
           "relative z-30 shrink-0",
 
-          "h-[var(--maro-shell-header-height)]"
+          isHubHome ? "h-0" : "h-[var(--maro-shell-header-height)]"
 
         )}
 
@@ -181,3 +181,5 @@ function moduleForPath(pathname: string): string {
   return "platform";
 
 }
+
+

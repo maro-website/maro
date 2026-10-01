@@ -1,5 +1,4 @@
 "use client";
-import { authErrorMessage } from "@/lib/auth/messages";
 
 import React, {
   createContext,
@@ -98,7 +97,7 @@ function profileToUser(profile: Profile | null): User | null {
     id: profile.id,
     name: profile.full_name || profile.email.split("@")[0] || "Ti",
     email: profile.email,
-    avatarColor: "#253FDA",
+    avatarColor: "#00FF72",
     plan: profile.plan === "fort" ? "fort" : "free",
     credits: profile.credits,
     createdAt: profile.created_at,
@@ -317,7 +316,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
       const sb = getSupabaseBrowser();
       const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) return { error: authErrorMessage(error.code) };
+      if (error) return { error: error.message };
       await refreshProfile();
       return { error: null };
     },
@@ -341,7 +340,13 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
         });
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         if (!res.ok) {
-          return { error: authErrorMessage(j.error) };
+          const map: Record<string, string> = {
+            "disposable-email": "Email-et e përkohshme nuk lejohen.",
+            "email-taken": "Ky email është i regjistruar tashmë.",
+            turnstile_required: "Verifikimi CAPTCHA mungon.",
+            turnstile_failed: "Verifikimi CAPTCHA dështoi. Provo përsëri.",
+          };
+          return { error: map[j.error ?? ""] ?? j.error ?? "Regjistrimi dështoi." };
         }
         return { error: null };
       } catch {

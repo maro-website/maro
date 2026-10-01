@@ -1,6 +1,5 @@
 "use client";
 
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import * as React from "react";
 import Link from "next/link";
 import { ADMIN_ROUTES } from "@/lib/admin/routes";
@@ -27,7 +26,7 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 function tabVisible(tab: Tab, tool: Record<string, unknown>): boolean {
-  if (tab === "maroFort" && (!MARO_FORT_ENABLED || !tool.usesFort)) return false;
+  if (tab === "maroFort" && !tool.usesFort) return false;
   if (tab === "maroBrain" && !tool.usesBrain) return false;
   if (tab === "Prompt Layers" && !tool.usesFort && Number(tool.layerCount) === 0) return false;
   return true;
@@ -288,7 +287,7 @@ export function EngineToolWorkspace({ toolId }: { toolId: string }) {
 
       {tab === "Inputs" && <EngineInputsEditor toolId={toolId} />}
 
-      {MARO_FORT_ENABLED && tab === "maroFort" && (
+      {tab === "maroFort" && (
         <Panel title="maroFort CMS representation">
           <p className="text-[12px] text-ink-2">
             Legacy Fort configuration is managed per tool in the Engine workspace (maroFort tab).
@@ -373,7 +372,7 @@ function Action({
       disabled={disabled}
       className={cn(
         "rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50",
-        primary ? "bg-brand text-brand-fg" : "border border-line bg-surface-2 text-ink",
+        primary ? "bg-brand text-white" : "border border-line bg-surface-2 text-ink",
         className
       )}
     >

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/Button";
+import { ProductLogo } from "@/components/ui/ProductLogo";
 import { MaroLogoProgress } from "./MaroLogoProgress";
 import type { WizardStep } from "@/lib/marologo/types";
 
@@ -30,7 +31,7 @@ export function WizardStepLayout({
     <div className="marologo-shell">
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between text-[12px] font-semibold text-ink-3">
-          <span>maroLogo</span>
+          <ProductLogo product="maroLogo" className="h-7 w-[100px]" />
           <span>Hapi {step} prej 3</span>
         </div>
         <MaroLogoProgress
@@ -48,7 +49,7 @@ export function WizardStepLayout({
         {nextExtra ?? (
           <Button
             type="button"
-            className="h-[52px] w-full rounded-maro16 text-base font-semibold"
+            className="h-[52px] w-full rounded-maro16 text-[15px] font-semibold"
             onClick={onNext}
             disabled={nextDisabled}
           >

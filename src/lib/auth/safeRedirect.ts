@@ -13,7 +13,6 @@ export function sanitizeInternalRedirectPath(
   if (value == null || typeof value !== "string") return fallback;
 
   const trimmed = value.trim();
-  if (/[\u0000-\u0020\u007f]/.test(trimmed) || /%(?:0[0-9a-f]|1[0-9a-f]|7f)/i.test(trimmed)) return fallback;
   if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return fallback;
 
   const lower = trimmed.toLowerCase();

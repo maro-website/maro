@@ -20,7 +20,7 @@ export function MaroSymbolWhite({ className }: { className?: string }) {
       src={MARO_LOGO.symbolWhite}
       alt=""
       aria-hidden
-      className={cn("maro-symbol-inverse h-[30px] w-[30px] select-none", className)}
+      className={cn("h-[30px] w-[30px] select-none", className)}
       draggable={false}
     />
   );

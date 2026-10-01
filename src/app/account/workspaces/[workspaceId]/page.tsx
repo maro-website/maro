@@ -151,7 +151,7 @@ function WorkspaceSettingsInner() {
                 type="button"
                 onClick={saveName}
                 disabled={saving || !name.trim()}
-                className="inline-flex h-12 items-center gap-1.5 rounded-xl bg-ink px-4 text-[14px] font-semibold text-ink-inv disabled:opacity-50"
+                className="inline-flex h-12 items-center gap-1.5 rounded-xl bg-ink px-4 text-[14px] font-semibold text-white disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
                 Ruaj
@@ -259,7 +259,7 @@ function WorkspaceSettingsInner() {
                 type="button"
                 onClick={saveBrand}
                 disabled={savingBrand}
-                className="inline-flex h-11 items-center gap-1.5 self-start rounded-xl bg-ink px-4 text-[14px] font-semibold text-ink-inv disabled:opacity-50"
+                className="inline-flex h-11 items-center gap-1.5 self-start rounded-xl bg-ink px-4 text-[14px] font-semibold text-white disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
                 Ruaj brandin

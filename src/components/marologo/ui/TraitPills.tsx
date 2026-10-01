@@ -1,6 +1,4 @@
 "use client";
-import { useLogoContent } from "../LogoContent";
-import { logoOptions } from "@/lib/marologo/content";
 
 import { BRAND_TRAITS, MAX_TRAITS } from "@/lib/marologo/constants";
 
@@ -13,7 +11,6 @@ export function TraitPills({
   onChange: (traits: string[]) => void;
   onMaxReached?: () => void;
 }) {
-  const content = useLogoContent();
   const toggle = (trait: string) => {
     if (value.includes(trait)) {
       onChange(value.filter((t) => t !== trait));
@@ -28,8 +25,7 @@ export function TraitPills({
 
   return (
     <div className="flex flex-wrap gap-[10px]">
-      {logoOptions(content, "direction.traits").map((option) => {
-        const trait = option.value;
+      {BRAND_TRAITS.map((trait) => {
         const active = value.includes(trait);
         return (
           <button
@@ -40,7 +36,7 @@ export function TraitPills({
             className="maro-chip-select min-h-[52px] px-[20px] py-[10px]"
             data-selected={active || undefined}
           >
-            {option.label}
+            {trait}
           </button>
         );
       })}

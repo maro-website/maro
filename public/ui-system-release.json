@@ -1,9 +1,0 @@
-{
-  "release": "maro-ui-system-20261001",
-  "themes": [
-    "mshelt",
-    "qelt"
-  ],
-  "primary": "#00ff72",
-  "restoreTag": "pre-ui-system-refinement-2026-10-01"
-}

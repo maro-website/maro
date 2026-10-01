@@ -151,13 +151,15 @@ describe("PKCE verifier cookie diagnostics", () => {
 });
 
 describe("forgot-password server client architecture", () => {
-  it("returns recovery through the cookie-backed SSR route client", async () => {
+  it("uses stateless supabase-js rather than @supabase/ssr cookie client", async () => {
     const source = await import("node:fs/promises").then((fs) =>
       fs.readFile("src/app/api/auth/forgot-password/route.ts", "utf8")
     );
-    expect(source).toContain("createSupabaseRouteHandlerClient(req, response)");
-    expect(source).toContain("authFailure(error) ?? response");
-    expect(source).not.toContain("persistSession: false");
+    expect(source).toContain('from "@supabase/supabase-js"');
+    expect(source).not.toMatch(/from\s+"@supabase\/ssr"/);
+    expect(source).not.toContain("createSupabaseRouteHandlerClient");
+    expect(source).toContain("persistSession: false");
+    expect(source).toContain("NextResponse.json(GENERIC_OK");
   });
 });
 

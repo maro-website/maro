@@ -1,4 +1,3 @@
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { AiGenerateRequest } from "@/lib/ai/types";
 import { WEB_PARITY_MARKERS } from "@/lib/engine/webCompile";
@@ -24,7 +23,7 @@ function webBody(overrides: Partial<AiGenerateRequest> = {}): AiGenerateRequest 
     language: "sq",
     goal: "Site",
     userPrompt: "Site",
-    primaryColor: "#253FDA",
+    primaryColor: "#00FF72",
     ...overrides,
   };
 }
@@ -105,7 +104,7 @@ describe("runWebEngineInternalGeneration (mocked provider)", () => {
     expect(call?.user).toContain("REFERENCE IMAGES (2 attached)");
   });
 
-  it("Fort brief respects the availability switch", async () => {
+  it("Fort brief lands in user message when enabled", async () => {
     const fixture = WEB_PARITY_FIXTURES.find((f) => f.id === "web-fort")!;
     await runWebEngineInternalGeneration({
       body: webBody(fixture.engine.webRequest ?? {}),
@@ -117,7 +116,7 @@ describe("runWebEngineInternalGeneration (mocked provider)", () => {
     });
 
     const call = provider.mock.calls[0]?.[0];
-    expect(call?.user.includes(WEB_PARITY_MARKERS.fortHeader)).toBe(MARO_FORT_ENABLED);
+    expect(call?.user).toContain(WEB_PARITY_MARKERS.fortHeader);
     expect(call?.system).not.toContain(WEB_PARITY_MARKERS.fortHeader);
   });
 

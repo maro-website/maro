@@ -50,9 +50,6 @@ export interface CommerceTopupRow {
 }
 
 export interface MembershipRow {
-  payment_provider?: string | null;
-  paddle_status?: string | null;
-  paddle_scheduled_change?: { action: string; effectiveAt: string } | null;
   id: string;
   user_id: string;
   plan_id: CanonicalPlanId;
@@ -91,9 +88,6 @@ export interface CommercialSnapshot {
 }
 
 export interface ResolvedEntitlements {
-  payment_provider?: string | null;
-  paddle_status?: string | null;
-  paddle_scheduled_change?: { action: string; effectiveAt: string } | null;
   plan_id: CanonicalPlanId | null;
   plan_status: MembershipStatus;
   plan_display_name: string | null;

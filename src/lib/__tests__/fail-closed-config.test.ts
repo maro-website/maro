@@ -79,7 +79,7 @@ describe("Batch S2 — Supabase fail-closed", () => {
 
   it("all AI routes import production Supabase guard", () => {
     for (const route of AI_ROUTES) {
-      const source = readRoute(route === "src/app/api/ai/image/route.ts" ? "src/lib/generation/v1ImageApplication.ts" : route);
+      const source = readRoute(route);
       expect(source).toContain("denyIfProductionWithoutSupabase");
       expect(source).not.toContain("entitled = !supabaseServerConfigured()");
     }
@@ -114,12 +114,14 @@ describe("Batch S2 — test payment lockdown", () => {
 
   it("pay/test page is gated server-side", () => {
     const page = readRoute("src/app/pay/test/page.tsx");
-    expect(page).toContain("export default PurchasesUnavailable");
+    expect(page).toContain("isTestPaymentAllowed()");
+    expect(page).toContain("notFound()");
   });
 
   it("pay/redirect does not route production users to simulator", () => {
     const page = readRoute("src/app/pay/redirect/page.tsx");
-    expect(page).toContain("export default PurchasesUnavailable");
+    expect(page).toContain("PayRedirectUnavailableClient");
+    expect(page).toContain("isTestPaymentAllowed()");
   });
 
   it("complete-test route validates payment mode and test allowance", () => {

@@ -60,17 +60,17 @@ export function OptionIcon({
   return <Fallback className={cn("h-3.5 w-3.5 shrink-0 text-ink-3", className)} />;
 }
 
-/** Sidebar / tool pill — static tool icon from public/icons. */
+/** Sidebar / tool pill — official standalone symbol from shared branding. */
 export function ToolIcon({
   toolId,
   fallback: Fallback,
   className,
 }: {
   toolId: string;
-  fallback: LucideIcon;
+  fallback?: LucideIcon;
   className?: string;
 }) {
   const url = toolIconSrc(toolId);
   if (url) return <IconMask src={url} className={className} />;
-  return <Fallback className={cn("shrink-0 text-ink-3", className)} />;
+  return Fallback ? <Fallback className={cn("shrink-0 text-ink-3", className)} /> : null;
 }

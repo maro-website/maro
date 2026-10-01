@@ -38,7 +38,7 @@ export async function finalizeCreditCharge(jobId: string): Promise<boolean> {
     p_job_id: jobId,
   });
   if (error) throw new Error(error.message);
-  return data === true;
+  return Boolean(data);
 }
 
 /** Release reserved credits on failure (idempotent). */
@@ -51,7 +51,7 @@ export async function releaseCreditReserve(
     p_idempotency_key: idempotencyKey ?? null,
   });
   if (error) throw new Error(error.message);
-  return data === true;
+  return Boolean(data);
 }
 
 /** Atomic refund for admin/report flows (not tied to job reserve). */

@@ -38,21 +38,21 @@ export function LegalConsentCheckbox({
         >
           Kushtet e Përdorimit
         </Link>
-        {" dhe "}
-        <Link
-          href="/legal/refund"
-          target="_blank"
-          className="font-semibold text-ink underline-offset-2 hover:underline"
-        >
-          Politikën e Rimbursimit
-        </Link>
-        {" dhe konfirmoj se e kam lexuar "}
+        ,{" "}
         <Link
           href="/legal/privacy"
           target="_blank"
           className="font-semibold text-ink underline-offset-2 hover:underline"
         >
           Politikën e Privatësisë
+        </Link>{" "}
+        dhe{" "}
+        <Link
+          href="/legal/refund"
+          target="_blank"
+          className="font-semibold text-ink underline-offset-2 hover:underline"
+        >
+          Politikën e Rimbursimit
         </Link>
         .
       </span>

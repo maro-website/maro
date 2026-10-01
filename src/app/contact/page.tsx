@@ -42,6 +42,13 @@ export default function ContactPage() {
                 <a href={`mailto:${LEGAL_ENTITY.supportEmail}`} className="font-semibold text-ink hover:underline">
                   {LEGAL_ENTITY.supportEmail}
                 </a>
+                <span className="text-ink-3"> · support</span>
+              </p>
+              <p className="mt-1 text-[15px]">
+                <a href={`mailto:${LEGAL_ENTITY.contactEmail}`} className="font-semibold text-ink hover:underline">
+                  {LEGAL_ENTITY.contactEmail}
+                </a>
+                <span className="text-ink-3"> · legal</span>
               </p>
             </div>
           </div>

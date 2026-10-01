@@ -1,4 +1,3 @@
-import { validateLayerEdit } from "@/lib/admin/v1Configuration";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -53,18 +52,6 @@ export async function POST(
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
 
-  if (toolId === "maro_imazh" || toolId === "maro_logo") {
-    try {
-      const db = getSupabaseAdmin();
-      const { data: current, error: readError } = await db.from("prompt_layers").select("*").eq("id", body.id).eq("tool_id", toolId).single();
-      if (readError || !current) throw new Error("unknown_layer");
-      const patch = validateLayerEdit(body, current);
-      const { data, error } = await db.from("prompt_layers").update({ ...patch, updated_by: auth.admin.userId }).eq("id", current.id).eq("updated_at", current.updated_at).select("*").single();
-      if (error) throw new Error("layer_save_conflict");
-      await writeAuditEvent({ actorId: auth.admin.userId, action: "v1.layer.saved", targetType: "prompt_layer", targetId: current.id, requestId: auth.requestId });
-      return NextResponse.json({ layer: data });
-    } catch { return NextResponse.json({ error: "invalid_layer_or_save_conflict" }, { status: 400 }); }
-  }
   const row = {
     layer_key: String(body.layerKey ?? body.layer_key ?? crypto.randomUUID()),
     tool_id: toolId as EngineToolId,

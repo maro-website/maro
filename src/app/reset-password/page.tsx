@@ -7,8 +7,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
 import { MIN_PASSWORD_LENGTH } from "@/lib/config/features";
-import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
-import { completePasswordReset } from "@/lib/auth/passwordReset";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
@@ -24,16 +23,17 @@ export default function ResetPasswordPage() {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!supabaseConfigured) {
+      const sb = getSupabaseBrowser();
+      if (!sb) {
         if (!cancelled) {
           setSessionOk(false);
           setLoading(false);
         }
         return;
       }
-      const { data } = await getSupabaseBrowser().auth.getUser().catch(() => ({ data: { user: null } }));
+      const { data } = await sb.auth.getSession();
       if (!cancelled) {
-        setSessionOk(Boolean(data.user));
+        setSessionOk(Boolean(data.session));
         setLoading(false);
       }
     })();
@@ -62,16 +62,16 @@ export default function ResetPasswordPage() {
     }
 
     setSaving(true);
-    const updateError = await completePasswordReset(sb, password);
+    const { error: updateError } = await sb.auth.updateUser({ password });
     setSaving(false);
 
     if (updateError) {
-      setError(updateError);
+      setError(updateError.message);
       return;
     }
 
     setDone(true);
-    router.replace("/sign-in?password_updated=1");
+    setTimeout(() => router.push("/"), 1500);
   }
 
   if (loading) {

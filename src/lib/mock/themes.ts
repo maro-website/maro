@@ -26,7 +26,7 @@ export const CATEGORY_THEMES: Record<WebsiteCategory, Theme> = {
     dark: false,
   },
   agency: {
-    primaryColor: "#00ff72",
+    primaryColor: "#00FF72",
     secondaryColor: "#111114",
     backgroundColor: "#ffffff",
     textColor: "#101014",
@@ -49,7 +49,7 @@ export const CATEGORY_THEMES: Record<WebsiteCategory, Theme> = {
   },
   portfolio: {
     primaryColor: "#111114",
-    secondaryColor: "#00ff72",
+    secondaryColor: "#00FF72",
     backgroundColor: "#ffffff",
     textColor: "#0b0b0d",
     headingFont: "Instrument Serif",
@@ -59,7 +59,7 @@ export const CATEGORY_THEMES: Record<WebsiteCategory, Theme> = {
     dark: false,
   },
   generic: {
-    primaryColor: "#00ff72",
+    primaryColor: "#00FF72",
     secondaryColor: "#111114",
     backgroundColor: "#ffffff",
     textColor: "#101014",

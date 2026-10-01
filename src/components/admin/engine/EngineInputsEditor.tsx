@@ -1,6 +1,5 @@
 "use client";
 
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import * as React from "react";
 import { getAccessToken } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -150,12 +149,12 @@ export function EngineInputsEditor({ toolId }: { toolId: string }) {
                 <Toggle label="Enabled" checked={form.enabled !== false} onChange={(v) => setForm((s) => ({ ...s, enabled: v }))} />
                 <Toggle label="Required" checked={Boolean(form.required)} onChange={(v) => setForm((s) => ({ ...s, required: v }))} />
                 <Toggle label="Standard visible" checked={Boolean(form.standardVisible)} onChange={(v) => setForm((s) => ({ ...s, standardVisible: v }))} />
-                {MARO_FORT_ENABLED && <Toggle label="Fort visible" checked={form.fortVisible !== false} onChange={(v) => setForm((s) => ({ ...s, fortVisible: v }))} />}
+                <Toggle label="Fort visible" checked={form.fortVisible !== false} onChange={(v) => setForm((s) => ({ ...s, fortVisible: v }))} />
               </div>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => void move(selected.fieldKey, -1)} className="rounded-lg border border-line px-2 py-1 text-[12px]">↑</button>
                 <button type="button" onClick={() => void move(selected.fieldKey, 1)} className="rounded-lg border border-line px-2 py-1 text-[12px]">↓</button>
-                <button type="button" onClick={() => void save()} disabled={busy} className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg disabled:opacity-50">
+                <button type="button" onClick={() => void save()} disabled={busy} className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">
                   Save override
                 </button>
               </div>
@@ -166,7 +165,7 @@ export function EngineInputsEditor({ toolId }: { toolId: string }) {
               <h3 className="mb-2 text-[14px] font-bold text-ink">CMS preview</h3>
               <div className="grid gap-3 md:grid-cols-2">
                 <PreviewCard mode="Standard" visible={Boolean(form.standardVisible)} field={form} />
-                {MARO_FORT_ENABLED && <PreviewCard mode="maroFort" visible={form.fortVisible !== false} field={form} />}
+                <PreviewCard mode="maroFort" visible={form.fortVisible !== false} field={form} />
               </div>
             </div>
           </>

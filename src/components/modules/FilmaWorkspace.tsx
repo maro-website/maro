@@ -1,6 +1,4 @@
 "use client";
-import { isModuleLive } from "@/lib/modules/availability";
-import { ModuleComingSoon } from "./ModuleComingSoon";
 
 import { ToolComposer } from "@/components/app/ToolComposer";
 import { ModuleHero } from "@/components/modules/ModuleHero";
@@ -8,11 +6,6 @@ import { InspirationCarousel } from "@/components/modules/InspirationCarousel";
 import { FILMA_INSPIRATION } from "@/lib/modules/filma/inspiration";
 
 export function FilmaWorkspace({ toolId }: { toolId: string }) {
-  if (!isModuleLive("filma")) return <ModuleComingSoon moduleId="filma" />;
-  return <FilmaWorkspaceContent toolId={toolId} />;
-}
-
-function FilmaWorkspaceContent({ toolId }: { toolId: string }) {
   const headerSlot = (
     <>
       <ModuleHero

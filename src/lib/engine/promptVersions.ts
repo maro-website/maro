@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { validatePromptContent } from "@/lib/admin/v1Configuration";
 import { rowToSystemPrompt } from "./storage";
 import type { EngineToolId, SystemPromptVersion } from "./types";
 
@@ -54,11 +53,8 @@ export async function updateDraftContent(
   const admin = getSupabaseAdmin();
   const { data: current } = await admin.from("system_prompt_versions").select("*").eq("id", id).maybeSingle();
   if (!current) throw new Error("not_found");
-  if (!["draft", "review"].includes(current.status)) throw new Error("cannot_edit_published_version");
-  if (updates.content !== undefined) validatePromptContent(updates.content);
+  if (current.status === "live") throw new Error("cannot_edit_live");
 
-  if (updates.status !== undefined && !["draft", "review"].includes(updates.status)) throw new Error("invalid_draft_status");
-  if (updates.changeNote !== undefined && (typeof updates.changeNote !== "string" || updates.changeNote.length > 2000)) throw new Error("invalid_change_note");
   const patch: Record<string, unknown> = {};
   if (updates.content != null) patch.content = updates.content;
   if (updates.changeNote != null) patch.change_note = updates.changeNote;
@@ -67,7 +63,6 @@ export async function updateDraftContent(
   const { data, error } = await admin
     .from("system_prompt_versions")
     .update(patch)
-    .in("status", ["draft", "review"])
     .eq("id", id)
     .select("*")
     .single();
@@ -86,12 +81,6 @@ export async function publishSystemPromptVersion(
     throw new Error("invalid_status_for_publish");
   }
 
-  validatePromptContent(target.content);
-  if (["maro_imazh", "maro_logo"].includes(target.tool_id)) {
-    const { data, error } = await admin.rpc("admin_publish_v1_prompt", { p_id: id, p_actor: actorId });
-    if (error) throw new Error("prompt_publish_failed");
-    return rowToSystemPrompt(data as Record<string, unknown>);
-  }
   const toolId = target.tool_id as EngineToolId;
   const now = new Date().toISOString();
 
@@ -133,12 +122,6 @@ export async function rollbackSystemPromptVersion(
   if (!archived) throw new Error("not_found");
   if (archived.status !== "archived") throw new Error("rollback_requires_archived");
 
-  validatePromptContent(archived.content);
-  if (["maro_imazh", "maro_logo"].includes(archived.tool_id)) {
-    const { data, error } = await admin.rpc("admin_publish_v1_prompt", { p_id: id, p_actor: actorId, p_rollback: true });
-    if (error) throw new Error("prompt_publish_failed");
-    return rowToSystemPrompt(data as Record<string, unknown>);
-  }
   const toolId = archived.tool_id as EngineToolId;
   const { data: live } = await admin
     .from("system_prompt_versions")

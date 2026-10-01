@@ -1,4 +1,3 @@
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured } from "@/lib/supabase/server";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
@@ -15,7 +14,6 @@ function bearer(req: Request): string | null {
 
 /** Strip secret prompt layer content from fort config for client consumption. */
 function sanitizeFortConfig(fc: FortConfig): FortConfig {
-  if (!MARO_FORT_ENABLED) return { enabled: false };
   const copy = JSON.parse(JSON.stringify(fc)) as FortConfig;
   if (copy.promptLayers) {
     for (const layer of copy.promptLayers) {
@@ -29,7 +27,7 @@ export async function GET(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({
       pricing: DEFAULT_PRICING,
-      fort_config: sanitizeFortConfig({}),
+      fort_config: {},
       tool_option_icons: {},
     });
   }
@@ -51,6 +49,6 @@ export async function GET(req: Request) {
     const tool_option_icons = (data?.tool_option_icons as Record<string, unknown>) ?? {};
     return NextResponse.json({ pricing, fort_config, tool_option_icons });
   } catch {
-    return NextResponse.json({ pricing: DEFAULT_PRICING, fort_config: sanitizeFortConfig({}), tool_option_icons: {} });
+    return NextResponse.json({ pricing: DEFAULT_PRICING, fort_config: {}, tool_option_icons: {} });
   }
 }

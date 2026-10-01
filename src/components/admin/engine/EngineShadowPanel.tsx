@@ -1,6 +1,5 @@
 "use client";
 
-import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import * as React from "react";
 import { getAccessToken } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -137,7 +136,7 @@ export function EngineShadowPanel({
 
       <div className="flex flex-wrap gap-2">
         <FilterInput placeholder="Model" value={filters.model} onChange={(v) => setFilters((f) => ({ ...f, model: v }))} />
-        {MARO_FORT_ENABLED && <FilterSelect
+        <FilterSelect
           label="Fort"
           value={filters.fort}
           onChange={(v) => setFilters((f) => ({ ...f, fort: v }))}
@@ -146,7 +145,7 @@ export function EngineShadowPanel({
             ["true", "On"],
             ["false", "Off"],
           ]}
-        />}
+        />
         <FilterSelect
           label="Brain"
           value={filters.brain}
@@ -248,7 +247,7 @@ export function EngineShadowPanel({
                     onClick={() => void saveReview(o.id)}
                     className={cn(
                       "rounded-lg border border-line px-2 py-1 text-[11px] font-semibold",
-                      selected.review_status === o.id ? "bg-brand text-brand-fg" : "hover:bg-surface-2"
+                      selected.review_status === o.id ? "bg-brand text-white" : "hover:bg-surface-2"
                     )}
                   >
                     {o.label}

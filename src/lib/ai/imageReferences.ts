@@ -3,11 +3,9 @@ import "server-only";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { isOwnedPrivateAssetPath, parseMaroStorageAsset, parseStorageRef, STORAGE_BUCKET, toStorageRef } from "@/lib/storage/assets";
+import { parseStorageRef, STORAGE_BUCKET } from "@/lib/storage/assets";
 import {
   MAX_IMAGE_REFERENCE_BYTES,
-  MAX_USER_IMAGE_BYTES,
-  validateRasterUpload,
   validateRasterBytes,
   type AllowedRasterKind,
 } from "@/lib/security/uploadValidation";
@@ -22,45 +20,17 @@ export type ResolvedImageReference = {
   normalized: boolean;
 };
 
+export type ResolvedImageContent = {
+  data: string;
+  mimeType: string;
+};
+
 function ownedPrivateReference(value: string, userId: string) {
   const ref = parseStorageRef(value);
   if (!ref || ref.bucket !== STORAGE_BUCKET) return null;
-  if (!isOwnedPrivateAssetPath(ref.path, userId)) return null;
+  const [owner] = ref.path.split("/");
+  if (!owner || owner !== userId || ref.path.includes("..")) return null;
   return ref;
-}
-
-/** Workspace UI supports uploads and legacy inline logos, never arbitrary web fetches. */
-export async function resolveWorkspaceImageReference(
-  value: string,
-  userId: string
-): Promise<ResolvedImageReference> {
-  if (!userId || typeof value !== "string") throw new Error("invalid_image_reference");
-  if (value.startsWith("data:")) {
-    // Bound encoded input before decoding legacy inline logos.
-    if (value.length > Math.ceil(MAX_USER_IMAGE_BYTES * 4 / 3) + 128) {
-      throw new Error("file_too_large");
-    }
-    const validated = validateRasterUpload({
-      dataUrl: value,
-      maxBytes: MAX_USER_IMAGE_BYTES,
-      storagePrefix: "refs",
-      userId,
-    });
-    if (!validated.ok) throw new Error(validated.reason);
-    const output = await normalizeImageReferenceForProvider(validated.bytes, validated.mediaType);
-    return {
-      dataUrl: `data:${output.mime};base64,${output.bytes.toString("base64")}`,
-      digest: createHash("sha256").update(output.bytes).digest("hex"),
-      mime: output.mime,
-      normalized: output.normalized,
-    };
-  }
-  const ref = parseMaroStorageAsset(value);
-  if (!ref || ref.bucket !== STORAGE_BUCKET || !isOwnedPrivateAssetPath(ref.path, userId)) {
-    throw new Error("forbidden_reference");
-  }
-  // Legacy public/signed URLs become an owned storage ref; their URL is never fetched.
-  return resolvePrivateImageReference(toStorageRef(ref.path), userId);
 }
 
 export async function normalizeImageReferenceForProvider(
@@ -107,4 +77,20 @@ export async function resolvePrivateImageReference(
     mime: output.mime,
     normalized: output.normalized,
   };
+}
+
+/**
+ * Resolve an owned private image into the standard MCP ImageContent payload.
+ * The storage reference and signed URL stay out of the image block itself.
+ */
+export async function resolvePrivateImageContent(
+  storageRef: string,
+  userId: string
+): Promise<ResolvedImageContent> {
+  const resolved = await resolvePrivateImageReference(storageRef, userId);
+  const prefix = `data:${resolved.mime};base64,`;
+  if (!resolved.dataUrl.startsWith(prefix)) throw new Error("invalid_image_content");
+  const data = resolved.dataUrl.slice(prefix.length);
+  if (!data) throw new Error("invalid_image_content");
+  return { data, mimeType: resolved.mime };
 }

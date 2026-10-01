@@ -138,7 +138,7 @@ describe("Batch S4 — payment pre-integration", () => {
       path.join(process.cwd(), "src/app/api/payments/complete-test/route.ts"),
       "utf8"
     );
-    expect(testPage).toContain("export default PurchasesUnavailable");
+    expect(testPage).toContain("isTestPaymentAllowed()");
     expect(complete).toContain("isTestPaymentAllowed()");
   });
 });

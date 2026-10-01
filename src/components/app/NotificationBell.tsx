@@ -15,10 +15,9 @@ import {
   subscribeNotifications,
   type MaroNotification,
 } from "@/lib/notifications/store";
-import { Bell, Coins, Gift, Receipt, Users } from "lucide-react";
-import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
+import { Bell, Coins, Gift, Receipt, Users, type LucideIcon } from "lucide-react";
 
-const ICONS: Record<MaroNotification["type"], React.ElementType> = {
+const ICONS: Record<MaroNotification["type"], LucideIcon> = {
   credits: Coins,
   billing: Receipt,
   giveaway: Gift,
@@ -33,7 +32,6 @@ export function NotificationBell() {
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
   const btnRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
-  useMenuKeyboard(open && Boolean(pos), menuRef, btnRef, () => setOpen(false));
 
   const refresh = React.useCallback(async () => {
     const local = loadLocalNotifications(userId);
@@ -128,13 +126,11 @@ export function NotificationBell() {
         onClick={() => setOpen((o) => !o)}
         className="relative grid h-11 w-11 place-items-center rounded-maro16 bg-surface text-ink transition-colors hover:bg-surface-hover focus:outline-none"
         aria-label="Njoftime"
-        aria-expanded={open}
-        aria-haspopup="true"
         title="Njoftime"
       >
         <MaroIcon name="notification" className="h-5 w-5 text-ink" />
         {unread > 0 && (
-          <span className="absolute bottom-0.5 right-0.5 grid h-[14px] min-w-[14px] place-items-center rounded-full bg-brand px-0.5 text-[10px] font-bold leading-none text-brand-fg">
+          <span className="absolute bottom-0.5 right-0.5 grid h-[14px] min-w-[14px] place-items-center rounded-full bg-brand px-0.5 text-[10px] font-bold leading-none text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -150,13 +146,11 @@ export function NotificationBell() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                style={{ position: "fixed", top: pos.top, left: pos.left, width: "min(320px, calc(100vw - 16px))", maxHeight: `calc(100dvh - ${pos.top + 8}px)` }}
-                className="maro-menu z-[var(--maro-z-dropdown)] overflow-y-auto p-0"
-                role="region"
-                aria-label="Njoftime"
+                style={{ position: "fixed", top: pos.top, left: pos.left, width: 320 }}
+                className="z-[130] overflow-hidden rounded-maro20 bg-surface"
               >
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-sm font-bold text-ink">Njoftime</span>
+                  <span className="text-[13px] font-bold text-ink">Njoftime</span>
                   {items.length > 0 && (
                     <button
                       onClick={() => {
@@ -171,7 +165,7 @@ export function NotificationBell() {
                 </div>
                 <div className="scroll-thin max-h-[360px] overflow-y-auto">
                   {items.length === 0 ? (
-                    <div className="px-4 py-10 text-center text-sm text-ink-3">
+                    <div className="px-4 py-10 text-center text-[13px] text-ink-3">
                       Ende s&apos;ke njoftime.
                     </div>
                   ) : (
@@ -183,11 +177,11 @@ export function NotificationBell() {
                             <Icon className="h-4 w-4" />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-semibold text-ink">{n.title}</div>
+                            <div className="text-[13.5px] font-semibold text-ink">{n.title}</div>
                             {n.body && (
-                              <div className="text-xs leading-relaxed text-ink-2">{n.body}</div>
+                              <div className="text-[12.5px] leading-relaxed text-ink-2">{n.body}</div>
                             )}
-                            <div className="mt-0.5 text-xs text-ink-3">{timeAgo(n.createdAt)}</div>
+                            <div className="mt-0.5 text-[11.5px] text-ink-3">{timeAgo(n.createdAt)}</div>
                           </div>
                         </div>
                       );

@@ -99,7 +99,7 @@ export function callbackFailureLogMeta(input: {
   const meta: Record<string, string | boolean> = {
     reason: input.reason,
     flow: input.flow,
-    otp_type: ["signup", "invite", "magiclink", "recovery", "email_change", "email"].includes(input.otpType ?? "") ? input.otpType! : "unknown",
+    otp_type: input.otpType ?? "unknown",
   };
 
   if (typeof input.pkceVerifierPresent === "boolean") {

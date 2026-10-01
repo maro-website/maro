@@ -13,9 +13,6 @@ import { runShadowCompilation } from "@/lib/engine/shadowCompile";
 import { buildImazhTestContext, compileImazhFixture, IMAZH_PARITY_FIXTURES } from "@/lib/engine/imageParityFixtures";
 import { compileGenerationBrief } from "@/lib/engine/compiler";
 import { generateImages, editImages } from "@/lib/ai/openai";
-import { loadCompileContext } from "@/lib/engine/storage";
-import { readV1ImageModelConfiguration } from "@/lib/engine/v1ImageModels";
-import { modelRow } from "./helpers/v1ImageFixtures";
 
 vi.mock("next/server", () => ({
   after: (fn: () => void | Promise<void>) => {
@@ -148,16 +145,6 @@ describe("image reference tracker runtime outcome", () => {
 describe("maybeScheduleImageShadow runtime wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("reuses V1 configuration and avoids Brain context without opt-in", async () => {
-    const model = readV1ImageModelConfiguration(modelRow(), "maro_imazh");
-    await maybeScheduleImageShadow(basePayload({ trustedImageModel: model, model: model.providerModelId }));
-    await vi.waitFor(() => expect(loadCompileContext).toHaveBeenCalledWith("maro_imazh", {
-      ownerUserId: "user-1", workspaceId: undefined, trustedImageModel: model,
-    }));
-    expect(generateImages).not.toHaveBeenCalled();
-    expect(editImages).not.toHaveBeenCalled();
   });
 
   it("A: simple generate schedules shadow with tool prompts and zero provider calls from shadow", async () => {

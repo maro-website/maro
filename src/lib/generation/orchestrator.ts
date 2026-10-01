@@ -1,7 +1,4 @@
 import "server-only";
-import { IMAZH_REQUEST_PROMPT_MAX_CHARS } from "./imagePromptValidation";
-import type { ImageProviderObservation } from "@/lib/ai/imageObservation";
-import { generationAvailabilityError } from "@/lib/modules/availability";
 import type { User } from "@supabase/supabase-js";
 import {
   finalizeCreditCharge,
@@ -48,7 +45,6 @@ export class GenerationGuardError extends Error {
 }
 
 export interface PrepareGenerationInput {
-  provider?: string;
   req: Request;
   module: string;
   cost: number;
@@ -83,8 +79,6 @@ export async function settlePreparedGeneration(opts: {
   module: string;
   cost: number;
   model?: string;
-  provider?: string;
-  imageObservation?: ImageProviderObservation;
   outcome: "success" | "failure";
   error?: string;
   generationId?: string | null;
@@ -102,8 +96,6 @@ export async function settlePreparedGeneration(opts: {
       model: opts.model,
       generationId: opts.generationId,
       imageCount: opts.imageCount,
-      provider: opts.provider,
-      imageObservation: opts.imageObservation,
     });
     opts.financial.terminal = "success";
     return;
@@ -166,17 +158,7 @@ async function isEmailVerified(user: User): Promise<boolean> {
 }
 
 export async function prepareGeneration(input: PrepareGenerationInput): Promise<PreparedGeneration> {
-  const unavailable = generationAvailabilityError(input.module);
-  if (unavailable) {
-    const { status, error, ...extra } = unavailable;
-    throw new GenerationGuardError(status, error, undefined, extra);
-  }
   const { req, module, cost, model, promptText, attachmentCount, metadata } = input;
-  const durableV1 = metadata?.v1_durable === true;
-  if (durableV1) {
-    const readiness = await getSupabaseAdmin().rpc("v1_image_lifecycle_version");
-    if (readiness.error || readiness.data !== 2) throw new GenerationGuardError(503, "image_lifecycle_unavailable");
-  }
   const idempotencyKey = input.idempotencyKey ?? null;
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -214,7 +196,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       throw new GenerationGuardError(503, circuit.reason);
     }
 
-    const budget = await assertBudgetGuards({ module, toolId: module, provider: input.provider ?? inferProviderFromModule(module) });
+    const budget = await assertBudgetGuards({ module, toolId: module, provider: inferProviderFromModule(module) });
     if (!budget.ok) {
       throw new GenerationGuardError(503, budget.reason);
     }
@@ -222,10 +204,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     const limits = await getPlatformLimits();
 
     if (promptText) {
-      // V1 Imazh has a separate transport ceiling and compiled-provider preflight.
-      // Leave every other module and legacy entry point on its existing policy.
-      const maxChars = module === "reklama" && input.metadata?.v1_durable === true
-        ? IMAZH_REQUEST_PROMPT_MAX_CHARS : getPromptMaxChars(limits);
+      const maxChars = getPromptMaxChars(limits);
       if (promptText.length > maxChars) {
         throw new GenerationGuardError(400, "prompt_too_long", undefined, { max: maxChars });
       }
@@ -328,14 +307,13 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
         job_id: created.detail,
       });
     }
-    // Database details are logged by createJob, never returned to customers.
-    throw new GenerationGuardError(500, created.code);
+    throw new GenerationGuardError(500, created.code, created.detail);
   }
 
   const job = created.job;
 
   if (!skipBilling && cost > 0) {
-    const available = Math.max(0, profile.credits);
+    const available = Math.max(0, profile.credits - (profile.credits_reserved ?? 0));
     if (available < cost) {
       await updateJob(job.id, { status: "failed", error: "insufficient_credits" });
       throw new GenerationGuardError(402, "insufficient-credits", undefined, {
@@ -350,13 +328,10 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
       throw new GenerationGuardError(402, "insufficient-credits", undefined, { needed: cost });
     }
 
-    if (!durableV1) await updateJob(job.id, { status: "reserved", credits_reserved: cost });
+    await updateJob(job.id, { status: "reserved", credits_reserved: cost });
   }
 
-  if (durableV1) {
-    const started = await getSupabaseAdmin().rpc("start_v1_image_job", { p_job_id: job.id });
-    if (started.error || started.data !== true) throw new GenerationGuardError(503, "image_job_start_unverified", undefined, { job_id: job.id });
-  } else await updateJob(job.id, { status: "processing", started_at: new Date().toISOString() });
+  await updateJob(job.id, { status: "processing", started_at: new Date().toISOString() });
 
   return {
     userId: user.id,
@@ -376,8 +351,6 @@ export async function completeGeneration(opts: {
   cost: number;
   skipBilling?: boolean;
   model?: string;
-  provider?: string;
-  imageObservation?: ImageProviderObservation;
   inputTokens?: number;
   outputTokens?: number;
   imageCount?: number;
@@ -385,35 +358,31 @@ export async function completeGeneration(opts: {
   providerReportedUsd?: number | null;
   pricingBreakdown?: Record<string, unknown>;
 }): Promise<void> {
-  if (!opts.skipBilling && opts.cost > 0) {
-    if (!(await finalizeCreditCharge(opts.jobId))) throw new GenerationGuardError(503, "credit_finalization_unverified");
-  } else {
-    await updateJob(opts.jobId, { status: "completed", credits_charged: 0, finished_at: new Date().toISOString() });
-  }
-  // Financial truth is committed. Optional accounting must not turn success into failure.
-  try { await recordCompletedGenerationCosts(opts); }
-  catch { console.error("[generation] post-settlement accounting requires repair", opts.jobId); }
-}
-
-export async function recordCompletedGenerationCosts(opts: Parameters<typeof completeGeneration>[0]): Promise<void> {
-  const observation = opts.imageObservation;
-  const inputTokens = typeof observation?.usage?.input_tokens === "number" ? observation.usage.input_tokens : opts.inputTokens;
-  const outputTokens = typeof observation?.usage?.output_tokens === "number" ? observation.usage.output_tokens : opts.outputTokens;
-  const usageUsd = observation ? observation.estimate.usd ?? 0 : estimateProviderCostUsd({
+  const usageUsd = estimateProviderCostUsd({
     model: opts.model,
-    inputTokens,
-    outputTokens,
+    inputTokens: opts.inputTokens,
+    outputTokens: opts.outputTokens,
     imageCount: opts.imageCount,
   });
   const fallbackMaxUsd = getProviderCostFallbackMaximumUsd(opts.module);
   const costUsd =
     opts.providerReportedUsd ??
-    (observation ? observation.estimate.usd ?? fallbackMaxUsd : (usageUsd > 0 ? Math.max(usageUsd, fallbackMaxUsd) : fallbackMaxUsd || usageUsd));
+    (usageUsd > 0 ? Math.max(usageUsd, fallbackMaxUsd) : fallbackMaxUsd || usageUsd);
+
+  if (!opts.skipBilling && opts.cost > 0) {
+    await finalizeCreditCharge(opts.jobId);
+  } else {
+    await updateJob(opts.jobId, {
+      status: "completed",
+      credits_charged: opts.skipBilling ? 0 : opts.cost,
+      finished_at: new Date().toISOString(),
+    });
+  }
 
   await updateJob(opts.jobId, {
     provider_cost_usd: opts.providerReportedUsd ?? costUsd,
-    ...(inputTokens != null ? { input_tokens: inputTokens } : {}),
-    ...(outputTokens != null ? { output_tokens: outputTokens } : {}),
+    ...(opts.inputTokens != null ? { input_tokens: opts.inputTokens } : {}),
+    ...(opts.outputTokens != null ? { output_tokens: opts.outputTokens } : {}),
     credits_charged: opts.skipBilling ? 0 : opts.cost,
   });
 
@@ -424,11 +393,9 @@ export async function recordCompletedGenerationCosts(opts: Parameters<typeof com
     jobId: opts.jobId,
     toolId: opts.module,
     modelId: opts.model,
-    provider: opts.provider ?? inferProviderFromModule(opts.module),
-    imageEstimate: observation?.estimate,
-    usageMetadata: observation ? { image_provider: observation } : undefined,
-    inputTokens,
-    outputTokens,
+    provider: inferProviderFromModule(opts.module),
+    inputTokens: opts.inputTokens,
+    outputTokens: opts.outputTokens,
     imageCount: opts.imageCount,
     providerReportedUsd: opts.providerReportedUsd,
     configuredFixedUsd: usageUsd > 0 ? usageUsd : null,
@@ -442,7 +409,7 @@ export async function recordCompletedGenerationCosts(opts: Parameters<typeof com
     module: opts.module,
     creditsCharged: opts.skipBilling ? 0 : opts.cost,
     model: opts.model,
-    pricingBreakdown: observation ? { ...opts.pricingBreakdown, image_provider: observation } : opts.pricingBreakdown,
+    pricingBreakdown: opts.pricingBreakdown,
   });
 }
 

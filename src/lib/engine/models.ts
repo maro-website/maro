@@ -5,7 +5,7 @@
 
 import type { EngineToolId, ToolModelConfigRecord } from "./types";
 import { getEngineToolDefinition } from "./toolRegistry";
-import { getTool, LEGACY_IMAGE_MODELS } from "@/lib/tools/registry";
+import { getTool } from "@/lib/tools/registry";
 
 export interface ModelValidationResult {
   ok: boolean;
@@ -79,17 +79,14 @@ export function defaultModelsFromRegistry(toolId: EngineToolId): ToolModelConfig
   const modelSetting = tool.settings.find((s) => s.id === "model");
   if (!modelSetting) return [];
 
-  // Preserve historical compile/seed compatibility. Trusted V1 requests never use this fallback.
-  const options = tool.kind === "image" ? LEGACY_IMAGE_MODELS : modelSetting.options;
-  const defaultModel = tool.kind === "image" ? "gpt-image-2" : modelSetting.default;
-  return options.map((opt, idx) => ({
+  return modelSetting.options.map((opt, idx) => ({
     id: `${toolId}:${opt.id}`,
     toolId,
     modelId: opt.id,
     displayName: opt.label,
     provider: tool.kind === "website" ? "anthropic" : tool.kind === "image" ? "openai" : "unknown",
     enabled: opt.available !== false,
-    isDefault: opt.id === defaultModel,
+    isDefault: opt.id === modelSetting.default,
     isFallback: false,
     comingSoon: opt.available === false,
     sortOrder: idx,

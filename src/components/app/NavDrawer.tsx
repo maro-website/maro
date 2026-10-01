@@ -16,20 +16,17 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { X } from "lucide-react";
 import type { NavGroup } from "@/lib/nav/destinations";
-import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
 const GROUP_ORDER: NavGroup[] = ["home", "discover", "tools", "studio", "community", "later"];
 
 export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const grouped = navDestinationsByGroup();
-  const dialogRef = React.useRef<HTMLDivElement>(null);
-  useDialogFocus(open, dialogRef, onClose);
 
   return (
     <AnimatePresence>
       {open && (
-        <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[var(--maro-z-overlay)] lg:hidden" role="dialog" aria-modal="true" aria-label="Navigimi">
+        <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label="Navigimi">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,7 +68,6 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                     <Link
                       key={dest.id}
                       href={dest.route}
-                      aria-current={active ? "page" : undefined}
                       onClick={onClose}
                       className={cn(
                         "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
@@ -102,7 +98,6 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                     <Link
                       key={dest.id}
                       href={dest.route}
-                      aria-current={isNavActive(pathname, dest) ? "page" : undefined}
                       onClick={onClose}
                       className={cn(
                         "flex min-h-[52px] items-center rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
@@ -132,7 +127,6 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                           <Link
                             key={dest.id}
                             href={dest.route}
-                            aria-current={active ? "page" : undefined}
                             onClick={onClose}
                             className={cn(
                               "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",

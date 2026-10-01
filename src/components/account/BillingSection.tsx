@@ -1,8 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
+import { formatEur } from "@/lib/credits/money";
 import { formatOrderDate } from "@/lib/payments/orderDisplay";
 import { cn } from "@/lib/utils/cn";
 
@@ -38,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function BillingSection() {
+  const router = useRouter();
   const { user, credits } = useMaro();
   const [data, setData] = React.useState<EntitlementsPayload | null>(null);
   const [usage, setUsage] = React.useState<UsageRow[]>([]);
@@ -115,12 +120,26 @@ export function BillingSection() {
             >
               {STATUS_LABELS[ent.plan_status] ?? ent.plan_status}
             </Badge>
-
+            <div className="mt-5 flex flex-wrap gap-3">
+              {ent.renewal_available && (
+                <Button onClick={() => router.push("/checkout?item=renew")}>Rinovo planin</Button>
+              )}
+              {ent.plan_status === "EXPIRED" || ent.plan_status === "NO_PLAN" ? (
+                <Button onClick={() => router.push("/pricing")}>Aktivizo planin</Button>
+              ) : null}
+              {data?.upgradeQuote?.eligible && (
+                <Button variant="secondary" onClick={() => router.push("/checkout?item=upgrade-pro")}>
+                  Kaloni në maroPro (+{formatEur(data.upgradeQuote.price_cents / 100)})
+                </Button>
+              )}
+            </div>
           </>
         ) : (
           <>
             <p className="mt-3 text-[15px] text-ink-2">Nuk ke plan aktiv.</p>
-
+            <Button className="mt-4" onClick={() => router.push("/pricing")}>
+              Aktivizo planin
+            </Button>
           </>
         )}
       </section>
@@ -131,7 +150,18 @@ export function BillingSection() {
           {credits} credits
         </p>
         <p className="mt-1 text-[14px] text-ink-3">Kreditet nuk skadojnë.</p>
-        <p className="mt-4 text-[14px] text-ink-2">Blerjet e reja janë të mbyllura.</p>
+        {ent?.can_top_up ? (
+          <Button className="mt-4" onClick={() => router.push("/pricing?tab=topup")}>
+            Blej Top-up
+          </Button>
+        ) : (
+          <p className="mt-4 text-[14px] text-ink-2">
+            Top-up kërkon plan aktiv.{" "}
+            <Link href="/pricing" className="font-semibold text-brand hover:underline">
+              Shiko planet
+            </Link>
+          </p>
+        )}
       </section>
 
       {usage.length > 0 && (

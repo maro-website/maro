@@ -37,8 +37,6 @@ export function TurnstileWidget({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const widgetIdRef = React.useRef<string | null>(null);
   const [ready, setReady] = React.useState(false);
-  const callbacks = React.useRef({ onToken, onExpire });
-  callbacks.current = { onToken, onExpire };
 
   React.useEffect(() => {
     if (!siteKey) return;
@@ -65,9 +63,8 @@ export function TurnstileWidget({
     }
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
-      callback: (token) => callbacks.current.onToken(token),
-      "expired-callback": () => callbacks.current.onExpire?.(),
-      "error-callback": () => callbacks.current.onExpire?.(),
+      callback: onToken,
+      "expired-callback": onExpire,
       theme,
     });
     return () => {
@@ -76,7 +73,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, ready, theme]);
+  }, [siteKey, ready, onToken, onExpire, theme]);
 
   if (!siteKey) return null;
 

@@ -65,7 +65,7 @@ function legacyPrompts(body: AiGenerateRequest) {
 
 function assertNoMaroBrandLeak(text: string) {
   expect(text).not.toContain(MARO_UI_BRAND_COLOR);
-  expect(text).not.toMatch(/Brand color:\s*#253FDA/i);
+  expect(text).not.toMatch(/Brand color:\s*#00FF72/i);
 }
 
 describe("resolveWebBrandColor", () => {
@@ -86,7 +86,7 @@ describe("resolveWebBrandColor", () => {
 });
 
 describe("maroWeb client brand isolation", () => {
-  it("A: no color supplied — #253FDA absent from provider prompt", () => {
+  it("A: no color supplied — Maro UI brand absent from provider prompt", () => {
     const prompt = "Noma Coffee. Warm neutral visual direction.";
     const { claude } = compileEngine(prompt);
     expect(claude.ok).toBe(true);

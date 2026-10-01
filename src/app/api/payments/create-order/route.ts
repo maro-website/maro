@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { legacyPaymentsEnabled } from "@/lib/payments/legacy";
 import { requireUser } from "@/lib/payments/auth";
 import { createCreditOrder, type BillingSnapshot } from "@/lib/payments/orders";
 import { validatePromoCode } from "@/lib/payments/promo";
@@ -46,7 +45,6 @@ const ERROR_STATUS: Record<string, number> = {
 };
 
 export async function POST(req: Request) {
-  if (!legacyPaymentsEnabled()) return NextResponse.json({ error: "legacy_payments_disabled" }, { status: 404 });
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 

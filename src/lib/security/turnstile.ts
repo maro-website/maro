@@ -6,17 +6,16 @@ const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 export async function verifyTurnstileToken(
   token: string | null | undefined,
-  remoteIp?: string | null,
-  options: { required?: boolean } = {}
+  remoteIp?: string | null
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) {
-    if (options.required ?? isTurnstileRequired()) {
+    if (isTurnstileRequired()) {
       return { ok: false, reason: "turnstile_not_configured" };
     }
     return { ok: true };
   }
-  if (!token?.trim() || token.length > 2048) {
+  if (!token?.trim()) {
     return { ok: false, reason: "turnstile_required" };
   }
 
@@ -31,10 +30,9 @@ export async function verifyTurnstileToken(
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
-      signal: AbortSignal.timeout(10000),
     });
     const data = (await res.json()) as { success?: boolean };
-    if (res.ok && data.success === true) return { ok: true };
+    if (data.success) return { ok: true };
     return { ok: false, reason: "turnstile_failed" };
   } catch {
     return { ok: false, reason: "turnstile_error" };

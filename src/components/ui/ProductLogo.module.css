@@ -1,0 +1,25 @@
+.logo {
+  display: inline-grid;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.artwork {
+  grid-area: 1 / 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.onDark { visibility: hidden; }
+
+/* Reuse the application's existing dark preview / dark page selectors. */
+:global(html[data-maro-preview-dark]) .logo[data-surface="auto"] .onLight,
+:global(html:has([data-maro-case-studies])) .logo[data-surface="auto"] .onLight,
+.logo[data-surface="dark"] .onLight { visibility: hidden; }
+
+:global(html[data-maro-preview-dark]) .logo[data-surface="auto"] .onDark,
+:global(html:has([data-maro-case-studies])) .logo[data-surface="auto"] .onDark,
+.logo[data-surface="dark"] .onDark { visibility: visible; }

@@ -4,7 +4,6 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { useDialogFocus } from "./useDialogFocus";
 
 export function Modal({
   open,
@@ -14,7 +13,6 @@ export function Modal({
   size = "md",
   closeOnBackdrop = true,
   hideClose = false,
-  "aria-label": ariaLabel = "Dialogu",
 }: {
   open: boolean;
   onClose: () => void;
@@ -23,41 +21,36 @@ export function Modal({
   size?: "sm" | "md" | "lg";
   closeOnBackdrop?: boolean;
   hideClose?: boolean;
-  "aria-label"?: string;
 }) {
   const [mounted, setMounted] = React.useState(false);
-  const panelRef = React.useRef<HTMLDivElement>(null);
-  const titleId = React.useId();
   React.useEffect(() => setMounted(true), []);
-  useDialogFocus(mounted && open, panelRef, onClose);
 
   React.useEffect(() => {
-    if (!mounted || !open) return;
-    const heading = panelRef.current?.querySelector("h1, h2, h3");
-    if (heading) {
-      if (!heading.id) heading.id = titleId;
-      panelRef.current?.setAttribute("aria-labelledby", heading.id);
-    }
-  }, [mounted, open, titleId]);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
 
   if (!mounted || !open) return null;
 
   const sizes = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl" };
 
   return createPortal(
-    <div className="fixed inset-0 z-[var(--maro-z-dialog)] flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
         className="absolute inset-0 bg-overlay animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
       />
       <div
-        ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={ariaLabel}
-        tabIndex={-1}
         className={cn(
-          "maro-dialog relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-maro24 animate-scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-maro20",
+          "maro-dialog relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-maro24 bg-surface animate-scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-maro20",
           sizes[size],
           className
         )}
@@ -88,15 +81,15 @@ export function ModalHeader({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="maro-dialog-header">
+    <div className="px-[30px] pb-[20px] pt-[30px] pr-[74px]">
       {icon && (
         <div className="mb-[20px] grid h-11 w-11 place-items-center rounded-maro12 bg-surface-2 text-ink">
           {icon}
         </div>
       )}
-      <h2 className="maro-text-h3 text-ink">{title}</h2>
+      <h2 className="text-[18px] font-bold tracking-tight text-ink">{title}</h2>
       {description && (
-        <p className="maro-text-body mt-2 text-ink-2">{description}</p>
+        <p className="mt-[10px] text-[13.5px] leading-relaxed text-ink-2">{description}</p>
       )}
     </div>
   );
@@ -104,7 +97,7 @@ export function ModalHeader({
 
 export function ModalFooter({ children }: { children: React.ReactNode }) {
   return (
-    <div className="maro-dialog-footer">
+    <div className="flex items-center justify-end gap-[10px] px-[30px] pb-[30px] pt-[20px]">
       {children}
     </div>
   );
