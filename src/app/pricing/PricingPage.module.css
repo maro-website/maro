@@ -14,9 +14,8 @@
 }
 
 .intro { min-width: 0; }
-.eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 12px; font-weight: 600; color: var(--maro-color-text-secondary); }
-.eyebrow > span { width: 7px; height: 7px; border-radius: var(--maro-radius-pill); background: var(--maro-color-accent); }
 .intro h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: var(--maro-tracking-brand); line-height: 1.08; }
+.titleBrand { color: var(--maro-color-text-brand); }
 .description { max-width: 390px; margin-top: 20px; font-size: 15px; line-height: 1.7; color: var(--maro-color-text-secondary); }
 .catalogNotice { min-width: 0; padding: 30px; border-radius: var(--maro-radius-24); background: var(--maro-color-bg-surface); }
 .noticeHeading { display: flex; align-items: center; gap: 12px; }

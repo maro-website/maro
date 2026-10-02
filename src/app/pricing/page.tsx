@@ -88,8 +88,7 @@ function PricingPageInner() {
       <div className={s.page}>
         <header className={s.header}>
           <div className={s.intro}>
-            <p className={s.eyebrow}><span aria-hidden />Planet maro</p>
-            <h1>Një plan për<br />ritmin tënd.</h1>
+            <h1>Mos <span className={s.titleBrand}>maro</span><br />pa plan</h1>
             <p className={s.description}>Kredite për idetë e tua. Hapësirë për mënyrën si krijon.</p>
           </div>
           <aside className={s.catalogNotice} aria-labelledby="pricing-catalog-title">
