@@ -393,12 +393,9 @@
 .ecosystem { padding-top: 0; }
 .ecosystemIntro {
   position: relative;
-  left: 50%;
-  width: 100vw;
-  height: calc(100svh - var(--maro-shell-header-height));
-  min-height: 380px;
-  margin-block: clamp(80px, 10vw, 152px) clamp(64px, 8vw, 112px);
-  transform: translateX(-50%);
+  width: 100%;
+  height: clamp(140px, 24vw, 320px);
+  margin-block: clamp(64px, 8vw, 112px) 12px;
 }
 .sectionHeading { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; margin-bottom: 23px; }
 .eyebrow { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: .14em; margin-bottom: 10px; }
