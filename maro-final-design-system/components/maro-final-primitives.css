@@ -389,7 +389,7 @@
 }
 
 .maro-nav__sep[data-hidden="true"] {
-  display: none;
+  opacity: 0;
 }
 
 .maro-nav__link {

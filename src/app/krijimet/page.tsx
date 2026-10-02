@@ -183,7 +183,7 @@ function KrijimetInner() {
   const minW = SIZE_PRESETS[sizeIdx];
 
   return (
-    <div className="flex h-full min-w-0 overflow-x-clip max-lg:h-auto">
+    <div className="flex h-full min-w-0 flex-1 overflow-x-clip max-lg:h-auto">
       {/* Left rail — asset library sections */}
       <aside className="hidden w-56 shrink-0 flex-col bg-surface/40 px-3 py-5 md:flex">
         <div className="px-2 pb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">

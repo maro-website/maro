@@ -132,7 +132,9 @@ export function AppShell({
 
                 ? "flex flex-col overflow-x-clip overflow-y-auto lg:overflow-hidden"
 
-                : "overflow-x-clip overflow-y-auto"
+                : "overflow-x-clip overflow-y-auto",
+
+            pathname === "/prompts" && "[scrollbar-gutter:stable]"
 
           )}
 
