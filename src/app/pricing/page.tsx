@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
-import { formatEur } from "@/lib/credits/money";
+import { formatEur, PLAN_PACKAGES } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
 import { ArrowUpRight, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -67,7 +67,20 @@ function PricingPageInner() {
     router.replace(next === "topup" ? "/pricing?tab=topup" : "/pricing", { scroll: false });
   };
 
-  const plans = catalog?.plans ?? [];
+  const catalogPlans = catalog?.plans ?? [];
+  const businessPlan = PLAN_PACKAGES.find((plan) => plan.id === "biz");
+  // Contact-only maroBiz is shown for inquiries, without enabling a purchase.
+  const plans = catalog && businessPlan && !catalogPlans.some((plan) => plan.id === "business" || plan.id === "biz")
+    ? [...catalogPlans, {
+      id: "business",
+      name: businessPlan.name,
+      tagline: businessPlan.tagline,
+      credits: businessPlan.credits,
+      priceEur: businessPlan.priceEur,
+      contactOnly: businessPlan.contactOnly,
+      features: businessPlan.features.map((feature) => feature.text),
+    }]
+    : catalogPlans;
   const topups = catalog?.topups ?? [];
 
   return (
@@ -141,7 +154,9 @@ function PricingPageInner() {
                     ))}
                   </ul>
 
-                  <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>
+                  {plan.contactOnly
+                    ? <Link href="/contact" className={`maro-button ${s.contactCta}`} data-variant="inverse">Na kontakto<ArrowUpRight size={16} aria-hidden /></Link>
+                    : <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
                 </section>
               ))}
             </div>

@@ -47,6 +47,7 @@
 .closed { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 28px; padding: 12px; border-radius: var(--maro-radius-12); background: var(--maro-color-bg-surface-02); font-size: 11px; line-height: 1.5; color: var(--maro-color-text-secondary); }
 .closed svg { flex: none; }
 .plan[data-recommended=true] .closed { background: var(--maro-color-bg-surface); }
+.contactCta { width: 100%; justify-content: space-between; margin-top: 28px; font-size: 12px; }
 
 .comparison { margin-top: 32px; padding: 30px; border-radius: var(--maro-radius-24); background: var(--maro-color-bg-surface); }
 .sectionHeading h2 { font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.03em; }
