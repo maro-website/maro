@@ -13,6 +13,14 @@
   color: var(--ink);
   font-family: var(--maro-font-family);
 }
+/* Keep hero content below the navigation while its background extends behind it. */
+.hub[data-embedded="true"] {
+  padding-top: var(--maro-shell-header-height);
+}
+.hub[data-embedded="true"] .heroPatternWaves {
+  top: calc(-1 * var(--maro-shell-header-height));
+  height: calc(100% + var(--hero-wave-tail) + var(--maro-shell-header-height));
+}
 .hubPageCursorGridCanvas {
   width: 100%;
   height: 100%;

@@ -151,7 +151,7 @@ export function HubVision({ embedded = false }: { embedded?: boolean }) {
   const displayName = user?.name?.trim();
   const Surface = embedded ? "div" : "main";
   return (
-    <Surface className={s.hub}>
+    <Surface className={s.hub} data-embedded={embedded || undefined}>
       <div className={s.hubHeroStage}>
         <HubHeroBanner displayName={displayName} />
         <Launchpad />

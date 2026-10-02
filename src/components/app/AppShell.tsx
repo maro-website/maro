@@ -116,7 +116,7 @@ export function AppShell({
 
 
 
-      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", isHubHome && "-mt-[var(--maro-shell-header-height)]")}>
 
         <div
 
