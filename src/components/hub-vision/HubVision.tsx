@@ -13,6 +13,7 @@ import { Launchpad } from "./Launchpad";
 import { Ecosystem } from "./Ecosystem";
 import { PresetDiscovery } from "./PresetDiscovery";
 import { copy } from "./content";
+import { HubPatternWaves } from "./HubPatternWaves";
 import s from "./HubVision.module.css";
 
 function ContinueCreating() {
@@ -115,6 +116,7 @@ function HubHeroBanner({ displayName }: { displayName?: string }) {
   const { user } = useMaro();
   return (
     <header className={s.heroBanner}>
+      <HubPatternWaves className={s.heroPatternWaves} />
       <div className={s.heroBannerInner}>
         <div className={s.heroBannerStack}>
           <h1 className={s.heroTitle}>
@@ -125,7 +127,12 @@ function HubHeroBanner({ displayName }: { displayName?: string }) {
             <div className={s.heroWorkspace}>
               <WorkspaceSelect />
             </div>
-          ) : null}
+          ) : (
+            <div className={s.heroGuestActions}>
+              <Link href="/sign-in" className={`maro-button ${s.heroSignIn}`}>Hyr</Link>
+              <Link href="/sign-up" className="maro-button" data-variant="brand">Regjistrohu</Link>
+            </div>
+          )}
         </div>
       </div>
     </header>

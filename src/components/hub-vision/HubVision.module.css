@@ -5,6 +5,8 @@
   --paper: var(--maro-color-bg-surface);
   --line: var(--maro-color-border-subtle);
   --hub-ambient-core: color-mix(in srgb, var(--maro-color-bg-canvas) 95%, white);
+  --hero-overhang: 48px;
+  --hero-wave-tail: 230px;
   position: relative;
   width: min(1440px, 100%);
   margin: 0 auto;
@@ -26,6 +28,8 @@
   isolation: isolate;
 }
 .hubHeroStage .launchpad {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -37,20 +41,43 @@
   --hero-ink: var(--ink);
   --hero-muted: var(--muted);
   --hero-line: var(--line);
+  position: relative;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   margin: 0;
-  padding: clamp(48px, 6vh, 64px) 0;
+  padding: clamp(120px, 14vh, 176px) 0;
   background: transparent;
+}
+.heroPatternWaves {
+  position: absolute;
+  inset: 0 calc(-1 * var(--hero-overhang)) auto;
+  z-index: 0;
+  width: calc(100% + 2 * var(--hero-overhang));
+  height: calc(100% + var(--hero-wave-tail));
+  display: block;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.heroGuestActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.heroGuestActions > a { min-width: 132px; }
+.heroGuestActions .heroSignIn {
+  background: var(--maro-white);
+  color: var(--maro-black);
 }
 .heroBannerInner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 160px;
+  min-height: 180px;
   margin: 0;
   padding-inline: 0;
   display: flex;
@@ -62,7 +89,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 36px;
   width: min(100%, 36rem);
   text-align: center;
 }
@@ -159,7 +186,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
   width: 100%;
 }
@@ -480,9 +507,9 @@
 .footer > span { font-size: 8px; color: var(--muted); letter-spacing: .12em; }
 @keyframes breathe { from { opacity: .45; } to { opacity: 1; } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (min-width: 1500px) { .imageCanvas, .identityCanvas, .imazhHeroCanvas, .logoVideoCanvas { height: 405px; } .identitySamples { height: 132px; margin-top: 20px; } .paletteBar { margin-top: 15px; } .wordmark { height: 88px; } }
+@media (min-width: 1500px) { .hub { --hero-wave-tail: 248px; } .imageCanvas, .identityCanvas, .imazhHeroCanvas, .logoVideoCanvas { height: 405px; } .identitySamples { height: 132px; margin-top: 20px; } .paletteBar { margin-top: 15px; } .wordmark { height: 88px; } }
 @media (max-width: 1100px) {
-  .hub { padding: 0 28px 48px; }
+  .hub { --hero-overhang: 28px; --hero-wave-tail: 214px; padding: 0 28px 48px; }
   .launchpad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .launchFooter { padding: 18px; flex-wrap: wrap; min-height: 88px; gap: 12px; }
   .launchFooter h2 { font-size: 21px; }
@@ -515,7 +542,7 @@
   .audienceNote { right: 6px; top: 72px; width: 73px; height: 67px; padding: 10px; }
 }
 @media (max-width: 800px) {
-  .heroBanner { padding: 48px 0; }
+  .heroBanner { padding: 104px 0; }
   .heroBannerInner {
     padding-inline: 0;
     min-height: 0;
@@ -555,14 +582,15 @@
   .presetToolbar p { font-size: 9px; }
 }
 @media (max-width: 600px) {
-  .hub { padding: 0 16px 32px; }
+  .hub { --hero-overhang: 16px; --hero-wave-tail: 162px; padding: 0 16px 32px; }
   .breadcrumb { gap: 10px; }
   .breadcrumb > :last-child { font-size: 7px; }
   .guestWorkspace { font-size: 10px; gap: 5px; }
   .workspaceLabel { display: none; }
   .workspace { gap: 3px; }
   .workspaceIcon { width: 26px; height: 26px; }
-  .heroBanner { padding: 40px 0; }
+  .heroBanner { padding: 96px 0; }
+  .heroBannerStack { gap: 32px; }
   .heroBannerInner { padding-inline: 0; }
   .heroBanner .workspaceLabel { display: block; }
   .heroTitle { font-size: 28px; max-width: 100%; }
