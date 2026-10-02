@@ -5,7 +5,6 @@
   --paper: var(--maro-color-bg-surface);
   --line: var(--maro-color-border-subtle);
   --hub-ambient-core: color-mix(in srgb, var(--maro-color-bg-canvas) 95%, white);
-  --hero-overhang: 48px;
   --hero-wave-tail: 230px;
   position: relative;
   width: min(1440px, 100%);
@@ -51,13 +50,14 @@
 }
 .heroPatternWaves {
   position: absolute;
-  inset: 0 calc(-1 * var(--hero-overhang)) auto;
+  inset: 0 auto auto 50%;
   z-index: 0;
-  width: calc(100% + 2 * var(--hero-overhang));
+  width: 100vw;
+  max-width: none;
   height: calc(100% + var(--hero-wave-tail));
   display: block;
   pointer-events: none;
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  transform: translateX(-50%);
 }
 .heroGuestActions {
   display: flex;
@@ -504,7 +504,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (min-width: 1500px) { .hub { --hero-wave-tail: 248px; } .imageCanvas, .identityCanvas, .imazhHeroCanvas, .logoVideoCanvas { height: 405px; } .identitySamples { height: 132px; margin-top: 20px; } .paletteBar { margin-top: 15px; } .wordmark { height: 88px; } }
 @media (max-width: 1100px) {
-  .hub { --hero-overhang: 28px; --hero-wave-tail: 214px; padding: 0 28px 48px; }
+  .hub { --hero-wave-tail: 214px; padding: 0 28px 48px; }
   .launchpad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .launchFooter { padding: 18px; flex-wrap: wrap; min-height: 88px; gap: 12px; }
   .launchFooter h2 { font-size: 21px; }
@@ -577,7 +577,7 @@
   .presetToolbar p { font-size: 9px; }
 }
 @media (max-width: 600px) {
-  .hub { --hero-overhang: 16px; --hero-wave-tail: 162px; padding: 0 16px 32px; }
+  .hub { --hero-wave-tail: 162px; padding: 0 16px 32px; }
   .breadcrumb { gap: 10px; }
   .breadcrumb > :last-child { font-size: 7px; }
   .guestWorkspace { font-size: 10px; gap: 5px; }
