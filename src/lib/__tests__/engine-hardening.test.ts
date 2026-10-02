@@ -16,6 +16,7 @@ import { loadBrainContext } from "@/lib/engine/brainLoader";
 import { runShadowCompilation, scheduleShadowCompilation } from "@/lib/engine/shadowCompile";
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
 import type { WorkspaceBrainProfile } from "@/lib/workspaces/brainTypes";
+vi.mock("@/lib/workspaces/accountPolicyServer", () => ({ getAccountPolicy: async () => ({ brainAccess: true }) }));
 
 vi.mock("@/lib/supabase/server", () => ({
   getSupabaseAdmin: () => ({

@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/server";
 import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/brainTypes";
 import type { BrainLoadResult } from "./types";
+import { getAccountPolicy } from "@/lib/workspaces/accountPolicyServer";
 
 export interface LoadBrainContextInput {
   /** Workspace owner user id — required for isolation. */
@@ -33,6 +34,9 @@ export async function loadBrainContext(input: LoadBrainContextInput): Promise<Br
     };
   }
 
+  if (!input.adminInspection && !(await getAccountPolicy(ownerUserId, workspaceId)).brainAccess) {
+    return { profile: null, sources: [], workspaceId, ownerUserId, loaded: false, isolationOk: true, error: "brain_plan_required" };
+  }
   const profile = await getWorkspaceBrainProfile(ownerUserId, workspaceId);
   if (!profile) {
     return {

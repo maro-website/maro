@@ -9,6 +9,7 @@ import {
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
 import { MAX_USER_IMAGE_BYTES, validateRasterUpload } from "@/lib/security/uploadValidation";
+import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,14 @@ function bearer(req: Request): string | null {
 }
 
 export async function POST(req: Request) {
+  try { return await uploadAsset(req); }
+  catch (error) {
+    if (error instanceof AccountPolicyError) return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json({ error: "upload-failed" }, { status: 500 });
+  }
+}
+
+async function uploadAsset(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
   const user = await getUserFromToken(bearer(req));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -43,6 +52,7 @@ export async function POST(req: Request) {
     .eq("owner_id", user.id)
     .maybeSingle();
   if (!workspace) return NextResponse.json({ error: "workspace_not_found" }, { status: 404 });
+  await requireBrainAccess(user.id, workspace.id);
 
   const prefix = `${user.id}/workspace-assets/${workspace.id}`;
   const validated = validateRasterUpload({
@@ -52,6 +62,7 @@ export async function POST(req: Request) {
     userId: user.id,
   });
   if (!validated.ok) return NextResponse.json({ error: validated.reason }, { status: 400 });
+  await requireStorageSpace(user.id, validated.bytes.length);
   const filename = validated.storageKey.split("/").at(-1);
   if (!filename) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
   const storageRef = await uploadValidatedImage(validated.bytes, `${prefix}/${filename}`, validated.mime);

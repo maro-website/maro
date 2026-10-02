@@ -7,7 +7,7 @@ import type { ImageProviderObservation } from "@/lib/ai/imageObservation";
 
 export type V1Failure = "provider_failed" | "provider_output_invalid" | "storage_failed" | "history_failed" | "execution_trace_unavailable" | "execution_interrupted";
 export class V1PersistenceError extends Error {
-  constructor(public readonly code: V1Failure) { super(code); }
+  constructor(public readonly code: V1Failure, public readonly quotaExceeded = false) { super(code); }
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -33,12 +33,16 @@ export async function storeV1ImageOutput(userId: string, jobId: string, outputs:
   try {
     const bucket = db.storage.from("generations");
     const uploaded = await bucket.upload(path, bytes, { contentType: "image/png", upsert: false });
+    if (uploaded.error?.message.includes("storage_quota_exceeded")) throw new V1PersistenceError("storage_failed", true);
     // A timeout/conflict may mean a previous upload committed. Verify the deterministic object.
     if (!uploaded.error && uploaded.data?.path !== path) throw new Error("invalid_storage_path");
     const stored = await bucket.download(path);
     if (stored.error || !stored.data || hash(new Uint8Array(await stored.data.arrayBuffer())) !== digest) throw new Error("storage_verification_failed");
     return reference;
-  } catch { throw new V1PersistenceError("storage_failed"); }
+  } catch (error) {
+    if (error instanceof V1PersistenceError) throw error;
+    throw new V1PersistenceError("storage_failed");
+  }
 }
 
 /** SQL inserts history and links the job in one transaction, or throws. */

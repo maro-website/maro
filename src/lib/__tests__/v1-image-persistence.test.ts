@@ -12,6 +12,11 @@ beforeEach(async()=>{
   mocks.download.mockResolvedValue({data:new Blob([new Uint8Array(image)]),error:null});
 });
 describe("verified durable storage",()=>{
+  it("classifies a quota rejection for the existing safe refund path",async()=>{
+    mocks.upload.mockResolvedValue({data:null,error:{message:"storage_quota_exceeded"}});
+    await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed",quotaExceeded:true});
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
   it("returns only the verified private owner/job reference",async()=>{
     expect(await storeV1ImageOutput(user,job,[image.toString("base64")])).toBe(reference);
     expect(mocks.upload).toHaveBeenCalledWith(path,expect.any(Buffer),{contentType:"image/png",upsert:false});

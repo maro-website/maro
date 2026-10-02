@@ -1,4 +1,5 @@
 import "server-only";
+import { AccountPolicyError } from "@/lib/workspaces/accountPolicyServer";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { FortConfig } from "@/lib/fort/types";
 import type { AppSettings, PricingConfig } from "./types";
@@ -157,12 +158,15 @@ async function uploadStorageObject(
     const { error } = await admin.storage
       .from(bucket)
       .upload(path, bytes, { contentType, upsert: false });
+    if (error?.message.includes("storage_quota_exceeded")) throw new AccountPolicyError("storage_quota_exceeded", 413);
+    if (error?.message.includes("brain_plan_required")) throw new AccountPolicyError("brain_plan_required", 403);
     if (error) return null;
     if (isPublicAssetPath(path)) {
       return (await getPublicStorageUrl(path, PUBLIC_STORAGE_BUCKET)) ?? null;
     }
     return toStorageRef(path);
-  } catch {
+  } catch (error) {
+    if (error instanceof AccountPolicyError) throw error;
     return null;
   }
 }

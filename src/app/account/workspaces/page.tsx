@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils/cn";
 import { Plus, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
+import { StorageUsage } from "@/components/workspaces/StorageUsage";
 
 function WorkspacesListInner() {
   const router = useRouter();
@@ -37,6 +38,7 @@ function WorkspacesListInner() {
     <AppShell showFooter>
       <div className="maro-page-shell max-w-2xl">
         <h1 className="maro-page-title">Workspace-et</h1>
+        <StorageUsage />
         <p className="maro-page-description text-[15px]">
           Menaxho workspace-et e maro. Mund të kesh deri në {MAX_WORKSPACES} workspace.
         </p>

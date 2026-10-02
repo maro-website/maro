@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cleanupStaleJobs } from "@/lib/generation/jobs";
 import { supabaseServerConfigured } from "@/lib/supabase/server";
 import { authorizeCronRequest } from "@/lib/security/cronAuth";
+import { cleanupExpiredBrains } from "@/lib/workspaces/accountPolicyServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,8 +22,9 @@ export async function POST(req: Request) {
   }
 
   await cleanupStaleJobs();
+  const brainsReset = await cleanupExpiredBrains();
 
-  return NextResponse.json({ ok: true, staleJobsReconciled: true });
+  return NextResponse.json({ ok: true, staleJobsReconciled: true, brainsReset });
 }
 
 export async function GET(req: Request) {

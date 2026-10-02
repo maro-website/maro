@@ -1,4 +1,5 @@
 import { getAccessToken, getSupabaseBrowser } from "@/lib/supabase/client";
+import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 
 export const MAX_PROJECT_ASSET_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_REFERENCE_FILE_BYTES = 25 * 1024 * 1024;
@@ -41,7 +42,7 @@ async function directUploadPrivateImage(
       contentType: file.type,
       cacheControl: "31536000",
     });
-  if (uploadError) throw new Error("upload-failed");
+  if (uploadError) throw new Error(uploadError.message.includes("storage_quota_exceeded") ? "storage_quota_exceeded" : "upload-failed");
 
   const finalize = await fetch("/api/projects/assets", {
     method: "POST",
@@ -52,6 +53,7 @@ async function directUploadPrivateImage(
   if (!finalize.ok || !completed.url || !completed.storageRef) {
     throw new Error(completed.error ?? "upload-failed");
   }
+  notifyStorageChanged();
   return completed;
 }
 
@@ -89,6 +91,7 @@ async function uploadProjectAssetDataUrlInternal(dataUrl: string): Promise<Uploa
   if (!response.ok || !payload.url || !payload.storageRef) {
     throw new Error(payload.error ?? "upload-failed");
   }
+  notifyStorageChanged();
   return { url: payload.url, storageRef: payload.storageRef };
 }
 
@@ -168,7 +171,7 @@ export function projectAssetErrorMessage(error: unknown): string {
   ) {
     return "Zgjidh një imazh PNG, JPG ose WebP.";
   }
-  if (code === "storage_quota_exceeded") return "Ke arritur kuotën falas prej 500 MB për imazhet e website-eve.";
+  if (code === "storage_quota_exceeded") return "Ke arritur kufirin total të storage të planit tënd. Liro hapësirë ose ndrysho planin.";
   if (code === "unauthorized") return "Kyçu përsëri për ta ngarkuar imazhin.";
   return "Imazhi nuk u ngarkua. Provo përsëri.";
 }

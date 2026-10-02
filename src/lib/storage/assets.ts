@@ -179,7 +179,9 @@ export async function copyToPublicExploreAsset(input: {
     const dest = publicExploreAssetPath(input.slug, `asset.${ext}`);
     const { data: source, error: downloadError } = await admin.storage.from(STORAGE_BUCKET).download(input.sourcePath);
     if (downloadError || !source) return null;
-    const { error } = await admin.storage.from(PUBLIC_STORAGE_BUCKET).upload(dest, source, { upsert: true });
+    const { error } = await admin.storage.from(PUBLIC_STORAGE_BUCKET).upload(dest, source, {
+      upsert: true, metadata: { maro_owner_id: input.userId },
+    });
     if (error) return null;
     return (await getPublicStorageUrl(dest, PUBLIC_STORAGE_BUCKET)) ?? null;
   } catch {

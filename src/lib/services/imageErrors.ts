@@ -1,5 +1,8 @@
 /** Customer-safe descriptions for the durable V1 lifecycle. */
 export const V1_IMAGE_ERRORS: Record<string, string> = {
+  brain_plan_required: "maroBrain kërkon një plan maroStandard ose maroPro aktiv.",
+  storage_quota_exceeded: "Ke arritur kufirin total të storage të planit tënd. Liro hapësirë ose ndrysho planin.",
+  account_policy_unavailable: "Qasja dhe storage nuk u verifikuan. Provo përsëri më vonë.",
   prompt_too_long: "Përshkrimi është shumë i gjatë. Shkurtoje pak dhe provo përsëri.",
   invalid_string: "Kërkesa nuk mund të përpunohet. Provo përsëri.",
   invalid_request: "Kërkesa nuk mund të përpunohet. Provo përsëri.",

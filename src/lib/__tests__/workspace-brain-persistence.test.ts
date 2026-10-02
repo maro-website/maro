@@ -13,6 +13,7 @@ vi.mock("@/lib/supabase/client", () => ({
   getAccessToken: async () => "test-token",
 }));
 vi.mock("@/lib/services/projectAssetService", () => ({ resolvePrivateAssetRefs: async () => ({}) }));
+vi.mock("@/lib/workspaces/accountPolicyClient", () => ({ fetchAccountPolicy: async () => ({ brainAccess: true, brainResetAt: null }) }));
 
 beforeEach(() => {
   const values = new Map<string, string>();
@@ -29,6 +30,21 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("workspace and maroBrain persistence", () => {
+  it("does not resurrect either a scoped draft or legacy cache after a server reset", () => {
+    const old = emptyBrainProfile(); old.brand.name = "Expired draft";
+    writeBrainDraft("alice", "ws-a", old);
+    localStorage.setItem("maro:ws-brain:ws-a", JSON.stringify(old));
+    const resetAt = new Date(Date.now() + 1000).toISOString();
+    expect(readBrainDraft("alice", "ws-a", resetAt)).toBeNull();
+    expect(recoverLegacyBrainDraft("alice", "ws-a", emptyBrainProfile(), resetAt)).toBeNull();
+    expect(readBrainDraft("alice", "ws-a")).toBeNull();
+    const pastReset = new Date(Date.now() - 1000).toISOString();
+    // Typing in a stale open tab after reset must not give old content a new epoch.
+    writeBrainDraft("alice", "ws-a", old, null);
+    expect(readBrainDraft("alice", "ws-a", pastReset)).toBeNull();
+    writeBrainDraft("alice", "ws-a", old, pastReset);
+    expect(readBrainDraft("alice", "ws-a", pastReset)).toEqual(old);
+  });
   it("releases the auth callback before starting any authenticated request", async () => {
     vi.useFakeTimers();
     const auth = createClient("https://auth-test.invalid", "test-anon", {

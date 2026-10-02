@@ -21,6 +21,9 @@ export async function workspaceRequest<T>(
 
 export function workspaceErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
+    if (error.message.includes("brain_plan_required")) return "maroBrain kërkon një plan maroStandard ose maroPro aktiv.";
+    if (error.message.includes("brain_refresh_required")) return "Qasja e maroBrain ka ndryshuar. Ringarko faqen para ruajtjes.";
+    if (error.message.includes("storage_quota_exceeded")) return "Ke arritur kufirin total të storage të planit tënd. Liro hapësirë ose ndrysho planin.";
     if (error.message === "WORKSPACE_LIMIT") return "Ke arritur kufirin e workspace-eve të planit tënd.";
     if (error.message === "workspace_timeout") return "Kërkesa zgjati shumë. Të dhënat e shkruara ruhen; provo përsëri.";
     if (error.message === "unauthorized") return "Sesioni ka skaduar. Hyr përsëri dhe provo ruajtjen.";

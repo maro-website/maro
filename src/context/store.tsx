@@ -1,4 +1,5 @@
 "use client";
+import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 import { authErrorMessage } from "@/lib/auth/messages";
 
 import React, {
@@ -533,6 +534,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
 
   const addCreation = useCallback(
     (c: ImageCreation) => {
+      notifyStorageChanged();
       setState((s) => {
         const creations = [c, ...s.creations].slice(0, 100);
         persistCreations(creations);

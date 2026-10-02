@@ -4,6 +4,7 @@ import {
   countUserWorkspaces,
   deriveMembershipStatus,
   getLatestMembership,
+  isActivePlanStatus,
   resolveLimitsFromPlan,
 } from "@/lib/commerce/memberships";
 import { getCommercePlan } from "@/lib/commerce/plans";
@@ -40,7 +41,7 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
       current_workspace_count: workspaceCount,
       can_create_workspace: workspaceCount < EXPIRED_DEFAULTS.workspace_limit,
       concurrency_limit: EXPIRED_DEFAULTS.concurrency_limit,
-      maro_brain_access: true,
+      maro_brain_access: false,
       maro_presets_access: true,
       business_overrides: null,
       membership_id: null,
@@ -70,7 +71,7 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
     current_workspace_count: workspaceCount,
     can_create_workspace: workspaceCount < limits.workspace_limit,
     concurrency_limit: limits.concurrency_limit,
-    maro_brain_access: true,
+    maro_brain_access: isActivePlanStatus(status),
     maro_presets_access: true,
     business_overrides:
       membership.plan_id === "business" ? membership.business_overrides : null,

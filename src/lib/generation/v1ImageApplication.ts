@@ -16,6 +16,7 @@ import { createImageClientAbortScope } from "@/lib/generation/imageStreamLifecyc
 import { stampJobExecutionTelemetry } from "@/lib/engine/executionTelemetry";
 import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
+import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
 
 export async function executeV1ImageApplication(req: Request) {
   const requestId = randomUUID();
@@ -40,7 +41,9 @@ export async function executeV1ImageApplication(req: Request) {
     const header = req.headers.get("authorization");
     const owner = await getUserFromToken(header?.startsWith("Bearer ") ? header.slice(7) : header);
     if (!owner) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    await requireStorageSpace(owner.id);
     trusted = await resolveV1ImageRequest(input, owner.id);
+    if (trusted.snapshot.useBrain) await requireBrainAccess(owner.id, trusted.snapshot.workspaceId ?? undefined);
     validation.model = trusted.snapshot.model.providerModelId;
     resolved = await compileTrustedImageRequest(trusted);
     validation.compiledPromptLength = resolved.compilation.prompt.length;
@@ -49,6 +52,7 @@ export async function executeV1ImageApplication(req: Request) {
     // No prompt transformations occur between this check and the adapter call.
     validateCompiledImagePrompt(trusted.snapshot.prompt, resolved.compilation.prompt, trusted.snapshot.model.providerModelId);
   } catch (error) {
+    if (error instanceof AccountPolicyError) return NextResponse.json({ error: error.message, requestId }, { status: error.status });
     logImageValidation(validation, error);
     return v1ImageValidationResponse(error, requestId);
   }
@@ -124,7 +128,7 @@ export async function executeV1ImageApplication(req: Request) {
         const pending = outcome !== "released";
         await optionalImageWork("failure telemetry", () => stampJobExecutionTelemetry(prep.job.id, { success: false, error_code: code,
           failure_stage: code === "provider_failed" || code === "provider_output_invalid" ? "provider" : "persistence" }));
-        send({ ok: false, error: pending ? "reconciliation_pending" : code, refunded: outcome === "released", jobId: prep.job.id,
+        send({ ok: false, error: pending ? "reconciliation_pending" : (error instanceof V1PersistenceError && error.quotaExceeded ? "storage_quota_exceeded" : code), refunded: outcome === "released", jobId: prep.job.id,
           generationId, recoverable: pending, ...(generationId && storageRef ? { storageRefs: [storageRef] } : {}) });
       } finally {
         clearInterval(heartbeat);

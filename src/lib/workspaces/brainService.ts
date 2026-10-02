@@ -6,6 +6,8 @@ import { getSupabaseBrowser, supabaseConfigured, getAccessToken } from "@/lib/su
 import { uid } from "@/lib/utils/format";
 import { resolvePrivateAssetRefs } from "@/lib/services/projectAssetService";
 import { workspaceRequest } from "./request";
+import { fetchAccountPolicy } from "./accountPolicyClient";
+import { notifyStorageChanged } from "./accountPolicy";
 
 const LOCAL_BRAIN_KEY = "maro:ws-brain";
 const LOCAL_SOURCES_KEY = "maro:ws-sources";
@@ -46,6 +48,8 @@ export async function fetchBrainProfile(
   // Navigation to a tool must observe the autosave started when the editor unmounted.
   await pendingSaves.get(`${userId}:${workspaceId}`)?.catch(() => {});
   if (supabaseConfigured) {
+    const policy = await fetchAccountPolicy(userId, workspaceId);
+    if (!policy.brainAccess) throw new Error("brain_plan_required");
     const supabase = getSupabaseBrowser();
     const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
@@ -81,11 +85,12 @@ export async function fetchBrainProfile(
 export async function saveBrainProfile(
   userId: string,
   workspaceId: string,
-  profile: WorkspaceBrainProfile
+  profile: WorkspaceBrainProfile,
+  expectedResetAt?: string | null
 ): Promise<void> {
   const key = `${userId}:${workspaceId}`;
   const previous = pendingSaves.get(key) ?? Promise.resolve();
-  const task = previous.catch(() => {}).then(() => persistBrainProfile(userId, workspaceId, profile));
+  const task = previous.catch(() => {}).then(() => persistBrainProfile(userId, workspaceId, profile, expectedResetAt));
   pendingSaves.set(key, task);
   const cleanup = () => { if (pendingSaves.get(key) === task) pendingSaves.delete(key); };
   void task.then(cleanup, cleanup);
@@ -95,7 +100,8 @@ export async function saveBrainProfile(
 async function persistBrainProfile(
   userId: string,
   workspaceId: string,
-  profile: WorkspaceBrainProfile
+  profile: WorkspaceBrainProfile,
+  expectedResetAt?: string | null
 ): Promise<void> {
   const normalized = normalizeBrainProfile(profile);
   const persisted = normalizeBrainProfile({
@@ -107,7 +113,8 @@ async function persistBrainProfile(
   });
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data, error } = await workspaceRequest((signal) => supabase
+    const { data, error } = await workspaceRequest((signal) => {
+      let query = supabase
       .from("workspaces")
       .update({
         brain_profile: persisted,
@@ -115,8 +122,12 @@ async function persistBrainProfile(
         brand_logo_url: persisted.brand.logoUrl,
       })
       .eq("id", workspaceId)
-      .eq("owner_id", userId).select("id").abortSignal(signal).single());
-    if (error) throw new Error(error.message);
+      .eq("owner_id", userId);
+      if (expectedResetAt !== undefined) query = expectedResetAt === null
+        ? query.is("brain_reset_at", null) : query.eq("brain_reset_at", expectedResetAt);
+      return query.select("id").abortSignal(signal).single();
+    });
+    if (error) throw new Error(expectedResetAt !== undefined && error.code === "PGRST116" ? "brain_refresh_required" : error.message);
     if (!data) throw new Error("workspace_not_found");
     return;
   }
@@ -242,7 +253,6 @@ export async function uploadSourceImage(
   if (!dataUrl.startsWith("data:image/")) return null;
   const token = await getAccessToken();
   if (!token) return null;
-  try {
     const res = await fetch("/api/workspaces/assets", {
       method: "POST",
       headers: {
@@ -251,10 +261,8 @@ export async function uploadSourceImage(
       },
       body: JSON.stringify({ dataUrl, workspaceId }),
     });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { url?: string; storageRef?: string };
+    const j = (await res.json()) as { url?: string; storageRef?: string; error?: string };
+    if (!res.ok) throw new Error(j.error ?? "upload-failed");
+    notifyStorageChanged();
     return j.url && j.storageRef ? { url: j.url, storageRef: j.storageRef } : null;
-  } catch {
-    return null;
-  }
 }

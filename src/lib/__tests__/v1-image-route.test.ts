@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { modelRow, imazhRequest, logoRequest } from "./helpers/v1ImageFixtures";
 
 const mocks = vi.hoisted(() => ({
+  storagePolicy: vi.fn(), brainPolicy: vi.fn(),
   rows: [] as unknown[], workspace: vi.fn(), reference: vi.fn(), preset: vi.fn(), auth: vi.fn(),
   prepare: vi.fn(), generate: vi.fn(), edit: vi.fn(), settle: vi.fn(), brain: vi.fn(),
   models: vi.fn(), log: vi.fn(), execution: vi.fn(), compileContext: vi.fn(), shadow: vi.fn(),
   canonical: vi.fn(), trace: vi.fn(), store: vi.fn(), fail: vi.fn(), costs: vi.fn(), telemetry: vi.fn(),
+}));
+vi.mock("@/lib/workspaces/accountPolicyServer", async (original) => ({
+  ...await original<typeof import("@/lib/workspaces/accountPolicyServer")>(),
+  requireStorageSpace: mocks.storagePolicy, requireBrainAccess: mocks.brainPolicy,
 }));
 vi.mock("@/lib/generation/v1ImagePersistence", async (original) => ({
   ...await original<typeof import("@/lib/generation/v1ImagePersistence")>(),
@@ -59,6 +64,8 @@ async function request(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.storagePolicy.mockResolvedValue({ usedBytes: 0, limitBytes: 1000000000 });
+  mocks.brainPolicy.mockResolvedValue({ brainAccess: true });
   mocks.rows = [modelRow(), modelRow("sunburst"), modelRow("flare", "maro_logo")];
   mocks.models.mockImplementation(async (module: string) => mocks.rows.filter((row) => (row as { tool_id: string }).tool_id === module));
   mocks.workspace.mockResolvedValue("owned-workspace");
@@ -92,6 +99,18 @@ beforeEach(() => {
 });
 
 describe("active route preflight before job/reservation/provider", () => {
+  it.each(["storage", "brain"])("enforces the %s policy before reserving credits or calling a provider", async (kind) => {
+    const { AccountPolicyError } = await import("@/lib/workspaces/accountPolicyServer");
+    const status = kind === "storage" ? 413 : 403;
+    const code = kind === "storage" ? "storage_quota_exceeded" : "brain_plan_required";
+    (kind === "storage" ? mocks.storagePolicy : mocks.brainPolicy).mockRejectedValueOnce(new AccountPolicyError(code, status));
+    const response = await request({ ...imazhRequest, useWorkspaceBrand: kind === "brain" });
+    expect(response.status).toBe(status);
+    expect(await response.json()).toMatchObject({ error: code });
+    expect(mocks.prepare).not.toHaveBeenCalled();
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.edit).not.toHaveBeenCalled();
+  });
   it.each([null, {}, "a".repeat(64001)])("request validation does no financial or provider work (%#)", async (prompt) => {
     const response = await request({ ...imazhRequest, prompt });
     expect(response.status).toBe(400);

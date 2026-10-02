@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1153,6 +1154,7 @@ export function ToolComposer({
             </div>
           )}
 
+          {canAttachImages && <StorageUsage />}
           <div className="maro-composer">
             {/* Text row */}
             <div className="relative">

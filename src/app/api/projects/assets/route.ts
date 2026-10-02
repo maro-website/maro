@@ -3,13 +3,13 @@ import {
   getSupabaseAdmin,
   getUserFromToken,
   resolveAssetForClient,
-  storagePrefixUsageBytes,
   supabaseServerConfigured,
   uploadValidatedImage,
 } from "@/lib/supabase/server";
 import { parseStorageRef, STORAGE_BUCKET, toStorageRef } from "@/lib/storage/assets";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
+import { AccountPolicyError, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
 import {
   buildStorageKey,
   MAX_IMAGE_REFERENCE_BYTES,
@@ -21,8 +21,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const FREE_PROJECT_ASSET_QUOTA_BYTES = 500 * 1024 * 1024;
-
 function bearer(req: Request): string | null {
   const header = req.headers.get("authorization") || req.headers.get("Authorization");
   if (!header) return null;
@@ -30,6 +28,14 @@ function bearer(req: Request): string | null {
 }
 
 export async function POST(req: Request) {
+  try { return await uploadAsset(req); }
+  catch (error) {
+    if (error instanceof AccountPolicyError) return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json({ error: "storage-usage-unavailable" }, { status: 503 });
+  }
+}
+
+async function uploadAsset(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
@@ -78,13 +84,7 @@ export async function POST(req: Request) {
     const storageKey = buildStorageKey(storagePrefix, "upload", extension)
       .replace(`${storagePrefix}/upload/`, `${storagePrefix}/`);
     try {
-      const usage = await storagePrefixUsageBytes(storagePrefix);
-      if (usage + size > FREE_PROJECT_ASSET_QUOTA_BYTES) {
-        return NextResponse.json(
-          { error: "storage_quota_exceeded", quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES },
-          { status: 413 }
-        );
-      }
+      await requireStorageSpace(user.id, size);
       const { data, error } = await getSupabaseAdmin()
         .storage.from(STORAGE_BUCKET)
         .createSignedUploadUrl(storageKey);
@@ -94,7 +94,8 @@ export async function POST(req: Request) {
         uploadToken: data.token,
         storageRef: toStorageRef(storageKey),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof AccountPolicyError) throw error;
       return NextResponse.json({ error: "storage-usage-unavailable" }, { status: 503 });
     }
   }
@@ -144,17 +145,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: validated.reason }, { status: 400 });
   }
 
-  try {
-    const usage = await storagePrefixUsageBytes(storagePrefix);
-    if (usage + validated.bytes.length > FREE_PROJECT_ASSET_QUOTA_BYTES) {
-      return NextResponse.json(
-        { error: "storage_quota_exceeded", quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES },
-        { status: 413 }
-      );
-    }
-  } catch {
-    return NextResponse.json({ error: "storage-usage-unavailable" }, { status: 503 });
-  }
+  const policy = await requireStorageSpace(user.id, validated.bytes.length);
 
   // validateRasterUpload appends the owner once more for generic upload routes.
   // Keep the private bucket's first segment canonical and avoid persisting a
@@ -165,5 +156,5 @@ export async function POST(req: Request) {
   const storageRef = await uploadValidatedImage(validated.bytes, storageKey, validated.mime);
   if (!storageRef) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
   const url = await resolveAssetForClient(storageRef);
-  return NextResponse.json({ url, storageRef, quotaBytes: FREE_PROJECT_ASSET_QUOTA_BYTES });
+  return NextResponse.json({ url, storageRef, quotaBytes: policy.limitBytes });
 }

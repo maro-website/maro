@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ProductLogo } from "@/components/ui/ProductLogo";
 import { MARO_PRODUCTS } from "@/lib/design/maro-system";
 import { useMaro } from "@/context/store";
@@ -31,6 +32,9 @@ import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBrainDraft } from "@/lib/workspaces/brainDraft";
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
+import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
+import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
+import { StorageUsage } from "@/components/workspaces/StorageUsage";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -43,10 +47,39 @@ const CHANNEL_PLATFORMS = ["Instagram", "TikTok", "Facebook", "LinkedIn", "YouTu
 export function BrainWorkspace() {
   const { user } = useMaro();
   const { activeWorkspace } = useWorkspace();
-  return <BrainWorkspaceEditor key={`${user?.id ?? "guest"}:${activeWorkspace?.id ?? "none"}`} />;
+  return <BrainAccessGate key={`${user?.id ?? "guest"}:${activeWorkspace?.id ?? "none"}`} userId={user?.id} workspaceId={activeWorkspace?.id} />;
 }
 
-function BrainWorkspaceEditor() {
+function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId?: string }) {
+  const [policy, setPolicy] = React.useState<AccountPolicy | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
+  React.useEffect(() => {
+    if (!userId || !workspaceId) return;
+    let active = true;
+    setPolicy(null); setError(null);
+    void fetchAccountPolicy(userId, workspaceId).then((value) => {
+      if (!active) return;
+      readBrainDraft(userId, workspaceId, value.brainResetAt);
+      setPolicy(value);
+    }).catch((cause) => { if (active) setError(workspaceErrorMessage(cause, "Qasja e maroBrain nuk u verifikua. Provo përsëri.")); });
+    return () => { active = false; };
+  }, [userId, workspaceId, attempt]);
+  if (policy?.brainAccess) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={() => setAttempt((value) => value + 1)} />;
+  return <div className="grid h-full place-items-center px-6 text-center text-ink-2">
+    <div className="max-w-md space-y-4">
+      <ProductLogo product="maroBrain" className="mx-auto h-10 w-[180px]" />
+      <p role="status">{!userId ? "Hyr për të konfiguruar maroBrain." : error ?? (policy ? "maroBrain është pjesë e maroStandard dhe maroPro. Aktivizo planin për ta përdorur." : "Duke verifikuar qasjen…")}</p>
+      {policy && <>
+        <p className="text-sm">{policy.brainDeleteAt ? `Profili dhe burimet ruhen deri më ${new Date(policy.brainDeleteAt).toLocaleDateString("sq-AL")}. Pas 60 ditësh pa plan aktiv, maroBrain resetohet.` : "Profili i skaduar i maroBrain është resetuar."}</p>
+        <Link href="/pricing" className="maro-button" data-variant="inverse">Shiko planet</Link>
+      </>}
+      {error && <Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>Provo përsëri</Button>}
+    </div>
+  </div>;
+}
+
+function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | null; onPolicyChange: () => void }) {
   const { user } = useMaro();
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { toast } = useToast();
@@ -55,21 +88,21 @@ function BrainWorkspaceEditor() {
 
   const [tab, setTab] = React.useState<BrainTabId>("brand");
   const [profile, setProfileState] = React.useState<WorkspaceBrainProfile>(() =>
-    userId && workspaceId ? readBrainDraft(userId, workspaceId) ?? emptyBrainProfile() : emptyBrainProfile()
+    userId && workspaceId ? readBrainDraft(userId, workspaceId, resetAt) ?? emptyBrainProfile() : emptyBrainProfile()
   );
   const profileRef = React.useRef(profile);
-  const dirtyRef = React.useRef(Boolean(userId && workspaceId && readBrainDraft(userId, workspaceId)));
+  const dirtyRef = React.useRef(Boolean(userId && workspaceId && readBrainDraft(userId, workspaceId, resetAt)));
   const storageWarning = React.useRef(false);
   const setProfile = React.useCallback<React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>>((update) => {
     const next = typeof update === "function" ? update(profileRef.current) : update;
     profileRef.current = next;
     dirtyRef.current = true;
     setProfileState(next);
-    if (userId && workspaceId && !writeBrainDraft(userId, workspaceId, next) && !storageWarning.current) {
+    if (userId && workspaceId && !writeBrainDraft(userId, workspaceId, next, resetAt) && !storageWarning.current) {
       storageWarning.current = true;
       toast("Shfletuesi nuk po e ruan draftin. Shtyp Ruaje para se të largohesh.", "error");
     }
-  }, [userId, workspaceId, toast]);
+  }, [userId, workspaceId, toast, resetAt]);
   const [sources, setSources] = React.useState<WorkspaceSource[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -103,7 +136,7 @@ function BrainWorkspaceEditor() {
       if (!active) return;
       // Server hydration and source refreshes must never overwrite an unsaved draft.
       if (!dirtyRef.current) {
-        const recovered = recoverLegacyBrainDraft(userId, workspaceId, p);
+        const recovered = recoverLegacyBrainDraft(userId, workspaceId, p, resetAt);
         profileRef.current = recovered ?? p;
         dirtyRef.current = Boolean(recovered);
         setProfileState(recovered ?? p);
@@ -115,17 +148,21 @@ function BrainWorkspaceEditor() {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [userId, workspaceId, loadAttempt]);
+  }, [userId, workspaceId, loadAttempt, resetAt]);
 
   const persistDraft = React.useCallback((snapshot: WorkspaceBrainProfile, manual = false): Promise<void> => {
     if (!userId || !workspaceId) return Promise.resolve();
     if (inFlight.current?.profile === snapshot) return inFlight.current.task;
     if (mounted.current) { setSaving(true); setSaveError(null); }
-    const task = saveBrainProfile(userId, workspaceId, snapshot).then(() => {
+    const task = saveBrainProfile(userId, workspaceId, snapshot, resetAt).then(() => {
       clearSavedBrainDraft(userId, workspaceId, snapshot);
       if (profileRef.current === snapshot) dirtyRef.current = false;
       if (manual && mounted.current) toast("maroBrain u ruajt.");
     }).catch((error) => {
+      if (error instanceof Error && /brain_plan_required|brain_refresh_required/.test(error.message)) {
+        canAutosave.current = false;
+        onPolicyChange();
+      }
       const message = workspaceErrorMessage(error, "Ruajtja dështoi. Drafti yt është ruajtur; provo përsëri.");
       if (mounted.current) {
         setSaveError(message);
@@ -139,7 +176,7 @@ function BrainWorkspaceEditor() {
     });
     inFlight.current = { profile: snapshot, task };
     return task;
-  }, [userId, workspaceId, toast]);
+  }, [userId, workspaceId, toast, resetAt, onPolicyChange]);
 
   React.useEffect(() => {
     if (loading || loadError || !dirtyRef.current) return;
@@ -191,6 +228,7 @@ function BrainWorkspaceEditor() {
               <p role="status" className="mt-1 text-[12px] text-ink-3">
                 {saveError ?? (saving ? "Duke ruajtur automatikisht…" : "Ndryshimet ruhen automatikisht.")}
               </p>
+              <StorageUsage />
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -420,12 +458,16 @@ function BrandTab({
                 if (!file || !workspaceId) return;
                 const reader = new FileReader();
                 reader.onload = async () => {
-                  const uploaded = await uploadSourceImage(String(reader.result ?? ""), workspaceId);
-                  if (!uploaded) {
-                    toast("Logo nuk u ngarkua. Provo përsëri.");
-                    return;
+                  try {
+                    const uploaded = await uploadSourceImage(String(reader.result ?? ""), workspaceId);
+                    if (!uploaded) {
+                      toast("Logo nuk u ngarkua. Provo përsëri.");
+                      return;
+                    }
+                    setBrand({ logoUrl: uploaded.url, logoStorageRef: uploaded.storageRef });
+                  } catch (error) {
+                    toast(workspaceErrorMessage(error, "Logo nuk u ngarkua. Provo përsëri."), "error");
                   }
-                  setBrand({ logoUrl: uploaded.url, logoStorageRef: uploaded.storageRef });
                 };
                 reader.readAsDataURL(file);
               }}
