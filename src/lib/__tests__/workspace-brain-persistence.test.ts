@@ -91,7 +91,7 @@ describe("workspace and maroBrain persistence", () => {
   });
 
   it("reports denied workspace updates and Brain saves instead of local false success", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ message: "denied", code: "42501" }), { status: 403 })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "denied", message: "denied", code: "42501" }), { status: 403 })));
     const { updateWorkspace, fetchWorkspaces } = await import("@/lib/workspaces/service");
     const { saveBrainProfile } = await import("@/lib/workspaces/brainService");
     await expect(updateWorkspace("alice", "ws-a", { name: "New name" })).rejects.toThrow("denied");

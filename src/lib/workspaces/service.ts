@@ -1,4 +1,4 @@
-import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
+import { getAccessToken, getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import type { Workspace, WorkspaceBrand } from "@/lib/workspaces/types";
 import { DEFAULT_WORKSPACE_NAME, MAX_WORKSPACES } from "@/lib/workspaces/types";
 import { normalizeWorkspaceBrand } from "@/lib/workspaces/brand";
@@ -161,6 +161,23 @@ export async function updateWorkspace(
   patch: Partial<Pick<Workspace, "name" | "iconUrl" | "brand">>
 ): Promise<Workspace | null> {
   if (supabaseConfigured) {
+    if (patch.name != null && patch.iconUrl === undefined && patch.brand === undefined) {
+      const { res, payload } = await workspaceRequest(async (signal) => {
+        const token = await getAccessToken();
+        if (!token) throw new Error("unauthorized");
+        const res = await fetch("/api/workspaces", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ workspaceId, name: patch.name }),
+          signal,
+        });
+        const payload = (await res.json()) as { workspace?: Record<string, unknown>; error?: string };
+        return { res, payload };
+      });
+      if (res.status === 401) throw new Error("unauthorized");
+      if (!res.ok || !payload.workspace) throw new Error(payload.error ?? "workspace_rename_failed");
+      return mapWorkspaceRow(payload.workspace);
+    }
     const supabase = getSupabaseBrowser();
     const { data, error } = await workspaceRequest((signal) => supabase
       .from("workspaces")
