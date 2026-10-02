@@ -25,7 +25,7 @@ function EcosystemMedia({ motif }: { motif: string }) {
   return (
     <div className={s.toolStudy} aria-hidden="true">
       <Image
-        src={motif === "audio" ? "/images/hub-vision/maroAudio_hub01.png" : "/images/hub-vision/maroMarketing_hub01.png"}
+        src={motif === "audio" ? "/images/hub-vision/maroAudio_hub02.png" : "/images/hub-vision/maroMarketing_hub01.png"}
         alt=""
         fill
         sizes="(max-width: 600px) 100vw, 40vw"
