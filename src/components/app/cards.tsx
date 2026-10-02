@@ -18,6 +18,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { trackEvent } from "@/lib/services/trackService";
 import { submitReport } from "@/lib/services/reportService";
+import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import {
   MoreVertical,
   Pencil,
@@ -34,11 +35,11 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 
-/** Tool page URL to reopen a creation as a read-only conversation. */
+/** Every output in a conversation reopens the same editable history. */
 export function creationConversationHref(creation: ImageCreation): string | null {
   const tool = getTool(creation.toolId);
   if (!tool?.functional) return null;
-  return `${tool.route}?open=${creation.id}`;
+  return `${tool.route}?chat=${encodeURIComponent(creation.conversationId ?? creation.serverId ?? creation.id)}`;
 }
 
 // A small helper: a creation's media kind (defaults to image for legacy items).
@@ -633,6 +634,7 @@ export function CreationLightbox({
             )}
 
             <ReportControls creation={creation} />
+            {media === "image" && <PublishToExploreButton toolId={creation.toolId} prompt={creation.prompt} url={url} storedUrl={creation.storageRefs?.[active]} selections={creation.selections} />}
           </div>
         </div>
       </div>

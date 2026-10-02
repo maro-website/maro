@@ -30,6 +30,21 @@
 @tailwind components;
 @tailwind utilities;
 
+.maro-generate-fuse__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: .55;
+  transform-origin: left;
+  animation: maro-fuse-countdown 2s linear forwards;
+  pointer-events: none;
+}
+@keyframes maro-fuse-countdown { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .maro-generate-fuse__line { animation: none; } }
+
 /* Lime remains the surface accent; text uses its accessible semantic token. */
 .text-brand {
   color: var(--maro-color-text-brand);

@@ -48,6 +48,11 @@ export interface User {
 // (transcription) the result lives in `text`.
 export interface ImageCreation {
   id: string;
+  conversationId?: string;
+  selections?: Record<string, string>;
+  inputRefs?: string[];
+  inputUrls?: string[];
+  logoWizard?: import("@/lib/marologo/types").MaroLogoWizardState;
   /** Canonical database id when this creation has been synced from the server. */
   serverId?: string;
   /** Stable storage references used to refresh expiring signed display URLs. */

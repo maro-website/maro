@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { getTool } from "@/lib/tools/registry";
+import { resolveGenerationLabels } from "@/lib/design/generationMeta";
+import type { ConversationJob } from "@/lib/creations/conversations";
+import { UUID } from "@/lib/explore/server";
 import {
   getSupabaseAdmin,
   getUserFromToken,
@@ -28,12 +32,33 @@ export async function GET(req: Request) {
   // exist yet (before migration 0007).
   const admin = getSupabaseAdmin();
   const workspaceId = await getActiveWorkspaceId(user.id);
+  const params = new URL(req.url).searchParams;
+  const conversation = params.get("conversation");
+  const offset = Number(params.get("offset") ?? 0);
+  if ((conversation && !UUID.test(conversation)) || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return NextResponse.json({ error: "bad-target" }, { status: 400 });
+  let jobs: ConversationJob[] = [];
+  if (conversation && offset === 0) {
+    const pending = await admin.from("generation_jobs").select("id,status,created_at,request:metadata->v1_request")
+      .eq("user_id", user.id).eq("metadata->v1_request->>conversationId", conversation)
+      .in("status", ["pending", "reserved", "processing", "failed", "cancelled"]).order("created_at", { ascending: true }).limit(200);
+    if (pending.error) return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
+    jobs = (pending.data ?? []).flatMap(row => {
+      const snapshot = row.request as Record<string, unknown> | null;
+      if (!snapshot || snapshot.userId !== user.id || (snapshot.workspaceId ?? null) !== workspaceId) return [];
+      return [{ id: row.id as string, prompt: typeof snapshot.prompt === "string" ? snapshot.prompt : "", createdAt: row.created_at as string,
+        status: row.status === "failed" || row.status === "cancelled" ? "error" as const : "thinking" as const }];
+    });
+  }
   const map = async (data: Record<string, unknown>[]) => {
     const items = await Promise.all(
       data
         .filter((r) => Array.isArray(r.output_urls) && (r.output_urls as unknown[]).length > 0)
         .map(async (r) => {
           const refs = (r.output_urls as string[]) ?? [];
+          const tool = getTool((r.tool_id as string) ?? "logo");
+          const selections = r.selections && typeof r.selections === "object" && !Array.isArray(r.selections)
+            ? Object.fromEntries(Object.entries(r.selections).filter((entry): entry is [string, string] => typeof entry[1] === "string")) : {};
+          const labels = tool ? resolveGenerationLabels(tool, selections) : {};
           const urls = (await resolveAssetListForClient(refs)).filter(
             (url) => /^(https?:|data:|blob:)/i.test(url)
           );
@@ -42,6 +67,13 @@ export async function GET(req: Request) {
             id: r.id as string,
             serverId: r.id as string,
             toolId: (r.tool_id as string) ?? "logo",
+            ...labels,
+            conversationId: (r.conversation_id as string | null) ?? r.id as string,
+            selections,
+            brain: Boolean(r.brain),
+            inputRefs: (r.input_refs as string[] | null) ?? undefined,
+            inputUrls: Array.isArray(r.input_refs) ? await resolveAssetListForClient(r.input_refs as string[]) : undefined,
+            logoWizard: r.logo_wizard ?? undefined,
             prompt: (r.prompt as string) ?? "",
             storageRefs: refs,
             urls,
@@ -58,16 +90,18 @@ export async function GET(req: Request) {
   try {
     let query = admin
       .from("generations")
-      .select("id, tool_id, prompt, output_urls, favourite, title, workspace_id, created_at")
+      .select("id, tool_id, prompt, output_urls, favourite, title, workspace_id, created_at, conversation_id, selections, input_refs, logo_wizard, brain")
       .eq("user_id", user.id)
       .eq("kind", "image")
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(offset, offset + 199);
     if (workspaceId) query = query.eq("workspace_id", workspaceId);
+    if (conversation) query = query.or(`conversation_id.eq.${conversation},id.eq.${conversation}`);
     const { data, error } = await query;
-    if (!error) return NextResponse.json({ items: await map(data ?? []) });
+    if (!error) return NextResponse.json({ items: await map(data ?? []), jobs, nextOffset: data?.length === 200 ? offset + 200 : null }, { headers: { "Cache-Control": "private, no-store" } });
+    if (error.code !== "42703") return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
   } catch {
-    /* fall through */
+    return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
   }
 
   try {
@@ -79,10 +113,12 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: false })
       .limit(200);
     if (workspaceId) query = query.eq("workspace_id", workspaceId);
-    const { data } = await query;
-    return NextResponse.json({ items: await map(data ?? []) });
+    if (conversation) query = query.eq("id", conversation);
+    const { data, error } = await query;
+    if (error) return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
+    return NextResponse.json({ items: await map(data ?? []), jobs });
   } catch {
-    return NextResponse.json({ items: [] });
+    return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
   }
 }
 

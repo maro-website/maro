@@ -3,6 +3,7 @@ import { findOption } from "@/lib/tools/registry";
 
 /** Map generation format / size to CSS aspect-ratio and max-width. */
 const FORMAT_RATIOS: Record<string, { ratio: string; maxW: string }> = {
+  "4:3": { ratio: "4 / 3", maxW: "min(100%, 560px)" },
   "1:1": { ratio: "1 / 1", maxW: "min(100%, 420px)" },
   square: { ratio: "1 / 1", maxW: "min(100%, 420px)" },
   "9:16": { ratio: "9 / 16", maxW: "min(100%, 320px)" },
@@ -45,6 +46,6 @@ export function resolveImageFormatMeta(tool: ToolDef, selections: ToolSelections
   const opt = findOption(formatSetting, optId);
   const size = opt?.size ?? "1024x1024";
   const format =
-    size === "1024x1536" ? "9:16" : size === "1536x1024" ? "16:9" : "1:1";
+    optId === "4:3" ? "4:3" : size === "1024x1536" ? "9:16" : size === "1536x1024" ? "16:9" : "1:1";
   return { format, size };
 }

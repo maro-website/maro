@@ -29,6 +29,8 @@ export interface ParsedV1ImageRequest {
   referenceIds: string[];
   presetId?: string;
   requestedWorkspaceId?: string;
+  conversationId?: string;
+  revision?: string;
   useBrain: boolean;
   logoWizard?: MaroLogoWizardState;
   idempotencyKey?: string;
@@ -40,7 +42,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   const denial = generationAvailabilityError(raw.toolId);
   if (denial) throw new ImageRequestValidationError(denial.error, denial.status, "toolId");
   const logo = resolveProductModule(raw.toolId) === "logo";
-  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "workspaceId", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort"], "request");
+  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "workspaceId", "conversationId", "revision", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort"], "request");
   if (!logo && typeof raw.prompt !== "string") throw new ImageRequestValidationError("invalid_string", 400, "prompt");
   if (!logo && (raw.prompt as string).length > IMAZH_REQUEST_PROMPT_MAX_CHARS) {
     throw new ImageRequestValidationError("prompt_too_long", 400, "prompt", {
@@ -73,10 +75,12 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   }
 
   let logoWizard: MaroLogoWizardState | undefined;
+  const revision = raw.revision === undefined ? undefined : requestString(raw.revision, "revision", 24000);
+  if (revision !== undefined && (!logo || !revision || !raw.conversationId)) throw new ImageRequestValidationError("invalid_revision");
   if (logo) {
     logoWizard = validateLogoWizardAnswers(raw.logoWizard);
     // Browser-built instructions are never authoritative or retained as internal instructions.
-    prompt = `${logoWizard.brand.name}: ${logoWizard.brand.description}`;
+    prompt = revision ?? `${logoWizard.brand.name}: ${logoWizard.brand.description}`;
     const answers = {
       type: mapLogoTypeToRegistry(logoWizard.logo.type), type_source: logoWizard.logo.type,
       present: logoWizard.presentation.mode, visual_style: logoWizard.look.visualStyle, concept_intent: logoWizard.logo.conceptIntent,
@@ -117,10 +121,12 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   const idempotencyKey = raw.idempotencyKey === undefined ? undefined : requestString(raw.idempotencyKey, "idempotencyKey", 128);
   if (idempotencyKey === "") throw new ImageRequestValidationError("invalid_idempotency_key");
   // Fort remains governed by Phase 1: stale payloads are intentionally discarded, never interpreted.
+  const conversationId = raw.conversationId === undefined ? undefined : requestString(raw.conversationId, "conversationId", 36);
+  if (conversationId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) throw new ImageRequestValidationError("invalid_conversation", 400, "conversationId");
   return {
     module: logo ? "maro_logo" : "maro_imazh", registryToolId, logicalModel, prompt, selections,
     imageCount: 1, quality, size, referenceIds: [...referenceIds], presetId, requestedWorkspaceId,
-    useBrain: !logo && requestedBrain, logoWizard, idempotencyKey,
+    useBrain: !logo && requestedBrain, logoWizard, idempotencyKey, conversationId, revision,
   };
 }
 

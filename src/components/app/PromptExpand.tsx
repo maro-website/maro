@@ -38,7 +38,7 @@ export function PromptExpand({
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (submitAllowed) onSubmit?.(); }
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!e.repeat && submitAllowed) onSubmit?.(); }
     };
     document.addEventListener("keydown", onKey);
     return () => {

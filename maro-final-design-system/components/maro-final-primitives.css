@@ -339,11 +339,11 @@
 }
 
 .maro-composer {
-  min-height: 11rem;
+  min-height: 8rem;
   display: flex;
   flex-direction: column;
-  gap: var(--maro-gap-20);
-  padding: var(--maro-gap-30);
+  gap: var(--maro-gap-10);
+  padding: 14px;
   border: 0;
   border-radius: var(--maro-radius-20);
   background: var(--maro-color-bg-surface);

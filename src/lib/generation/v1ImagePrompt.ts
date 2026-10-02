@@ -61,8 +61,8 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
   if (request.presetId && !preset) throw new ImageRequestValidationError("preset_snapshot_missing", 503);
   if (preset && createHash("sha256").update(preset).digest("hex") !== request.presetContentHash) throw new ImageRequestValidationError("preset_snapshot_mismatch", 503);
   const brief = request.module === "maro_logo"
-    ? buildMaroLogoBrief(request.logoWizard!, references.length > 0)
-    : request.prompt;
+    ? [buildMaroLogoBrief(request.logoWizard!, references.length > 0), request.revision ? `USER REQUESTED LOGO REVISION:\n${request.revision}` : ""].filter(Boolean).join("\n\n")
+    : request.prompt + (request.selections.format === "4:3" ? "\n\nCompose a landscape 4:3 image. Keep the subject and essential details within the central 4:3 area of the landscape frame." : "");
   const category = (key: string) => key.startsWith("v1.production.reference.") ? "reference" : key.startsWith("v1.production.output.") ? "output" : "direction";
   const section = (kind: string) => candidates.filter((l) => category(l.layer_key) === kind).map((l) => l.instructions);
   const orderedLayers = ["direction", "reference", "output"].flatMap((kind) => candidates.filter((l) => category(l.layer_key) === kind));

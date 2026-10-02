@@ -2,20 +2,36 @@
 
 import { getAccessToken } from "@/lib/supabase/client";
 import type { ImageCreation } from "@/lib/types";
+import type { ConversationJob } from "@/lib/creations/conversations";
 
 // Fetch the signed-in user's image generations from the server. A null result
 // means the request failed; [] is a successful empty server source of truth.
-export async function fetchMyCreations(): Promise<ImageCreation[] | null> {
+export async function fetchMyCreations(conversation?: string): Promise<ImageCreation[] | null> {
+  return (await fetchConversationHistory(conversation))?.items ?? null;
+}
+
+export async function fetchConversationHistory(conversation?: string): Promise<{ items: ImageCreation[]; jobs: ConversationJob[] } | null> {
   try {
     const token = await getAccessToken();
     if (!token) return null;
-    const res = await fetch("/api/creations", {
+    let offset: number | null = 0;
+    const items: ImageCreation[] = [];
+    let jobs: ConversationJob[] = [];
+    do {
+    const params = new URLSearchParams();
+    if (conversation) params.set("conversation", conversation);
+    if (offset) params.set("offset", String(offset));
+    const res = await fetch(`/api/creations${params.size ? `?${params}` : ""}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
     if (!res.ok) return null;
-    const j = (await res.json().catch(() => ({}))) as { items?: ImageCreation[] };
-    return Array.isArray(j.items) ? j.items : [];
+    const j = (await res.json()) as { items?: ImageCreation[]; nextOffset?: number | null; jobs?: ConversationJob[] };
+    items.push(...(Array.isArray(j.items) ? j.items : []));
+    if (Array.isArray(j.jobs)) jobs = j.jobs;
+    offset = conversation && typeof j.nextOffset === "number" && j.nextOffset > (offset ?? 0) ? j.nextOffset : null;
+    } while (offset !== null);
+    return { items, jobs };
   } catch {
     return null;
   }

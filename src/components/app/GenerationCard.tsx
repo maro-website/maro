@@ -237,25 +237,27 @@ export function GenerationCard({
                   : "maro s’mujti me maru"}
             </span>
           </div>
-          <GenerationImageBox
+          {(message.status === "done" && message.creation ? message.creation.urls : [undefined]).map((url, index) => <React.Fragment key={index}><GenerationImageBox
             format={message.format}
             size={message.size ?? message.creation?.size}
             module={message.creation?.toolId ?? "imazh"}
-            refreshKey={message.creation?.storageRefs?.[0] ?? message.id}
+            refreshKey={message.creation?.storageRefs?.[index] ?? message.id}
             status={message.status}
-            url={message.creation?.urls[0]}
+            url={url}
             error={message.error}
-            onOpen={message.creation && onOpen ? () => onOpen(message.creation!) : undefined}
+            onOpen={message.creation && onOpen && url ? () => onOpen({ ...message.creation!, urls: [url], storageRefs: message.creation!.storageRefs?.[index] ? [message.creation!.storageRefs[index]] : undefined }) : undefined}
           />
-          {message.status === "done" && message.creation?.urls[0] && (
+          {message.status === "done" && message.creation && url && (
             <div className="flex flex-wrap gap-2 px-1">
               <PublishToExploreButton
                 toolId={message.creation.toolId}
                 prompt={message.text}
-                url={message.creation.urls[0]}
+                url={url}
+                storedUrl={message.creation.storageRefs?.[index]}
+                selections={message.creation.selections}
               />
             </div>
-          )}
+          )}</React.Fragment>)}
         </>
       )}
 

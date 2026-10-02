@@ -34,7 +34,6 @@ import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBra
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
 import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
 import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
-import { StorageUsage } from "@/components/workspaces/StorageUsage";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -246,7 +245,6 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
               <p role="status" className="mt-1 text-[12px] text-ink-3">
                 {saveError ?? (saving ? "Duke ruajtur automatikisht…" : "Ndryshimet ruhen automatikisht.")}
               </p>
-              <StorageUsage />
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">

@@ -8,6 +8,9 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { StorageUsage } from "@/components/workspaces/StorageUsage";
+import { MyPublications } from "@/components/explore/MyPublications";
+import { ExploreFeed } from "@/components/explore/ExploreFeed";
 import { fetchUploadedAssets, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
 import { STORAGE_CHANGED_EVENT } from "@/lib/workspaces/accountPolicy";
 import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
@@ -90,11 +93,12 @@ function dayLabel(iso: string): string {
   return d.toLocaleDateString("sq-AL", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: { limit: number; excludeRefs: string[]; onSelect: (assets: LibrarySelection[]) => void }; initialCategory?: "made" | "uploaded" | "saved" }) {
+export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: { limit: number; excludeRefs: string[]; onSelect: (assets: LibrarySelection[]) => void }; initialCategory?: "made" | "uploaded" | "saved" | "published" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projects, creations, user } = useMaro();
   const [category, setCategory] = React.useState(initialCategory);
+  React.useEffect(() => { if (!picker) setCategory(initialCategory); }, [initialCategory, picker]);
   const [uploads, setUploads] = React.useState<UploadedLibraryAsset[]>([]);
   const [uploadOwner, setUploadOwner] = React.useState<string | undefined>();
   const [uploadError, setUploadError] = React.useState(false);
@@ -149,10 +153,10 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
     const creaRows: Row[] = creations.flatMap((c) => {
       if (picker && (c.mediaType ?? "image") !== "image") return [];
       const tool = getTool(c.toolId);
-      const indices = picker ? c.urls.map((_, index) => index) : [0];
+      const indices = (c.mediaType ?? "image") === "image" ? c.urls.map((_, index) => index) : [0];
       return indices.map((imageIndex): Row => ({
         kind: "creation",
-        id: picker ? `${c.id}:${imageIndex}` : c.id,
+        id: `${c.id}:${imageIndex}`,
         title: c.title || c.prompt || tool?.name || "Krijim",
         toolId: c.toolId,
         toolName: tool?.name ?? "Krijim",
@@ -186,7 +190,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
 
   const uploadRows: Row[] = ownedUploads.map(asset => ({ kind: "upload", id: asset.storageRef, title: asset.name, toolId: "upload", toolName: "Ngarkim", time: asset.createdAt, fort: false, favourite: false, asset }));
   const categoryRows = category === "uploaded" ? uploadRows : category === "saved" ? rows.filter(row => row.favourite) : rows;
-  const chooseCategory = (value: typeof category) => { setCategory(value); setFilter("all"); };
+  const chooseCategory = (value: typeof category) => { setCategory(value); setFilter("all"); if (!picker) router.push(`/krijimet?category=${value}`, { scroll: false }); };
   const selectionFor = (row: Row): LibrarySelection | null => {
     const storageRef = row.kind === "upload" ? row.asset.storageRef : row.kind === "creation"
       ? libraryStorageRef(row.creation.storageRefs?.[row.imageIndex ?? 0] ?? row.creation.urls[row.imageIndex ?? 0], userId) : null;
@@ -248,9 +252,10 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         </div>
         <RailItem active={category === "made"} icon={<LayoutGrid className="h-4 w-4" />} label="Çka ke maru" count={rows.length} onClick={() => chooseCategory("made")} />
         <RailItem active={category === "uploaded"} icon={<Upload className="h-4 w-4" />} label="Çka ke ngarku" count={ownedUploads.length} onClick={() => chooseCategory("uploaded")} />
-        <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={rows.filter(row => row.favourite).length} onClick={() => chooseCategory("saved")} />
+        <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={picker ? rows.filter(row => row.favourite).length : undefined} onClick={() => chooseCategory("saved")} />
+        {!picker && <RailItem active={category === "published"} icon={<Globe className="h-4 w-4" />} label="Publikimet në Explore" onClick={() => chooseCategory("published")} />}
 
-        {category !== "uploaded" && toolBuckets.length > 0 && (
+        {category !== "uploaded" && category !== "published" && toolBuckets.length > 0 && (
           <>
             <div className="mt-5 px-2 pb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">
               Tools
@@ -262,11 +267,12 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 icon={<ToolIcon toolId={t.id} media={t.media} />}
                 label={t.name}
                 count={t.count}
-                onClick={() => { setCategory("made"); setFilter(t.id); }}
+                onClick={() => { chooseCategory("made"); setFilter(t.id); }}
               />
             ))}
           </>
         )}
+        {!picker && <StorageUsage className="mt-auto" />}
       </aside>
 
       {/* Main area */}
@@ -276,7 +282,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         {/* Sticky toolbar */}
         <div className="sticky top-0 z-10 bg-canvas px-[20px] py-[10px] lg:px-[30px]">
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <div className="maro-library-search flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2 max-md:basis-full">
+            {category !== "published" && <div className="maro-library-search flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2 max-md:basis-full">
               <Search className="h-4 w-4 shrink-0 text-ink-3" />
               <input
                 value={query}
@@ -284,12 +290,12 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 placeholder="Kërko…"
                 className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
               />
-            </div>
+            </div>}
             <select aria-label="Kategoria e aseteve" value={category} onChange={event => chooseCategory(event.target.value as typeof category)} className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-[13px] text-ink md:hidden">
-              <option value="made">Çka ke maru</option><option value="uploaded">Çka ke ngarku</option><option value="saved">Çka ke ruajt</option>
+              <option value="made">Çka ke maru</option><option value="uploaded">Çka ke ngarku</option><option value="saved">Çka ke ruajt</option>{!picker && <option value="published">Publikimet në Explore</option>}
             </select>
             {/* Mobile filter dropdown */}
-            <select
+            {category !== "published" && <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-[13.5px] font-medium text-ink outline-none md:hidden"
@@ -301,9 +307,9 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                   {t.name}
                 </option>
               ))}
-            </select>
+            </select>}
             {/* Size slider */}
-            <div className="hidden items-center gap-2 rounded-xl bg-surface px-3 py-2 sm:flex">
+            {category !== "published" && <div className="hidden items-center gap-2 rounded-xl bg-surface px-3 py-2 sm:flex">
               <LayoutGrid className="h-3.5 w-3.5 text-ink-3" />
               <input
                 type="range"
@@ -314,11 +320,13 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 className="h-1 w-24 cursor-pointer accent-brand"
                 aria-label="Madhësia e pamjes"
               />
-            </div>
+            </div>}
           </div>
         </div>
 
         <div className="px-4 py-6 sm:px-6">
+          {!picker && <StorageUsage className="mb-5 md:hidden" />}
+          {!picker && category === "published" ? <MyPublications /> : <>
           {category === "uploaded" && uploadError && <div role="alert" className="mb-4 text-sm text-ink-2">Ngarkimet nuk u hapën. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
           {category === "uploaded" && uploadsLoading && <p role="status" className="mb-4 text-sm text-ink-3">Duke ngarkuar asetet…</p>}
           {groups.length === 0 && !uploadsLoading ? (
@@ -347,6 +355,8 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
             </div>
           )}
           {category === "uploaded" && nextOffset !== null && <Button variant="secondary" className="mt-4" loading={uploadsLoading} onClick={() => void loadMore()}>Shfaq më shumë</Button>}
+          {!picker && category === "saved" && <div className="mt-8"><h2 className="mb-4 text-sm font-semibold text-ink">Të ruajtura nga Explore</h2><ExploreFeed savedOnly hideAuthorFilter /></div>}
+          </>}
         </div>
       </div>
       </div>
@@ -369,7 +379,7 @@ function RailItem({
   active: boolean;
   icon: React.ReactNode;
   label: string;
-  count: number;
+  count?: number;
   onClick: () => void;
 }) {
   return (
@@ -382,7 +392,7 @@ function RailItem({
     >
       <span className={cn(active ? "text-brand" : "text-ink-3")}>{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="text-[12px] font-semibold text-ink-3">{count}</span>
+      {count !== undefined && <span className="text-[12px] font-semibold text-ink-3">{count}</span>}
     </button>
   );
 }
@@ -482,10 +492,10 @@ function RowMenu({ row }: { row: Row }) {
       favourite={row.creation.favourite}
       onRename={() => {
         const v = window.prompt("Riemërto", row.title);
-        if (v && v.trim()) renameCreation(row.id, v.trim());
+        if (v && v.trim()) renameCreation(row.creation.id, v.trim());
       }}
-      onToggleFav={() => toggleFavouriteCreation(row.id)}
-      onDelete={() => deleteCreation(row.id)}
+      onToggleFav={() => toggleFavouriteCreation(row.creation.id)}
+      onDelete={() => deleteCreation(row.creation.id)}
       extraActions={
         canPromoteLogo
           ? [

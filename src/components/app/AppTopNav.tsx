@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MaroSymbol } from "@/components/ui/Logo";
+import { Logo } from "@/components/ui/Logo";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { AppUserMenu } from "@/components/app/AppUserMenu";
 import { HubDropdown } from "@/components/app/HubDropdown";
@@ -84,7 +84,7 @@ export function AppTopNav({
           </button>
         )}
         <Link href="/" className="shrink-0" aria-label="maro">
-          <MaroSymbol className="h-8 w-8 lg:h-10 lg:w-10" />
+          <Logo showWord wordClassName="h-7 w-auto lg:h-8" />
         </Link>
       </div>
 

@@ -105,7 +105,7 @@ export async function executeV1ImageApplication(req: Request) {
           abortSignal: abortScope.abortSignal, onObservation };
         const b64s = canonical.operation === "edit" ? await editImages({ ...options, images: resolved.images }) : await generateImages(options);
         stage = "storage_failed";
-        storageRef = await storeV1ImageOutput(userId, prep.job.id, b64s, observation);
+        storageRef = await storeV1ImageOutput(userId, prep.job.id, b64s, observation, snapshot.selections.format);
         stage = "history_failed";
         generationId = await persistV1ImageHistory(prep.job.id);
         persisted = true;

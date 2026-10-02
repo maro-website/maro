@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseMaroStorageAsset, resolveAssetForClient, toStorageRef } from "@/lib/storage/assets";
 import {
   getUserFromToken,
+  getSupabaseAdmin,
   supabaseServerConfigured,
   uploadValidatedImage,
 } from "@/lib/supabase/server";
@@ -70,5 +71,7 @@ export async function POST(req: Request) {
     validated.mime
   );
   if (!url) return NextResponse.json({ error: "upload-failed" }, { status: 500 });
+  const { error } = await getSupabaseAdmin().from("profiles").update({ avatar_url: url }).eq("id", user.id);
+  if (error) console.warn("[avatar] public profile sync unavailable");
   return NextResponse.json({ url });
 }

@@ -10,7 +10,7 @@ import {
 } from "@/components/legal/LegalConsentCheckbox";
 import { TurnstileWidget, turnstileConfigured } from "@/components/auth/TurnstileWidget";
 import { isSignupEnabled, MIN_PASSWORD_LENGTH } from "@/lib/config/features";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 export function AuthPanel({
   initialMode = "sign-in",
@@ -31,6 +31,7 @@ export function AuthPanel({
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [legalAccepted, setLegalAccepted] = React.useState(false);
   const [turnstileToken, setTurnstileToken] = React.useState<string | null>(null);
@@ -139,14 +140,21 @@ export function AuthPanel({
           />
         </Field>
         <Field label="Fjalëkalimi">
+          <div className="relative">
           <Input
-            type="password"
+            type={showPassword ? "text" : "password"}
+            aria-label="Fjalëkalimi"
+            className="pr-12"
             placeholder={mode === "sign-up" ? `Të paktën ${MIN_PASSWORD_LENGTH} karaktere` : "••••••••"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
             disabled={mode === "sign-up" && !signupEnabled}
           />
+          <button type="button" aria-label={showPassword ? "Fshih fjalëkalimin" : "Shfaq fjalëkalimin"} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-ink-3 hover:text-ink">
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+          </div>
         </Field>
 
         {error && (

@@ -3,11 +3,14 @@
 import * as React from "react";
 import { AttachmentPicker } from "@/components/app/AttachmentPicker";
 import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attachments";
-import { composerDraftKey } from "@/lib/services/composerDraft";
+import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft } from "@/lib/services/composerDraft";
+import { activeConversationKey, conversationHistory, imageConversationId, type ConversationJob } from "@/lib/creations/conversations";
+import { buildGenerationSelections } from "@/lib/marologo/generation";
+import { fetchConversationHistory } from "@/lib/services/creationsService";
 import { useComposerDraft } from "@/lib/hooks/useComposerDraft";
 import { resolvePrivateAssetRefsStrict } from "@/lib/services/projectAssetService";
 import type { LibrarySelection } from "@/lib/services/assetLibrary";
-import { StorageUsage } from "@/components/workspaces/StorageUsage";
+import { GenerateButton } from "@/components/app/GenerateButton";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,6 +64,7 @@ import { createImageDraftAcceptance } from "@/lib/services/imageDraft";
 import { fetchPromptDetail } from "@/lib/services/promptsService";
 import {
   findOption,
+  defaultSelections,
   getTool,
   toolSelectionCost,
   visibleSettings,
@@ -179,19 +183,53 @@ export function ToolComposer({
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("open");
-  const isReadOnlyView = Boolean(openId);
+  const requestedConversation = searchParams.get("chat");
+  const isReadOnlyView = false;
   const { toast } = useToast();
   const { user, ready, credits, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
-  const draftKey = composerDraftKey(user?.id, workspaceId, tool.id);
+  const conversationUserId = user?.id;
+  const conversationScope = activeConversationKey(user?.id, workspaceId, tool.id);
+  const pendingAuthDraft = React.useRef<{ id: string; draft: ReturnType<typeof emptyComposerDraft> } | null>(null);
+  const [activeConversation, setActiveConversation] = React.useState({ key: "", id: "" });
+  React.useEffect(() => {
+    if (!ready) return;
+    const opened = openId ? creations.find(item => item.id === openId) : undefined;
+    const requested = requestedConversation ?? (opened ? imageConversationId(opened) : openId);
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(conversationScope); } catch { /* Browser storage can be unavailable. */ }
+    const resumed = conversationUserId ? pendingAuthDraft.current : null;
+    const id = resumed?.id || requested || stored || crypto.randomUUID();
+    if (resumed) {
+      saveComposerDraft(composerDraftKey(conversationUserId, workspaceId, `${tool.id}:${id}`), resumed.draft);
+      pendingAuthDraft.current = null;
+    }
+    if (!requested && !stored) {
+      const oldKey = composerDraftKey(conversationUserId, workspaceId, tool.id);
+      const nextKey = composerDraftKey(conversationUserId, workspaceId, `${tool.id}:${id}`);
+      void Promise.all([loadComposerDraft(oldKey), loadComposerDraft(nextKey)]).then(([previous]) => {
+        const next = currentComposerDraft(nextKey);
+        if (!next.prompt && !next.privateImageAttachments.length && !next.attachments.length && !next.audioInput && !next.promptAttach && (previous.prompt || previous.privateImageAttachments.length || previous.attachments.length || previous.audioInput || previous.promptAttach)) {
+          saveComposerDraft(nextKey, previous);
+          if (currentComposerDraft(oldKey) === previous) saveComposerDraft(oldKey, emptyComposerDraft());
+        }
+      });
+    }
+    try { if (resumed || !requested || !stored) localStorage.setItem(conversationScope, id); } catch { /* In-memory navigation still works. */ }
+    setActiveConversation(current => current.key === conversationScope && current.id === id ? current : { key: conversationScope, id });
+  }, [ready, conversationScope, requestedConversation, openId, creations, conversationUserId, workspaceId, tool.id]);
+  const conversationId = activeConversation.key === conversationScope ? activeConversation.id : "";
+  const draftKey = composerDraftKey(user?.id, workspaceId, `${tool.id}:${conversationId}`);
   const { pricing, toolOptionIcons } = useSettings(Boolean(user));
 
 
-  const { prompt, setPrompt, attachments, setAttachments, privateImageAttachments, setPrivateImageAttachments, audioInput, setAudioInput, promptAttach: promptAttachInternal, setPromptAttachInternal, draftReady } = useComposerDraft(draftKey);
+  const { prompt, setPrompt, attachments, setAttachments, privateImageAttachments, setPrivateImageAttachments, audioInput, setAudioInput, promptAttach: promptAttachInternal, setPromptAttachInternal, draftReady: loadedDraftReady } = useComposerDraft(draftKey);
+  const draftReady = loadedDraftReady && Boolean(conversationId);
   const [attachmentPickerOpen, setAttachmentPickerOpen] = React.useState(false);
   const [webPreviews, setWebPreviews] = React.useState<Record<string, string>>({});
-  const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
+  const [selections, setSelections] = React.useState<ToolSelections>(() => defaultSelections(tool));
+  const generateButtonRef = React.useRef<HTMLButtonElement>(null);
   const [uploadingReferences, setUploadingReferences] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
@@ -226,16 +264,62 @@ export function ToolComposer({
     }
   }, [draftReady, ready, draftKey, promptAttachControlled, promptAttachProp, promptAttachInternal, onPromptAttachChange, setPromptAttachInternal]);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [serverHistory, setServerHistory] = React.useState<{ scope: string; items: ImageCreation[]; jobs: ConversationJob[] }>({ scope: "", items: [], jobs: [] });
+  const [historyError, setHistoryError] = React.useState(false);
+  const [historyRefresh, setHistoryRefresh] = React.useState(0);
+  const historyUserId = user?.id;
+  React.useEffect(() => {
+    if (!historyUserId || !conversationId) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scope = `${conversationScope}:${conversationId}`;
+    const refresh = () => {
+      clearTimeout(timer);
+      void fetchConversationHistory(conversationId).then(result => {
+        if (!active) return;
+        setHistoryError(!result);
+        if (result) setServerHistory({ scope, ...result });
+        // Resume observation after navigation/reload, without starting another job.
+        if (!result || result.jobs.some(job => job.status === "thinking") || loading) timer = setTimeout(refresh, 5000);
+      });
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => { active = false; clearTimeout(timer); window.removeEventListener("focus", refresh); };
+  }, [conversationId, conversationScope, historyUserId, loading, historyRefresh]);
+  const recoveredJobs = serverHistory.scope === `${conversationScope}:${conversationId}` ? serverHistory.jobs : [];
+  const recoveredPending = recoveredJobs.some(job => job.status === "thinking");
+  const history = React.useMemo(() => {
+    const items = new Map((serverHistory.scope === `${conversationScope}:${conversationId}` ? serverHistory.items : []).map(item => [item.id, item]));
+    for (const creation of creations) {
+      const stored = items.get(creation.id);
+      items.set(creation.id, stored ? { ...creation, ...stored, favourite: creation.favourite ?? stored.favourite, title: creation.title ?? stored.title } : creation);
+    }
+    return conversationHistory([...items.values()], conversationId, workspaceId);
+  }, [creations, conversationId, workspaceId, conversationScope, serverHistory]);
+  const logoWizard = [...history].reverse().find(item => item.logoWizard)?.logoWizard;
+  const lastOutputRef = [...history].reverse().find(item => item.storageRefs?.length)?.storageRefs?.[0];
+  const hydratedConversation = React.useRef("");
+  React.useEffect(() => {
+    const preservePending = hydratedConversation.current === conversationId;
+    hydratedConversation.current = conversationId;
+    const saved: ChatMessage[] = history.map(creation => ({
+      id: `generation-${creation.id}`, role: "generation", text: creation.prompt,
+      status: "done", creation, createdAt: creation.createdAt, mediaType: creation.mediaType ?? "image", attachments: creation.inputUrls,
+      format: creation.format, size: creation.size, formatLabel: creation.formatLabel,
+      modelLabel: creation.modelLabel, speedLabel: creation.speedLabel, brain: creation.brain,
+      promptCode: creation.promptCode,
+    }));
+    setMessages(current => [...saved, ...(preservePending ? current.filter(message => message.status !== "done") : [])]);
+  }, [history, conversationId]);
   const [dragOver, setDragOver] = React.useState(false);
   const dragDepth = React.useRef(0);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const audioFileRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const creationsRef = React.useRef(creations);
   const privateImageAttachmentsRef = React.useRef(privateImageAttachments);
   const attachmentUploadPromises = React.useRef(new Map<string, Promise<PrivateImageAttachment>>());
-  creationsRef.current = creations;
   privateImageAttachmentsRef.current = privateImageAttachments;
 
   const isImage = tool.kind === "image";
@@ -382,36 +466,20 @@ export function ToolComposer({
       /* ignore */
     }
 
-    // Open a specific past creation as a conversation (clicked from sidebar).
-    let seeded: ChatMessage[] = [];
-    if (openId) {
-      const c = creationsRef.current.find((x) => x.id === openId && x.toolId === tool.id);
-      if (c) {
-        seeded = [
-          {
-            id: uid("g"),
-            role: "generation",
-            text: c.prompt || "",
-            format: c.format,
-            size: c.size,
-            formatLabel: c.formatLabel ?? c.format,
-            modelLabel: c.modelLabel,
-            speedLabel: c.speedLabel,
-            fort: c.fort,
-            brain: c.brain,
-            promptCode: c.promptCode,
-            createdAt: c.createdAt,
-            status: "done",
-            creation: c,
-            mediaType: c.mediaType ?? "image",
-          },
-        ];
-      }
-    }
-    setMessages(seeded);
     // Re-seed whenever the tool OR the ?open= target changes (clicking another
     // recent card while already on the same tool page).
   }, [tool, openId, setPromptAttach, setPrompt, setPrivateImageAttachments, draftReady, ready]);
+
+  const restoredPreferences = React.useRef("");
+  React.useEffect(() => {
+    if (!draftReady || !conversationId || !history.length) return;
+    const key = `${conversationScope}:${conversationId}`;
+    const latest = history[history.length - 1];
+    if (restoredPreferences.current === key || latest.toolId !== tool.id) return;
+    restoredPreferences.current = key;
+    if (latest.selections && Object.keys(latest.selections).length) setSelections({ ...defaultSelections(tool), ...latest.selections });
+    setUseWorkspaceBrand(Boolean(latest.brain));
+  }, [draftReady, history, conversationId, conversationScope, tool]);
 
   // Only scroll when the latest generation is added or changes status.
   const latestMessage = messages[messages.length - 1];
@@ -427,8 +495,6 @@ export function ToolComposer({
   }, [latestMessage?.id, latestMessage?.status]);
 
   const cost = isImage ? selectedImageModel?.customerCredits ?? 0 : toolSelectionCost(tool, selections, pricing.options);
-  const creditsRef = React.useRef(credits);
-  creditsRef.current = credits;
 
   const setOption = (settingId: string, optionId: string) => {
     setSelections((prev) => {
@@ -756,6 +822,8 @@ export function ToolComposer({
     }
     const text = prompt.trim();
     if (!text || promptTooLong) return;
+    try { localStorage.setItem(conversationScope, conversationId); } catch { /* Keep the current conversation in memory. */ }
+    if (tool.kind === "image" && !requestedConversation) router.replace(`${tool.route}?chat=${encodeURIComponent(conversationId)}`, { scroll: false });
 
     const fortPayload = undefined;
     const maroPromptPayload = promptAttach ? { id: promptAttach.id } : undefined;
@@ -831,12 +899,15 @@ export function ToolComposer({
             if (!uploaded.storageRef) throw new Error("upload-failed");
             return uploaded.storageRef;
           })))]
-        : undefined;
+        : lastOutputRef ? [lastOutputRef] : undefined;
       setUploadingReferences(false);
       const res = await generateImages({
         toolId: tool.id as "logo" | "reklama",
         prompt: text,
-        selections,
+        selections: tool.id === "logo" && logoWizard ? buildGenerationSelections(logoWizard) : selections,
+        logoWizard: tool.id === "logo" && logoWizard ? structuredClone(logoWizard) : undefined,
+        revision: tool.id === "logo" ? text : undefined,
+        conversationId,
         quality: "high",
         attachments: canonicalAttachments,
         fort: fortPayload,
@@ -850,6 +921,11 @@ export function ToolComposer({
         serverId: res.generationId,
         storageRefs: res.storageRefs,
         workspaceId,
+        conversationId,
+        selections,
+        inputRefs: canonicalAttachments,
+        inputUrls: sentAttachments,
+        logoWizard: tool.id === "logo" && logoWizard ? structuredClone(logoWizard) : undefined,
         toolId: tool.id,
         prompt: text,
         urls: res.images,
@@ -896,10 +972,10 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
+  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation]);
 
   // Whether the current inputs are enough to generate.
-  const canGenerate = ready && draftReady && !promptTooLong && (isAudio
+  const canGenerate = ready && draftReady && !recoveredPending && !historyError && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
     : Boolean(prompt.trim()) && (!isImage || Boolean(selectedImageModel)) && (
         !isImage ||
@@ -913,7 +989,15 @@ export function ToolComposer({
       return;
     }
     if (!canGenerate || loading) return;
+    if (tool.id === "logo" && !logoWizard) {
+      const latest = history[history.length - 1];
+      if (latest?.storageRefs?.[0]) sessionStorage.setItem(IMAGE_REFERENCE_TRANSFER_KEY, JSON.stringify({ storageRef: latest.storageRefs[0], previewUrl: latest.urls[0] }));
+      saveComposerDraft(composerDraftKey(user?.id, workspaceId, `reklama:${conversationId}`), { ...emptyComposerDraft(), prompt });
+      router.push(`/imazh?chat=${encodeURIComponent(conversationId)}`);
+      return;
+    }
     if (!user) {
+      pendingAuthDraft.current = { id: conversationId, draft: currentComposerDraft(draftKey) };
       pendingRef.current = true;
       setShowAuth(true);
       return;
@@ -927,14 +1011,12 @@ export function ToolComposer({
 
   const onAuthDone = () => {
     setShowAuth(false);
-    if (pendingRef.current) {
-      pendingRef.current = false;
-      setTimeout(() => {
-        if (creditsRef.current < cost) setShowBuy(true);
-        else void doGenerate();
-      }, 500);
-    }
   };
+  React.useEffect(() => {
+    if (!pendingRef.current || !user || !canGenerate || showAuth) return;
+    pendingRef.current = false;
+    generateButtonRef.current?.click();
+  }, [user, canGenerate, showAuth]);
 
   const audioPlaceholder = (() => {
     const mode = selections[isAudio ? tool.settings[0].id : ""] ?? "tts";
@@ -1002,8 +1084,8 @@ export function ToolComposer({
     if (files.length) addImageFiles(files);
   };
 
-  const isGallery = layout === "gallery" && isImage;
-  const showLandingHeader = Boolean(headerSlot) && !openId && messages.length === 0;
+  const isGallery = layout === "gallery" && isImage && !requestedConversation && !openId && messages.length === 0 && recoveredJobs.length === 0;
+  const showLandingHeader = Boolean(headerSlot) && !openId && !requestedConversation && messages.length === 0;
 
   return (
     <div
@@ -1049,6 +1131,12 @@ export function ToolComposer({
           )}
         >
           {showLandingHeader && headerSlot}
+          {historyError && <p role="alert" className="mb-4 text-sm text-ink-2">Biseda nuk u ngarkua. <button type="button" className="underline" onClick={() => setHistoryRefresh(value => value + 1)}>Provo përsëri</button></p>}
+          {(requestedConversation || history.length > 0 || recoveredJobs.length > 0) && <div className="mb-4 flex items-center justify-between gap-3"><span className="text-sm text-ink-3">Biseda · {history.length} gjenerime</span><Button size="sm" variant="secondary" disabled={loading || recoveredPending} onClick={() => {
+            const id = crypto.randomUUID();
+            try { localStorage.setItem(conversationScope, id); } catch { /* Ignore unavailable browser storage. */ }
+            router.push(`${tool.route}?chat=${id}`);
+          }}>Chat i ri</Button></div>}
 
           {!showLandingHeader && !headerSlot && maintenance ? (
             <MaintenanceHero tool={tool} />
@@ -1067,6 +1155,7 @@ export function ToolComposer({
               ))}
             </div>
           )}
+          {!loading && !messages.some(message => message.status !== "done") && recoveredJobs.map(job => <GenerationCard key={job.id} message={{ id: job.id, text: job.prompt, status: job.status, createdAt: job.createdAt, mediaType: "image", error: job.status === "error" ? "Gjenerimi nuk u përfundua. Mund të provosh përsëri." : undefined }} />)}
 
         </div>
       </div>
@@ -1188,7 +1277,6 @@ export function ToolComposer({
             </div>
           )}
 
-          {canAttachImages && <StorageUsage />}
           <div className="maro-composer">
             {/* Text row */}
             <div className="relative">
@@ -1201,12 +1289,15 @@ export function ToolComposer({
                   disabled={!draftReady || !ready}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      if (!e.repeat) generateButtonRef.current?.click();
+                    }
                   }}
                   onPaste={onPasteImages}
-                  rows={2}
+                  rows={3}
                   placeholder={placeholder}
-                  className="maro-composer__input block max-h-56 min-h-[4.5rem] w-full resize-none pl-2 pr-12 pt-1 text-[16px] leading-relaxed placeholder:text-ink-3"
+                  className="maro-composer__input block h-[4.5rem] max-h-36 min-h-[4.5rem] w-full resize-none pl-2 pr-12 pt-1 text-[16px] leading-relaxed placeholder:text-ink-3"
                 />
               ) : (
                 <div className="flex min-h-[4.5rem] items-center pl-2 pr-12 pt-1 text-[16px] text-ink-3">
@@ -1226,7 +1317,7 @@ export function ToolComposer({
               )}
             </div>
 
-            {needsPrompt && <p id={promptCountId} className={cn("px-2 pb-2 text-[12px]", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
+            {needsPrompt && <p id={promptCountId} className={cn("px-2 text-[12px]", prompt.length < promptLimit * 0.9 && "sr-only", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
               {prompt.length.toLocaleString("en-US")} / {promptLimit.toLocaleString("en-US")} shkronja
               {promptTooLong && ` · Fshi edhe ${(prompt.length - promptLimit).toLocaleString("en-US")} shkronja për të gjeneruar.`}
             </p>}
@@ -1308,24 +1399,14 @@ export function ToolComposer({
               </div>
 
               <div className="dock-toolbar-actions">
-                {functional && (
-                  <span className="maro-dock-pill shrink-0">
-                    <MaroIcon name="coins" className="h-5 w-5 shrink-0" />
-                    {isImage && !selectedImageModel ? "—" : cost}
-                    <span className="opacity-80">kredite</span>
-                  </span>
-                )}
-                <Button
-                  variant="primary"
+                <GenerateButton
+                  ref={generateButtonRef}
                   loading={loading}
-                  icon={<MaroIcon name="generate" className="h-5 w-5" />}
-                  onClick={onGenerate}
+                  onCommit={onGenerate}
+                  cost={functional && (!isImage || selectedImageModel) ? cost : undefined}
+                  cancelKey={JSON.stringify([conversationUserId, conversationId, tool.id, workspaceId, prompt, selections, cost, credits, privateImageAttachments.map(item => item.id), attachments, audioInput?.name])}
                   disabled={functional && (!canGenerate || loading)}
-                  className="min-w-[4.5rem] shrink-0"
-                  aria-label="Gjenero"
-                >
-                  maro
-                </Button>
+                />
               </div>
             </div>
           </div>
@@ -1346,7 +1427,7 @@ export function ToolComposer({
       </div>
       )}
 
-      <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm">
+      <Modal open={showAuth} onClose={() => { pendingRef.current = false; pendingAuthDraft.current = null; setShowAuth(false); }} size="sm">
         <ModalHeader
           icon={<Sparkles className="h-5 w-5" />}
           title="Hyr për të gjeneruar"
@@ -1398,7 +1479,7 @@ export function ToolComposer({
         onClose={() => setExpanded(false)}
         onSubmit={() => {
           setExpanded(false);
-          onGenerate();
+          generateButtonRef.current?.click();
         }}
         placeholder={placeholder}
       />

@@ -249,6 +249,7 @@ export const TOOLS: ToolDef[] = [
           { id: "ig-story", label: "Instagram Story", hint: "1080×1920px", cost: 5, available: true, size: "1024x1536" },
           { id: "fb-post", label: "Facebook Post", hint: "1:1", cost: 5, available: true, size: "1024x1024" },
           { id: "yt-thumb", label: "YouTube Thumbnail", hint: "1920×1080px", cost: 5, available: true, size: "1536x1024" },
+          { id: "4:3", label: "4:3", hint: "Landscape 4:3", cost: 5, available: true, size: "1536x1024" },
         ],
       },
       {

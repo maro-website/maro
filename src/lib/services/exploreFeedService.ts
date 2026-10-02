@@ -3,15 +3,35 @@
 import { getAccessToken } from "@/lib/supabase/client";
 import type { ExploreItemExtended, ExploreSort } from "@/lib/explore/types";
 
+export async function exploreWrite(path: string, method: "POST" | "PATCH" | "DELETE", input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const token = await getAccessToken();
+  const response = await fetch(path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(input) });
+  if (!response.ok) throw new Error(`explore-write-${response.status}`);
+  return response.json();
+}
+export async function toggleCreationSave(creationId: string, saved: boolean) {
+  const result = await exploreWrite("/api/explore/save", "POST", { creationId, saved });
+  return typeof result.save_count === "number" ? result.save_count : 0;
+}
+export async function recordCreationView(creationId: string) {
+  const result = await exploreWrite("/api/explore/view", "POST", { creationId });
+  return typeof result.view_count === "number" ? result.view_count : 0;
+}
+
 export type { ExploreItem } from "@/lib/services/exploreService";
 
-export async function fetchExploreFeed(sort: ExploreSort = "recent"): Promise<ExploreItemExtended[]> {
+export async function fetchExploreFeed(sort: ExploreSort = "recent", filters: { author?: string; mine?: boolean; saved?: boolean; offset?: number } = {}): Promise<ExploreItemExtended[]> {
   const token = await getAccessToken();
-  const res = await fetch(`/api/explore?sort=${sort}`, {
+  const params = new URLSearchParams({ sort });
+  if (filters.author) params.set("author", filters.author);
+  if (filters.mine) params.set("mine", "1");
+  if (filters.saved) params.set("saved", "1");
+  if (filters.offset) params.set("offset", String(filters.offset));
+  const res = await fetch(`/api/explore?${params}`, {
     cache: "no-store",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("explore-unavailable");
   const j = (await res.json()) as { items?: ExploreItemExtended[] };
   return j.items ?? [];
 }
@@ -23,6 +43,8 @@ export async function shareToExplore(input: {
   selections?: Record<string, string>;
   presetId?: string;
   remixOf?: string;
+  showPrompt?: boolean;
+  showSettings?: boolean;
 }): Promise<{ slug?: string }> {
   const token = await getAccessToken();
   const res = await fetch("/api/explore", {
@@ -47,13 +69,14 @@ export async function toggleCreationLike(creationId: string, liked: boolean): Pr
     },
     body: JSON.stringify({ creationId, liked }),
   });
-  if (!res.ok) return 0;
+  if (!res.ok) throw new Error("like-not-saved");
   const j = (await res.json()) as { like_count?: number };
   return j.like_count ?? 0;
 }
 
 export async function fetchCreationBySlug(slug: string): Promise<ExploreItemExtended | null> {
-  const res = await fetch(`/api/explore?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+  const token = await getAccessToken();
+  const res = await fetch(`/api/explore?slug=${encodeURIComponent(slug)}`, { cache: "no-store", headers: token ? { Authorization: `Bearer ${token}` } : {} });
   if (!res.ok) return null;
   const j = (await res.json()) as { item?: ExploreItemExtended };
   return j.item ?? null;

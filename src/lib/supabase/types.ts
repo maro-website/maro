@@ -15,6 +15,8 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string;
+  username?: string | null;
+  avatar_url?: string | null;
   credits: number;
   is_admin: boolean;
   /** Administrative RBAC role (Phase 1). Null = normal user. */

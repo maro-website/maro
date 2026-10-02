@@ -11,6 +11,8 @@ describe("Explore legacy schema compatibility", () => {
     expect(fullSelect).not.toContain("author_avatar");
     expect(legacySelect).toBeTruthy();
     expect(legacySelect).not.toContain("author_avatar");
-    expect(route.match(/\.select\(SELECT_LEGACY\)/g)).toHaveLength(2);
+    expect(legacySelect).toContain("show_prompt,show_settings,deleted_at");
+    expect(route.match(/select\(SELECT_LEGACY, false\)/g)).toHaveLength(2);
+    expect(route.match(/result\.error\?\.code === "42703"/g)).toHaveLength(2);
   });
 });

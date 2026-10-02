@@ -203,6 +203,7 @@ export function MaroLogoWizard() {
     setIsGenerating(true);
     dispatch({ type: "SET_PHASE", phase: "generating" });
     const now = new Date().toISOString();
+    const conversationId = crypto.randomUUID();
     const fort = undefined;
 
     try {
@@ -214,10 +215,12 @@ export function MaroLogoWizard() {
       const res = await generateImages({
         ...buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences, presetAttach?.id),
         workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
+        conversationId,
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"), serverId: res.generationId, storageRefs: res.storageRefs, workspaceId,
+        conversationId, logoWizard: structuredClone(state.wizard),
         toolId: "logo", prompt: state.wizard.brand.name.trim() || "Logo", urls: res.images,
         formatLabel: PRESENTATION_LABELS[state.wizard.presentation.mode], modelLabel: model.label, speedLabel: "Normal",
         fort: Boolean(fort), createdAt: now,

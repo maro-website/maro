@@ -46,7 +46,7 @@ const COUNTRY_CODES = [
 function AccountInner() {
   const router = useRouter();
   const { active, setTab } = useAccountTab();
-  const { user, credits, projects, creations, session, updateProfileName, updateAvatar } = useMaro();
+  const { user, profile, credits, projects, creations, session, updateProfileName, updateAvatar, getAccessToken, refreshProfile } = useMaro();
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState(false);
   const [cropSrc, setCropSrc] = React.useState<string | null>(null);
@@ -146,6 +146,19 @@ function AccountInner() {
                         return !error;
                       }}
                     />
+                    <EditableField
+                      label="Username publik"
+                      value={profile?.username ?? ""}
+                      onSave={async value => {
+                        const token = await getAccessToken();
+                        try {
+                          const response = await fetch("/api/profiles", { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ username: value }) });
+                          if (!response.ok) { toast(response.status === 409 ? "Ky username është i zënë." : "Përdor 3–30 shkronja të vogla, numra, _ ose -."); return false; }
+                          await refreshProfile(); toast("Username u ruajt."); return true;
+                        } catch { toast("Username nuk u ruajt. Provo përsëri."); return false; }
+                      }}
+                    />
+                    {profile?.username && <a href={`/u/${profile.username}`} className="text-sm text-ink-3 hover:underline">maro.al/u/{profile.username}</a>}
                     <EditableField
                       label="Email"
                       value={user?.email ?? ""}

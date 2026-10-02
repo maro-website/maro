@@ -23,6 +23,9 @@ export interface AiImageRequest {
   maroPrompt?: { id: string };
   /** Workspace that owns this generation (frozen at insert time). */
   workspaceId?: string;
+  conversationId?: string;
+  /** User's follow-up instruction for an existing logo conversation. */
+  revision?: string;
   /** Inject active workspace brand colors/logo into the prompt. */
   useWorkspaceBrand?: boolean;
   idempotencyKey?: string;

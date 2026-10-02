@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import sharp from "sharp";
+import { imageOutputBytes } from "@/lib/generation/imageOutputFormat";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { validateProviderImageBytes } from "@/lib/security/uploadValidation";
 import type { ImageProviderObservation } from "@/lib/ai/imageObservation";
@@ -18,12 +18,12 @@ export function v1OutputReference(userId: string, jobId: string) {
 }
 
 /** Decode, durably checkpoint, upload, and read back the one expected V1 output. */
-export async function storeV1ImageOutput(userId: string, jobId: string, outputs: string[], observation?: ImageProviderObservation): Promise<string> {
+export async function storeV1ImageOutput(userId: string, jobId: string, outputs: string[], observation?: ImageProviderObservation, format?: string): Promise<string> {
   if (outputs.length !== 1) throw new V1PersistenceError("provider_output_invalid");
   const validated = validateProviderImageBytes(outputs[0]);
   if (!validated.ok) throw new V1PersistenceError("provider_output_invalid");
   let bytes: Buffer;
-  try { bytes = await sharp(validated.bytes, { limitInputPixels: 40_000_000 }).png().toBuffer(); }
+  try { bytes = await imageOutputBytes(validated.bytes, format); }
   catch { throw new V1PersistenceError("provider_output_invalid"); }
   const { path, reference } = v1OutputReference(userId, jobId);
   const db = getSupabaseAdmin();

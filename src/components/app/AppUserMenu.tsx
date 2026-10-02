@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { ThemeSwitch } from "@/components/app/ThemeSwitch";
+import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { MaroIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
@@ -18,7 +19,7 @@ import { Camera, ChevronDown, Shield, Star, User as UserIcon } from "lucide-reac
 
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
-  const { user, isAdmin, signOut, updateAvatar } = useMaro();
+  const { user, profile, isAdmin, signOut, updateAvatar } = useMaro();
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -120,10 +121,13 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
 
             <div className="mt-4 flex flex-col gap-1">
               <MenuRow icon="user" fallback={UserIcon} label="Llogaria" onClick={() => go("/account")} />
+              <MenuRow icon="user" fallback={UserIcon} label="Profili publik" onClick={() => go(`/u/${profile?.username ?? user.id}`)} />
               {isAdmin && (
                 <MenuRow icon="admin" fallback={Shield} label="Admin Panel" onClick={() => go("/admin")} />
               )}
             </div>
+
+            <StorageUsage className="mt-4" />
 
             <div className="my-[20px] h-px bg-menu-divider" />
 
