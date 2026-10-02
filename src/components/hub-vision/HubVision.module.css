@@ -376,6 +376,7 @@
 }
 .futureTool { min-width: 0; border-radius: 18px; overflow: hidden; background: var(--paper); }
 .toolStudy { height: 320px; overflow: hidden; position: relative; display: grid; place-items: center; }
+.toolStudyImage { object-fit: cover; object-position: center; }
 .studyArtwork { width: 260px; height: 184px; transform: scale(1.5); }
 .futureTool .launchFooter .release { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; background: var(--maro-color-bg-surface-02); padding: 0 18px; border-radius: 9px; font-size: 12px; }
 .web .toolStudy { background: #e4e9eb; }

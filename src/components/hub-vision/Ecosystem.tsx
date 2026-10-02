@@ -1,4 +1,4 @@
-import { ArrowUpRight, AudioLines, ScanLine } from "lucide-react";
+import Image from "next/image";
 import { copy, upcoming } from "./content";
 import { ToolFooter } from "./ToolFooter";
 import { FilmaPreview } from "./FilmaPreview";
@@ -6,43 +6,6 @@ import { WebHubPreview } from "./WebHubPreview";
 import s from "./HubVision.module.css";
 
 type UpcomingTool = (typeof upcoming)[number];
-
-function ToolStudy({ motif }: { motif: string }) {
-  if (motif === "audio")
-    return (
-      <div className={s.audioStudy}>
-        <span>IDEJA JOTE, ME ZË.</span>
-        <div className={s.waveform}>
-          {Array.from({ length: 39 }, (_, i) => (
-            <i key={i} style={{ height: `${Math.round(12 + Math.abs(Math.sin(i * 0.76) * Math.sin(i * 0.19)) * 72)}px` }} />
-          ))}
-        </div>
-        <div className={s.audioBottom}>
-          <span>00:00</span>
-          <AudioLines size={20} />
-          <span>maroZo</span>
-        </div>
-      </div>
-    );
-  return (
-    <div className={s.marketingStudy}>
-      <div className={s.strategyOrbit} />
-      <div className={s.campaignNote}>
-        <span>IDEJA</span>
-        <strong>
-          Bëje të
-          <br />
-          mbahet mend.
-        </strong>
-        <ArrowUpRight size={22} />
-      </div>
-      <div className={s.audienceNote}>
-        <ScanLine size={24} />
-        <span>NJERËZIT E DUHUR</span>
-      </div>
-    </div>
-  );
-}
 
 function EcosystemMedia({ motif }: { motif: string }) {
   if (motif === "film") {
@@ -61,9 +24,13 @@ function EcosystemMedia({ motif }: { motif: string }) {
   }
   return (
     <div className={s.toolStudy} aria-hidden="true">
-      <div className={s.studyArtwork}>
-        <ToolStudy motif={motif} />
-      </div>
+      <Image
+        src={motif === "audio" ? "/images/hub-vision/maroAudio_hub01.png" : "/images/hub-vision/maroMarketing_hub01.png"}
+        alt=""
+        fill
+        sizes="(max-width: 600px) 100vw, 40vw"
+        className={s.toolStudyImage}
+      />
     </div>
   );
 }
