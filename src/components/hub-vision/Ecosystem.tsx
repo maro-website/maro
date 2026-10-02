@@ -3,6 +3,7 @@ import { copy, upcoming } from "./content";
 import { ToolFooter } from "./ToolFooter";
 import { FilmaPreview } from "./FilmaPreview";
 import { WebHubPreview } from "./WebHubPreview";
+import TechText from "./TechText";
 import s from "./HubVision.module.css";
 
 type UpcomingTool = (typeof upcoming)[number];
@@ -53,8 +54,9 @@ export function Ecosystem() {
 
   return (
     <section className={s.ecosystem} aria-labelledby="ecosystem-title">
-      <div className={s.sectionHeading}>
-        <h2 id="ecosystem-title">{copy.ecosystem}</h2>
+      <h2 id="ecosystem-title" className="sr-only">{copy.ecosystem}</h2>
+      <div className={s.ecosystemIntro} aria-hidden="true">
+        <TechText text={copy.ecosystem} fontSize={420} />
       </div>
       <div className={s.ecosystemGrid}>
         <FutureToolCard tool={web} />

@@ -390,7 +390,16 @@
 .recentItem small { font-size: 9px; color: var(--muted); display: block; margin-top: 5px; }
 .recentItem > svg { flex-shrink: 0; }
 .discovery { scroll-margin-top: 24px; }
-.ecosystem { padding-top: 49px; }
+.ecosystem { padding-top: 0; }
+.ecosystemIntro {
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  height: calc(100svh - var(--maro-shell-header-height));
+  min-height: 380px;
+  margin-block: clamp(80px, 10vw, 152px) clamp(64px, 8vw, 112px);
+  transform: translateX(-50%);
+}
 .sectionHeading { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; margin-bottom: 23px; }
 .eyebrow { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: .14em; margin-bottom: 10px; }
 .sectionHeading h2 { font-size: clamp(23px, 2.1vw, 30px); font-weight: 600; letter-spacing: -.055em; line-height: 1.25; }
