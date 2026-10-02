@@ -52,6 +52,8 @@ export interface UploadedReference {
   id: string;
   name: string;
   dataUrl: string;
+  /** Existing library asset, reused without creating another upload. */
+  storageRef?: string;
 }
 
 export type WizardStep = 1 | 2 | 3;

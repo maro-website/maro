@@ -418,8 +418,7 @@
 }
 
 .maro-nav__link[data-active="true"] {
-  background: var(--maro-color-accent-subtle);
-  box-shadow: inset 0 -2px var(--maro-color-border-focus);
+  background: var(--maro-color-bg-surface-02);
 }
 
 .maro-nav__link[data-disabled="true"] {

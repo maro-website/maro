@@ -72,6 +72,13 @@ describe("OpenAI image provider safety", () => {
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 
+  it("passes all ten user references to the provider without truncation", async () => {
+    mockEdit.mockResolvedValue({ data: [{ b64_json: "edit123" }] });
+    const { editImages } = await loadOpenAI();
+    await editImages({ model: "gpt-image-2.5-sunburst", prompt: "Use all references", images: Array.from({ length: 10 }, () => "data:image/png;base64,aaaa") });
+    expect(mockEdit.mock.calls[0][0].image).toHaveLength(10);
+  });
+
   it("reports actual response usage and request ID without another call", async () => {
     mockGenerate.mockResolvedValue({ _request_id: "req_live_shape", data: [{ b64_json: "image" }], usage: { input_tokens: 100, input_tokens_details: { text_tokens: 100, image_tokens: 0 }, output_tokens: 1000 } });
     const onObservation = vi.fn();

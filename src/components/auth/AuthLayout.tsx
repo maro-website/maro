@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { LoginAdPanel } from "@/components/auth/LoginAdPanel";
 
 function FacebookIcon() {
   return (
@@ -43,17 +42,16 @@ const FOOTER_LINKS = [
 export function AuthLayout({ children, title, subtitle, showSocials = false }: { children: React.ReactNode; title: string; subtitle: string; showSocials?: boolean }) {
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
-      <main className="mx-auto flex w-full max-w-[1500px] flex-1 items-center px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <div className="grid w-full gap-5 lg:grid-cols-[420px_minmax(0,860px)] xl:grid-cols-[440px_minmax(0,860px)]">
-          <section className="flex min-h-[627px] flex-col rounded-maro24 bg-surface-2 px-7 py-8 sm:px-11 sm:py-10">
+      <main className="mx-auto flex w-full flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-10">
+        <div className="w-full max-w-[440px]">
+          <section className="flex flex-col px-3 py-6 sm:px-6">
             <h1 className="sr-only">{title}</h1><p className="sr-only">{subtitle}</p>
             <Link href="/" className="mx-auto inline-flex" aria-label="maro — Ballina"><Logo showWord wordClassName="h-[48px] sm:h-[54px]" /></Link>
-            <div className="my-auto w-full py-10">
+            <div className="w-full pt-10">
               {showSocials ? <><SocialPlaceholders /><div className="my-7 flex items-center gap-4" aria-hidden><span className="h-px flex-1 bg-line" /><span className="text-[11px] font-bold uppercase text-ink-2">ose</span><span className="h-px flex-1 bg-line" /></div></> : null}
               {children}
             </div>
           </section>
-          <LoginAdPanel />
         </div>
       </main>
       <footer className="border-t border-line bg-surface px-5 py-4 sm:px-8">

@@ -508,3 +508,32 @@ html[data-theme="mshelt"] { --skeleton-shine: rgb(255 255 255 / 8%); }
   .maro-switch-knob, .maro-switch-track { transition: none; }
   .maro-generation-loader * { animation: none !important; }
 }
+
+/* Mshelt: restrained separators and flat fields, including older utility-based forms. */
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :where(*:not(.animate-spin), *:not(.animate-spin)::before, *:not(.animate-spin)::after) {
+  border-color: var(--maro-color-border-default);
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea),
+:root[data-theme="mshelt"] body[data-maro-ui="final"] .maro-library-search {
+  border-color: transparent;
+  box-shadow: none;
+  background-color: color-mix(in srgb, var(--maro-color-bg-surface) 90%, white 10%);
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :is(input, select, textarea):focus-visible {
+  box-shadow: none;
+  outline-width: 1px;
+  outline-color: var(--maro-color-border-focus);
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] .maro-composer__input {
+  background: transparent;
+  outline: none;
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] .maro-library-search input {
+  background: transparent;
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :is(.ring-card-active, .ring-brand, [class*="focus:ring-brand"], [class*="focus-within:ring-brand"]) {
+  box-shadow: none;
+}
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :is(.ring-card-active, .ring-brand) {
+  background-color: var(--maro-color-bg-surface-selected);
+}

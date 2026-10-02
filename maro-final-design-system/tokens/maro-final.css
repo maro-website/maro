@@ -234,11 +234,12 @@
   --maro-color-icon-inverse: #111315;
   --maro-color-icon-brand: #00ff72;
   --maro-color-icon-danger: #ff8585;
-  --maro-color-border-subtle: #343b43;
-  --maro-color-border-default: #4b5561;
-  --maro-color-border-strong: #f2f4f6;
-  --maro-color-border-interactive: #67727e;
-  --maro-color-border-focus: #00ff72;
+  --maro-color-border-subtle: rgb(255 255 255 / 10%);
+  --maro-color-border-default: rgb(255 255 255 / 12%);
+  --maro-color-border-strong: rgb(255 255 255 / 15%);
+  --maro-color-border-interactive: rgb(255 255 255 / 12%);
+  --maro-color-border-focus: rgb(255 255 255 / 15%);
+  --maro-focus-ring: none;
   --maro-color-accent-subtle: #173526;
   --maro-color-accent-muted: #326b4b;
   --maro-color-success: #65dfa1;

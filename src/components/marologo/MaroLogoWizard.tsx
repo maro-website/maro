@@ -1,4 +1,5 @@
 "use client";
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 
 import * as React from "react";
 import { readLogoDraft, saveLogoDraft } from "@/lib/marologo/draft";
@@ -206,8 +207,8 @@ export function MaroLogoWizard() {
 
     try {
       const canonicalReferences = await Promise.all(
-        state.references.slice(0, 3).map(async (reference, index) =>
-          (await uploadImageReferenceDataUrl(reference.dataUrl, `maro-logo-reference-${index + 1}`)).storageRef
+        state.references.slice(0, MAX_COMPOSER_ATTACHMENTS).map(async (reference, index) =>
+          reference.storageRef ?? (await uploadImageReferenceDataUrl(reference.dataUrl, `maro-logo-reference-${index + 1}`)).storageRef
         )
       );
       const res = await generateImages({

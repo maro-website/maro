@@ -9,6 +9,11 @@ const referenceUrl = (name: string) =>
 const privateReference = (name: string) => `storage:generations/user-1/project-assets/${name}.png`;
 
 describe("maroWeb reference image validation", () => {
+  it("accepts ten existing owned library images and rejects traversal", () => {
+    const images = Array.from({ length: 10 }, (_, index) => `storage:generations/user-1/result-${index}.png`);
+    expect(validateWebReferenceImages(images, { supabaseUrl: SUPABASE_URL, expectedUserId: "user-1" })).toEqual({ ok: true, images });
+    expect(validateWebReferenceImages(["storage:generations/user-1/../user-2/result.png"], { supabaseUrl: SUPABASE_URL, expectedUserId: "user-1" })).toEqual({ ok: false, error: "invalid_references" });
+  });
   it("accepts only uploaded project assets and removes duplicates", () => {
     const result = validateWebReferenceImages(
       [referenceUrl("one"), referenceUrl("one"), referenceUrl("two")],
@@ -21,7 +26,7 @@ describe("maroWeb reference image validation", () => {
     });
   });
 
-  it("rejects arbitrary URLs, data URLs, and more than four references", () => {
+  it("rejects arbitrary URLs, data URLs, and more than ten references", () => {
     expect(
       validateWebReferenceImages(["https://example.com/image.png"], {
         supabaseUrl: SUPABASE_URL,
@@ -34,7 +39,7 @@ describe("maroWeb reference image validation", () => {
       })
     ).toEqual({ ok: false, error: "invalid_references" });
     expect(
-      validateWebReferenceImages(Array.from({ length: 5 }, (_, index) => referenceUrl(String(index))), {
+      validateWebReferenceImages(Array.from({ length: 11 }, (_, index) => referenceUrl(String(index))), {
         supabaseUrl: SUPABASE_URL,
       })
     ).toEqual({ ok: false, error: "too_many_attachments" });

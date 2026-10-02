@@ -13,6 +13,11 @@ function dependencies(module = "maro_imazh"): V1ImageRequestDependencies {
 }
 
 describe("V1 pure input boundary", () => {
+  it("accepts ten distinct private attachments and rejects eleven", () => {
+    const attachments = Array.from({ length: 10 }, (_, index) => `storage:generations/user/project-assets/${index}.png`);
+    expect(parseV1ImageRequest({ ...imazhRequest, attachments }).referenceIds).toEqual(attachments);
+    expect(() => parseV1ImageRequest({ ...imazhRequest, attachments: [...attachments, "storage:generations/user/eleven.png"] })).toThrow("invalid_image_reference");
+  });
   it.each([3999, 4000, 4001, 8000, 32000, 64000])("accepts a %i character Imazh input without truncation", (length) => {
     const prompt = "a".repeat(length);
     expect(parseV1ImageRequest({ ...imazhRequest, prompt }).prompt).toBe(prompt);

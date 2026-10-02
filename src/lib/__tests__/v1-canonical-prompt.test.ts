@@ -46,6 +46,14 @@ beforeEach(() => {
 });
 
 describe("canonical Imazh", () => {
+  it("keeps all ten user references in the executable image payload and provenance", async () => {
+    const attachments = Array.from({ length: 10 }, (_, index) => `storage:generations/owner/project-assets/${index}.png`);
+    const resolved = await trusted({ ...imazhRequest, attachments });
+    const resolvedReferences = new Map(resolved.snapshot.references.map(ref => [ref.id, { dataUrl: `data:image/png;base64,${ref.id}`, digest: ref.id, mime: "image/png", normalized: false }] as const));
+    const { compilation, images } = await compileTrustedImageRequest({ ...resolved, resolvedReferences });
+    expect(images).toHaveLength(10);
+    expect(compilation.provenance.references.map(ref => ref.id)).toEqual(attachments);
+  });
   it("is deterministic and model-independent, while preserving model and price in execution provenance", async () => {
     const flare = (await trusted()).snapshot;
     const sunburst = (await trusted({ ...imazhRequest, model: "sunburst" })).snapshot;

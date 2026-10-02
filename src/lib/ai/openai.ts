@@ -159,7 +159,7 @@ export async function editImages(opts: {
   onObservation?: ImageObservationCallback;
 }): Promise<string[]> {
   const files = await Promise.all(
-    opts.images.slice(0, 4).map((d, i) => dataUrlToFile(d, i))
+    opts.images.map((d, i) => dataUrlToFile(d, i))
   );
 
   const params = {

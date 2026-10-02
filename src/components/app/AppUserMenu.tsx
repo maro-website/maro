@@ -13,7 +13,7 @@ import { UserAvatar as Avatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
 import type { LucideIcon } from "lucide-react";
-import { Bookmark, Camera, ChevronDown, Shield, Star, User as UserIcon } from "lucide-react";
+import { Camera, ChevronDown, Shield, Star, User as UserIcon } from "lucide-react";
 
 
 export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
@@ -128,7 +128,6 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             <div className="my-[20px] h-px bg-menu-divider" />
 
             <div className="flex flex-col gap-1">
-              <MenuRow icon="save" fallback={Bookmark} label="T'rujtuna" onClick={() => go("/favourites")} />
               <MenuRow icon="creator" fallback={Star} label="maro Kreator" onClick={() => go("/kreator")} />
             </div>
 

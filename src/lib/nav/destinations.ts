@@ -61,7 +61,7 @@ export const TOP_BAR_DESTINATIONS: NavDestination[] = MODULE_DESTINATIONS.map((d
 
 export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
   { id: "hub", label: "Hub", route: "/", iconName: "maro-imazh" },
-  { id: "krijimet", label: "Cka ke maru", route: "/krijimet", iconName: "history" },
+  { id: "krijimet", label: "Asetet", route: "/krijimet", iconName: "history" },
   { id: "brain", label: "maroBrain", route: "/brain", iconName: "maro-brain" },
   { id: "workspaces", label: "Cilesimet", route: "/account/workspaces", iconName: "settings" },
 ];

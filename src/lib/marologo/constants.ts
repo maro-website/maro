@@ -1,3 +1,4 @@
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 export const INDUSTRIES = [
   "Creative Agency",
   "Design Studio",
@@ -187,7 +188,7 @@ export const ADVANCED_SLIDER_LABELS = [
   { key: "symmetry" as const, left: "Asymmetric", right: "Symmetric", label: "Symmetry:" },
 ];
 
-export const MAX_REFERENCE_IMAGES = 3;
+export const MAX_REFERENCE_IMAGES = MAX_COMPOSER_ATTACHMENTS;
 export const MAX_REFERENCE_BYTES = 8 * 1024 * 1024;
 export const MAX_COLORS = 6;
 

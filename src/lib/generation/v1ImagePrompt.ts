@@ -42,7 +42,7 @@ export async function loadProductionImagePrompt(module: TrustedV1ImageRequest["m
 export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config: ProductionImagePrompt, context: CanonicalImageContext) {
   if (config.system.tool_id !== request.module || config.system.status !== "live" || !config.system.id || !config.system.version_label || !config.system.content.trim()) throw new ImageRequestValidationError("invalid_production_prompt", 503);
   const brainAllowed = request.module === "maro_imazh" && request.useBrain && Boolean(request.workspaceId);
-  const references = context.references.filter((ref) => ref.source === "user" || brainAllowed).slice(0, 4);
+  const references = context.references.filter((ref) => ref.source === "user" || brainAllowed).slice(0, Math.max(4, request.references.length + 1));
   const brainText = brainAllowed ? context.brainText?.trim() ?? "" : "";
   const fields: Record<string, string> = { ...Object.fromEntries(Object.entries(request.selections).filter(([k]) => k !== "model").map(([k, v]) => [`selections.${k}`, v])), hasReferences: String(references.length > 0), useBrain: String(brainAllowed) };
   const excluded: Array<{ id: string; reason: string }> = [];
@@ -97,7 +97,7 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
   const bytes: string[] = [];
   const digests = new Set<string>();
   function append(id: string, resolved: ResolvedImageReference, source: "user" | "brain") {
-    if (digests.has(resolved.digest) || bytes.length >= 4) return;
+    if (digests.has(resolved.digest) || bytes.length >= Math.max(4, request.references.length + 1)) return;
     digests.add(resolved.digest); bytes.push(resolved.dataUrl);
     context.references.push({ id, digest: resolved.digest, source });
   }

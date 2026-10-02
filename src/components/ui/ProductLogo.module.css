@@ -15,6 +15,9 @@
 
 .onDark { visibility: hidden; }
 
+.naturalWidth { width: max-content; }
+.naturalWidth .artwork { width: auto; max-width: none; }
+
 /* Reuse the application's existing dark preview / dark page selectors. */
 :global(html[data-theme="mshelt"]) .logo[data-surface="auto"] .onLight,
 :global(html[data-maro-preview-dark]) .logo[data-surface="auto"] .onLight,

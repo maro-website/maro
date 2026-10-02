@@ -1,7 +1,8 @@
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 import "server-only";
 
 export const DEFAULT_PROMPT_MAX_CHARS = 4000;
-export const MAX_REFERENCE_IMAGES = 3;
+export const MAX_REFERENCE_IMAGES = MAX_COMPOSER_ATTACHMENTS;
 export const MAX_REFERENCE_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_REQUEST_BODY_CHARS = 500_000;
 

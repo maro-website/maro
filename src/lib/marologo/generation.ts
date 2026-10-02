@@ -1,3 +1,4 @@
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 import type { AiImageRequest } from "@/lib/ai/imageTypes";
 import type { FortPayload } from "@/lib/fort/types";
 import type { LogoTypeValue, MaroLogoWizardState, UploadedReference } from "./types";
@@ -35,7 +36,7 @@ export function buildGenerationRequest(
   canonicalReferences?: string[],
   presetId?: string
 ): AiImageRequest {
-  const refs = (canonicalReferences ?? []).slice(0, 3);
+  const refs = (canonicalReferences ?? []).slice(0, MAX_COMPOSER_ATTACHMENTS);
 
   return {
     toolId: "logo",

@@ -1,4 +1,5 @@
 import "server-only";
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 import { createHash } from "node:crypto";
 import { generationAvailabilityError, resolveProductModule } from "@/lib/modules/availability";
 import { findOption, getTool, type ImageSize } from "@/lib/tools/registry";
@@ -96,8 +97,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   if (raw.size !== undefined && raw.size !== size) throw new ImageRequestValidationError("invalid_size");
 
   const referenceIds = raw.attachments === undefined ? [] : raw.attachments;
-  // Match the existing non-admin reference guard (3), which is stricter than the old composer (4).
-  if (!Array.isArray(referenceIds) || referenceIds.length > 3 || new Set(referenceIds).size !== referenceIds.length ||
+  if (!Array.isArray(referenceIds) || referenceIds.length > MAX_COMPOSER_ATTACHMENTS || new Set(referenceIds).size !== referenceIds.length ||
       referenceIds.some((ref) => typeof ref !== "string" || ref.length > 1024 || !ref.startsWith("storage:generations/"))) {
     throw new ImageRequestValidationError("invalid_image_reference");
   }

@@ -1,6 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { AttachmentPicker } from "@/components/app/AttachmentPicker";
+import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attachments";
+import { composerDraftKey } from "@/lib/services/composerDraft";
+import { useComposerDraft } from "@/lib/hooks/useComposerDraft";
+import { resolvePrivateAssetRefsStrict } from "@/lib/services/projectAssetService";
+import type { LibrarySelection } from "@/lib/services/assetLibrary";
 import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -127,7 +133,6 @@ const AUDIO_ERRORS: Record<string, string> = {
   "bad-tool": "Tool i pavlefshëm.",
 };
 
-const MAX_ATTACHMENTS = 3;
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const IMAGE_REFERENCE_TRANSFER_KEY = "maro:image-reference";
 
@@ -176,16 +181,17 @@ export function ToolComposer({
   const openId = searchParams.get("open");
   const isReadOnlyView = Boolean(openId);
   const { toast } = useToast();
-  const { user, credits, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
+  const { user, ready, credits, creations, addProject, addCreation, spendCredits, activeWorkspaceScope } = useMaro();
   const { activeWorkspace } = useWorkspace();
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
+  const draftKey = composerDraftKey(user?.id, workspaceId, tool.id);
   const { pricing, toolOptionIcons } = useSettings(Boolean(user));
 
 
-  const [prompt, setPrompt] = React.useState("");
+  const { prompt, setPrompt, attachments, setAttachments, privateImageAttachments, setPrivateImageAttachments, audioInput, setAudioInput, promptAttach: promptAttachInternal, setPromptAttachInternal, draftReady } = useComposerDraft(draftKey);
+  const [attachmentPickerOpen, setAttachmentPickerOpen] = React.useState(false);
+  const [webPreviews, setWebPreviews] = React.useState<Record<string, string>>({});
   const [selections, setSelections] = React.useState<ToolSelections>(() => loadToolSelections(tool));
-  const [attachments, setAttachments] = React.useState<string[]>([]);
-  const [privateImageAttachments, setPrivateImageAttachments] = React.useState<PrivateImageAttachment[]>([]);
   const [uploadingReferences, setUploadingReferences] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
@@ -199,18 +205,27 @@ export function ToolComposer({
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
-  const [promptAttachInternal, setPromptAttachInternal] = React.useState<PromptAttach | null>(null);
   const promptAttachControlled = onPromptAttachChange !== undefined;
   const promptAttach = promptAttachControlled ? (promptAttachProp ?? null) : promptAttachInternal;
   const setPromptAttach = React.useCallback(
     (attach: PromptAttach | null) => {
+      setPromptAttachInternal(attach);
       if (promptAttachControlled) onPromptAttachChange!(attach);
-      else setPromptAttachInternal(attach);
     },
-    [promptAttachControlled, onPromptAttachChange]
+    [promptAttachControlled, onPromptAttachChange, setPromptAttachInternal]
   );
+  const presetHydration = React.useRef<{ key: string; prop: PromptAttach | null | undefined } | null>(null);
+  React.useEffect(() => {
+    if (!draftReady || !ready || !promptAttachControlled) return;
+    if (presetHydration.current?.key !== draftKey) {
+      presetHydration.current = { key: draftKey, prop: promptAttachProp };
+      onPromptAttachChange?.(promptAttachInternal);
+    } else if (presetHydration.current.prop !== promptAttachProp) {
+      presetHydration.current.prop = promptAttachProp;
+      setPromptAttachInternal(promptAttachProp ?? null);
+    }
+  }, [draftReady, ready, draftKey, promptAttachControlled, promptAttachProp, promptAttachInternal, onPromptAttachChange, setPromptAttachInternal]);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [audioInput, setAudioInput] = React.useState<{ url: string; name: string } | null>(null);
   const [dragOver, setDragOver] = React.useState(false);
   const dragDepth = React.useRef(0);
   const pendingRef = React.useRef(false);
@@ -288,6 +303,7 @@ export function ToolComposer({
   }, [brainUserId, workspaceId]);
 
   React.useEffect(() => {
+    if (!draftReady || !ready) return;
     // Reload when the tool changes (e.g. client-side nav between tools).
     const savedSelections = loadToolSelections(tool);
     setSelections(savedSelections);
@@ -299,9 +315,6 @@ export function ToolComposer({
     } catch {
       /* ignore */
     }
-    setAttachments([]);
-    setPrivateImageAttachments([]);
-    setAudioInput(null);
     // Pull a curated prompt attached from /prompts (only if it targets this tool).
     let attach: PromptAttach | null = null;
     try {
@@ -320,8 +333,8 @@ export function ToolComposer({
       : savedSelections;
     setSelections(nextSelections);
     if (attach) saveToolSelections(tool.id, nextSelections);
-    setPrompt(draft || (attach ? presetInitialPrompt(attach.tool, presetConfig) : ""));
-    setPromptAttach(attach);
+    if (draft || attach) setPrompt(draft || presetInitialPrompt(attach!.tool, presetConfig));
+    if (attach) setPromptAttach(attach);
     saveLastTool(tool.id);
 
     // maroLogo → maroImazh keeps the already-private generation identity. The
@@ -398,7 +411,7 @@ export function ToolComposer({
     setMessages(seeded);
     // Re-seed whenever the tool OR the ?open= target changes (clicking another
     // recent card while already on the same tool page).
-  }, [tool, openId, setPromptAttach]);
+  }, [tool, openId, setPromptAttach, setPrompt, setPrivateImageAttachments, draftReady, ready]);
 
   // Only scroll when the latest generation is added or changes status.
   const latestMessage = messages[messages.length - 1];
@@ -456,7 +469,7 @@ export function ToolComposer({
       attachmentUploadPromises.current.set(attachment.id, promise);
       return promise;
     },
-    []
+    [setPrivateImageAttachments]
   );
 
   const queuePrivateImageFiles = React.useCallback(
@@ -491,12 +504,16 @@ export function ToolComposer({
         };
       }));
       if (!queued.length) return;
-      setPrivateImageAttachments((current) => [...current, ...queued]);
+      let admitted: PrivateImageAttachment[] = [];
+      setPrivateImageAttachments((current) => {
+        admitted = queued.slice(0, Math.max(0, MAX_ATTACHMENTS - current.length));
+        return [...current, ...admitted];
+      });
       if (user) {
-        await Promise.allSettled(queued.map((attachment) => startPrivateAttachmentUpload(attachment)));
+        await Promise.allSettled(admitted.map((attachment) => startPrivateAttachmentUpload(attachment)));
       }
     },
-    [startPrivateAttachmentUpload, toast, user]
+    [startPrivateAttachmentUpload, toast, user, setPrivateImageAttachments]
   );
 
   const refreshPrivateAttachmentPreview = React.useCallback(async (id: string) => {
@@ -511,13 +528,13 @@ export function ToolComposer({
   }, [startPrivateAttachmentUpload]);
 
   React.useEffect(() => {
-    if (!user) return;
+    if (!user || !draftReady) return;
     for (const attachment of privateImageAttachmentsRef.current) {
-      if (attachment.status === "pending" && attachment.sourceFile) {
+      if (attachment.status === "pending" && (attachment.sourceFile || attachment.storageRef)) {
         void startPrivateAttachmentUpload(attachment).catch(() => undefined);
       }
     }
-  }, [startPrivateAttachmentUpload, user]);
+  }, [startPrivateAttachmentUpload, user, draftReady, privateImageAttachments]);
 
   const addImageUrl = React.useCallback(
     async (url: string) => {
@@ -557,7 +574,7 @@ export function ToolComposer({
         toast("S'munda ta ngarkoj imazhin.");
       }
     },
-    [isImage, isWebsite, queuePrivateImageFiles, toast]
+    [isImage, isWebsite, queuePrivateImageFiles, toast, setAttachments]
   );
 
   const addImageFiles = React.useCallback(
@@ -588,14 +605,31 @@ export function ToolComposer({
               return;
             }
             const reader = new FileReader();
-            reader.onload = () => setAttachments((a) => [...a, reader.result as string]);
+            reader.onload = () => setAttachments((a) => [...a, reader.result as string].slice(0, MAX_ATTACHMENTS));
             reader.readAsDataURL(f);
           });
         return current;
       });
     },
-    [isImage, isWebsite, queuePrivateImageFiles, toast]
+    [isImage, isWebsite, queuePrivateImageFiles, toast, setAttachments]
   );
+
+  const selectLibraryAssets = (assets: LibrarySelection[]) => {
+    if (isImage) {
+      setPrivateImageAttachments(current => [...current, ...assets.filter(asset => !current.some(item => item.storageRef === asset.storageRef)).map(asset => ({ id: uid("att"), name: asset.name, storageRef: asset.storageRef, previewUrl: asset.url, status: "ready" as const }))].slice(0, MAX_ATTACHMENTS));
+    } else {
+      setAttachments(current => [...new Set([...current, ...assets.map(asset => asset.storageRef)])].slice(0, MAX_ATTACHMENTS));
+      setWebPreviews(current => ({ ...current, ...Object.fromEntries(assets.map(asset => [asset.storageRef, asset.url])) }));
+    }
+  };
+  React.useEffect(() => {
+    if (!isWebsite || !draftReady || !user) return;
+    const refs = attachments.filter(value => value.startsWith("storage:generations/"));
+    if (!refs.length) return;
+    let alive = true;
+    void resolvePrivateAssetRefsStrict(refs).then(urls => { if (alive) setWebPreviews(urls); }).catch(() => { if (alive) toast("Pamjet e aseteve nuk u hapën. Provo përsëri."); });
+    return () => { alive = false; };
+  }, [attachments, isWebsite, draftReady, user, toast]);
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -713,7 +747,7 @@ export function ToolComposer({
     } finally {
       setLoading(false);
     }
-  }, [promptTooLong, prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast, workspaceId]);
+  }, [setPrompt, setAudioInput, promptTooLong, prompt, needsPrompt, needsAudioInput, audioInput, selections, tool, modeOpt, cost, spendCredits, addCreation, toast, workspaceId]);
 
   const doGenerate = React.useCallback(async () => {
     if (tool.kind === "audio") {
@@ -732,7 +766,7 @@ export function ToolComposer({
       setLoading(true);
       try {
         const referenceImages = attachments.length
-          ? await Promise.all(attachments.map((dataUrl) => uploadProjectAssetDataUrl(dataUrl)))
+          ? await Promise.all(attachments.map((value) => value.startsWith("storage:generations/") ? value : uploadProjectAssetDataUrl(value)))
           : undefined;
         const project = createProjectFromComposer({
           prompt: text,
@@ -862,10 +896,10 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
+  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel]);
 
   // Whether the current inputs are enough to generate.
-  const canGenerate = !promptTooLong && (isAudio
+  const canGenerate = ready && draftReady && !promptTooLong && (isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
     : Boolean(prompt.trim()) && (!isImage || Boolean(selectedImageModel)) && (
         !isImage ||
@@ -1053,7 +1087,7 @@ export function ToolComposer({
               {(isImage ? privateImageAttachments : attachments.map((previewUrl, index) => ({
                 id: `legacy-${index}`,
                 name: "",
-                previewUrl,
+                previewUrl: webPreviews[previewUrl] ?? previewUrl,
                 status: "ready" as const,
               }))).map((attachment, i) => (
                 <div key={attachment.id} className="relative h-16 w-16 overflow-hidden rounded-xl bg-surface-2">
@@ -1164,6 +1198,7 @@ export function ToolComposer({
                   aria-describedby={promptCountId}
                   aria-invalid={promptTooLong}
                   value={prompt}
+                  disabled={!draftReady || !ready}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
@@ -1182,6 +1217,7 @@ export function ToolComposer({
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
+                  disabled={!draftReady || !ready}
                   className="absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none"
                   aria-label="Zgjero promptin"
                 >
@@ -1211,8 +1247,8 @@ export function ToolComposer({
                     }}
                   />
                   <IconBtn
-                    onClick={() => fileRef.current?.click()}
-                    disabled={(isImage ? privateImageAttachments.length : attachments.length) >= MAX_ATTACHMENTS}
+                    onClick={() => setAttachmentPickerOpen(true)}
+                    disabled={!draftReady || !ready || (isImage ? privateImageAttachments.length : attachments.length) >= MAX_ATTACHMENTS}
                     label="Bashkëngjit imazh"
                   >
                     <MaroIcon name="attach" fallback={Paperclip} className="h-5 w-5" />
@@ -1321,6 +1357,7 @@ export function ToolComposer({
         </div>
       </Modal>
 
+      <AttachmentPicker open={attachmentPickerOpen} onClose={() => setAttachmentPickerOpen(false)} onUpload={() => fileRef.current?.click()} limit={MAX_ATTACHMENTS - (isImage ? privateImageAttachments.length : attachments.length)} excludeRefs={isImage ? privateImageAttachments.flatMap(item => item.storageRef ? [item.storageRef] : []) : attachments} onSelect={selectLibraryAssets} />
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
 
       <Modal open={confirmOpt !== null} onClose={() => setConfirmOpt(null)} size="sm">

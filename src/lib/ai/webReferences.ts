@@ -1,4 +1,5 @@
-export const MAX_WEB_REFERENCE_IMAGES = 4;
+import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
+export const MAX_WEB_REFERENCE_IMAGES = MAX_COMPOSER_ATTACHMENTS;
 
 export type WebReferenceValidation =
   | { ok: true; images: string[] }
@@ -41,10 +42,10 @@ export function validateWebReferenceImages(
       const path = raw.slice("storage:generations/".length);
       const segments = path.split("/");
       if (
-        segments.length < 3 ||
-        segments[1] !== "project-assets" ||
+        segments.length < 2 ||
         !segments.at(-1) ||
-        path.includes("..") ||
+        /[\\%?#\u0000-\u001f\u007f]/.test(path) ||
+        segments.some(segment => !segment || segment === "." || segment === "..") ||
         (options.expectedUserId && segments[0] !== options.expectedUserId)
       ) {
         return { ok: false, error: "invalid_references" };
