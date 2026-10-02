@@ -27,6 +27,16 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: () => builder });
 });
 describe("Explore privacy and ownership boundary", () => {
+  it("opens legacy publications without slugs by their individual IDs", async () => {
+    const legacy = await exploreResponse({ ...row, slug: null });
+    expect(legacy.slug).toBe(post); expect(legacy.prompt).toBe("");
+    expect((await exploreResponse(row)).slug).toBe("creation");
+    await GET(request("GET", undefined, `?slug=${post}`));
+    expect(mocks.eq).toHaveBeenCalledWith("id", post);
+    mocks.eq.mockClear();
+    await GET(request("GET", undefined, "?slug=creation"));
+    expect(mocks.eq).toHaveBeenCalledWith("slug", "creation");
+  });
   it("strips private prompt/settings/internal fields from public responses", async () => {
     const result = await exploreResponse(row);
     expect(result.prompt).toBe(""); expect(result.selections).toBeUndefined();

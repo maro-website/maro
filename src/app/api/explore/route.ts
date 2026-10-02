@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     if (mine && user) query = query.eq("user_id", user.id);
     if (authorId) query = query.eq("user_id", authorId);
     if (saved) query = query.in("id", savedIds);
-    if (slug) return query.eq("slug", slug).returns<Record<string, unknown>[]>();
+    if (slug) return query.eq(UUID.test(slug) ? "id" : "slug", slug).returns<Record<string, unknown>[]>();
     if (sort === "featured") query = query.eq("featured", true);
     if (sort === "liked" || sort === "trending") query = query.order("like_count", { ascending: false });
     if (modern && sort === "saved") query = query.order("save_count", { ascending: false });

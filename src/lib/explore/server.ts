@@ -17,7 +17,7 @@ export async function exploreResponse(row: Record<string, unknown>, ownerView = 
     prompt: showPrompt || ownerView ? row.prompt : "",
     selections: showSettings || ownerView ? row.selections ?? {} : undefined,
     url: typeof row.url === "string" ? await resolveAssetForClient(row.url) : "",
-    author: row.author, created_at: row.created_at, slug: row.slug,
+    author: row.author, created_at: row.created_at, slug: typeof row.slug === "string" && row.slug ? row.slug : row.id,
     like_count: row.like_count ?? 0, save_count: row.save_count ?? 0, view_count: row.view_count ?? 0,
     remix_count: row.remix_count ?? 0, remix_of: row.remix_of, featured: row.featured,
     show_prompt: showPrompt, show_settings: showSettings,
