@@ -1,0 +1,28 @@
+.page { flex: 1; width: 100%; min-width: 0; display: grid; align-content: center; padding: clamp(32px, 5vw, 72px) 24px; color: var(--maro-color-text-primary); }
+.layout { width: min(100%, 1080px); margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); align-items: center; gap: 64px; }
+.intro { min-width: 0; }
+.logo { display: grid; height: 40px; width: fit-content; margin-bottom: 30px; }
+.status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--maro-color-text-secondary); margin-bottom: 16px; }
+.status > span { width: 7px; height: 7px; flex: none; border-radius: var(--maro-radius-pill); background: var(--product-accent); }
+.intro h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: var(--maro-tracking-brand); line-height: 1.08; white-space: pre-line; }
+.description { margin-top: 20px; max-width: 450px; font-size: 15px; line-height: 1.7; color: var(--maro-color-text-secondary); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 28px; }
+.actions > a:first-child { gap: 16px; }
+.hubLink { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; font-weight: 600; color: var(--maro-color-text-secondary); }
+.hubLink:hover { color: var(--maro-color-text-primary); }
+.releaseNote { margin-top: 12px; font-size: 12px; line-height: 1.65; color: var(--maro-color-text-secondary); }
+.benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 34px; }
+.benefit { min-width: 0; padding: 16px 12px; border-radius: var(--maro-radius-16); background: var(--maro-color-bg-surface-02); }
+.benefitNumber { display: block; margin-bottom: 13px; font-size: 11px; color: var(--maro-color-text-muted); }
+.benefit strong { display: block; font-size: 13px; font-weight: 600; }
+.benefit p { margin-top: 6px; font-size: 12px; line-height: 1.55; color: var(--maro-color-text-secondary); }
+.preview { min-width: 0; overflow: hidden; border-radius: var(--maro-radius-24); background: var(--maro-color-bg-surface); }
+.media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--maro-color-bg-surface-02); }
+.previewCopy { padding: 24px; }
+.cardHeading { display: flex; gap: 12px; align-items: center; }
+.productIcon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--maro-radius-12); color: var(--maro-color-text-primary); background: color-mix(in srgb, var(--product-accent) 10%, var(--maro-color-bg-surface)); }
+.cardHeading h2 { font-size: 15px; font-weight: 600; line-height: 1.45; }
+.previewCopy > p { margin-top: 16px; font-size: 12px; line-height: 1.7; color: var(--maro-color-text-secondary); }
+@media (max-width: 900px) { .layout { gap: 30px; } .benefits { gap: 7px; } }
+@media (max-width: 700px) { .page { padding: 32px 20px 40px; } .layout { max-width: 520px; grid-template-columns: minmax(0, 1fr); gap: 0; } .intro { display: contents; } .logo { height: 34px; margin-bottom: 24px; } .intro h1 { font-size: 38px; } .description { font-size: 14px; } .actions { gap: 16px; } .benefits { order: 2; margin-top: 20px; } .preview { order: 1; margin-top: 30px; } }
+@media (max-width: 360px) { .page { padding-inline: 16px; } .intro h1 { font-size: 32px; } .previewCopy { padding: 20px; } .benefit { padding: 14px 9px; } }

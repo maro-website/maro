@@ -16,6 +16,8 @@ import { AppFooter } from "@/components/app/AppFooter";
 
 import { STUDIO_ROUTES } from "@/lib/nav/destinations";
 
+import { getModuleAvailability } from "@/lib/modules/availability";
+
 import { cn } from "@/lib/utils/cn";
 
 const WORKSPACE_ROUTES = new Set([
@@ -70,7 +72,7 @@ export function AppShell({
 
 
 
-  const isWorkspace = WORKSPACE_ROUTES.has(pathname);
+  const isWorkspace = WORKSPACE_ROUTES.has(pathname) && getModuleAvailability(pathname.slice(1))?.status !== "coming_soon";
 
   const isProjectImmersive = PROJECT_IMMERSIVE.test(pathname);
 

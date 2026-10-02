@@ -84,7 +84,8 @@ export function AppTopNav({
           </button>
         )}
         <Link href="/" className="shrink-0" aria-label="maro">
-          <Logo showWord wordClassName="h-7 w-auto lg:h-8" />
+          <Logo className="lg:hidden" symbolClassName="logo-lockup-light h-8 w-8" />
+          <Logo showWord className="hidden lg:inline-flex" wordClassName="h-8 w-auto" />
         </Link>
       </div>
 
@@ -112,7 +113,6 @@ export function AppTopNav({
                 className="maro-nav__link"
                 onPointerEnter={() => setHoveredIndex(navIndex)}
                 data-active={active || undefined}
-                data-disabled={dest.comingSoon || undefined}
                 aria-current={active ? "page" : undefined}
               >
                 <ModuleNavIcon dest={dest} active={active} />
@@ -123,11 +123,11 @@ export function AppTopNav({
         })}
       </nav>
 
-      <div className="ml-auto flex shrink-0 items-center gap-[10px]">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-[10px] lg:ml-auto">
         {user && (
           <Link
             href="/pricing"
-            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-5 text-sm font-semibold transition-colors hover:bg-surface-hover sm:text-[14px]"
+            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-3 text-sm font-semibold transition-colors hover:bg-surface-hover sm:px-5 sm:text-[14px]"
             aria-label={`${credits} kredite`}
           >
             <MaroIcon name="coins" fallback={Coins} className="h-4 w-4 text-brand" />

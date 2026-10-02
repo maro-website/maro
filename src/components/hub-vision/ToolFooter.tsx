@@ -16,6 +16,6 @@ export function ToolFooter({ name, href, action, release, heading = "h2" }: {
   const brand = getProductBrand(name);
   return <div className={s.launchFooter}>
     <Heading className="min-w-0">{brand ? <ProductLogo product={brand.id} naturalWidth className="h-7 sm:h-8" /> : name}</Heading>
-    {href && action ? <Link href={href} className={s.createButton} style={brand ? { backgroundColor: brand.color, color: "var(--maro-color-text-on-accent)" } : undefined}>{action}<ArrowUpRight size={19} aria-hidden /></Link> : <span className={s.release}>Vjen në {release?.toLowerCase()}</span>}
+    {href && action ? <Link href={href} className={s.createButton} style={brand ? { backgroundColor: brand.color, color: "var(--maro-color-text-on-accent)" } : undefined}>{action}<ArrowUpRight size={19} aria-hidden /></Link> : <>{href ? <Link href={href} className={s.release} aria-label={`Shiko ${brand?.displayName ?? name}`}>Vjen në {release?.toLowerCase()}</Link> : <span className={s.release}>Vjen në {release?.toLowerCase()}</span>}</>}
   </div>;
 }

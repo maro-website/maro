@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaroSymbol } from "@/components/ui/Logo";
 import { HubDropdown } from "@/components/app/HubDropdown";
+import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
+import { StableImage } from "@/components/app/StableImage";
+import { getProductBrand } from "@/lib/design/maro-system";
+import { iconSrc } from "@/lib/tools/iconMap";
 import {
   NAV_GROUP_LABELS,
   TOP_BAR_DESTINATIONS,
@@ -19,6 +23,17 @@ import type { NavGroup } from "@/lib/nav/destinations";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
 const GROUP_ORDER: NavGroup[] = ["home", "discover", "tools", "studio", "community", "later"];
+
+function DrawerIcon({ destination, colored = false }: {
+  destination: { label: string; iconName?: string };
+  colored?: boolean;
+}) {
+  const brand = getProductBrand(destination.label);
+  if (brand && brand.id !== "maroFort") return colored
+    ? <StableImage src={brand.icon} alt="" className="h-6 w-6 shrink-0" />
+    : <ToolIcon toolId={brand.id} className="h-5 w-5 text-ink" />;
+  return destination.iconName ? <MaroIcon src={iconSrc(`${destination.iconName}.svg`)} className="h-5 w-5 text-ink" /> : null;
+}
 
 export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
@@ -46,7 +61,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
           >
             <div className="flex h-[var(--maro-shell-header-height)] shrink-0 items-center justify-between px-4">
               <Link href="/" onClick={onClose} className="flex items-center gap-2">
-                <MaroSymbol className="h-8 w-8" />
+                <MaroSymbol className="logo-lockup-light h-8 w-8" />
               </Link>
               <button
                 type="button"
@@ -63,7 +78,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                 <HubDropdown />
               </div>
 
-              <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Tools</p>
+              <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">{NAV_GROUP_LABELS.tools}</p>
               <div className="mb-5 flex flex-col gap-1">
                 {TOP_BAR_DESTINATIONS.map((dest) => {
                   const active = isNavActive(pathname, dest);
@@ -78,7 +93,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
-                      {dest.label}
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span>{getProductBrand(dest.label)?.displayName ?? dest.label}</span></span>
                       {dest.comingSoon && (
                         <span className="text-[11px] font-medium text-ink-3">së shpejti</span>
                       )}
@@ -95,7 +110,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       key={dest.id}
                       className="flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold text-ink-3"
                     >
-                      {dest.label}
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{dest.label}</span></span>
                       {dest.badge && <span className="text-[11px]">{dest.badge}</span>}
                     </span>
                   ) : (
@@ -109,7 +124,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         isNavActive(pathname, dest) ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
-                      {dest.label}
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{dest.label}</span></span>
                     </Link>
                   )
                 )}

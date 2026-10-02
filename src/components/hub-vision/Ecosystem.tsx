@@ -1,46 +1,17 @@
-import Image from "next/image";
 import { copy, upcoming } from "./content";
 import { ToolFooter } from "./ToolFooter";
-import { FilmaPreview } from "./FilmaPreview";
-import { WebHubPreview } from "./WebHubPreview";
+import { UpcomingToolPreview } from "./UpcomingToolPreview";
+import { TOP_BAR_DESTINATIONS } from "@/lib/nav/destinations";
 import TechText from "./TechText";
 import s from "./HubVision.module.css";
 
 type UpcomingTool = (typeof upcoming)[number];
 
-function EcosystemMedia({ motif }: { motif: string }) {
-  if (motif === "film") {
-    return (
-      <div className={s.toolStudy}>
-        <FilmaPreview />
-      </div>
-    );
-  }
-  if (motif === "web") {
-    return (
-      <div className={s.toolStudy}>
-        <WebHubPreview />
-      </div>
-    );
-  }
-  return (
-    <div className={s.toolStudy} aria-hidden="true">
-      <Image
-        src={motif === "audio" ? "/images/hub-vision/maroAudio_hub04.png" : "/images/hub-vision/maroMarketing_hub01.png"}
-        alt=""
-        fill
-        sizes="(max-width: 600px) 100vw, 40vw"
-        className={s.toolStudyImage}
-      />
-    </div>
-  );
-}
-
 function FutureToolCard({ tool }: { tool: UpcomingTool }) {
   return (
     <article className={`${s.futureTool} ${s[tool.motif]}`}>
-      <EcosystemMedia motif={tool.motif} />
-      <ToolFooter name={tool.name} release={tool.version} heading="h3" />
+      <div className={s.toolStudy}><UpcomingToolPreview motif={tool.motif} /></div>
+      <ToolFooter name={tool.name} release={tool.version} href={TOP_BAR_DESTINATIONS.find((destination) => destination.id === tool.id)?.route} heading="h3" />
     </article>
   );
 }

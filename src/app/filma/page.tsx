@@ -1,3 +1,3 @@
 import { AppShell } from "@/components/app/AppShell";
-import { ModuleComingSoon } from "@/components/modules/ModuleComingSoon";
-export default function Page() { return <AppShell><ModuleComingSoon moduleId="filma" /></AppShell>; }
+import { UpcomingProductPage } from "@/components/modules/UpcomingProductPage";
+export default function Page() { return <AppShell><UpcomingProductPage moduleId="filma" /></AppShell>; }

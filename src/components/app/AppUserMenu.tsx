@@ -75,7 +75,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="lg:relative">
       <button
         ref={triggerRef}
         type="button"
@@ -98,7 +98,7 @@ export function AppUserMenu({ onNavigate }: { onNavigate?: () => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="maro-menu absolute right-0 top-[calc(100%+10px)] z-[var(--maro-z-dropdown)] max-h-[calc(100dvh-6rem)] w-[min(17.8125rem,calc(100vw-1rem))] overflow-y-auto p-4"
+            className="maro-menu absolute right-4 top-[calc(100%+10px)] lg:right-0 z-[var(--maro-z-dropdown)] max-h-[calc(100dvh-6rem)] w-[min(17.8125rem,calc(100vw-1rem))] overflow-y-auto p-4"
             role="menu"
           >
             <div className="mb-[20px]"><ThemeSwitch /></div>
