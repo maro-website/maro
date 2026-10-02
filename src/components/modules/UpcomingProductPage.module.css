@@ -2,8 +2,7 @@
 .layout { width: min(100%, 1080px); margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); align-items: center; gap: 64px; }
 .intro { min-width: 0; }
 .logo { display: grid; height: 40px; width: fit-content; margin-bottom: 30px; }
-.status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--maro-color-text-secondary); margin-bottom: 16px; }
-.status > span { width: 7px; height: 7px; flex: none; border-radius: var(--maro-radius-pill); background: var(--product-accent); }
+.status { display: inline-flex; align-items: center; width: fit-content; padding: 6px 12px; border-radius: var(--maro-radius-pill); background: var(--product-accent); font-size: 12px; line-height: 1.5; font-weight: 600; color: var(--maro-ink); margin-bottom: 16px; }
 .intro h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: var(--maro-tracking-brand); line-height: 1.08; white-space: pre-line; }
 .description { margin-top: 20px; max-width: 450px; font-size: 15px; line-height: 1.7; color: var(--maro-color-text-secondary); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 28px; }

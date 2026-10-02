@@ -48,7 +48,7 @@ export function BrainPlanNotice({ policy, onRefresh }: {
     <div className={s.layout}>
       <div className={s.intro}>
         <ProductLogo product="maroBrain" naturalWidth className={s.logo} />
-        <span className={s.status}><span aria-hidden />Pa plan aktiv</span>
+        <span className={s.status}>Pa plan aktiv</span>
         <h1 id="brain-plan-title">{retained ? <>Vazhdo me<br />brandin tënd.</> : <>Më pak shpjegime.<br />Më shumë krijime.</>}</h1>
         <p className={s.description}>{retained
           ? "Mos e nis çdo ide nga zero. Rikthe maroBrain që identiteti, audienca dhe burimet e brandit tënd të jenë sërish pjesë e gjenerimeve."

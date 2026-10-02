@@ -66,7 +66,7 @@ export function UpcomingProductPage({ moduleId }: { moduleId: keyof typeof CONTE
     <div className={s.layout}>
       <div className={s.intro}>
         <ProductLogo product={brand.id} naturalWidth className={s.logo} />
-        <p className={s.status}><span aria-hidden />Po marohet për {productModule.version}</p>
+        <p className={s.status}>Po marohet për {productModule.version}</p>
         <h1 id="product-preview-title">{content.title}</h1>
         <p className={s.description}>{content.description}</p>
         <div className={s.actions}>
