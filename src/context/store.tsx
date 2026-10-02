@@ -22,7 +22,9 @@ import {
   fetchMyCreations,
   updateMyCreation,
   deleteMyCreation,
+  deleteMyCreationAssets,
 } from "@/lib/services/creationsService";
+import { creationAssetRef, withoutCreationAssets } from "@/lib/creations/creationAssets";
 import { mergeServerCreations } from "@/lib/creations/mergeCreations";
 import { uid } from "@/lib/utils/format";
 import { prefetchPublicSettings } from "@/lib/settings/publicSettings";
@@ -82,6 +84,7 @@ interface MaroContextValue {
   creations: ImageCreation[];
   addCreation: (c: ImageCreation) => void;
   deleteCreation: (id: string) => void;
+  deleteCreationAssets: (id: string, assetRefs: string[]) => Promise<void>;
   renameCreation: (id: string, title: string) => void;
   toggleFavouriteCreation: (id: string) => void;
   setCreationReaction: (id: string, reaction: "like" | "dislike" | undefined) => void;
@@ -587,6 +590,28 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     [persistCreations]
   );
 
+  const deleteCreationAssets = useCallback(async (id: string, assetRefs: string[]) => {
+    const target = state.creations.find(creation => creation.id === id);
+    if (!target) throw new Error("asset-not-found");
+    const scope = workspaceScopeRef.current;
+    const account = state.session?.user.id;
+    const removed = new Set(assetRefs);
+    if (!removed.size || assetRefs.some(ref => !target.urls.some((_, index) => creationAssetRef(target, index) === ref))) {
+      throw new Error("assets-changed");
+    }
+    if (target.serverId || assetRefs.some(ref => !/^(?:data|blob):/.test(ref))) {
+      await deleteMyCreationAssets(assetRefs, creationAssetRef(target, 0), target.serverId);
+    }
+    setState(current => {
+      if (workspaceScopeRef.current !== scope || current.session?.user.id !== account) return current;
+      const creations = current.creations.map(creation => creation.id === id ? withoutCreationAssets(creation, removed) : creation)
+        .filter(creation => creation.id !== id || creation.urls.length || creation.mediaType === "text");
+      persistCreations(creations);
+      return { ...current, creations };
+    });
+    notifyStorageChanged();
+  }, [state.creations, state.session, persistCreations]);
+
   const setCreationReaction = useCallback(
     (id: string, reaction: "like" | "dislike" | undefined) => {
       setState((s) => {
@@ -642,6 +667,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       creations: state.creations,
       addCreation,
       deleteCreation,
+      deleteCreationAssets,
       renameCreation,
       toggleFavouriteCreation,
       setCreationReaction,
@@ -673,6 +699,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       spendCredits,
       addCreation,
       deleteCreation,
+      deleteCreationAssets,
       renameCreation,
       toggleFavouriteCreation,
       setCreationReaction,

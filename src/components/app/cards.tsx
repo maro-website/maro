@@ -70,8 +70,8 @@ export function ItemMenu({
   className,
 }: {
   favourite?: boolean;
-  onRename: () => void;
-  onToggleFav: () => void;
+  onRename?: () => void;
+  onToggleFav?: () => void;
   onDelete: () => void;
   extraActions?: { label: string; onClick: () => void }[];
   className?: string;
@@ -145,21 +145,21 @@ export function ItemMenu({
                 className="z-[120] overflow-hidden rounded-2xl bg-surface p-1.5"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MenuRow icon={<Pencil className="h-4 w-4" />} onClick={() => run(onRename)}>
+                {onRename && <MenuRow icon={<Pencil className="h-4 w-4" />} onClick={() => run(onRename)}>
                   Riemërto
-                </MenuRow>
-                <MenuRow
+                </MenuRow>}
+                {onToggleFav && <MenuRow
                   icon={<Star className={cn("h-4 w-4", favourite && "fill-ink text-ink")} />}
                   onClick={() => run(onToggleFav)}
                 >
                   {favourite ? "Hiq të preferuarën" : "Shto te të preferuarat"}
-                </MenuRow>
+                </MenuRow>}
                 {extraActions?.map((action) => (
                   <MenuRow key={action.label} icon={<ImageIcon className="h-4 w-4" />} onClick={() => run(action.onClick)}>
                     {action.label}
                   </MenuRow>
                 ))}
-                <div className="my-1 h-px bg-line" />
+                {(onRename || onToggleFav || extraActions?.length) && <div className="my-1 h-px bg-line" />}
                 <MenuRow icon={<Trash2 className="h-4 w-4" />} danger onClick={() => run(onDelete)}>
                   Fshi
                 </MenuRow>

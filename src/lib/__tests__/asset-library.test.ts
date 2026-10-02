@@ -1,18 +1,51 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ requireUser: vi.fn(), list: vi.fn(), sign: vi.fn(), from: vi.fn(), admin: vi.fn() }));
+const mocks = vi.hoisted(() => ({ requireUser: vi.fn(), list: vi.fn(), info: vi.fn(), remove: vi.fn(), sign: vi.fn(), from: vi.fn(), admin: vi.fn() }));
 vi.mock("@/lib/payments/auth", () => ({ requireUser: mocks.requireUser }));
 vi.mock("@/lib/supabase/server", () => ({ supabaseServerConfigured: () => true, getSupabaseAdmin: mocks.admin }));
 vi.mock("@/lib/storage/assets", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/storage/assets")>(), signStoragePath: mocks.sign }));
 vi.mock("@/lib/supabase/client", () => ({ getAccessToken: vi.fn() }));
-import { GET } from "@/app/api/assets/route";
+import { GET, POST, DELETE } from "@/app/api/assets/route";
 import { libraryStorageRef, ownedLibraryReference } from "@/lib/services/assetLibrary";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireUser.mockResolvedValue({ id: "owner" });
   mocks.admin.mockReturnValue({ storage: { from: mocks.from } });
-  mocks.from.mockReturnValue({ list: mocks.list });
+  mocks.from.mockReturnValue({ list: mocks.list, info: mocks.info, remove: mocks.remove });
+  mocks.info.mockResolvedValue({ data: { size: 2048 }, error: null });
+  mocks.remove.mockResolvedValue({ data: [], error: null });
   mocks.list.mockResolvedValue({ data: [{ id: "file-1", name: "upload.png", created_at: "2026-10-02", metadata: { size: 123 } }], error: null });
   mocks.sign.mockResolvedValue("https://signed/private-preview");
+});
+
+const request = (method: string, body: unknown) => new Request("https://maro.test/api/assets", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+describe("asset metadata and upload deletion", () => {
+  it.each([POST, DELETE])("does not use storage without authentication", async handler => {
+    mocks.requireUser.mockResolvedValue(null);
+    expect((await handler(request(handler === POST ? "POST" : "DELETE", {}))).status).toBe(401);
+    expect(mocks.admin).not.toHaveBeenCalled();
+  });
+  it("reads the actual size of an owned file without downloading it", async () => {
+    const ref = "storage:generations/owner/result.png";
+    const response = await POST(request("POST", { refs: [ref], userId: "foreign", bytes: 1 }));
+    expect(await response.json()).toEqual({ assets: [{ storageRef: ref, bytes: 2048 }] });
+    expect(mocks.info).toHaveBeenCalledExactlyOnceWith("owner/result.png");
+  });
+  it.each(["storage:generations/foreign/image.png", "storage:generations/owner/../image.png", "storage:maro-public/owner/image.png", "https://remote/image.png"])("rejects metadata for %s", async ref => {
+    expect((await POST(request("POST", { refs: [ref] }))).status).toBe(403);
+    expect(mocks.admin).not.toHaveBeenCalled();
+  });
+  it("removes only the authenticated owner's chosen upload", async () => {
+    expect((await DELETE(request("DELETE", { storageRef: "storage:generations/owner/project-assets/a.png", userId: "foreign" }))).status).toBe(200);
+    expect(mocks.remove).toHaveBeenCalledExactlyOnceWith(["owner/project-assets/a.png"]);
+  });
+  it.each(["storage:generations/foreign/project-assets/a.png", "storage:generations/owner/project-assets/../a.png", "storage:generations/owner/brain/a.png"])("never deletes unauthorized or unrelated file %s", async ref => {
+    expect((await DELETE(request("DELETE", { storageRef: ref }))).status).toBe(403);
+    expect(mocks.remove).not.toHaveBeenCalled();
+  });
+  it("reports storage deletion failure", async () => {
+    mocks.remove.mockResolvedValue({ error: { message: "unavailable" } });
+    expect((await DELETE(request("DELETE", { storageRef: "storage:generations/owner/project-assets/a.png" }))).status).toBe(503);
+  });
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("private asset library", () => {

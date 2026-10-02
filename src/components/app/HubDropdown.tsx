@@ -19,7 +19,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
     return <Home className={cn("shrink-0", className)} />;
   }
   if (name === "maro-brain") return <ToolIcon toolId="brain" className={className} />;
-  const known = ["history", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "maro-brain", "maro-fort", "idea"];
+  const known = ["history", "folder-open", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "maro-brain", "maro-fort", "idea"];
   if (known.includes(name)) {
     return <MaroIcon src={iconSrc(`${name}.svg`)} className={className} />;
   }

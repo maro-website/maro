@@ -78,7 +78,7 @@ import { loadToolSelections, saveToolSelections, saveLastTool } from "@/lib/tool
 import type { ToolOptionIcons } from "@/lib/tools/optionIcons";
 import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
 import { presetInitialPrompt, presetSelections, presetToolFromTarget } from "@/lib/presets/model";
-import { MARO_IMAGE_URL_MIME, MARO_PRESET_MIME } from "@/lib/modules/imazh/inspiration";
+import { MARO_IMAGE_URL_MIME, MARO_PRESET_MIME, readInspirationDrop } from "@/lib/modules/imazh/inspiration";
 import type { ImageCreation, SpeedKey, WebsiteKind } from "@/lib/types";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -1038,16 +1038,18 @@ export function ToolComposer({
     Array.from(e.dataTransfer?.types ?? []).includes("Files");
   const hasUrlDrag = (e: React.DragEvent) =>
     Array.from(e.dataTransfer?.types ?? []).includes(MARO_IMAGE_URL_MIME);
+  const hasPresetDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer?.types ?? []).includes(MARO_PRESET_MIME);
 
   const onDragEnter = (e: React.DragEvent) => {
     if (!dndEnabled) return;
-    if (!hasFileDrag(e) && !hasUrlDrag(e)) return;
+    if (!hasFileDrag(e) && !hasUrlDrag(e) && !hasPresetDrag(e)) return;
     dragDepth.current += 1;
     setDragOver(true);
   };
   const onDragOver = (e: React.DragEvent) => {
     if (!dndEnabled) return;
-    if (hasFileDrag(e) || hasUrlDrag(e)) e.preventDefault();
+    if (hasFileDrag(e) || hasUrlDrag(e) || hasPresetDrag(e)) e.preventDefault();
   };
   const onDragLeave = () => {
     if (!dndEnabled) return;
@@ -1059,25 +1061,20 @@ export function ToolComposer({
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
-    const url = e.dataTransfer?.getData(MARO_IMAGE_URL_MIME);
-    if (url) {
-      void addImageUrl(url);
+    const dropped = readInspirationDrop(e.dataTransfer, tool.id);
+    if (dropped?.kind === "preset") {
+      const parsed = dropped.attach;
+      if (parsed) {
+        setPromptAttach(parsed);
+        void fetchPromptDetail(parsed.id).then((detail) => {
+          if (detail.target_tool !== tool.id || detail.tool !== parsed.tool) return;
+          setPromptAttach({ ...parsed, title: detail.title, config: detail.config });
+        }).catch(() => undefined);
+      }
       return;
     }
-    const presetRaw = e.dataTransfer?.getData(MARO_PRESET_MIME);
-    if (presetRaw) {
-      try {
-        const parsed = JSON.parse(presetRaw) as PromptAttach;
-        if (parsed?.targetTool === tool.id && parsed.tool === presetToolFromTarget(tool.id)) {
-          setPromptAttach(parsed);
-          void fetchPromptDetail(parsed.id).then((detail) => {
-            if (detail.target_tool !== tool.id || detail.tool !== parsed.tool) return;
-            setPromptAttach({ ...parsed, title: detail.title, config: detail.config });
-          }).catch(() => undefined);
-        }
-      } catch {
-        /* ignore */
-      }
+    if (dropped?.kind === "image") {
+      void addImageUrl(dropped.url);
       return;
     }
     const files = Array.from(e.dataTransfer?.files ?? []);

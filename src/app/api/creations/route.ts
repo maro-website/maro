@@ -3,6 +3,7 @@ import { getTool } from "@/lib/tools/registry";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import type { ConversationJob } from "@/lib/creations/conversations";
 import { UUID } from "@/lib/explore/server";
+import { isOwnedPrivateAssetPath, parseMaroStorageAsset, STORAGE_BUCKET } from "@/lib/storage/assets";
 import {
   getSupabaseAdmin,
   getUserFromToken,
@@ -161,13 +162,52 @@ export async function DELETE(req: Request) {
   const user = await getUserFromToken(bearer(req));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { id?: string; url?: string };
+  let body: { id?: string; url?: string; assetRefs?: string[] };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
   if (!body.id && !body.url) return NextResponse.json({ error: "bad-target" }, { status: 400 });
+
+  // Asset cards delete particular outputs, preserving sibling images and chat metadata.
+  if (body.assetRefs !== undefined) {
+    if (!Array.isArray(body.assetRefs) || !body.assetRefs.length || body.assetRefs.length > 100 ||
+        body.assetRefs.some(ref => typeof ref !== "string" || ref.length > 4096)) {
+      return NextResponse.json({ error: "bad-target" }, { status: 400 });
+    }
+    try {
+      const admin = getSupabaseAdmin();
+      let lookup = admin.from("generations").select("id,output_urls").eq("user_id", user.id);
+      lookup = body.id ? lookup.eq("id", body.id) : lookup.contains("output_urls", [body.url!]);
+      const { data, error } = await lookup.maybeSingle();
+      if (error) return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 });
+      if (!data) return NextResponse.json({ error: "not-found" }, { status: 404 });
+      const refs: string[] = data.output_urls ?? [];
+      const requested = new Set(body.assetRefs);
+      if (body.assetRefs.some(ref => !refs.includes(ref))) return NextResponse.json({ error: "assets-changed" }, { status: 409 });
+      const remaining = refs.filter(ref => !requested.has(ref));
+      const arrayFilter = (values: string[]) => `{${values.map(value => JSON.stringify(value)).join(",")}}`;
+      const updated = await admin.from("generations").update({ output_urls: remaining }).eq("user_id", user.id)
+        .eq("id", data.id).eq("output_urls", arrayFilter(refs)).select("id").maybeSingle();
+      if (updated.error) return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 });
+      if (!updated.data) return NextResponse.json({ error: "assets-changed" }, { status: 409 });
+      const paths = [...requested].flatMap(value => {
+        const ref = parseMaroStorageAsset(value);
+        return ref?.bucket === STORAGE_BUCKET && isOwnedPrivateAssetPath(ref.path, user.id) ? [ref.path] : [];
+      });
+      if (paths.length) {
+        const removed = await admin.storage.from(STORAGE_BUCKET).remove([...new Set(paths)]);
+        if (removed.error) {
+          // Restore the library entry if storage failed, without overwriting a concurrent edit.
+          await admin.from("generations").update({ output_urls: refs }).eq("user_id", user.id)
+            .eq("id", data.id).eq("output_urls", arrayFilter(remaining));
+          return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 });
+        }
+      }
+      return NextResponse.json({ ok: true });
+    } catch { return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 }); }
+  }
 
   try {
     let query = getSupabaseAdmin()

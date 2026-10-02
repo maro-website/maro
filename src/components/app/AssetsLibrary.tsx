@@ -8,10 +8,12 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { Modal, ModalHeader, ModalFooter } from "@/components/ui/Modal";
 import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { MyPublications } from "@/components/explore/MyPublications";
 import { ExploreFeed } from "@/components/explore/ExploreFeed";
-import { fetchUploadedAssets, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
+import { fetchUploadedAssets, fetchAssetMetadata, deleteUploadedAsset, assetFilename, formatAssetBytes, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
+import { creationAssetRef } from "@/lib/creations/creationAssets";
 import { STORAGE_CHANGED_EVENT } from "@/lib/workspaces/accountPolicy";
 import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
@@ -34,6 +36,7 @@ import {
   AudioLines,
   FileText,
   Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 
 type Row =
@@ -62,6 +65,17 @@ type Row =
       creation: ImageCreation;
       imageIndex?: number;
     };
+
+const rowKey = (row: Row) => `${row.kind}:${row.id}`;
+function rowReference(row: Row): string | undefined {
+  return row.kind === "upload" ? row.asset.storageRef : row.kind === "creation"
+    ? creationAssetRef(row.creation, row.imageIndex ?? 0) : row.project.thumbnailStorageRef ?? row.project.thumbnailUrl;
+}
+function rowFilename(row: Row): string {
+  if (row.kind === "upload") return row.asset.name;
+  const fallback = row.kind === "creation" ? `${getProductBrand(row.toolId)?.displayName ?? "maro"}-${row.creation.id}-${(row.imageIndex ?? 0) + 1}` : row.title;
+  return assetFilename(rowReference(row), fallback);
+}
 
 // Thumbnail-size presets driven by the top-right slider (like Higgsfield).
 const SIZE_PRESETS = [148, 190, 240, 300];
@@ -96,7 +110,9 @@ function dayLabel(iso: string): string {
 export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: { limit: number; excludeRefs: string[]; onSelect: (assets: LibrarySelection[]) => void }; initialCategory?: "made" | "uploaded" | "saved" | "published" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, creations, user } = useMaro();
+  const { projects, creations, user, deleteProject, deleteCreation, deleteCreationAssets } = useMaro();
+  const { activeWorkspace } = useWorkspace();
+  const { toast } = useToast();
   const [category, setCategory] = React.useState(initialCategory);
   React.useEffect(() => { if (!picker) setCategory(initialCategory); }, [initialCategory, picker]);
   const [uploads, setUploads] = React.useState<UploadedLibraryAsset[]>([]);
@@ -105,6 +121,11 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
   const [uploadsLoading, setUploadsLoading] = React.useState(false);
   const [nextOffset, setNextOffset] = React.useState<number | null>(null);
   const [selected, setSelected] = React.useState<LibrarySelection[]>([]);
+  const [selecting, setSelecting] = React.useState(false);
+  const [chosen, setChosen] = React.useState<Set<string>>(() => new Set());
+  const [pendingDelete, setPendingDelete] = React.useState<Row[]>([]);
+  const [deleting, setDeleting] = React.useState(false);
+  const [metadata, setMetadata] = React.useState<Record<string, number | null>>({});
   const [refresh, setRefresh] = React.useState(0);
   const userId = user?.id;
   const ownedUploads = uploadOwner === userId ? uploads : [];
@@ -170,6 +191,20 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
     return [...projRows, ...creaRows].sort((a, b) => +new Date(b.time) - +new Date(a.time));
   }, [projects, creations, picker]);
 
+  const metadataKey = [...new Set(rows.map(row => libraryStorageRef(rowReference(row), userId)).filter((ref): ref is string => Boolean(ref)))].sort().join("\n");
+  React.useEffect(() => {
+    setMetadata({});
+    if (!userId || !metadataKey) return;
+    const controller = new AbortController();
+    void fetchAssetMetadata(metadataKey.split("\n"), controller.signal).then(assets => {
+      if (!controller.signal.aborted) setMetadata(Object.fromEntries(assets.map(asset => [asset.storageRef, asset.bytes])));
+    }).catch(() => undefined);
+    return () => controller.abort();
+  }, [metadataKey, userId]);
+  React.useEffect(() => {
+    setChosen(new Set()); setSelecting(false); setPendingDelete([]);
+  }, [category, filter, query, userId, activeWorkspace?.id]);
+
   // Tool buckets that actually have items (for the left rail "Tools" group).
   const toolBuckets = React.useMemo(() => {
     const map = new Map<string, { id: string; name: string; count: number; media?: "image" | "audio" | "text" }>();
@@ -203,7 +238,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
     return categoryRows.filter((r) => {
       if (filter === "fav" && !r.favourite) return false;
       if (filter !== "all" && filter !== "fav" && r.toolId !== filter) return false;
-      if (q && !r.title.toLowerCase().includes(q)) return false;
+      if (q && !`${r.title} ${rowFilename(r)}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [categoryRows, filter, query]);
@@ -230,6 +265,10 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
       setSelected(current => current.some(item => item.storageRef === asset.storageRef) ? current.filter(item => item.storageRef !== asset.storageRef) : current.length < picker.limit ? [...current, asset] : current);
       return;
     }
+    if (selecting) {
+      setChosen(current => { const next = new Set(current); if (next.has(rowKey(r))) next.delete(rowKey(r)); else next.add(rowKey(r)); return next; });
+      return;
+    }
     if (r.kind === "upload") { window.open(r.asset.url, "_blank", "noopener,noreferrer"); return; }
     if (r.kind === "project") {
       const href = r.project.status === "generating" ? `/projects/${r.id}/generating` : `/projects/${r.id}/editor`;
@@ -239,6 +278,38 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
       if (href) router.push(href);
       else setLightbox(r.creation);
     }
+  };
+
+  const confirmDelete = async () => {
+    if (deleting || !pendingDelete.length) return;
+    setDeleting(true);
+    const failed: Row[] = [];
+    const creationGroups = new Map<string, Row[]>();
+    for (const row of pendingDelete) {
+      if (row.kind === "creation") {
+        const group = creationGroups.get(row.creation.id) ?? [];
+        group.push(row); creationGroups.set(row.creation.id, group);
+      } else {
+        try {
+          if (row.kind === "upload") {
+            await deleteUploadedAsset(row.asset.storageRef);
+            setUploads(current => current.filter(asset => asset.storageRef !== row.asset.storageRef));
+          } else deleteProject(row.id);
+        } catch { failed.push(row); }
+      }
+    }
+    for (const [id, group] of creationGroups) {
+      try {
+        const refs = group.map(rowReference).filter((ref): ref is string => Boolean(ref));
+        if (refs.length) await deleteCreationAssets(id, refs);
+        else deleteCreation(id);
+      }
+      catch { failed.push(...group); }
+    }
+    const deleted = pendingDelete.length - failed.length;
+    setChosen(new Set(failed.map(rowKey))); setPendingDelete([]); setDeleting(false);
+    if (deleted) toast(deleted === 1 ? "Aseti u fshi." : `${deleted} asete u fshinë.`);
+    if (failed.length) toast("Disa asete nuk u fshinë. Provo përsëri.", "error");
   };
 
   const minW = SIZE_PRESETS[sizeIdx];
@@ -309,6 +380,10 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
               ))}
             </select>}
             {/* Size slider */}
+            {!picker && category !== "published" && <div className="flex items-center gap-2">
+              {selecting && <Button variant="danger" size="sm" icon={<Trash2 className="h-4 w-4" />} disabled={!chosen.size || deleting} onClick={() => setPendingDelete(filtered.filter(row => chosen.has(rowKey(row))))}>Fshi ({chosen.size})</Button>}
+              <Button variant="secondary" size="sm" disabled={deleting} icon={selecting ? undefined : <Check className="h-4 w-4" />} onClick={() => { setSelecting(value => !value); setChosen(new Set()); }}>{selecting ? "Anulo" : "Zgjedh"}</Button>
+            </div>}
             {category !== "published" && <div className="hidden items-center gap-2 rounded-xl bg-surface px-3 py-2 sm:flex">
               <LayoutGrid className="h-3.5 w-3.5 text-ink-3" />
               <input
@@ -347,7 +422,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                     style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${minW}px, 100%), 1fr))` }}
                   >
                     {g.items.map((r, i) => (
-                      <AssetCard key={r.kind + r.id} row={r} index={i} onOpen={() => openRow(r)} picker={Boolean(picker)} selected={selected.some(item => item.storageRef === selectionFor(r)?.storageRef)} disabled={Boolean(picker && (!selectionFor(r) || picker.excludeRefs.includes(selectionFor(r)!.storageRef) || (selected.length >= picker.limit && !selected.some(item => item.storageRef === selectionFor(r)?.storageRef))))} />
+                      <AssetCard key={r.kind + r.id} row={r} index={i} onOpen={() => openRow(r)} onDelete={() => setPendingDelete([r])} selecting={selecting} bytes={r.kind === "upload" ? r.asset.bytes : metadata[libraryStorageRef(rowReference(r), userId) ?? ""]} picker={Boolean(picker)} selected={picker ? selected.some(item => item.storageRef === selectionFor(r)?.storageRef) : chosen.has(rowKey(r))} disabled={deleting || Boolean(picker && (!selectionFor(r) || picker.excludeRefs.includes(selectionFor(r)!.storageRef) || (selected.length >= picker.limit && !selected.some(item => item.storageRef === selectionFor(r)?.storageRef))))} />
                     ))}
                   </div>
                 </section>
@@ -365,6 +440,10 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
       {lightbox && (
         <CreationLightbox creation={lightbox} open={lightbox !== null} onClose={() => setLightbox(null)} />
       )}
+      <Modal open={Boolean(pendingDelete.length)} onClose={() => { if (!deleting) setPendingDelete([]); }} size="sm" closeOnBackdrop={!deleting} aria-label="Fshi asetet">
+        <ModalHeader title={pendingDelete.length === 1 ? "Fshi këtë aset?" : `Fshi ${pendingDelete.length} asete?`} description="Fshihen vetëm asetet që ke zgjedhur. Ky veprim nuk mund të kthehet." />
+        <ModalFooter><Button variant="secondary" disabled={deleting} onClick={() => setPendingDelete([])}>Anulo</Button><Button variant="danger" loading={deleting} onClick={() => void confirmDelete()}>Fshi</Button></ModalFooter>
+      </Modal>
     </div>
   );
 }
@@ -397,7 +476,7 @@ function RailItem({
   );
 }
 
-function AssetCard({ row, index, onOpen, picker, selected, disabled }: { row: Row; index: number; onOpen: () => void; picker?: boolean; selected?: boolean; disabled?: boolean }) {
+function AssetCard({ row, index, onOpen, onDelete, picker, selecting, selected, disabled, bytes }: { row: Row; index: number; onOpen: () => void; onDelete: () => void; picker?: boolean; selecting?: boolean; selected?: boolean; disabled?: boolean; bytes?: number | null }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -405,11 +484,12 @@ function AssetCard({ row, index, onOpen, picker, selected, disabled }: { row: Ro
       transition={{ delay: Math.min(index * 0.02, 0.25) }}
       className="group relative overflow-hidden rounded-2xl bg-surface-2"
     >
-      <button onClick={onOpen} disabled={disabled} aria-label={row.title} aria-pressed={picker ? selected : undefined} className="block aspect-[4/3] w-full">
+      <div className="relative">
+      <button onClick={onOpen} disabled={disabled} aria-label={selecting ? `Zgjedh ${rowFilename(row)}` : row.title} aria-pressed={picker || selecting ? selected : undefined} className="block aspect-[4/3] w-full">
         <AssetThumb row={row} />
       </button>
 
-      {picker && <span className={cn("pointer-events-none absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full", selected ? "bg-brand text-brand-fg" : "bg-black/50 text-white")}><Check className={cn("h-4 w-4", !selected && "opacity-30")} /></span>}
+      {(picker || selecting) && <span className={cn("pointer-events-none absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full", selected ? "bg-brand text-brand-fg" : "bg-black/50 text-white")}><Check className={cn("h-4 w-4", !selected && "opacity-30")} /></span>}
       {/* Bottom gradient with title */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-2.5 pt-8">
         <div className="flex items-center gap-1.5">
@@ -431,18 +511,20 @@ function AssetCard({ row, index, onOpen, picker, selected, disabled }: { row: Ro
       )}
 
       {/* Favourite marker */}
-      {!picker && row.favourite && (
+      {!picker && !selecting && row.favourite && (
         <span className="absolute right-10 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white">
           <Heart className="h-3.5 w-3.5 fill-current" />
         </span>
       )}
 
-      {/* Hover menu */}
-      {!picker && row.kind !== "upload" && <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Always visible, including on touch screens. */}
+      {!picker && !selecting && !disabled && <div className="absolute right-1.5 top-1.5">
         <div className="rounded-lg bg-black/45">
-          <RowMenu row={row} />
+          <RowMenu row={row} onDelete={onDelete} />
         </div>
       </div>}
+      </div>
+      <div className="px-3 py-2.5"><p className="truncate text-[11px] leading-4 text-ink-2" title={rowFilename(row)}>{rowFilename(row)}</p><p className="mt-0.5 text-[10px] leading-4 text-ink-3">{formatAssetBytes(bytes)}</p></div>
     </motion.div>
   );
 }
@@ -458,19 +540,17 @@ function AssetThumb({ row }: { row: Row }) {
   return <PreviewFallback module={row.media} />;
 }
 
-function RowMenu({ row }: { row: Row }) {
+function RowMenu({ row, onDelete }: { row: Row; onDelete: () => void }) {
   const {
     renameProject,
-    deleteProject,
     toggleFavouriteProject,
     renameCreation,
-    deleteCreation,
     toggleFavouriteCreation,
   } = useMaro();
   const { activeWorkspace, updateWorkspace } = useWorkspace();
   const { toast } = useToast();
 
-  if (row.kind === "upload") return null;
+  if (row.kind === "upload") return <ItemMenu onDelete={onDelete} />;
   if (row.kind === "project") {
     return (
       <ItemMenu
@@ -480,11 +560,11 @@ function RowMenu({ row }: { row: Row }) {
           if (v && v.trim()) renameProject(row.id, v.trim());
         }}
         onToggleFav={() => toggleFavouriteProject(row.id)}
-        onDelete={() => deleteProject(row.id)}
+        onDelete={onDelete}
       />
     );
   }
-  const logoUrl = row.creation.urls[0];
+  const logoUrl = row.creation.urls[row.imageIndex ?? 0];
   const canPromoteLogo = row.media === "image" && Boolean(logoUrl) && Boolean(activeWorkspace);
 
   return (
@@ -495,7 +575,7 @@ function RowMenu({ row }: { row: Row }) {
         if (v && v.trim()) renameCreation(row.creation.id, v.trim());
       }}
       onToggleFav={() => toggleFavouriteCreation(row.creation.id)}
-      onDelete={() => deleteCreation(row.creation.id)}
+      onDelete={onDelete}
       extraActions={
         canPromoteLogo
           ? [

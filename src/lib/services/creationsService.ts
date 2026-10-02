@@ -72,3 +72,16 @@ export async function deleteMyCreation(url: string | undefined, id?: string): Pr
     /* best-effort */
   }
 }
+
+/** Unlike deleting a whole chat result, this only removes the chosen output files. */
+export async function deleteMyCreationAssets(assetRefs: string[], url: string | undefined, id?: string): Promise<void> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("unauthorized");
+  const response = await fetch("/api/creations", {
+    method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ id, url, assetRefs }),
+  });
+  if (!response.ok) throw new Error("asset-delete-failed");
+  const result: { ok?: boolean } = await response.json();
+  if (!result.ok) throw new Error("asset-delete-failed");
+}

@@ -30,12 +30,11 @@ export function InspirationCarousel({
   const doubled = [...items, ...items];
 
   const onDragStart = (e: React.DragEvent, item: InspirationItem) => {
-    if (item.imageUrl) {
-      e.dataTransfer.setData(MARO_IMAGE_URL_MIME, item.imageUrl);
-    }
     const attach = presetAttachFromItem(item);
     if (attach) {
       e.dataTransfer.setData(MARO_PRESET_MIME, JSON.stringify(attach));
+    } else if (item.imageUrl) {
+      e.dataTransfer.setData(MARO_IMAGE_URL_MIME, item.imageUrl);
     }
     e.dataTransfer.effectAllowed = "copy";
   };
