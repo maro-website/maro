@@ -4,11 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
-import { Badge } from "@/components/ui/Badge";
 import { formatEur } from "@/lib/credits/money";
 import { formatCredits } from "@/lib/credits/format";
-import { Check, Lock, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import s from "./PricingPage.module.css";
 
 type Tab = "plans" | "topup";
 
@@ -72,18 +72,24 @@ function PricingPageInner() {
 
   return (
     <AppShell showFooter>
-      <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand">Planet maro</p>
-          <h1 className="mt-2 maro-text-h1 font-bold tracking-brand text-ink">
-            Planet maro
-          </h1>
-          <p className="mt-3 text-base leading-relaxed text-ink-2">
-            Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria.
-          </p>
-        </div>
+      <div className={s.page}>
+        <header className={s.header}>
+          <div className={s.intro}>
+            <p className={s.eyebrow}><span aria-hidden />Planet maro</p>
+            <h1>Një plan për<br />ritmin tënd.</h1>
+            <p className={s.description}>Kredite për idetë e tua. Hapësirë për mënyrën si krijon.</p>
+          </div>
+          <aside className={s.catalogNotice} aria-labelledby="pricing-catalog-title">
+            <div className={s.noticeHeading}>
+              <span className={s.noticeIcon}><Lock size={19} aria-hidden /></span>
+              <h2 id="pricing-catalog-title">Katalogu, në një vend.</h2>
+            </div>
+            <p>Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria.</p>
+            <Link href="/account" className={s.accountLink}>Shiko llogarinë<ArrowUpRight size={16} aria-hidden /></Link>
+          </aside>
+        </header>
 
-        <div className="mt-10 inline-flex rounded-maro12 bg-surface-2 p-1">
+        <div className={s.tabs} aria-label="Katalogu i planeve dhe krediteve">
           {(
             [
               { id: "plans" as const, label: "Planet" },
@@ -94,13 +100,12 @@ function PricingPageInner() {
               key={t.id}
               type="button"
               onClick={() => setTabAndUrl(t.id)}
-              className={cn(
-                "flex items-center gap-2 rounded-maro8 px-5 py-2.5 text-[14px] font-semibold transition-all",
-                tab === t.id ? "bg-surface text-ink" : "text-ink-3 hover:text-ink-2"
-              )}
+              className={s.tab}
+              aria-pressed={tab === t.id}
+              aria-controls="pricing-catalog"
             >
               {t.id === "topup" && (
-                <Lock className="h-3.5 w-3.5" />
+                <Lock size={14} aria-hidden />
               )}
               {t.label}
             </button>
@@ -108,58 +113,55 @@ function PricingPageInner() {
         </div>
 
         {tab === "plans" && (
-          <>
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          <div id="pricing-catalog">
+            <div className={s.plans}>
               {plans.map((plan) => (
-                <div
+                <section
                   key={plan.id}
-                className={cn(
-                  "relative flex flex-col rounded-maro16 bg-surface p-8",
-                  plan.badge && "bg-surface"
-                )}
+                  className={s.plan}
+                  data-recommended={Boolean(plan.badge) || undefined}
+                  aria-label={plan.name}
                 >
-                  {plan.badge && (
-                    <Badge tone="brand" className="absolute -top-3 left-6 text-[11px]">
-                      {plan.badge}
-                    </Badge>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-brand" />
-                    <h2 className="text-[20px] font-semibold tracking-[-0.02em] text-ink">{plan.name}</h2>
+                  <div className={s.planHeading}>
+                    <h2>{plan.name}</h2>
+                    {plan.badge && <span className={s.planBadge}>{plan.badge}</span>}
                   </div>
-                  <p className="mt-1 text-[14px] text-ink-2">{plan.tagline}</p>
+                  <p className={s.tagline}>{plan.tagline}</p>
 
-                  <p className="mt-5 text-[36px] font-bold tracking-brand text-ink">
+                  <p className={s.price} data-contact={plan.contactOnly || undefined}>
                     {plan.contactOnly ? "Sipas marrëveshjes" : formatEur(plan.priceEur)}
                   </p>
 
-                  <ul className="mt-6 flex flex-1 flex-col gap-2.5">
+                  <ul className={s.features}>
                     {plan.features.map((text) => (
-                      <li key={text} className="flex items-start gap-2.5 text-[14px] text-ink-2">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                      <li key={text}>
+                        <Check size={16} aria-hidden />
                         {text.startsWith("Top-up") ? "Blerjet e reja janë të mbyllura" : text}
                       </li>
                     ))}
                   </ul>
 
-                  <p className="mt-8 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
-                </div>
+                  <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>
+                </section>
               ))}
             </div>
 
-            <div className="mt-12 rounded-maro16 bg-surface p-6">
-              <h3 className="text-[16px] font-semibold text-ink">Krahasim i shkurtër</h3>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-sm">
+            <section className={s.comparison} aria-labelledby="pricing-comparison-title">
+              <div className={s.sectionHeading}>
+                <h2 id="pricing-comparison-title">Krahasim i shkurtër</h2>
+                <p>Detajet kryesore, në një vend.</p>
+              </div>
+              <div className={s.tableScroll} role="region" aria-labelledby="pricing-comparison-title" tabIndex={0}>
+                <table className={s.table}>
                   <thead>
-                    <tr className="border-b border-border-subtle text-ink-3">
-                      <th className="py-2 pr-4 font-semibold"> </th>
-                      <th className="py-2 pr-4 font-semibold">maroStandard</th>
-                      <th className="py-2 pr-4 font-semibold">maroPro</th>
-                      <th className="py-2 font-semibold">maroBiz</th>
+                    <tr>
+                      <th scope="col"><span className="sr-only">Veçoria</span></th>
+                      <th scope="col">maroStandard</th>
+                      <th scope="col">maroPro</th>
+                      <th scope="col">maroBiz</th>
                     </tr>
                   </thead>
-                  <tbody className="text-ink-2">
+                  <tbody>
                     {[
                       ["Kredite", "100", "500", "Sipas nevojës"],
                       ["Kohëzgjatja", "30 ditë", "30 ditë", "Sipas marrëveshjes"],
@@ -168,10 +170,10 @@ function PricingPageInner() {
                       ["Gjenerime njëkohësisht", "1", "Deri në 3", "Sipas marrëveshjes"],
                       ["Top-up", "I mbyllur", "I mbyllur", "I mbyllur"],
                     ].map(([label, ...vals]) => (
-                      <tr key={label} className="border-b border-border-subtle/60">
-                        <td className="py-2.5 pr-4 font-medium text-ink">{label}</td>
+                      <tr key={label}>
+                        <th scope="row">{label}</th>
                         {vals.map((v, i) => (
-                          <td key={i} className="py-2.5 pr-4">
+                          <td key={i}>
                             {v}
                           </td>
                         ))}
@@ -180,10 +182,14 @@ function PricingPageInner() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
 
-            <div className="mt-10 space-y-4">
-              <h3 className="text-[16px] font-semibold text-ink">Pyetje të shpeshta</h3>
+            <section className={s.faq} aria-labelledby="pricing-faq-title">
+              <div className={s.sectionHeading}>
+                <h2 id="pricing-faq-title">Pyetje të shpeshta</h2>
+                <p>Gjërat që ia vlen t'i dish.</p>
+              </div>
+              <div className={s.questions}>
               {[
                 {
                   q: "A është ky abonim automatik?",
@@ -202,56 +208,55 @@ function PricingPageInner() {
                   a: "Blerjet e reja të krediteve janë të mbyllura në këtë version.",
                 },
               ].map((item) => (
-                <div key={item.q} className="rounded-maro12 bg-surface px-5 py-4">
-                  <p className="text-[14px] font-semibold text-ink">{item.q}</p>
-                  <p className="mt-1 text-[14px] text-ink-2">{item.a}</p>
-                </div>
+                <details key={item.q} className={s.question}>
+                  <summary>{item.q}<ChevronDown size={17} aria-hidden /></summary>
+                  <p>{item.a}</p>
+                </details>
               ))}
-            </div>
-          </>
+              </div>
+            </section>
+          </div>
         )}
 
         {tab === "topup" && (
-          <div className="mt-10">
-            {(
-              <div className="mb-8 flex items-start gap-3 rounded-maro16 bg-surface-2 px-5 py-4">
-                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" />
+          <div id="pricing-catalog" className={s.topup}>
+              <div className={s.topupNotice}>
+                <span className={s.noticeIcon}><Lock size={19} aria-hidden /></span>
                 <div>
-                  <p className="text-base font-semibold text-ink">Blerjet janë të mbyllura</p>
-                  <p className="mt-1 text-[14px] text-ink-2">
+                  <h2>Blerjet janë të mbyllura</h2>
+                  <p>
                     Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen.
                   </p>
                   <button
                     type="button"
                     onClick={() => setTabAndUrl("plans")}
-                    className="mt-3 text-[14px] font-semibold text-brand hover:underline"
+                    className={s.accountLink}
                   >
-                    Shiko planet →
+                    Shiko planet<ArrowUpRight size={16} aria-hidden />
                   </button>
                 </div>
               </div>
-            )}
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={s.topupGrid}>
               {topups.map((tier) => {
                 const locked = false;
                 return (
                   <div
                     key={tier.id}
                     className={cn(
-                      "flex flex-col rounded-maro16 bg-surface p-6",
+                      s.topupCard,
                       locked && "opacity-60"
                     )}
                   >
-                    <p className="text-[24px] font-bold tracking-brand text-ink">
+                    <h2 className={s.creditAmount}>
                       {formatCredits(tier.credits)}
-                    </p>
-                    <p className="text-sm text-ink-3">kredite</p>
-                    <p className="mt-4 text-[22px] font-semibold text-ink">{formatEur(tier.priceEur)}</p>
+                    </h2>
+                    <p className={s.creditLabel}>kredite</p>
+                    <p className={s.topupPrice}>{formatEur(tier.priceEur)}</p>
                     {tier.discountPct ? (
-                      <p className="mt-1 text-[12px] text-ink-3">−{tier.discountPct}% nga çmimi bazë</p>
+                      <p className={s.discount}>−{tier.discountPct}% nga çmimi bazë</p>
                     ) : null}
-                    <p className="mt-5 text-sm text-ink-3">Blerjet janë të mbyllura.</p>
+                    <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>
                   </div>
                 );
               })}
@@ -259,9 +264,9 @@ function PricingPageInner() {
           </div>
         )}
 
-        <p className="mt-12 text-center text-sm text-ink-3">
+        <p className={s.catalogFooter}>
           Vlera bazë e katalogut: €0,09/kredit ·{" "}
-          <Link href="/legal/refund" className="font-semibold text-ink-2 hover:text-ink">
+          <Link href="/legal/refund">
             Politika e rimbursimit
           </Link>
         </p>
