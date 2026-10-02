@@ -1,0 +1,53 @@
+.page { flex: 1; width: 100%; min-width: 0; display: grid; align-content: center; padding: clamp(32px, 5vw, 72px) 24px; color: var(--maro-color-text-primary); }
+.layout { width: min(100%, 1080px); margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); align-items: center; gap: 64px; }
+.intro { min-width: 0; }
+.logo { display: grid; height: 40px; width: fit-content; margin-bottom: 30px; }
+.status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--maro-color-text-secondary); margin-bottom: 16px; }
+.status > span { width: 7px; height: 7px; border-radius: var(--maro-radius-pill); background: var(--brain-accent); }
+.intro h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; letter-spacing: var(--maro-tracking-brand); line-height: 1.08; }
+.description { margin-top: 20px; max-width: 450px; font-size: 15px; line-height: 1.7; color: var(--maro-color-text-secondary); }
+.cta { margin-top: 28px; gap: 16px; }
+.planNote { display: flex; gap: 7px; align-items: center; margin-top: 12px; font-size: 12px; color: var(--maro-color-text-secondary); }
+.benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 34px; }
+.benefit { min-width: 0; padding: 16px 12px; border-radius: var(--maro-radius-16); background: var(--maro-color-bg-surface-02); }
+.benefit > svg { margin-bottom: 13px; color: var(--maro-color-icon-secondary); }
+.benefit strong { display: block; font-size: 13px; font-weight: 600; }
+.benefit p { margin-top: 6px; font-size: 12px; line-height: 1.55; color: var(--maro-color-text-secondary); }
+.retention { min-width: 0; padding: 30px; border-radius: var(--maro-radius-24); background: var(--maro-color-bg-surface); }
+.cardHeading { display: flex; gap: 12px; align-items: center; }
+.clock { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--maro-radius-12); background: color-mix(in srgb, var(--brain-accent) 10%, var(--maro-color-bg-surface)); }
+.cardHeading h2 { font-size: 15px; font-weight: 600; line-height: 1.45; }
+.countdown { display: flex; gap: 18px; align-items: center; margin-top: 28px; }
+.countdown > strong { font-size: clamp(64px, 6vw, 88px); line-height: 1; font-weight: 600; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.countdown > span { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.countdown small { display: block; margin-top: 4px; color: var(--maro-color-text-secondary); font-size: 11px; font-weight: 400; }
+.deadline { margin-top: 18px; color: var(--maro-color-text-secondary); font-size: 12px; line-height: 1.65; }
+.deadline time { color: var(--maro-color-text-primary); font-weight: 600; white-space: nowrap; }
+.timeline { margin-top: 28px; }
+.timelineCaption, .timelineDates { display: flex; gap: 10px; justify-content: space-between; color: var(--maro-color-text-secondary); font-size: 11px; }
+.timelineCaption strong { color: var(--maro-color-text-primary); font-weight: 600; }
+.track { height: 6px; overflow: hidden; border-radius: var(--maro-radius-pill); margin: 10px 0 8px; background: var(--maro-color-bg-surface-selected); }
+.track > span { display: block; height: 100%; border-radius: inherit; background: var(--brain-accent); transition: width var(--maro-duration-normal) var(--maro-ease-standard); }
+.phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 24px; }
+.phases button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 5px; border: 0; border-radius: var(--maro-radius-12); font-size: 11px; font-weight: 600; color: var(--maro-color-text-secondary); background: transparent; transition: background var(--maro-duration-fast); }
+.phases button > span { display: grid; place-items: center; width: 19px; height: 19px; flex: none; border-radius: var(--maro-radius-pill); background: var(--maro-color-bg-surface-02); font-size: 10px; }
+.phases button:hover { background: var(--maro-color-bg-surface-hover); }
+.phases button[aria-pressed=true] { background: var(--maro-color-bg-surface-02); color: var(--maro-color-text-primary); }
+.phases button[aria-pressed=true] > span { background: var(--brain-accent); color: var(--maro-ink); }
+.phases button:focus-visible, .assetsLink:focus-visible { outline: 2px solid var(--maro-color-border-focus); outline-offset: 3px; }
+.detail { display: grid; min-height: 136px; padding: 20px 16px; margin-top: 10px; border-radius: var(--maro-radius-16); background: var(--maro-color-bg-surface-02); }
+.detailPanel { grid-area: 1 / 1; visibility: hidden; }
+.detailPanel[data-active=true] { visibility: visible; }
+.detail h3 { font-size: 12px; font-weight: 600; line-height: 1.5; }
+.detail p { margin-top: 7px; color: var(--maro-color-text-secondary); font-size: 12px; line-height: 1.65; }
+.refresh { margin-top: 16px; width: 100%; }
+.retention[data-urgent=true] .clock { background: color-mix(in srgb, var(--brain-accent) 15%, var(--maro-color-bg-surface)); }
+.emptyDescription { margin-top: 24px; color: var(--maro-color-text-secondary); font-size: 14px; line-height: 1.75; }
+.readyList { display: grid; gap: 15px; margin-top: 28px; font-size: 12px; }
+.readyList > span { display: flex; gap: 10px; align-items: center; }
+.readyList svg { color: var(--maro-color-icon-secondary); }
+.assetsLink { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 24px; font-size: 12px; font-weight: 600; }
+@media (max-width: 900px) { .layout { gap: 30px; } .retention { padding: 24px; } .benefits { gap: 7px; } }
+@media (max-width: 700px) { .page { padding: 32px 20px 40px; } .layout { max-width: 520px; grid-template-columns: minmax(0, 1fr); gap: 0; } .intro { display: contents; } .cta { justify-self: start; } .logo { height: 34px; margin-bottom: 24px; } .intro h1 { font-size: 38px; } .description { font-size: 14px; } .benefits { order: 2; margin-top: 20px; } .retention { order: 1; margin-top: 30px; padding: 24px; } .countdown > strong { font-size: 76px; } .detail { display: grid; min-height: 136px; } }
+@media (max-width: 360px) { .page { padding-inline: 16px; } .intro h1 { font-size: 32px; } .retention { padding: 20px; } .phases button { gap: 4px; font-size: 10px; } .benefit { padding: 14px 9px; } }
+@media (prefers-reduced-motion: reduce) { .track > span, .phases button { transition: none; } }

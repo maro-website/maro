@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { ProductLogo } from "@/components/ui/ProductLogo";
+import { BrainPlanNotice } from "./BrainPlanNotice";
 import { MARO_PRODUCTS } from "@/lib/design/maro-system";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
@@ -83,14 +83,11 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
     return () => { active = false; clearTimeout(timer); window.removeEventListener("focus", refresh); };
   }, [userId, workspaceId, policy]);
   if (policy?.brainAccess) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} />;
+  if (policy) return <BrainPlanNotice policy={policy} onRefresh={onPolicyChange} />;
   return <div className="grid h-full place-items-center px-6 text-center text-ink-2">
     <div className="max-w-md space-y-4">
       <ProductLogo product="maroBrain" className="mx-auto h-10 w-[180px]" />
       <p role="status">{!userId ? "Hyr për të konfiguruar maroBrain." : error ?? (policy ? "maroBrain është pjesë e maroStandard dhe maroPro. Aktivizo planin për ta përdorur." : "Duke verifikuar qasjen…")}</p>
-      {policy && <>
-        <p className="text-sm">{policy.brainDeleteAt ? `Profili dhe burimet ruhen deri më ${new Date(policy.brainDeleteAt).toLocaleDateString("sq-AL")}. Pas 60 ditësh pa plan aktiv, maroBrain resetohet.` : "Profili i skaduar i maroBrain është resetuar."}</p>
-        <Link href="/pricing" className="maro-button" data-variant="inverse">Shiko planet</Link>
-      </>}
       {error && <Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>Provo përsëri</Button>}
     </div>
   </div>;
