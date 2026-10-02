@@ -54,6 +54,7 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
   const [policy, setPolicy] = React.useState<AccountPolicy | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
+  const onPolicyChange = React.useCallback(() => setAttempt((value) => value + 1), []);
   React.useEffect(() => {
     if (!userId || !workspaceId) return;
     let active = true;
@@ -65,7 +66,24 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
     }).catch((cause) => { if (active) setError(workspaceErrorMessage(cause, "Qasja e maroBrain nuk u verifikua. Provo përsëri.")); });
     return () => { active = false; };
   }, [userId, workspaceId, attempt]);
-  if (policy?.brainAccess) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={() => setAttempt((value) => value + 1)} />;
+  React.useEffect(() => {
+    if (!userId || !workspaceId || !policy) return;
+    let active = true;
+    const refresh = () => {
+      void fetchAccountPolicy(userId, workspaceId).then((next) => {
+        if (!active) return;
+        readBrainDraft(userId, workspaceId, next.brainResetAt);
+        setPolicy((previous) => previous?.brainAccess === next.brainAccess &&
+          previous.brainResetAt === next.brainResetAt && previous.brainDeleteAt === next.brainDeleteAt ? previous : next);
+      }).catch(() => { /* Keep the draft; every write still checks the server policy. */ });
+    };
+    const expiresAt = policy.brainAccess && policy.brainDeleteAt
+      ? Date.parse(policy.brainDeleteAt) - 60 * 24 * 60 * 60 * 1000 : null;
+    const timer = expiresAt === null ? undefined : setTimeout(refresh, Math.min(2147483647, Math.max(1000, expiresAt - Date.now())));
+    window.addEventListener("focus", refresh);
+    return () => { active = false; clearTimeout(timer); window.removeEventListener("focus", refresh); };
+  }, [userId, workspaceId, policy]);
+  if (policy?.brainAccess) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} />;
   return <div className="grid h-full place-items-center px-6 text-center text-ink-2">
     <div className="max-w-md space-y-4">
       <ProductLogo product="maroBrain" className="mx-auto h-10 w-[180px]" />
