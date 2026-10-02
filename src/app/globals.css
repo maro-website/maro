@@ -288,9 +288,8 @@ body {
   flex-shrink: 0;
 }
 
-/* Prompt dock toolbar — every control stays visible. Desktop uses one row when
-   it fits; narrower viewports recompose onto additional rows with the same
-   10px rhythm instead of clipping or collapsing controls. */
+/* Desktop controls wrap when needed. Mobile keeps one scrollable settings row
+   and a separate visible generate button, without shrinking touch targets. */
 .dock-toolbar {
   display: flex;
   min-width: 0;
@@ -344,7 +343,11 @@ body {
 
   .dock-toolbar-controls {
     flex-basis: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  .dock-toolbar-controls > * { flex-shrink: 0; }
 
   .dock-toolbar-actions {
     width: 100%;

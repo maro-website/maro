@@ -703,9 +703,9 @@
   }
 
   .maro-composer {
-    min-height: 10.5rem;
-    gap: var(--maro-gap-20);
-    padding: var(--maro-gap-20);
+    min-height: 8rem;
+    gap: var(--maro-gap-10);
+    padding: 14px;
     border-radius: var(--maro-radius-20);
   }
 
