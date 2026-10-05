@@ -14,7 +14,7 @@ import { iconSrc } from "@/lib/tools/iconMap";
 import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 import { formatCredits } from "@/lib/credits/format";
-import { Coins, Home, Menu, Megaphone } from "lucide-react";
+import { Coins, Compass, Home, Menu, Megaphone } from "lucide-react";
 
 function ModuleNavIcon({
   dest,
@@ -25,6 +25,7 @@ function ModuleNavIcon({
 }) {
   const cls = cn("h-5 w-5 shrink-0", active ? "text-brand" : "text-ink");
   const brand = getProductBrand(dest.label);
+  if (dest.id === "explore") return <Compass className={cls} />;
   if (brand && brand.id !== "maroFort") return <ToolIcon toolId={brand.id} className={cls} />;
   if (dest.toolId) {
     return <ToolIcon toolId={dest.toolId} fallback={Megaphone} className={cls} />;
@@ -123,7 +124,7 @@ export function AppTopNav({
         })}
       </nav>
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-[10px] lg:ml-auto">
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">
         {user && (
           <Link
             href="/pricing"

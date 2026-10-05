@@ -101,7 +101,7 @@ export function ExploreFeed({ author, savedOnly = false, hideAuthorFilter = fals
   };
   return <div>
     <div className="mb-6 flex flex-wrap items-center gap-3">
-      {!hideAuthorFilter && !author && <input aria-label="Filtro sipas username" placeholder="Autori · @username" value={authorInput} onChange={event => setAuthorInput(event.target.value)} className="maro-input h-10 min-w-0 max-w-64 text-sm" />}
+      {!hideAuthorFilter && !author && <input aria-label="Filtro sipas username" placeholder="Autori · @username" value={authorInput} onChange={event => setAuthorInput(event.target.value)} className="maro-search-input maro-input h-10 min-w-0 max-w-64 text-sm" />}
       <select aria-label="Rendit krijimet" value={sort} onChange={event => setSort(event.target.value as ExploreSort)} className="maro-input h-10 w-auto min-w-0 text-sm">{EXPLORE_SORTS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
     </div>
     {error && <p role="alert" className="mb-5 text-sm text-ink-2">Krijimet nuk u ngarkuan. <button className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></p>}

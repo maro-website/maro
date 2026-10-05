@@ -8,9 +8,9 @@ import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { X } from "lucide-react";
 import { MARO_PRODUCTS } from "@/lib/design/maro-system";
 
-export function BrainPill({ active, onToggle }: { active: boolean; onToggle: (next: boolean) => void }) {
+export function BrainPill({ active, onToggle, disabled }: { active: boolean; onToggle: (next: boolean) => void; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={active} aria-label="maroBrain" onClick={() => onToggle(!active)} className="fort-pill maro-switch" style={{ background: MARO_PRODUCTS.maroBrain.color, color: "var(--maro-color-text-on-accent)" }} title="Përdor kontekstin e maroBrain">
+    <button type="button" disabled={disabled} role="switch" aria-checked={active} aria-label="maroBrain" onClick={() => onToggle(!active)} className="fort-pill maro-switch disabled:opacity-50" style={{ background: MARO_PRODUCTS.maroBrain.color, color: "var(--maro-color-text-on-accent)" }} title="Përdor kontekstin e maroBrain">
       <ToolIcon toolId="brain" className="h-3.5 w-3.5" />
       <span>maroBrain</span>
       <SwitchTrack checked={active} />

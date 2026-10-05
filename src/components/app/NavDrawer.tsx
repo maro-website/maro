@@ -19,7 +19,7 @@ import {
   isNavActive,
 } from "@/lib/nav/destinations";
 import { cn } from "@/lib/utils/cn";
-import { Home, X } from "lucide-react";
+import { Compass, Home, X } from "lucide-react";
 import type { NavGroup } from "@/lib/nav/destinations";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
@@ -30,6 +30,7 @@ function DrawerIcon({ destination, colored = false }: {
   colored?: boolean;
 }) {
   const brand = getProductBrand(destination.label);
+  if (destination.label === "maroExplore") return <Compass className="h-6 w-6 shrink-0 text-ink" />;
   if (brand && brand.id !== "maroFort") return colored
     ? <StableImage src={brand.icon} alt="" className="h-6 w-6 shrink-0" />
     : <ToolIcon toolId={brand.id} className="h-5 w-5 text-ink" />;

@@ -65,12 +65,12 @@ export function ImazhWorkspace({ toolId }: { toolId: string }) {
         title="Ktheje idenë në imazh."
         subtitle="Krijo reklama, postime, produkte, fotografi dhe vizuale nga një ide e thjeshtë."
       />
-      <InspirationCarousel
+      <div className="hidden lg:block"><InspirationCarousel
         items={carouselItems}
         loading={loading}
         activePresetId={promptAttach?.id ?? null}
         onPresetSelect={onPresetSelect}
-      />
+      /></div>
     </>
   );
 

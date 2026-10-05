@@ -171,9 +171,9 @@ function PromptsPageInner() {
           </section>
 
           <section className="mt-5">
-            <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-3">
+            <div className="maro-library-search flex items-center gap-2 rounded-2xl px-3 py-3">
               <Search className="h-5 w-5 shrink-0 text-ink-3" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Kërko te ${PRESET_TOOL_META[tool].label}…`} className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Kërko te ${PRESET_TOOL_META[tool].label}…`} className="maro-search-input min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3" />
               <button type="button" onClick={() => setOnlyLiked((value) => !value)} aria-pressed={onlyLiked} aria-label="Të preferuarat" className={cn("grid h-11 w-11 place-items-center rounded-xl transition", onlyLiked ? "bg-danger/10 text-danger" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}><Heart className={cn("h-4 w-4", onlyLiked && "fill-current")} /></button>
             </div>
             <div className="scroll-thin mt-3 flex gap-2 overflow-x-auto pb-1">

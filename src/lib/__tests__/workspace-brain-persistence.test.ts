@@ -1,21 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
-import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
+import { emptyBrainProfile, type WorkspaceBrainProfile } from "@/lib/workspaces/brainTypes";
 import { isBrainConfigured } from "@/lib/workspaces/brainProfile";
 import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBrainDraft } from "@/lib/workspaces/brainDraft";
 import { workspaceRequest } from "@/lib/workspaces/request";
 import { subscribeToSession } from "@/lib/supabase/sessionSubscription";
 
-const mocks = vi.hoisted(() => ({ client: null as ReturnType<typeof createClient> | null }));
+const mocks = vi.hoisted(() => ({ client: null as ReturnType<typeof createClient> | null, brainAccess: true }));
 vi.mock("@/lib/supabase/client", () => ({
   supabaseConfigured: true,
   getSupabaseBrowser: () => mocks.client,
   getAccessToken: async () => "test-token",
 }));
 vi.mock("@/lib/services/projectAssetService", () => ({ resolvePrivateAssetRefs: async () => ({}) }));
-vi.mock("@/lib/workspaces/accountPolicyClient", () => ({ fetchAccountPolicy: async () => ({ brainAccess: true, brainResetAt: null }) }));
+vi.mock("@/lib/workspaces/accountPolicyClient", () => ({ fetchAccountPolicy: async () => ({ brainAccess: mocks.brainAccess, brainResetAt: null }) }));
 
 beforeEach(() => {
+  mocks.brainAccess = true;
   const values = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => values.get(key) ?? null,
@@ -30,6 +31,64 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("workspace and maroBrain persistence", () => {
+  it("reads whether Brain was created without saving a default profile or requiring an active plan", async () => {
+    mocks.brainAccess = false;
+    let raw: object = {};
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({ brain_profile: raw }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const { fetchBrainCreated, fetchBrainProfile } = await import("@/lib/workspaces/brainService");
+    expect(await fetchBrainCreated("alice", "ws-a")).toBe(false);
+    raw = emptyBrainProfile();
+    expect(await fetchBrainCreated("alice", "ws-a")).toBe(true);
+    await expect(fetchBrainProfile("alice", "ws-a")).rejects.toThrow("brain_plan_required");
+    expect(fetch.mock.calls.every(([, init]) => !init || init.method === "GET")).toBe(true);
+  });
+
+  it("creates explicitly with owner/reset guards and never replaces another tab's saved Brain", async () => {
+    const saved = emptyBrainProfile(); saved.brand.name = "Another tab's brand";
+    let patchUrl = "";
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") { patchUrl = url; return new Response("[]", { status: 200 }); }
+      return new Response(JSON.stringify({ brain_profile: saved }), { status: 200 });
+    }));
+    const { createBrainProfile, fetchBrainProfile } = await import("@/lib/workspaces/brainService");
+    await createBrainProfile("alice", "ws-a", null);
+    const params = new URL(patchUrl).searchParams;
+    expect(params.get("owner_id")).toBe("eq.alice");
+    expect(params.get("id")).toBe("eq.ws-a");
+    expect(params.get("brain_profile")).toBe("eq.{}");
+    expect(params.get("brain_reset_at")).toBe("is.null");
+    expect((await fetchBrainProfile("alice", "ws-a")).brand.name).toBe(saved.brand.name);
+  });
+
+  it("persists explicit creation even before any brand fields have been filled", async () => {
+    let raw: WorkspaceBrainProfile | Record<string, never> = {};
+    let writes = 0;
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        writes++;
+        raw = JSON.parse(String(init.body)).brain_profile;
+        return new Response(JSON.stringify([{ id: "ws-a" }]), { status: 200 });
+      }
+      return new Response(JSON.stringify({ brain_profile: raw }), { status: 200 });
+    }));
+    const { createBrainProfile, fetchBrainCreated } = await import("@/lib/workspaces/brainService");
+    expect(await fetchBrainCreated("alice", "ws-a")).toBe(false);
+    expect(writes).toBe(0);
+    await createBrainProfile("alice", "ws-a", null);
+    expect(await fetchBrainCreated("alice", "ws-a")).toBe(true);
+    expect(writes).toBe(1);
+    expect(raw).toEqual(emptyBrainProfile());
+  });
+
+  it("does not claim creation succeeded if a retention reset invalidated the guarded write", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => new Response(
+      init?.method === "PATCH" ? "[]" : JSON.stringify({ brain_profile: {} }), { status: 200 }
+    )));
+    const { createBrainProfile } = await import("@/lib/workspaces/brainService");
+    await expect(createBrainProfile("alice", "ws-a", null)).rejects.toThrow("brain_refresh_required");
+  });
+
   it("does not resurrect either a scoped draft or legacy cache after a server reset", () => {
     const old = emptyBrainProfile(); old.brand.name = "Expired draft";
     writeBrainDraft("alice", "ws-a", old);

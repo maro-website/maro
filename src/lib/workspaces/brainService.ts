@@ -1,7 +1,8 @@
 "use client";
 
 import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/brainTypes";
-import { normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
+import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
+import { hasSavedBrainProfile, normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
 import { getSupabaseBrowser, supabaseConfigured, getAccessToken } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils/format";
 import { resolvePrivateAssetRefs } from "@/lib/services/projectAssetService";
@@ -39,6 +40,21 @@ function readLocalSources(workspaceId: string): WorkspaceSource[] {
 
 function writeLocalSources(workspaceId: string, items: WorkspaceSource[]) {
   localStorage.setItem(`${LOCAL_SOURCES_KEY}:${workspaceId}`, JSON.stringify(items));
+}
+
+/** Read creation state even while a saved Brain is paused by the plan policy. */
+export async function fetchBrainCreated(userId: string, workspaceId: string): Promise<boolean> {
+  await pendingSaves.get(`${userId}:${workspaceId}`)?.catch(() => {});
+  if (supabaseConfigured) {
+    const supabase = getSupabaseBrowser();
+    const { data, error } = await workspaceRequest(signal => supabase.from("workspaces")
+      .select("brain_profile, brand_name, brand_logo_url").eq("id", workspaceId).eq("owner_id", userId).abortSignal(signal).maybeSingle());
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("workspace_not_found");
+    return hasSavedBrainProfile(data.brain_profile, data.brand_name, data.brand_logo_url);
+  }
+  const raw = localStorage.getItem(`${LOCAL_BRAIN_KEY}:${workspaceId}`);
+  return hasSavedBrainProfile(raw ? JSON.parse(raw) : null);
 }
 
 export async function fetchBrainProfile(
@@ -88,9 +104,19 @@ export async function saveBrainProfile(
   profile: WorkspaceBrainProfile,
   expectedResetAt?: string | null
 ): Promise<void> {
+  return queueBrainSave(userId, workspaceId, profile, expectedResetAt);
+}
+
+/** An explicit creation must not overwrite a Brain saved by another open tab. */
+export async function createBrainProfile(userId: string, workspaceId: string, expectedResetAt: string | null): Promise<void> {
+  await queueBrainSave(userId, workspaceId, emptyBrainProfile(), expectedResetAt, true);
+  if (!await fetchBrainCreated(userId, workspaceId)) throw new Error("brain_refresh_required");
+}
+
+function queueBrainSave(userId: string, workspaceId: string, profile: WorkspaceBrainProfile, expectedResetAt?: string | null, createOnly = false): Promise<void> {
   const key = `${userId}:${workspaceId}`;
   const previous = pendingSaves.get(key) ?? Promise.resolve();
-  const task = previous.catch(() => {}).then(() => persistBrainProfile(userId, workspaceId, profile, expectedResetAt));
+  const task = previous.catch(() => {}).then(() => persistBrainProfile(userId, workspaceId, profile, expectedResetAt, createOnly));
   pendingSaves.set(key, task);
   const cleanup = () => { if (pendingSaves.get(key) === task) pendingSaves.delete(key); };
   void task.then(cleanup, cleanup);
@@ -101,7 +127,8 @@ async function persistBrainProfile(
   userId: string,
   workspaceId: string,
   profile: WorkspaceBrainProfile,
-  expectedResetAt?: string | null
+  expectedResetAt?: string | null,
+  createOnly = false
 ): Promise<void> {
   const normalized = normalizeBrainProfile(profile);
   const persisted = normalizeBrainProfile({
@@ -123,15 +150,18 @@ async function persistBrainProfile(
       })
       .eq("id", workspaceId)
       .eq("owner_id", userId);
+      if (createOnly) query = query.eq("brain_profile", "{}");
       if (expectedResetAt !== undefined) query = expectedResetAt === null
         ? query.is("brain_reset_at", null) : query.eq("brain_reset_at", expectedResetAt);
-      return query.select("id").abortSignal(signal).single();
+      const returning = query.select("id").abortSignal(signal);
+      return createOnly ? returning.maybeSingle() : returning.single();
     });
     if (error) throw new Error(expectedResetAt !== undefined && error.code === "PGRST116" ? "brain_refresh_required" : error.message);
-    if (!data) throw new Error("workspace_not_found");
+    if (!data && !createOnly) throw new Error("workspace_not_found");
     return;
   }
-  writeLocalBrain(workspaceId, persisted);
+  const existing = createOnly ? localStorage.getItem(`${LOCAL_BRAIN_KEY}:${workspaceId}`) : null;
+  if (!createOnly || !hasSavedBrainProfile(existing ? JSON.parse(existing) : null)) writeLocalBrain(workspaceId, persisted);
 }
 
 export async function fetchWorkspaceSources(

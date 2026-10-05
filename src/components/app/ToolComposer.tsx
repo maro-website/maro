@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import { AttachmentPicker } from "@/components/app/AttachmentPicker";
 import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attachments";
 import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft } from "@/lib/services/composerDraft";
@@ -39,6 +40,7 @@ import { LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
 import { isBrainConfigured } from "@/lib/workspaces/brainProfile";
 import {
   fetchBrainProfile,
+  fetchBrainCreated,
   fetchWorkspaceSources,
 } from "@/lib/workspaces/brainService";
 import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
@@ -336,6 +338,8 @@ export function ToolComposer({
   const isAudio = tool.kind === "audio";
   const canAttachImages = isImage || isWebsite;
   const [brainReady, setBrainReady] = React.useState(false);
+  const [brainState, setBrainState] = React.useState<"loading" | "missing" | "plan" | "incomplete" | "ready" | "error">("loading");
+  const [brainNotice, setBrainNotice] = React.useState(false);
   const brainUserId = user?.id;
   const [useWorkspaceBrand, setUseWorkspaceBrand] = React.useState(false);
   React.useEffect(() => { setServerPromptLimit(null); }, [tool.id, selections.model, promptAttach?.id, useWorkspaceBrand, workspaceId]);
@@ -365,6 +369,8 @@ export function ToolComposer({
 
   React.useEffect(() => {
     setBrainReady(false);
+    setBrainState("loading");
+    setBrainNotice(false);
     setUseWorkspaceBrand(false);
     if (!brainUserId || !workspaceId) {
       setBrainReady(false);
@@ -372,15 +378,16 @@ export function ToolComposer({
       return;
     }
     let alive = true;
-    void Promise.all([
-      fetchBrainProfile(brainUserId, workspaceId),
-      fetchWorkspaceSources(brainUserId, workspaceId),
-    ]).then(([profile, sources]) => {
+    void fetchBrainCreated(brainUserId, workspaceId).then(async created => {
+      if (!alive) return;
+      if (!created) { setBrainState("missing"); return; }
+      const [profile, sources] = await Promise.all([fetchBrainProfile(brainUserId, workspaceId), fetchWorkspaceSources(brainUserId, workspaceId)]);
       if (!alive) return;
       const ready = isBrainConfigured(profile, sources.length);
       setBrainReady(ready);
-    }).catch(() => {
-      if (alive) setBrainReady(false);
+      setBrainState(ready ? "ready" : "incomplete");
+    }).catch(error => {
+      if (alive) { setBrainReady(false); setBrainState(error instanceof Error && error.message === "brain_plan_required" ? "plan" : "error"); }
     });
     return () => {
       alive = false;
@@ -1160,10 +1167,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <button type="button" className="mx-4 my-2 flex w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-ink shadow-float lg:hidden" aria-expanded={mobileComposerOpen} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen((value) => !value)}>
-          <span className="min-w-0 truncate text-sm font-semibold">{mobileComposerOpen ? "Mbyll promptbox" : prompt || "Shkruaj idenë tënde…"}</span>
-          <ChevronDown className={cn("h-5 w-5 shrink-0", !mobileComposerOpen && "rotate-180")} />
-        </button>
+        {!mobileComposerOpen && <button type="button" className="ml-auto mr-4 mt-2 grid h-11 w-14 place-items-center rounded-2xl bg-surface text-ink lg:hidden" aria-label="Hap promptbox" aria-expanded={false} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(true)}><ChevronDown className="h-5 w-5 rotate-180" /></button>}
         <div id="mobile-composer-content" className={cn(!mobileComposerOpen && "max-lg:hidden", "max-lg:max-h-[60dvh] max-lg:overflow-y-auto")}>
         <div className="mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6">
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
@@ -1261,9 +1265,9 @@ export function ToolComposer({
             </div>
           )}
 
-          {(promptAttach || (canAttachImages && brainReady)) && !loading && (
+          {(promptAttach || (canAttachImages && brainUserId && workspaceId)) && !loading && (
             <div className="prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5">
-              {canAttachImages && brainReady && <BrainPill active={useWorkspaceBrand} onToggle={setUseWorkspaceBrand} />}
+              {canAttachImages && brainUserId && workspaceId && <BrainPill active={brainReady && useWorkspaceBrand} disabled={brainState === "loading"} onToggle={next => { if (brainReady) setUseWorkspaceBrand(next); else setBrainNotice(true); }} />}
               {promptAttach && (
                 <PresetPill
                   code={promptAttach.code}
@@ -1295,7 +1299,7 @@ export function ToolComposer({
                   onPaste={onPasteImages}
                   rows={3}
                   placeholder={placeholder}
-                  className="maro-composer__input block h-[4.5rem] max-h-36 min-h-[4.5rem] w-full resize-none pl-2 pr-12 pt-1 text-[16px] leading-relaxed placeholder:text-ink-3"
+                  className="maro-composer__input block h-[4.5rem] max-h-36 min-h-[4.5rem] w-full resize-none pl-2 pr-20 pt-1 text-[16px] leading-relaxed placeholder:text-ink-3 lg:pr-12"
                 />
               ) : (
                 <div className="flex min-h-[4.5rem] items-center pl-2 pr-12 pt-1 text-[16px] text-ink-3">
@@ -1307,12 +1311,13 @@ export function ToolComposer({
                   type="button"
                   onClick={() => setExpanded(true)}
                   disabled={!draftReady || !ready}
-                  className="absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none"
+                  className="absolute right-9 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus:outline-none lg:right-0"
                   aria-label="Zgjero promptin"
                 >
                   <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
                 </button>
               )}
+              <button type="button" className="absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink lg:hidden" aria-label="Mbyll promptbox" aria-expanded={true} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(false)}><ChevronDown className="h-5 w-5" /></button>
             </div>
 
             {needsPrompt && <PromptLinks value={prompt} />}
@@ -1322,7 +1327,7 @@ export function ToolComposer({
             </p>}
             {/* Toolbar */}
             <div className="dock-toolbar">
-              <div className="dock-toolbar-controls">
+              <ScrollableSettings>
               {canAttachImages && (
                 <>
                   <input
@@ -1395,7 +1400,7 @@ export function ToolComposer({
                 )
               )}
 
-              </div>
+              </ScrollableSettings>
 
               <div className="dock-toolbar-actions">
                 <GenerateButton
@@ -1439,6 +1444,10 @@ export function ToolComposer({
 
       <AttachmentPicker open={attachmentPickerOpen} onClose={() => setAttachmentPickerOpen(false)} onUpload={() => fileRef.current?.click()} limit={MAX_ATTACHMENTS - (isImage ? privateImageAttachments.length : attachments.length)} excludeRefs={isImage ? privateImageAttachments.flatMap(item => item.storageRef ? [item.storageRef] : []) : attachments} onSelect={selectLibraryAssets} />
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
+      <Modal open={brainNotice} onClose={() => setBrainNotice(false)} size="sm">
+        <ModalHeader title={brainState === "missing" ? "Krijo maroBrain fillimisht" : brainState === "plan" ? "maroBrain kërkon plan aktiv" : brainState === "error" ? "maroBrain nuk u verifikua" : "Plotëso maroBrain"} description={brainState === "missing" ? "Ky workspace ende nuk ka maroBrain. Krijoje, pastaj përdore në promptbox." : brainState === "plan" ? "Aktivizo maroStandard ose maroPro për të përdorur profilin tënd." : brainState === "error" ? "Hape maroBrain për të kontrolluar gjendjen dhe për të provuar përsëri." : "Shto informacionin e brandit para se ta përdorësh në gjenerime."} />
+        <div className="flex justify-end gap-2 px-6 pb-6"><Button variant="secondary" onClick={() => setBrainNotice(false)}>Më vonë</Button><Button onClick={() => { setBrainNotice(false); router.push(brainState === "plan" ? "/pricing" : "/brain"); }}>{brainState === "missing" ? "Krijo maroBrain" : brainState === "plan" ? "Shiko planet" : "Hap maroBrain"}</Button></div>
+      </Modal>
 
       <Modal open={confirmOpt !== null} onClose={() => setConfirmOpt(null)} size="sm">
         <ModalHeader icon={<Sparkles className="h-5 w-5" />} title="Je i sigurt?" description={confirmOpt?.message} />
@@ -1863,4 +1872,26 @@ function ComingSoonHero({ tool }: { tool: ToolDef }) {
       </span>
     </motion.div>
   );
+}
+
+function ScrollableSettings({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = React.useState({ left: false, right: false });
+  const update = React.useCallback(() => {
+    const row = ref.current;
+    if (!row) return;
+    const left = row.scrollLeft > 2;
+    const right = row.scrollWidth - row.clientWidth - row.scrollLeft > 2;
+    setEdges(current => current.left === left && current.right === right ? current : { left, right });
+  }, []);
+  React.useEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
+    for (const child of row.children) observer.observe(child);
+    update();
+    return () => observer.disconnect();
+  }, [children, update]);
+  return <div ref={ref} onScroll={update} className="dock-toolbar-controls" data-more-left={edges.left || undefined} data-more-right={edges.right || undefined}>{children}</div>;
 }

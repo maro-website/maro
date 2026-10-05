@@ -43,11 +43,12 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 const MODULE_DESTINATIONS: NavDestination[] = [
   { id: "imazh", label: "maroImazh", route: "/imazh", group: "tools", showInTopBar: true, toolId: "reklama", iconName: "maro-imazh" },
   { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
+  { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
+  { id: "explore", label: "maroExplore", route: "/explore", group: "discover", showInTopBar: true },
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
   { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma" },
   { id: "audio", label: "maroAudio", route: "/audio", group: "tools", showInTopBar: true, toolId: "zo", iconName: "maro-zo" },
   { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea" },
-  { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
 ];
 
 export const TOP_BAR_DESTINATIONS: NavDestination[] = MODULE_DESTINATIONS.map((destination) => {
@@ -69,7 +70,6 @@ export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
 export const NAV_DESTINATIONS: NavDestination[] = [
   { id: "home", label: "Hub", route: "/", group: "home" },
   ...TOP_BAR_DESTINATIONS,
-  { id: "explore", label: "maroExplore", route: "/explore", group: "discover" },
   { id: "case_studies", label: "Case Studies", route: "/case-studies", group: "later", badge: "Së shpejti · V1.5", comingSoon: true },
   { id: "mcp", label: "MCP & CLI", route: "/mcp", group: "later", badge: "së shpejti", comingSoon: true },
 ];

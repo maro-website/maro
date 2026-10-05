@@ -107,6 +107,13 @@ export function MaroLogoWizard() {
     return () => controller.abort();
   }, []);
   const [state, dispatch] = React.useReducer(reducer, INITIAL_APP_STATE);
+  const pageRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+    page.scrollTo({ top: 0, behavior: "instant" });
+    page.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [state.phase, content]);
   const [stepErrors, setStepErrors] = React.useState<Record<string, string>>({});
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
@@ -254,7 +261,7 @@ export function MaroLogoWizard() {
 
   if (!content || loadedDraftKey !== draftKey) return <p className="p-8 text-ink-3">{contentError ? "Konfigurimi nuk është në dispozicion. Rifresko faqen." : "Duke ngarkuar…"}</p>;
   return (
-    <LogoContentContext.Provider value={content}><div className="marologo-page flex-1 overflow-y-auto">
+    <LogoContentContext.Provider value={content}><div ref={pageRef} className="marologo-page flex-1 overflow-y-auto">
       {presetAttach && state.phase !== "generating" && state.phase !== "result" && (
         <div className="mx-auto mt-4 flex w-[min(1040px,calc(100%-32px))] items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-2">
           <span><strong className="text-ink">{presetAttach.title ?? presetAttach.code}</strong> po përdoret si drejtim fillestar. Çdo zgjedhje që ndryshon ti ka përparësi.</span>

@@ -13,6 +13,13 @@ export function normalizeBrainProfile(raw?: Partial<WorkspaceBrainProfile> | nul
   };
 }
 
+/** The workspace's default {} is not a created Brain. A saved blank profile is. */
+export function hasSavedBrainProfile(raw: unknown, brandName?: unknown, brandLogo?: unknown): boolean {
+  return Boolean(raw && typeof raw === "object" && !Array.isArray(raw) && Object.keys(raw).length > 0) ||
+    (typeof brandName === "string" && Boolean(brandName.trim())) ||
+    (typeof brandLogo === "string" && Boolean(brandLogo.trim()));
+}
+
 const TRACKED: (p: WorkspaceBrainProfile) => (string | null | undefined)[] = (p) => [
   p.brand.name,
   p.brand.category,

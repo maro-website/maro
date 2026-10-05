@@ -348,6 +348,10 @@ body {
     scrollbar-width: none;
   }
   .dock-toolbar-controls > * { flex-shrink: 0; }
+  .dock-toolbar-controls { padding-block: 2px; }
+  .dock-toolbar-controls[data-more-right] { mask-image: linear-gradient(to right, black calc(100% - 36px), transparent); }
+  .dock-toolbar-controls[data-more-left] { mask-image: linear-gradient(to right, transparent, black 24px); }
+  .dock-toolbar-controls[data-more-left][data-more-right] { mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 36px), transparent); }
 
   .dock-toolbar-actions {
     width: 100%;
@@ -531,8 +535,7 @@ html[data-theme="mshelt"] { --skeleton-shine: rgb(255 255 255 / 8%); }
 :root[data-theme="mshelt"] body[data-maro-ui="final"] :where(*:not(.animate-spin), *:not(.animate-spin)::before, *:not(.animate-spin)::after) {
   border-color: var(--maro-color-border-default);
 }
-:root[data-theme="mshelt"] body[data-maro-ui="final"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea),
-:root[data-theme="mshelt"] body[data-maro-ui="final"] .maro-library-search {
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea) {
   border-color: transparent;
   box-shadow: none;
   background-color: color-mix(in srgb, var(--maro-color-bg-surface) 90%, white 10%);
@@ -547,6 +550,11 @@ html[data-theme="mshelt"] { --skeleton-shine: rgb(255 255 255 / 8%); }
   outline: none;
 }
 :root[data-theme="mshelt"] body[data-maro-ui="final"] .maro-library-search input {
+  background: transparent;
+}
+.maro-library-search,
+.maro-search-input,
+:root[data-theme="mshelt"] body[data-maro-ui="final"] :is(.maro-library-search, input.maro-search-input) {
   background: transparent;
 }
 :root[data-theme="mshelt"] body[data-maro-ui="final"] :is(.ring-card-active, .ring-brand, [class*="focus:ring-brand"], [class*="focus-within:ring-brand"]) {

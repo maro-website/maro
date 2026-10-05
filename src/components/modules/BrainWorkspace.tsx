@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ProductLogo } from "@/components/ui/ProductLogo";
 import { BrainPlanNotice } from "./BrainPlanNotice";
 import { MARO_PRODUCTS } from "@/lib/design/maro-system";
@@ -20,20 +21,23 @@ import {
 import { brainProgress } from "@/lib/workspaces/brainProfile";
 import {
   addWorkspaceSource,
+  createBrainProfile,
   deleteWorkspaceSource,
   fetchBrainProfile,
+  fetchBrainCreated,
   fetchWorkspaceSources,
   saveBrainProfile,
   uploadSourceImage,
 } from "@/lib/workspaces/brainService";
 import { uid } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
-import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Layers, Plus, Target, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBrainDraft } from "@/lib/workspaces/brainDraft";
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
 import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
 import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
+import planStyle from "./BrainPlanNotice.module.css";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -51,16 +55,21 @@ export function BrainWorkspace() {
 
 function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId?: string }) {
   const [policy, setPolicy] = React.useState<AccountPolicy | null>(null);
+  const [created, setCreated] = React.useState<boolean | null>(null);
+  const [creating, setCreating] = React.useState(false);
+  const creatingRef = React.useRef(false);
   const [error, setError] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
   const onPolicyChange = React.useCallback(() => setAttempt((value) => value + 1), []);
   React.useEffect(() => {
     if (!userId || !workspaceId) return;
     let active = true;
-    setPolicy(null); setError(null);
-    void fetchAccountPolicy(userId, workspaceId).then((value) => {
+    setPolicy(null); setCreated(null); setError(null);
+    void fetchAccountPolicy(userId, workspaceId).then(async (value) => {
+      const exists = await fetchBrainCreated(userId, workspaceId);
       if (!active) return;
-      readBrainDraft(userId, workspaceId, value.brainResetAt);
+      const draft = readBrainDraft(userId, workspaceId, value.brainResetAt);
+      setCreated(exists || Boolean(draft));
       setPolicy(value);
     }).catch((cause) => { if (active) setError(workspaceErrorMessage(cause, "Qasja e maroBrain nuk u verifikua. Provo përsëri.")); });
     return () => { active = false; };
@@ -69,9 +78,11 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
     if (!userId || !workspaceId || !policy) return;
     let active = true;
     const refresh = () => {
-      void fetchAccountPolicy(userId, workspaceId).then((next) => {
+      void fetchAccountPolicy(userId, workspaceId).then(async (next) => {
+        const exists = await fetchBrainCreated(userId, workspaceId);
         if (!active) return;
-        readBrainDraft(userId, workspaceId, next.brainResetAt);
+        const draft = readBrainDraft(userId, workspaceId, next.brainResetAt);
+        setCreated(exists || Boolean(draft));
         setPolicy((previous) => previous?.brainAccess === next.brainAccess &&
           previous.brainResetAt === next.brainResetAt && previous.brainDeleteAt === next.brainDeleteAt ? previous : next);
       }).catch(() => { /* Keep the draft; every write still checks the server policy. */ });
@@ -82,8 +93,26 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
     window.addEventListener("focus", refresh);
     return () => { active = false; clearTimeout(timer); window.removeEventListener("focus", refresh); };
   }, [userId, workspaceId, policy]);
-  if (policy?.brainAccess) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} />;
-  if (policy) return <BrainPlanNotice policy={policy} onRefresh={onPolicyChange} />;
+  const create = async () => {
+    if (!userId || !workspaceId || !policy?.brainAccess || creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating(true); setError(null);
+    try {
+      // Recheck before writing so another tab's existing profile is never replaced.
+      const nextPolicy = await fetchAccountPolicy(userId, workspaceId);
+      if (!nextPolicy.brainAccess) { setPolicy(nextPolicy); return; }
+      const exists = await fetchBrainCreated(userId, workspaceId);
+      if (!exists) await createBrainProfile(userId, workspaceId, nextPolicy.brainResetAt);
+      setPolicy(nextPolicy); setCreated(true);
+    } catch (cause) {
+      if (cause instanceof Error && /brain_plan_required|brain_refresh_required/.test(cause.message)) onPolicyChange();
+      setError(workspaceErrorMessage(cause, "maroBrain nuk u krijua. Provo përsëri."));
+    } finally { creatingRef.current = false; setCreating(false); }
+  };
+  if (policy && created === false) return <BrainCreateNotice access={policy.brainAccess} creating={creating} error={error} onCreate={() => void create()} />;
+  if (policy?.brainAccess && created) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} />;
+  if (policy && created) return <BrainPlanNotice policy={policy} onRefresh={onPolicyChange} />;
+  if (!userId) return <BrainCreateNotice access={false} guest creating={false} error={null} onCreate={() => {}} />;
   return <div className="grid h-full place-items-center px-6 text-center text-ink-2">
     <div className="max-w-md space-y-4">
       <ProductLogo product="maroBrain" className="mx-auto h-10 w-[180px]" />
@@ -91,6 +120,29 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
       {error && <Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>Provo përsëri</Button>}
     </div>
   </div>;
+}
+
+function BrainCreateNotice({ access, guest = false, creating, error, onCreate }: {
+  access: boolean; guest?: boolean; creating: boolean; error: string | null; onCreate: () => void;
+}) {
+  return <section className={planStyle.page} aria-labelledby="brain-create-title" style={{ "--brain-accent": MARO_PRODUCTS.maroBrain.color } as React.CSSProperties}>
+    <div className={planStyle.layout}>
+      <div className={planStyle.intro}>
+        <ProductLogo product="maroBrain" naturalWidth className={planStyle.logo} />
+        <h1 id="brain-create-title">Krijoje një herë.<br />maro me brandin tënd.</h1>
+        <p className={planStyle.description}>Identiteti, audienca dhe referencat e tua në një vend. Krijo maroBrain për këtë workspace, pastaj plotësoje me ritmin tënd.</p>
+        {access ? <Button loading={creating} disabled={creating} size="lg" className={planStyle.cta} icon={<Plus size={19} />} onClick={onCreate}>{creating ? "Duke krijuar…" : "Krijo maroBrain"}</Button>
+          : <Link href={guest ? "/sign-in?next=/brain" : "/pricing"} className={`maro-button ${planStyle.cta}`} data-variant="inverse" data-size="lg">{guest ? "Hyr për të krijuar maroBrain" : "Shiko planet"}<ArrowUpRight size={19} aria-hidden /></Link>}
+        {!access && <p className={planStyle.planNote}>Për ta krijuar dhe përdorur të duhet maroStandard ose maroPro.</p>}
+        {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
+      </div>
+      <div className={planStyle.retention}>
+        <h2 className="text-xl font-semibold tracking-brand">Gjithçka që Maro duhet të dijë.</h2>
+        <div className="mt-6 space-y-6">{[{ icon: Layers, title: "Brendi yt", text: "Emri, identiteti dhe toni i biznesit." }, { icon: Target, title: "Njerëzit e tu", text: "Audienca, tregu dhe qëllimet e tua." }, { icon: Upload, title: "Referencat e tua", text: "Fotot dhe materialet për gjenerimet e ardhshme." }].map(({ icon: Icon, title, text }) => <div key={title} className="flex gap-4"><span className={planStyle.clock}><Icon size={19} /></span><div><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-sm text-ink-2">{text}</p></div></div>)}</div>
+        <p className="mt-7 text-xs leading-relaxed text-ink-3">maroBrain krijohet vetëm kur ti e nis. Ndryshimet që bën më pas ruhen automatikisht.</p>
+      </div>
+    </div>
+  </section>;
 }
 
 function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | null; onPolicyChange: () => void }) {

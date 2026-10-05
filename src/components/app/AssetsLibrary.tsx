@@ -6,8 +6,9 @@ import { PreviewFallback } from "@/components/app/PreviewFallback";
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { Modal, ModalHeader, ModalFooter } from "@/components/ui/Modal";
 import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { MyPublications } from "@/components/explore/MyPublications";
@@ -38,6 +39,7 @@ import {
   FileText,
   Image as ImageIcon,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 
 type Row =
@@ -123,6 +125,15 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
   const [nextOffset, setNextOffset] = React.useState<number | null>(null);
   const [selected, setSelected] = React.useState<LibrarySelection[]>([]);
   const [selecting, setSelecting] = React.useState(false);
+  const actionRef = React.useRef<HTMLDivElement>(null);
+  const [actionsVisible, setActionsVisible] = React.useState(true);
+  React.useEffect(() => {
+    const element = actionRef.current;
+    if (!element || picker || category === "published") return;
+    const observer = new IntersectionObserver(([entry]) => setActionsVisible(entry.isIntersecting), { threshold: 0.5 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [picker, category]);
   const [chosen, setChosen] = React.useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = React.useState<Row[]>([]);
   const [deleting, setDeleting] = React.useState(false);
@@ -234,7 +245,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
     const ids = rowWorkspaceIds(row);
     return ids.length ? ids.map(id => workspaces.find(workspace => workspace.id === id)?.name ?? "Workspace i mëparshëm").join(" · ") : row.kind === "upload" ? "Ende pa workspace" : "Pa workspace";
   };
-  const workspaceSelect = (className: string) => user && workspaces.length > 0 && <label className={className}><span className="mb-2 block text-[11px] font-semibold text-ink-3">Workspace</span><select aria-label="Workspace i aseteve" value={workspaceScope} onChange={event => setWorkspaceFilter(event.target.value)} className="w-full min-w-0 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-ink outline-none"><option value="all">Të gjitha workspace-et</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select></label>;
+  const workspaceSelect = (className: string) => user && workspaces.length > 0 && <div className={className}><span className="mb-2 block text-[11px] font-semibold text-ink-3">Workspace</span><AssetFilter label="Workspace i aseteve" value={workspaceScope} onChange={setWorkspaceFilter} options={[{ value: "all", label: "Të gjitha workspace-et" }, ...workspaces.map(workspace => ({ value: workspace.id, label: workspace.name }))]} /></div>;
   const scopedRows = React.useMemo(() => rows.filter(row => {
     const id = row.kind === "creation" ? row.creation.workspaceId : row.kind === "project" ? row.project.workspaceId : undefined;
     return workspaceScope === "all" || id === workspaceScope;
@@ -397,7 +408,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[220px] bg-aurora" />
 
         {/* Sticky toolbar */}
-        <div className="sticky top-0 z-10 bg-canvas px-[20px] py-[10px] lg:px-[30px]">
+        <div className="relative z-10 bg-canvas px-[20px] py-[10px] md:sticky md:top-0 lg:px-[30px]">
           {category !== "published" && workspaceSelect("mb-3 block md:hidden")}
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             {category !== "published" && <div className="maro-library-search flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2 max-md:basis-full">
@@ -406,28 +417,14 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Kërko…"
-                className="w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
+                className="maro-search-input w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
               />
             </div>}
-            <select aria-label="Kategoria e aseteve" value={category} onChange={event => chooseCategory(event.target.value as typeof category)} className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-[13px] text-ink md:hidden">
-              <option value="made">Çka ke maru</option><option value="uploaded">Çka ke ngarku</option><option value="saved">Çka ke ruajt</option>{!picker && <option value="published">Publikimet në Explore</option>}
-            </select>
+            <AssetFilter className="min-w-0 flex-1 md:hidden" label="Kategoria e aseteve" value={category} onChange={value => { if (value === "made" || value === "uploaded" || value === "saved" || value === "published") chooseCategory(value); }} options={[{ value: "made", label: "Çka ke maru" }, { value: "uploaded", label: "Çka ke ngarku" }, { value: "saved", label: "Çka ke ruajt" }, ...(!picker ? [{ value: "published", label: "Publikimet në Explore" }] : [])]} />
             {/* Mobile filter dropdown */}
-            {category !== "published" && <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-[13.5px] font-medium text-ink outline-none md:hidden"
-            >
-              <option value="all">Të gjitha</option>
-
-              {toolBuckets.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>}
+            {category !== "published" && <AssetFilter align="right" className="min-w-0 flex-1 md:hidden" label="Filtro mjetet" value={filter} onChange={setFilter} options={[{ value: "all", label: "Të gjitha" }, ...toolBuckets.map(tool => ({ value: tool.id, label: tool.name }))]} />}
             {/* Size slider */}
-            {!picker && category !== "published" && <div className="flex items-center gap-2">
+            {!picker && category !== "published" && <div ref={actionRef} className="flex items-center gap-2">
               {selecting && <Button variant="danger" size="sm" icon={<Trash2 className="h-4 w-4" />} disabled={!chosen.size || deleting} onClick={() => setPendingDelete(filtered.filter(row => chosen.has(rowKey(row))))}>Fshi ({chosen.size})</Button>}
               <Button variant="secondary" size="sm" disabled={deleting} icon={selecting ? undefined : <Check className="h-4 w-4" />} onClick={() => { setSelecting(value => !value); setChosen(new Set()); }}>{selecting ? "Anulo" : "Zgjedh"}</Button>
             </div>}
@@ -484,6 +481,12 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         </div>
       </div>
       </div>
+      <AnimatePresence>
+        {!picker && selecting && !actionsVisible && category !== "published" && <motion.div key="mobile-asset-actions" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.18 }} className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-maro16 bg-surface p-3 shadow-float md:hidden" aria-label="Asetet e zgjedhura">
+          <span className="text-sm text-ink-2">{chosen.size} të zgjedhura</span>
+          <div className="flex gap-2"><Button variant="danger" size="sm" icon={<Trash2 className="h-4 w-4" />} disabled={!chosen.size || deleting} onClick={() => setPendingDelete(filtered.filter(row => chosen.has(rowKey(row))))}>Fshi</Button><Button variant="secondary" size="sm" disabled={deleting} onClick={() => { setSelecting(false); setChosen(new Set()); }}>Anulo</Button></div>
+        </motion.div>}
+      </AnimatePresence>
       {picker && <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface px-5 py-4"><p className="text-sm text-ink-2">{selected.length} / {picker.limit} të zgjedhura</p><Button disabled={!selected.length} onClick={() => picker.onSelect(selected)}>Shtoje</Button></div>}
 
       {lightbox && (
@@ -495,6 +498,13 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
       </Modal>
     </div>
   );
+}
+
+function AssetFilter({ label, value, options, onChange, className, align = "left" }: {
+  label: string; value: string; options: { value: string; label: string }[];
+  onChange: (value: string) => void; className?: string; align?: "left" | "right";
+}) {
+  return <Dropdown className={className} align={align} trigger={<button type="button" aria-label={label} className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-maro12 bg-surface px-3 text-left text-[13px] font-semibold text-ink hover:bg-surface-hover"><span className="truncate">{options.find(option => option.value === value)?.label ?? "Të gjitha"}</span><ChevronDown className="h-4 w-4 shrink-0 text-ink-3" /></button>} items={options.map(option => ({ label: option.label, icon: <Check className={cn("h-4 w-4", option.value !== value && "opacity-0")} />, onClick: () => onChange(option.value) }))} />;
 }
 
 function RailItem({

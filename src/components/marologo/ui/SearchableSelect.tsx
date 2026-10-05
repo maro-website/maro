@@ -93,6 +93,7 @@ export function SearchableSelect({
           <div className="mb-[10px]">
             <Input
               aria-label={`Kërko ${label.toLowerCase()}`}
+              className="maro-search-input"
               type="text"
               autoFocus
               value={query}
