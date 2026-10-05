@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured, resolveAssetForClient } from "@/lib/supabase/server";
 import { isPresetTool, type PresetTool } from "@/lib/presets/model";
 import type { PresetCategoryItem, PromptItem } from "@/lib/prompts/types";
+import { guestPresetIds } from "@/lib/presets/guestCatalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,10 +32,15 @@ export async function GET(req: Request) {
   const admin = getSupabaseAdmin();
 
   try {
+    const user = await getUserFromToken(bearer(req));
+    const allowedIds = user ? null : await guestPresetIds();
+    if (!user && (page > 0 || !allowedIds?.length)) {
+      return NextResponse.json({ items: [], liked: [], categories: [], hasMore: false, page });
+    }
     let query = admin.from("maro_prompts").select(BROWSE_FIELDS)
-      .eq("tool", tool).eq("active", true).eq("status", "published")
-      .order("featured", { ascending: false }).order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false });
+      .eq("tool", tool).eq("active", true).eq("status", "published");
+    if (allowedIds) query = query.in("id", allowedIds).order("created_at", { ascending: false }).order("id", { ascending: false });
+    else query = query.order("featured", { ascending: false }).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
     if (category) query = query.eq("category", category);
     if (search) query = query.ilike("search_text", `%${search}%`);
 
@@ -42,7 +48,7 @@ export async function GET(req: Request) {
     const { data, error } = await query.range(from, from + limit);
     if (error) throw error;
     const raw = data ?? [];
-    const hasMore = raw.length > limit;
+    const hasMore = Boolean(user && raw.length > limit);
     const items = await Promise.all(raw.slice(0, limit).map(async (row) => ({
       ...(row as unknown as PromptItem),
       featured_url: row.featured_url ? await resolveAssetForClient(row.featured_url as string) : null,
@@ -58,7 +64,6 @@ export async function GET(req: Request) {
     }));
 
     let liked: string[] = [];
-    const user = await getUserFromToken(bearer(req));
     if (user && items.length) {
       const { data: likes } = await admin.from("prompt_likes").select("prompt_id")
         .eq("user_id", user.id).in("prompt_id", items.map((item) => item.id));

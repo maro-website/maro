@@ -14,7 +14,7 @@ export default function ContactPage() {
           Kontakt
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
-          Pyetje për planet, maroBiz, ose mbështetje teknike — na kontakto.
+          Pyetje për planet, maroBiz, ose mbështetje teknike? Na kontakto.
         </p>
 
         <div className="mt-10 space-y-4 rounded-2xl bg-surface p-6 sm:p-8">

@@ -102,7 +102,7 @@ export function OrdersSection() {
         <div>
           <div className="text-[14px] font-bold text-ink">Porositë e mia</div>
           <p className="mt-1 text-[13px] text-ink-2">
-            Historiku i plotë — të paguara, në pritje, anuluar dhe të refuzuara.
+            Historiku i plotë: të paguara, në pritje, anuluar dhe të refuzuara.
           </p>
         </div>
         <button

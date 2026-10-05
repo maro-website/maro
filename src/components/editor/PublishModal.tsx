@@ -60,7 +60,7 @@ export function PublishModal({
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
           <p>
             Preview URL (<span className="font-mono text-ink">{project.previewUrl}</span>) shërben vetëm
-            për shikim brenda maro — nuk publikon automatikisht në internet.
+            për shikim brenda maro. Nuk publikon automatikisht në internet.
           </p>
         </div>
 

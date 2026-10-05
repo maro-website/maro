@@ -40,7 +40,7 @@ export function StepBrand({ step, highestStepReached, wizard, errors, onChange, 
         <button type="button" onClick={() => setContextOpen((open) => !open)} className="flex min-h-[56px] w-full items-center justify-between text-left" aria-expanded={contextOpen}>
           <span>
             <span className="block text-[14px] font-semibold text-ink">Shto kontekst</span>
-            <span className="block text-[12px] text-ink-3">Audienca, industria ose slogani — opsionale</span>
+            <span className="block text-[12px] text-ink-3">Audienca, industria ose slogani (opsionale)</span>
           </span>
           <ChevronDown className={cn("h-4 w-4 text-ink-3 transition-transform", contextOpen && "rotate-180")} />
         </button>

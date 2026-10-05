@@ -121,6 +121,8 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open, place, userId, getAccessToken]);
 
+  if (!user) return null;
+
   return (
     <div className="relative">
       <button

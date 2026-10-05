@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Minimize2, ArrowUp, X } from "lucide-react";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 import { Button } from "@/components/ui/Button";
+import { PromptLinks } from "./PromptLinks";
 
 // Fullscreen "text board" for writing longer prompts comfortably. Bound to the
 // same prompt state as the composer's textarea.
@@ -91,6 +92,7 @@ export function PromptExpand({
               className="min-h-0 flex-1 w-full resize-none rounded-maro16 bg-surface p-5 text-base leading-relaxed text-ink placeholder:text-ink-3"
             />
 
+            <PromptLinks value={value} />
             <div className="mt-3 flex items-center justify-between">
               <span className="text-xs text-ink-3">{value.length.toLocaleString("en-US")}{maxChars !== undefined ? ` / ${maxChars.toLocaleString("en-US")}` : ""} shkronja{overLimit && " · Shkurto promptin për të gjeneruar."}</span>
               <div className="flex items-center gap-2">

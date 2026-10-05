@@ -11,6 +11,7 @@ import type { PromptItem } from "@/lib/prompts/types";
 import { ToolComposer } from "@/components/app/ToolComposer";
 import { ModuleHero } from "@/components/modules/ModuleHero";
 import { InspirationCarousel } from "@/components/modules/InspirationCarousel";
+import { useMaro } from "@/context/store";
 
 const IMAZH_TARGET_TOOL = "reklama";
 
@@ -30,23 +31,24 @@ function promptToCarouselItem(p: PromptItem): InspirationItem {
 }
 
 export function ImazhWorkspace({ toolId }: { toolId: string }) {
+  const { user } = useMaro();
+  const userId = user?.id;
   const [promptAttach, setPromptAttach] = React.useState<PromptAttach | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [carouselItems, setCarouselItems] = React.useState<InspirationItem[]>(IMAZH_INSPIRATION_FALLBACK);
+  const [carouselItems, setCarouselItems] = React.useState<InspirationItem[]>([]);
 
   React.useEffect(() => {
     let alive = true;
+    setLoading(true);
     void fetchPrompts().then((r) => {
       if (!alive) return;
       const imazhPresets = r.items.filter((p) => p.target_tool === IMAZH_TARGET_TOOL);
-      if (imazhPresets.length > 0) {
-        setCarouselItems(imazhPresets.map(promptToCarouselItem));
-      }
-    }).catch(() => undefined).finally(() => { if (alive) setLoading(false); });
+      setCarouselItems(imazhPresets.length || !userId ? imazhPresets.map(promptToCarouselItem) : IMAZH_INSPIRATION_FALLBACK);
+    }).catch(() => { if (alive) setCarouselItems(userId ? IMAZH_INSPIRATION_FALLBACK : []); }).finally(() => { if (alive) setLoading(false); });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [userId]);
 
   const onPresetSelect = React.useCallback((attach: PromptAttach) => {
     setPromptAttach(attach);

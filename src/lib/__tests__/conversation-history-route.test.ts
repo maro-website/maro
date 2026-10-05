@@ -14,6 +14,21 @@ beforeEach(() => {
   } });
 });
 describe("conversation reload boundary", () => {
+  it("allows account-wide library browsing while retaining the authenticated ownership filter", async () => {
+    mocks.generations = [{ id: "a", tool_id: "reklama", workspace_id: "workspace-a", output_urls: ["storage:generations/owner/a.png"] },
+      { id: "b", tool_id: "reklama", workspace_id: "workspace-b", output_urls: ["storage:generations/owner/b.png"] },
+      { id: "old", tool_id: "reklama", workspace_id: null, output_urls: ["storage:generations/owner/old.png"] }];
+    const response = await GET(new Request("https://maro.test/api/creations?workspace=all&userId=foreign"));
+    const result = await response.json();
+    expect(result.items.map((item: { workspaceId?: string }) => item.workspaceId)).toEqual(["workspace-a", "workspace-b", undefined]);
+    expect(mocks.eq).toHaveBeenCalledWith("user_id", "owner");
+    expect(mocks.eq).not.toHaveBeenCalledWith("workspace_id", expect.anything());
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+  it.each([`workspace=all&conversation=${chat}`, "workspace=foreign"])("rejects an invalid library scope: %s", async params => {
+    expect((await GET(new Request(`https://maro.test/api/creations?${params}`))).status).toBe(400);
+    expect(mocks.eq).not.toHaveBeenCalled();
+  });
   it("returns in-progress state after leaving the page without revealing job internals", async () => {
     mocks.jobs = [ { id: "job", status: "processing", created_at: "2026-10-02", request: { userId: "owner", workspaceId: "workspace-a", prompt: "Visible user request", compiled_prompt: "PRIVATE" } } ];
     const response = await GET(new Request(`https://maro.test/api/creations?conversation=${chat}`));

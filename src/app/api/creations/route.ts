@@ -32,11 +32,13 @@ export async function GET(req: Request) {
   // Try the full select (with favourite/title); fall back if the columns don't
   // exist yet (before migration 0007).
   const admin = getSupabaseAdmin();
-  const workspaceId = await getActiveWorkspaceId(user.id);
   const params = new URL(req.url).searchParams;
+  const workspace = params.get("workspace");
+  const allWorkspaces = workspace === "all";
+  const workspaceId = allWorkspaces ? null : await getActiveWorkspaceId(user.id);
   const conversation = params.get("conversation");
   const offset = Number(params.get("offset") ?? 0);
-  if ((conversation && !UUID.test(conversation)) || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return NextResponse.json({ error: "bad-target" }, { status: 400 });
+  if ((workspace !== null && workspace !== "all") || (allWorkspaces && conversation) || (conversation && !UUID.test(conversation)) || !Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return NextResponse.json({ error: "bad-target" }, { status: 400 });
   let jobs: ConversationJob[] = [];
   if (conversation && offset === 0) {
     const pending = await admin.from("generation_jobs").select("id,status,created_at,request:metadata->v1_request")
@@ -112,12 +114,12 @@ export async function GET(req: Request) {
       .eq("user_id", user.id)
       .eq("kind", "image")
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(offset, offset + 199);
     if (workspaceId) query = query.eq("workspace_id", workspaceId);
     if (conversation) query = query.eq("id", conversation);
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
-    return NextResponse.json({ items: await map(data ?? []), jobs });
+    return NextResponse.json({ items: await map(data ?? []), jobs, nextOffset: data?.length === 200 ? offset + 200 : null }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ error: "history-unavailable" }, { status: 503 });
   }

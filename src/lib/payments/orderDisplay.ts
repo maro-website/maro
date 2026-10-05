@@ -25,7 +25,7 @@ export function formatOrderAmount(amountCents: number, currency = "EUR"): string
 }
 
 export function formatOrderDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "Pa datë";
   return new Date(iso).toLocaleString("sq-AL", {
     day: "numeric",
     month: "short",

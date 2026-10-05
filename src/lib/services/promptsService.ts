@@ -41,7 +41,8 @@ export async function fetchPrompts(input: {
 }
 
 export async function fetchPromptDetail(id: string): Promise<PromptDetail> {
-  const res = await fetch(`/api/prompts/${encodeURIComponent(id)}`, { cache: "no-store" });
+  const token = await getAccessToken();
+  const res = await fetch(`/api/prompts/${encodeURIComponent(id)}`, { cache: "no-store", headers: token ? { Authorization: `Bearer ${token}` } : {} });
   if (!res.ok) throw new Error(`preset-detail-${res.status}`);
   return ((await res.json()) as { item: PromptDetail }).item;
 }

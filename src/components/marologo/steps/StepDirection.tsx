@@ -43,7 +43,7 @@ export function StepDirection({
       <LogoFields fields={{ "direction.traits": <div>
         <span className="marologo-field-label mb-[10px] block">{content["direction.traits"].label}</span>
         <TraitPills value={wizard.direction.traits} onChange={onChangeTraits} onMaxReached={onMaxTraits} />
-        <p className="mt-2 text-[12px] text-ink-3">Mundesh me e lanë bosh — Maro e nxjerr nga biznesi dhe audienca.</p>
+        <p className="mt-2 text-[12px] text-ink-3">Mundesh me e lanë bosh. Maro e nxjerr nga biznesi dhe audienca.</p>
         {errors.traits && <p className="mt-2 text-[12px] text-danger">{errors.traits}</p>}
       </div>, "logo.type": <div>
         <span className="marologo-field-label mb-[10px] block">{content["logo.type"].label}</span>

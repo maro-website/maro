@@ -31,6 +31,6 @@ describe("individual asset removal", () => {
   it("formats bytes and never claims an unknown size is zero", () => {
     expect(formatAssetBytes(1536)).toBe("1.5 KB");
     expect(formatAssetBytes(2 * 1024 ** 2)).toBe("2 MB");
-    expect(formatAssetBytes(null)).toBe("—");
+    expect(formatAssetBytes(null)).toBe("Pa madhësi");
   });
 });

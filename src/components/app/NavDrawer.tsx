@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaroSymbol } from "@/components/ui/Logo";
 import { HubDropdown } from "@/components/app/HubDropdown";
+import { useMaro } from "@/context/store";
 import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { StableImage } from "@/components/app/StableImage";
 import { getProductBrand } from "@/lib/design/maro-system";
@@ -18,7 +19,7 @@ import {
   isNavActive,
 } from "@/lib/nav/destinations";
 import { cn } from "@/lib/utils/cn";
-import { X } from "lucide-react";
+import { Home, X } from "lucide-react";
 import type { NavGroup } from "@/lib/nav/destinations";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
@@ -37,6 +38,7 @@ function DrawerIcon({ destination, colored = false }: {
 
 export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const { user } = useMaro();
   const grouped = navDestinationsByGroup();
   const dialogRef = React.useRef<HTMLDivElement>(null);
   useDialogFocus(open, dialogRef, onClose);
@@ -61,7 +63,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
           >
             <div className="flex h-[var(--maro-shell-header-height)] shrink-0 items-center justify-between px-4">
               <Link href="/" onClick={onClose} className="flex items-center gap-2">
-                <MaroSymbol className="logo-lockup-light h-8 w-8" />
+                <MaroSymbol className="h-8 w-8" />
               </Link>
               <button
                 type="button"
@@ -75,7 +77,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
 
             <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
               <div className="mb-6 px-1">
-                <HubDropdown />
+                {user ? <HubDropdown /> : <Link href="/" onClick={onClose} className="maro-nav__link"><Home className="h-4 w-4" />Hub</Link>}
               </div>
 
               <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">{NAV_GROUP_LABELS.tools}</p>

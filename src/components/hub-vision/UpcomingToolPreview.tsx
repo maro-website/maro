@@ -8,7 +8,7 @@ export function UpcomingToolPreview({ motif }: { motif: string }) {
   if (motif === "film") return <FilmaPreview />;
   if (motif === "web") return <WebHubPreview />;
   return <Image
-    src={motif === "audio" ? "/images/hub-vision/maroAudio_hub04.png" : "/images/hub-vision/maroMarketing_hub02.png"}
+    src={motif === "audio" ? "/images/hub-vision/maroAudio_hub05.png" : "/images/hub-vision/maroMarketing_hub01.png"}
     alt=""
     fill
     sizes="(max-width: 700px) 100vw, 480px"

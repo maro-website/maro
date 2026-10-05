@@ -18,7 +18,7 @@ function AudioWorkspaceContent({ toolId }: { toolId: string }) {
       <ModuleHero
         toolId="zo"
         title="Kthe tekstin në zë."
-        subtitle="Zë natyral, transkriptim, përkthim dhe efekte — studio audio e plotë për përmbajtje dhe reklama."
+        subtitle="Zë natyral, transkriptim, përkthim dhe efekte. Studio audio e plotë për përmbajtje dhe reklama."
       />
       <InspirationCarousel items={AUDIO_INSPIRATION} />
     </>

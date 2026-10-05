@@ -14,6 +14,7 @@ import { MyPublications } from "@/components/explore/MyPublications";
 import { ExploreFeed } from "@/components/explore/ExploreFeed";
 import { fetchUploadedAssets, fetchAssetMetadata, deleteUploadedAsset, assetFilename, formatAssetBytes, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
 import { creationAssetRef } from "@/lib/creations/creationAssets";
+import { useLibraryWorkspaces } from "./useLibraryWorkspaces";
 import { STORAGE_CHANGED_EVENT } from "@/lib/workspaces/accountPolicy";
 import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
 import { useMaro } from "@/context/store";
@@ -110,8 +111,8 @@ function dayLabel(iso: string): string {
 export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: { limit: number; excludeRefs: string[]; onSelect: (assets: LibrarySelection[]) => void }; initialCategory?: "made" | "uploaded" | "saved" | "published" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, creations, user, deleteProject, deleteCreation, deleteCreationAssets } = useMaro();
-  const { activeWorkspace } = useWorkspace();
+  const { user } = useMaro();
+  const { activeWorkspace, workspaces, setActiveWorkspace } = useWorkspace();
   const { toast } = useToast();
   const [category, setCategory] = React.useState(initialCategory);
   React.useEffect(() => { if (!picker) setCategory(initialCategory); }, [initialCategory, picker]);
@@ -127,8 +128,12 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
   const [deleting, setDeleting] = React.useState(false);
   const [metadata, setMetadata] = React.useState<Record<string, number | null>>({});
   const [refresh, setRefresh] = React.useState(0);
+  const { projects, creations, loading: libraryLoading, error: libraryError, patchCreation, removeCreation, changeProject } = useLibraryWorkspaces(refresh);
+  const [workspaceFilter, setWorkspaceFilter] = React.useState<string | null>(null);
+  const workspaceScope = workspaceFilter ?? activeWorkspace?.id ?? "all";
   const userId = user?.id;
   const ownedUploads = uploadOwner === userId ? uploads : [];
+  React.useEffect(() => { setWorkspaceFilter(null); }, [userId]);
   React.useEffect(() => {
     const changed = () => setRefresh(value => value + 1);
     window.addEventListener(STORAGE_CHANGED_EVENT, changed);
@@ -203,12 +208,42 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
   }, [metadataKey, userId]);
   React.useEffect(() => {
     setChosen(new Set()); setSelecting(false); setPendingDelete([]);
-  }, [category, filter, query, userId, activeWorkspace?.id]);
+  }, [category, filter, query, userId, workspaceScope]);
+
+  const uploadWorkspaces = React.useMemo(() => {
+    const usage = new Map<string, Set<string>>();
+    const add = (ref: string | undefined, workspaceId: string | undefined) => {
+      const canonical = libraryStorageRef(ref, userId);
+      if (!canonical || !workspaceId) return;
+      const ids = usage.get(canonical) ?? new Set<string>();
+      ids.add(workspaceId); usage.set(canonical, ids);
+    };
+    for (const creation of creations) for (const ref of creation.inputRefs ?? []) add(ref, creation.workspaceId);
+    for (const project of projects) {
+      for (const asset of project.assets) add(asset.storageRef ?? asset.url, project.workspaceId);
+      for (const ref of project.referenceImages ?? []) add(ref, project.workspaceId);
+    }
+    return usage;
+  }, [creations, projects, userId]);
+  const rowWorkspaceIds = (row: Row): string[] => {
+    if (row.kind === "upload") return [...(uploadWorkspaces.get(row.asset.storageRef) ?? [])];
+    const id = row.kind === "creation" ? row.creation.workspaceId : row.project.workspaceId;
+    return id ? [id] : [];
+  };
+  const workspaceLabel = (row: Row) => {
+    const ids = rowWorkspaceIds(row);
+    return ids.length ? ids.map(id => workspaces.find(workspace => workspace.id === id)?.name ?? "Workspace i mëparshëm").join(" · ") : row.kind === "upload" ? "Ende pa workspace" : "Pa workspace";
+  };
+  const workspaceSelect = (className: string) => user && workspaces.length > 0 && <label className={className}><span className="mb-2 block text-[11px] font-semibold text-ink-3">Workspace</span><select aria-label="Workspace i aseteve" value={workspaceScope} onChange={event => setWorkspaceFilter(event.target.value)} className="w-full min-w-0 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-ink outline-none"><option value="all">Të gjitha workspace-et</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select></label>;
+  const scopedRows = React.useMemo(() => rows.filter(row => {
+    const id = row.kind === "creation" ? row.creation.workspaceId : row.kind === "project" ? row.project.workspaceId : undefined;
+    return workspaceScope === "all" || id === workspaceScope;
+  }), [rows, workspaceScope]);
 
   // Tool buckets that actually have items (for the left rail "Tools" group).
   const toolBuckets = React.useMemo(() => {
     const map = new Map<string, { id: string; name: string; count: number; media?: "image" | "audio" | "text" }>();
-    for (const r of rows) {
+    for (const r of scopedRows) {
       const key = r.toolId;
       const existing = map.get(key);
       if (existing) existing.count += 1;
@@ -221,10 +256,11 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         });
     }
     return Array.from(map.values());
-  }, [rows]);
+  }, [scopedRows]);
 
   const uploadRows: Row[] = ownedUploads.map(asset => ({ kind: "upload", id: asset.storageRef, title: asset.name, toolId: "upload", toolName: "Ngarkim", time: asset.createdAt, fort: false, favourite: false, asset }));
-  const categoryRows = category === "uploaded" ? uploadRows : category === "saved" ? rows.filter(row => row.favourite) : rows;
+  const scopedUploads = uploadRows.filter(row => workspaceScope === "all" || rowWorkspaceIds(row).includes(workspaceScope));
+  const categoryRows = category === "uploaded" ? scopedUploads : category === "saved" ? scopedRows.filter(row => row.favourite) : scopedRows;
   const chooseCategory = (value: typeof category) => { setCategory(value); setFilter("all"); if (!picker) router.push(`/krijimet?category=${value}`, { scroll: false }); };
   const selectionFor = (row: Row): LibrarySelection | null => {
     const storageRef = row.kind === "upload" ? row.asset.storageRef : row.kind === "creation"
@@ -258,7 +294,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
     return out;
   }, [filtered]);
 
-  const openRow = (r: Row) => {
+  const openRow = async (r: Row) => {
     if (picker) {
       const asset = selectionFor(r);
       if (!asset) return;
@@ -270,12 +306,21 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
       return;
     }
     if (r.kind === "upload") { window.open(r.asset.url, "_blank", "noopener,noreferrer"); return; }
+    const workspaceId = r.kind === "creation" ? r.creation.workspaceId : r.project.workspaceId;
+    if (r.kind === "creation" && user && (!workspaceId || !workspaces.some(workspace => workspace.id === workspaceId))) {
+      setLightbox(r.creation);
+      return;
+    }
+    if (workspaceId && workspaceId !== activeWorkspace?.id) {
+      try { await setActiveWorkspace(workspaceId); }
+      catch { toast("Workspace nuk u hap. Provo përsëri.", "error"); return; }
+    }
     if (r.kind === "project") {
       const href = r.project.status === "generating" ? `/projects/${r.id}/generating` : `/projects/${r.id}/editor`;
       router.push(href);
     } else {
       const href = creationConversationHref(r.creation);
-      if (href) router.push(href);
+      if (href && (!user || workspaceId)) router.push(href);
       else setLightbox(r.creation);
     }
   };
@@ -294,15 +339,15 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
           if (row.kind === "upload") {
             await deleteUploadedAsset(row.asset.storageRef);
             setUploads(current => current.filter(asset => asset.storageRef !== row.asset.storageRef));
-          } else deleteProject(row.id);
+          } else changeProject(row.project, null);
         } catch { failed.push(row); }
       }
     }
-    for (const [id, group] of creationGroups) {
+    for (const group of creationGroups.values()) {
       try {
         const refs = group.map(rowReference).filter((ref): ref is string => Boolean(ref));
-        if (refs.length) await deleteCreationAssets(id, refs);
-        else deleteCreation(id);
+        const row = group[0];
+        if (row.kind === "creation") await removeCreation(row.creation, refs);
       }
       catch { failed.push(...group); }
     }
@@ -321,15 +366,16 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         <div className="px-2 pb-3 text-[13px] font-bold uppercase tracking-wider text-ink-3">
           Asetet
         </div>
-        <RailItem active={category === "made"} icon={<LayoutGrid className="h-4 w-4" />} label="Çka ke maru" count={rows.length} onClick={() => chooseCategory("made")} />
-        <RailItem active={category === "uploaded"} icon={<Upload className="h-4 w-4" />} label="Çka ke ngarku" count={ownedUploads.length} onClick={() => chooseCategory("uploaded")} />
-        <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={picker ? rows.filter(row => row.favourite).length : undefined} onClick={() => chooseCategory("saved")} />
+        {category !== "published" && workspaceSelect("mb-5 block px-2")}
+        <RailItem active={category === "made"} icon={<LayoutGrid className="h-4 w-4" />} label="Çka ke maru" count={scopedRows.length} onClick={() => chooseCategory("made")} />
+        <RailItem active={category === "uploaded"} icon={<Upload className="h-4 w-4" />} label="Çka ke ngarku" count={scopedUploads.length} onClick={() => chooseCategory("uploaded")} />
+        <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={picker ? scopedRows.filter(row => row.favourite).length : undefined} onClick={() => chooseCategory("saved")} />
         {!picker && <RailItem active={category === "published"} icon={<Globe className="h-4 w-4" />} label="Publikimet në Explore" onClick={() => chooseCategory("published")} />}
 
         {category !== "uploaded" && category !== "published" && toolBuckets.length > 0 && (
           <>
             <div className="mt-5 px-2 pb-2 text-[12px] font-bold uppercase tracking-wider text-ink-3">
-              Tools
+              Mjetet
             </div>
             {toolBuckets.map((t) => (
               <RailItem
@@ -352,6 +398,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
 
         {/* Sticky toolbar */}
         <div className="sticky top-0 z-10 bg-canvas px-[20px] py-[10px] lg:px-[30px]">
+          {category !== "published" && workspaceSelect("mb-3 block md:hidden")}
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             {category !== "published" && <div className="maro-library-search flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-surface px-3 py-2 max-md:basis-full">
               <Search className="h-4 w-4 shrink-0 text-ink-3" />
@@ -402,9 +449,11 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         <div className="px-4 py-6 sm:px-6">
           {!picker && <StorageUsage className="mb-5 md:hidden" />}
           {!picker && category === "published" ? <MyPublications /> : <>
+          {libraryError && <div role="alert" className="mb-4 text-sm text-ink-2">Krijimet nga workspace-et nuk u ngarkuan plotësisht. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
+          {libraryLoading && <p role="status" className="mb-4 text-sm text-ink-3">Duke ngarkuar krijimet…</p>}
           {category === "uploaded" && uploadError && <div role="alert" className="mb-4 text-sm text-ink-2">Ngarkimet nuk u hapën. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
           {category === "uploaded" && uploadsLoading && <p role="status" className="mb-4 text-sm text-ink-3">Duke ngarkuar asetet…</p>}
-          {groups.length === 0 && !uploadsLoading ? (
+          {groups.length === 0 && !uploadsLoading && !libraryLoading ? (
             <div className="grid place-items-center rounded-2xl bg-surface py-24 text-center">
               <LayoutGrid className="h-8 w-8 text-ink-3" />
               <p className="mt-3 text-[15px] font-semibold text-ink">Asnjë aset këtu</p>
@@ -422,7 +471,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                     style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${minW}px, 100%), 1fr))` }}
                   >
                     {g.items.map((r, i) => (
-                      <AssetCard key={r.kind + r.id} row={r} index={i} onOpen={() => openRow(r)} onDelete={() => setPendingDelete([r])} selecting={selecting} bytes={r.kind === "upload" ? r.asset.bytes : metadata[libraryStorageRef(rowReference(r), userId) ?? ""]} picker={Boolean(picker)} selected={picker ? selected.some(item => item.storageRef === selectionFor(r)?.storageRef) : chosen.has(rowKey(r))} disabled={deleting || Boolean(picker && (!selectionFor(r) || picker.excludeRefs.includes(selectionFor(r)!.storageRef) || (selected.length >= picker.limit && !selected.some(item => item.storageRef === selectionFor(r)?.storageRef))))} />
+                      <AssetCard key={r.kind + r.id} row={r} index={i} workspaceLabel={workspaceLabel(r)} onOpen={() => void openRow(r)} onDelete={() => setPendingDelete([r])} onRename={(name) => r.kind === "creation" ? patchCreation(r.creation, { title: name }) : r.kind === "project" ? changeProject(r.project, { name }) : undefined} onToggleFav={() => r.kind === "creation" ? patchCreation(r.creation, { favourite: !r.favourite }) : r.kind === "project" ? changeProject(r.project, { favourite: !r.favourite }) : undefined} selecting={selecting} bytes={r.kind === "upload" ? r.asset.bytes : metadata[libraryStorageRef(rowReference(r), userId) ?? ""]} picker={Boolean(picker)} selected={picker ? selected.some(item => item.storageRef === selectionFor(r)?.storageRef) : chosen.has(rowKey(r))} disabled={deleting || Boolean(picker && (!selectionFor(r) || picker.excludeRefs.includes(selectionFor(r)!.storageRef) || (selected.length >= picker.limit && !selected.some(item => item.storageRef === selectionFor(r)?.storageRef))))} />
                     ))}
                   </div>
                 </section>
@@ -476,7 +525,7 @@ function RailItem({
   );
 }
 
-function AssetCard({ row, index, onOpen, onDelete, picker, selecting, selected, disabled, bytes }: { row: Row; index: number; onOpen: () => void; onDelete: () => void; picker?: boolean; selecting?: boolean; selected?: boolean; disabled?: boolean; bytes?: number | null }) {
+function AssetCard({ row, index, onOpen, onDelete, onRename, onToggleFav, workspaceLabel, picker, selecting, selected, disabled, bytes }: { row: Row; index: number; onOpen: () => void; onDelete: () => void; onRename: (name: string) => void; onToggleFav: () => void; workspaceLabel: string; picker?: boolean; selecting?: boolean; selected?: boolean; disabled?: boolean; bytes?: number | null }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -520,11 +569,11 @@ function AssetCard({ row, index, onOpen, onDelete, picker, selecting, selected, 
       {/* Always visible, including on touch screens. */}
       {!picker && !selecting && !disabled && <div className="absolute right-1.5 top-1.5">
         <div className="rounded-lg bg-black/45">
-          <RowMenu row={row} onDelete={onDelete} />
+          <RowMenu row={row} onDelete={onDelete} onRename={onRename} onToggleFav={onToggleFav} />
         </div>
       </div>}
       </div>
-      <div className="px-3 py-2.5"><p className="truncate text-[11px] leading-4 text-ink-2" title={rowFilename(row)}>{rowFilename(row)}</p><p className="mt-0.5 text-[10px] leading-4 text-ink-3">{formatAssetBytes(bytes)}</p></div>
+      <div className="px-3 py-2.5"><p className="truncate text-[11px] leading-4 text-ink-2" title={rowFilename(row)}>{rowFilename(row)}</p><p className="mt-0.5 text-[10px] leading-4 text-ink-3">{formatAssetBytes(bytes)}</p><p className="mt-1 truncate text-[11px] leading-4 text-ink-2" title={workspaceLabel}>{workspaceLabel}</p></div>
     </motion.div>
   );
 }
@@ -540,14 +589,8 @@ function AssetThumb({ row }: { row: Row }) {
   return <PreviewFallback module={row.media} />;
 }
 
-function RowMenu({ row, onDelete }: { row: Row; onDelete: () => void }) {
-  const {
-    renameProject,
-    toggleFavouriteProject,
-    renameCreation,
-    toggleFavouriteCreation,
-  } = useMaro();
-  const { activeWorkspace, updateWorkspace } = useWorkspace();
+function RowMenu({ row, onDelete, onRename, onToggleFav }: { row: Row; onDelete: () => void; onRename: (name: string) => void; onToggleFav: () => void }) {
+  const { activeWorkspace, workspaces, updateWorkspace } = useWorkspace();
   const { toast } = useToast();
 
   if (row.kind === "upload") return <ItemMenu onDelete={onDelete} />;
@@ -557,24 +600,25 @@ function RowMenu({ row, onDelete }: { row: Row; onDelete: () => void }) {
         favourite={row.project.favourite}
         onRename={() => {
           const v = window.prompt("Riemërto", row.title);
-          if (v && v.trim()) renameProject(row.id, v.trim());
+          if (v && v.trim()) onRename(v.trim());
         }}
-        onToggleFav={() => toggleFavouriteProject(row.id)}
+        onToggleFav={onToggleFav}
         onDelete={onDelete}
       />
     );
   }
   const logoUrl = row.creation.urls[row.imageIndex ?? 0];
-  const canPromoteLogo = row.media === "image" && Boolean(logoUrl) && Boolean(activeWorkspace);
+  const targetWorkspace = workspaces.find(workspace => workspace.id === row.creation.workspaceId) ?? (!row.creation.workspaceId ? activeWorkspace : null);
+  const canPromoteLogo = row.media === "image" && Boolean(logoUrl) && Boolean(targetWorkspace);
 
   return (
     <ItemMenu
       favourite={row.creation.favourite}
       onRename={() => {
         const v = window.prompt("Riemërto", row.title);
-        if (v && v.trim()) renameCreation(row.creation.id, v.trim());
+        if (v && v.trim()) onRename(v.trim());
       }}
-      onToggleFav={() => toggleFavouriteCreation(row.creation.id)}
+      onToggleFav={onToggleFav}
       onDelete={onDelete}
       extraActions={
         canPromoteLogo
@@ -582,10 +626,10 @@ function RowMenu({ row, onDelete }: { row: Row; onDelete: () => void }) {
               {
                 label: "Vendos si logo e workspace",
                 onClick: async () => {
-                  if (!activeWorkspace || !logoUrl) return;
-                  await updateWorkspace(activeWorkspace.id, {
+                  if (!targetWorkspace || !logoUrl) return;
+                  await updateWorkspace(targetWorkspace.id, {
                     brand: normalizeWorkspaceBrand({
-                      ...activeWorkspace.brand,
+                      ...targetWorkspace.brand,
                       logoUrl,
                     }),
                   });

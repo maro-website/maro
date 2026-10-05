@@ -9,6 +9,7 @@ import { PROMPT_ATTACH_KEY, type PromptItem } from "@/lib/prompts/types";
 import { PRESET_TOOL_META } from "@/lib/presets/model";
 import { StableImage } from "@/components/app/StableImage";
 import { useToast } from "@/components/ui/Toast";
+import { useMaro } from "@/context/store";
 import { copy } from "./content";
 import s from "./HubVision.module.css";
 
@@ -23,17 +24,19 @@ export function PresetDiscovery() {
   const pending = useRef(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useMaro();
 
   useEffect(() => {
     try { if (localStorage.getItem(preferenceKey) === "logo") setTool("logo"); } catch { /* Device preference is optional. */ }
     let active = true;
+    setLoaded(false);
     void Promise.allSettled([fetchPrompts({ tool: "imazh", limit: 5 }), fetchPrompts({ tool: "logo", limit: 5 })]).then(([imazh, logo]) => {
       if (!active) return;
       setCatalog({ imazh: imazh.status === "fulfilled" ? imazh.value.items : [], logo: logo.status === "fulfilled" ? logo.value.items : [] });
       setLoaded(true);
     });
     return () => { active = false; };
-  }, []);
+  }, [user?.id]);
 
   const choose = (next: Tool) => { setTool(next); try { localStorage.setItem(preferenceKey, next); } catch { /* Optional. */ } };
   const apply = async (item: PromptItem) => {

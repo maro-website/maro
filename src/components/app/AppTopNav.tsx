@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Logo } from "@/components/ui/Logo";
+import { Logo, NavigationLogo } from "@/components/ui/Logo";
 import { NotificationBell } from "@/components/app/NotificationBell";
 import { AppUserMenu } from "@/components/app/AppUserMenu";
 import { HubDropdown } from "@/components/app/HubDropdown";
@@ -14,7 +14,7 @@ import { iconSrc } from "@/lib/tools/iconMap";
 import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 import { formatCredits } from "@/lib/credits/format";
-import { Coins, Menu, Megaphone } from "lucide-react";
+import { Coins, Home, Menu, Megaphone } from "lucide-react";
 
 function ModuleNavIcon({
   dest,
@@ -84,8 +84,8 @@ export function AppTopNav({
           </button>
         )}
         <Link href="/" className="shrink-0" aria-label="maro">
-          <Logo className="lg:hidden" symbolClassName="logo-lockup-light h-8 w-8" />
-          <Logo showWord className="hidden lg:inline-flex" wordClassName="h-8 w-auto" />
+          <Logo className="lg:hidden" symbolClassName="h-8 w-8" />
+          <span className="hidden lg:inline-flex"><NavigationLogo /></span>
         </Link>
       </div>
 
@@ -95,7 +95,7 @@ export function AppTopNav({
         onPointerLeave={() => setHoveredIndex(null)}
       >
         <div onPointerEnter={() => setHoveredIndex(0)}>
-          <HubDropdown />
+          {user ? <HubDropdown /> : <Link href="/" className="maro-nav__link" data-active={hubActive || undefined} aria-current={hubActive ? "page" : undefined}><Home className="h-4 w-4" />Hub</Link>}
         </div>
         {TOP_BAR_DESTINATIONS.map((dest, i) => {
           const active = isNavActive(pathname, dest);
@@ -135,7 +135,7 @@ export function AppTopNav({
             <span className="hidden text-ink-2 sm:inline">kredite</span>
           </Link>
         )}
-        <NotificationBell />
+        {user && <NotificationBell />}
         <AppUserMenu />
       </div>
     </header>

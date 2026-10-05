@@ -71,7 +71,7 @@ export function ChatPanel({ onCollapse }: { onCollapse: () => void }) {
                 {project.renderMode === "html" ? (
                   <>
                     Website-i është gati. Një ndryshim me maro AI kushton njësoj si gjenerimi i një website-i të ri.
-                    Për ndryshime të vogla, të sugjerojmë <strong>Kodi</strong> në të djathtë — editimet manuale janë falas.
+                    Për ndryshime të vogla, të sugjerojmë <strong>Kodi</strong> në të djathtë. Editimet manuale janë falas.
                   </>
                 ) : (
                   <>

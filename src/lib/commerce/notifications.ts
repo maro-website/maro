@@ -86,7 +86,7 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
         daysRemaining === 1
           ? "Plani skadon nesër"
           : `Plani skadon për ${daysRemaining} ditë`,
-      body: `${planName} — aktive deri më ${expiresLabel}. Rinovimi automatik: Jo.`,
+      body: `${planName}, aktive deri më ${expiresLabel}. Rinovimi automatik: Jo.`,
       metadata: { membership_id: membershipId, days_remaining: daysRemaining },
     });
     if (inserted) inApp += 1;

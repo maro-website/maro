@@ -68,6 +68,7 @@ export function getProductBrand(value: string): MaroProductBrand | undefined {
 /** Official runtime logo assets. */
 export const MARO_LOGO = {
   lockup: "/brand/maro-logo.svg",
+  wordmark: "/maro-logo-textonly.svg",
   symbol: "/brand/maro-symbol.svg",
   symbolWhite: "/brand/maro-symbol-white.svg",
   partnerNice: "/brand/nice-logo-white.svg",

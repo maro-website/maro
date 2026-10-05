@@ -18,7 +18,7 @@ export const DEFAULT_LOGO_CONTENT = {
   "logo.type": field("Logo type", 1, "", LOGO_TYPES, "maro_decides"),
   "logo.conceptIntent": field("Çka duhet me udhëheq konceptin?", 2, "", CONCEPT_INTENTS, "maro_decides"),
   "look.visualStyle": field("Drejtimi vizual", 3, "", VISUAL_STYLE_OPTIONS, "maro_decides"),
-  "logo.symbolMeaning": field("A ke një ide ose domethënie për simbolin?", 0, "p.sh. lidhje, shpejtësi, transformim — ose lëre Maron me vendos"),
+  "logo.symbolMeaning": field("A ke një ide ose domethënie për simbolin?", 0, "p.sh. lidhje, shpejtësi, transformim, ose lëre Maron me vendos"),
   "look.typography": field("Tipografia", 1, "", TYPOGRAPHY_OPTIONS, "maro_decides"),
   "look.colors": field("Ngjyrat", 2, "#253FDA"),
   "references": field("Referenca", 5, "Drag & Drop ose kliko këtu"),

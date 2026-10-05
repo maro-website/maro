@@ -50,6 +50,13 @@ function MaroTextLogo({ className }: { className?: string }) {
   );
 }
 
+export function NavigationLogo() {
+  return <span className="inline-flex items-center gap-1.5" aria-label="maro">
+    <MaroSymbol className="h-8 w-8" />
+    <img src={MARO_LOGO.wordmark} alt="" className="h-7 w-auto select-none brightness-0 invert" draggable={false} />
+  </span>;
+}
+
 export function Logo({
   className,
   wordClassName,

@@ -29,6 +29,7 @@ import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { GPT_IMAGE_PROMPT_MAX_CHARS } from "@/lib/generation/imagePromptValidation";
 import { PromptExpand } from "@/components/app/PromptExpand";
+import { PromptLinks } from "@/components/app/PromptLinks";
 import { Switch } from "@/components/ui/Switch";
 import { BrainPill, PresetPill } from "@/components/app/PromptAccessoryRow";
 import { useToast } from "@/components/ui/Toast";
@@ -1314,6 +1315,7 @@ export function ToolComposer({
               )}
             </div>
 
+            {needsPrompt && <PromptLinks value={prompt} />}
             {needsPrompt && <p id={promptCountId} className={cn("px-2 text-[12px]", prompt.length < promptLimit * 0.9 && "sr-only", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
               {prompt.length.toLocaleString("en-US")} / {promptLimit.toLocaleString("en-US")} shkronja
               {promptTooLong && ` · Fshi edhe ${(prompt.length - promptLimit).toLocaleString("en-US")} shkronja për të gjeneruar.`}

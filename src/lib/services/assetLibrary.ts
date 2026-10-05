@@ -36,7 +36,7 @@ export function assetFilename(value: string | undefined, fallback: string): stri
 }
 
 export function formatAssetBytes(bytes: number | null | undefined): string {
-  if (!bytes || !Number.isFinite(bytes) || bytes < 0) return "—";
+  if (!bytes || !Number.isFinite(bytes) || bytes < 0) return "Pa madhësi";
   const units = ["B", "KB", "MB", "GB"];
   const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${Number((bytes / 1024 ** unit).toFixed(unit ? 1 : 0))} ${units[unit]}`;

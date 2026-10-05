@@ -158,8 +158,8 @@ export function HubVision({ embedded = false }: { embedded?: boolean }) {
       </div>
       <ContinueCreating />
       <div id="hub-discover" className={s.discovery}>
-        <Ecosystem />
         <PresetDiscovery />
+        <Ecosystem />
       </div>
     </Surface>
   );

@@ -24,7 +24,7 @@ export function AppFooter({ className }: { className?: string }) {
     >
       <div className="min-w-0">
         <p className="text-[12px] text-footer">
-          © {new Date().getFullYear()} — {LEGAL_ENTITY.product} — Powered by <a href="https://nice.al" target="_blank" rel="noopener noreferrer" className="hover:underline">NICE.al</a>
+          © {new Date().getFullYear()} · {LEGAL_ENTITY.product} · Powered by <a href="https://nice.al" target="_blank" rel="noopener noreferrer" className="hover:underline">NICE.al</a>
         </p>
         <p className="mt-0.5 hidden text-[11px] leading-relaxed text-footer-muted lg:block">
           NRB {LEGAL_ENTITY.nrb} · {LEGAL_ADDRESS} · {LEGAL_ENTITY.phone}

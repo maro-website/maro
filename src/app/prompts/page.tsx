@@ -6,6 +6,7 @@ import { ModuleComingSoon } from "@/components/modules/ModuleComingSoon";
 import { StableImage } from "@/components/app/StableImage";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Crown, Heart, Loader2, Search, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
@@ -130,7 +131,7 @@ function PromptsPageInner() {
   };
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore) return;
+    if (!user || loadingMore || !hasMore) return;
     setLoadingMore(true);
     const nextPage = page + 1;
     const result = await fetchPrompts({ tool, category, query: queryFromUrl, page: nextPage, limit: 60 });
@@ -183,7 +184,7 @@ function PromptsPageInner() {
 
           <section className="mt-7" aria-live="polite">
             <div className="mb-4 flex items-end justify-between gap-4">
-              <div><p className="text-[12px] font-bold uppercase tracking-[0.14em] text-ink-3">{PRESET_TOOL_META[tool].label}</p><h2 className="mt-1 text-[22px] font-extrabold text-ink">{category || "Të gjitha presetet"}</h2></div>
+              <div><p className="text-[12px] font-bold uppercase tracking-[0.14em] text-ink-3">{PRESET_TOOL_META[tool].label}</p><h2 className="mt-1 text-[22px] font-extrabold text-ink">{category || (user ? "Të gjitha presetet" : "Presetet më të fundit")}</h2></div>
               {!loading && <span className="text-xs text-ink-3">{filtered.length} rezultate</span>}
             </div>
             {loading ? <div className={cn("grid gap-4", tool === "web" ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5")}>{Array.from({ length: tool === "web" ? 6 : 10 }, (_, i) => <PreviewFallback key={i} state="loading" className={cn("h-auto rounded-2xl", tool === "web" ? "aspect-video" : tool === "logo" ? "aspect-square" : "aspect-[4/5]")} />)}</div> : filtered.length === 0 ? <EmptyState tool={tool} /> : (
@@ -191,7 +192,8 @@ function PromptsPageInner() {
                 {filtered.map((item) => <PresetCard key={item.id} item={item} liked={liked.has(item.id)} onOpen={() => setActive(item)} onLike={() => onToggleLike(item)} onUse={() => void applyPreset(item)} />)}
               </div>
             )}
-            {!loading && hasMore && !onlyLiked && <div className="mt-7 flex justify-center"><button type="button" onClick={() => void loadMore()} disabled={loadingMore} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-strong bg-surface px-5 text-[13px] font-bold text-ink hover:bg-surface-2 disabled:opacity-60">{loadingMore && <Loader2 className="h-4 w-4 animate-spin" />} Shfaq më shumë</button></div>}
+            {!loading && user && hasMore && !onlyLiked && <div className="mt-7 flex justify-center"><button type="button" onClick={() => void loadMore()} disabled={loadingMore} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-strong bg-surface px-5 text-[13px] font-bold text-ink hover:bg-surface-2 disabled:opacity-60">{loadingMore && <Loader2 className="h-4 w-4 animate-spin" />} Shfaq më shumë</button></div>}
+            {!user && <div className="mt-8 rounded-maro16 bg-surface p-6 text-center"><h3 className="text-lg font-semibold text-ink">Më shumë ide për me maru.</h3><p className="mt-2 text-sm text-ink-2">Pa llogari mund t’i shohësh katër presetet më të fundit. Hyr ose regjistrohu për të gjithë koleksionin.</p><div className="mt-5 flex flex-wrap justify-center gap-3"><Link href={`/sign-in?next=${encodeURIComponent(`/prompts?tool=${tool}`)}`} className="maro-button" data-variant="inverse">Hyr</Link><Link href={`/sign-up?next=${encodeURIComponent(`/prompts?tool=${tool}`)}`} className="maro-button" data-variant="brand">Regjistrohu</Link></div></div>}
           </section>
         </div>
       </main>

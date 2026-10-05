@@ -26,8 +26,8 @@ function GoogleIcon() {
 function SocialPlaceholders() {
   return (
     <div className="grid gap-2.5">
-      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-sm font-semibold text-ink opacity-100"><FacebookIcon /> Hin me Facebook/Meta</button>
-      <button type="button" disabled title="Së shpejti" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-maro12 bg-surface px-4 text-sm font-semibold text-ink opacity-100"><GoogleIcon /> Hin me Google/Gmail</button>
+      <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed flex-wrap items-center justify-center gap-2 rounded-maro12 bg-surface px-3 py-3 text-sm font-semibold text-ink opacity-100"><FacebookIcon /> Hin me Facebook/Meta <span className="rounded-full bg-surface-2 px-2 py-1 text-[10px] text-ink-2">Vjen në v1.5</span></button>
+      <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed flex-wrap items-center justify-center gap-2 rounded-maro12 bg-surface px-3 py-3 text-sm font-semibold text-ink opacity-100"><GoogleIcon /> Hin me Google/Gmail <span className="rounded-full bg-surface-2 px-2 py-1 text-[10px] text-ink-2">Vjen në v1.5</span></button>
     </div>
   );
 }
@@ -46,7 +46,7 @@ export function AuthLayout({ children, title, subtitle, showSocials = false }: {
         <div className="w-full max-w-[440px]">
           <section className="flex flex-col px-3 py-6 sm:px-6">
             <h1 className="sr-only">{title}</h1><p className="sr-only">{subtitle}</p>
-            <Link href="/" className="mx-auto inline-flex" aria-label="maro — Ballina"><Logo showWord wordClassName="h-[48px] sm:h-[54px]" /></Link>
+            <Link href="/" className="mx-auto inline-flex" aria-label="maro, Ballina"><Logo showWord wordClassName="h-[48px] sm:h-[54px]" /></Link>
             <div className="w-full pt-10">
               {showSocials ? <><SocialPlaceholders /><div className="my-7 flex items-center gap-4" aria-hidden><span className="h-px flex-1 bg-line" /><span className="text-[11px] font-bold uppercase text-ink-2">ose</span><span className="h-px flex-1 bg-line" /></div></> : null}
               {children}
