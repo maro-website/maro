@@ -2,7 +2,7 @@
 
 import s from "./HubVision.module.css";
 
-const WEB_VIDEO_SRC = "/videos/hub-vision/maroWeb-hub05.mp4";
+const WEB_VIDEO_SRC = "/images/hub-vision/maroWeb_hub01video.mp4";
 
 export function WebHubPreview() {
   return (
