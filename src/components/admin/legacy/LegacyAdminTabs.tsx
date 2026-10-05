@@ -61,6 +61,7 @@ import {
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { getAccessToken } from "@/lib/supabase/client";
 import { resolveLegacyAdminTabRedirect } from "@/lib/admin/routes";
+import { UserPlanModal } from "@/components/admin/UserPlanModal";
 
 type Tab =
   | "overview"
@@ -220,6 +221,7 @@ export function LegacyUsersTab() {
   const [edits, setEdits] = React.useState<Record<string, string>>({});
   const [reasons, setReasons] = React.useState<Record<string, string>>({});
   const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [planUser, setPlanUser] = React.useState<Profile | null>(null);
 
   const load = React.useCallback(async () => {
     if (!supabaseConfigured) return setLoading(false);
@@ -315,12 +317,13 @@ export function LegacyUsersTab() {
         onChange={(e) => setQuery(e.target.value)}
         className="mb-4 max-w-sm"
       />
-      <div className="overflow-hidden rounded-xl">
+      <div className="overflow-x-auto rounded-xl">
         <table className="w-full text-left text-[13.5px]">
           <thead className="bg-surface-2 text-[12px] uppercase tracking-wider text-ink-3">
             <tr>
               <th className="px-4 py-2.5 font-semibold">Përdoruesi</th>
               <th className="px-4 py-2.5 font-semibold">Kreator</th>
+              <th className="px-4 py-2.5 font-semibold">Plani</th>
               <th className="px-4 py-2.5 font-semibold">Kredite</th>
               <th className="px-4 py-2.5 font-semibold">Cakto</th>
             </tr>
@@ -348,6 +351,11 @@ export function LegacyUsersTab() {
                     <Star className={`h-3.5 w-3.5 ${p.is_creator ? "fill-ink" : ""}`} />
                     {p.is_creator ? "Kreator" : "Bëje"}
                   </button>
+                </td>
+                <td className="px-4 py-3">
+                  <Button size="sm" variant="secondary" onClick={() => setPlanUser(p)}>
+                    Menaxho planin
+                  </Button>
                 </td>
                 <td className="px-4 py-3 font-bold text-ink">{p.credits}</td>
                 <td className="px-4 py-3">
@@ -401,6 +409,9 @@ export function LegacyUsersTab() {
           </tbody>
         </table>
       </div>
+      {planUser && (
+        <UserPlanModal key={planUser.id} user={planUser} onClose={() => setPlanUser(null)} />
+      )}
     </div>
   );
 }

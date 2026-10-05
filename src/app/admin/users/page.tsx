@@ -8,7 +8,7 @@ export default function AdminUsersPage() {
     <div>
       <AdminPageHeader
         title="Përdoruesit"
-        description="Menaxho kreditet dhe statusin e kriatorëve."
+        description="Menaxho planet, kreditet dhe statusin e kriatorëve."
       />
       <LegacyUsersTab />
     </div>
