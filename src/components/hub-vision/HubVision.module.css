@@ -485,7 +485,7 @@
 .presetTabs button[aria-pressed=true] { background: var(--maro-color-accent-subtle); color: var(--maro-color-text-brand); }
 .presetGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 17px; }
 .presetCard { text-align: left; min-width: 0; }
-.presetImage { position: relative; aspect-ratio: 4/4.2; border-radius: var(--maro-radius-12); overflow: hidden; background: var(--maro-color-bg-surface-02); }
+.presetImage { position: relative; aspect-ratio: 4/5; border-radius: var(--maro-radius-12); overflow: hidden; background: var(--maro-color-bg-surface-02); }
 .presetMedia { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
 .presetCard:hover .presetMedia { transform: scale(1.05); }
 .presetUse { position: absolute; right: 12px; bottom: 12px; width: 44px; height: 44px; background: var(--maro-color-bg-surface-raised); border-radius: var(--maro-radius-pill); display: grid; place-items: center; color: var(--maro-color-text-brand); }
@@ -504,7 +504,7 @@
 .presetGrid[data-compact=true] .presetNoMedia > span { font-size: 18px; }
 .presetGrid[data-compact=true] .presetNoMedia > small { font-size: 6px; }
 .presetGrid[data-compact=true] .presetUse { width: 27px; height: 27px; right: 6px; bottom: 6px; }
-.presetSkeleton { aspect-ratio: 4/4.2; background: var(--maro-color-bg-surface-02); border-radius: var(--maro-radius-12); animation: breathe 1.7s ease-in-out infinite alternate; }
+.presetSkeleton { aspect-ratio: 4/5; background: var(--maro-color-bg-surface-02); border-radius: var(--maro-radius-12); animation: breathe 1.7s ease-in-out infinite alternate; }
 .emptyCategory { display: flex; align-items: center; gap: 15px; font-size: 13px; min-height: 44px; }
 .presetInvitation { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 40px; padding: 29px 0; border-top: 1px solid var(--line); }
 .presetInvitation h2 { font-size: 25px; font-weight: 600; letter-spacing: -.05em; }
