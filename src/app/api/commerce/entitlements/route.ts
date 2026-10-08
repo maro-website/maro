@@ -3,9 +3,12 @@ import { resolveEntitlements } from "@/lib/commerce/entitlements";
 import { getUpgradeQuote } from "@/lib/commerce/memberships";
 import { requireUser } from "@/lib/payments/auth";
 
+export const dynamic = "force-dynamic";
+const OPTIONS = { headers: { "Cache-Control": "no-store" } };
+
 export async function GET(req: Request) {
   const user = await requireUser(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { ...OPTIONS, status: 401 });
 
   const [entitlements, upgradeQuote] = await Promise.all([
     resolveEntitlements(user.id),
@@ -15,5 +18,5 @@ export async function GET(req: Request) {
   return NextResponse.json({
     entitlements,
     upgradeQuote,
-  });
+  }, OPTIONS);
 }

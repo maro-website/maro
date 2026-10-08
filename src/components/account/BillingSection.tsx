@@ -7,22 +7,7 @@ import { formatOrderDate } from "@/lib/payments/orderDisplay";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 import { useRaiAcceptAvailability } from "@/lib/payments/useRaiAcceptAvailability";
-
-interface EntitlementsPayload {
-  entitlements: {
-    plan_id: string | null;
-    plan_status: string;
-    plan_display_name: string | null;
-    expires_at: string | null;
-    renewal_mode: string;
-    renewal_available: boolean;
-    credits_balance: number;
-    can_top_up: boolean;
-    workspace_limit: number;
-    concurrency_limit: number;
-  };
-  upgradeQuote?: { eligible: boolean; price_cents: number; credits: number };
-}
+import type { CommerceEntitlementsState } from "@/lib/commerce/useCommerceEntitlements";
 
 interface UsageRow {
   module: string;
@@ -39,32 +24,26 @@ const STATUS_LABELS: Record<string, string> = {
   BUSINESS_SUSPENDED: "maroBiz i pezulluar",
 };
 
-export function BillingSection() {
+export function BillingSection({ commerce }: { commerce: CommerceEntitlementsState }) {
   const purchasesEnabled=useRaiAcceptAvailability();
-  const { user, credits } = useMaro();
-  const [data, setData] = React.useState<EntitlementsPayload | null>(null);
+  const { user, credits, getAccessToken } = useMaro();
+  const { data, loading, error } = commerce;
   const [usage, setUsage] = React.useState<UsageRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      setLoading(true);
       try {
-        const [entRes, txRes] = await Promise.all([
-          fetch("/api/commerce/entitlements"),
-          fetch("/api/credits/transactions?limit=100"),
-        ]);
-        if (!cancelled && entRes.ok) {
-          setData((await entRes.json()) as EntitlementsPayload);
-        }
+        const token = await getAccessToken();
+        if (!token) return;
+        const txRes = await fetch("/api/credits/transactions?limit=100", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
         if (!cancelled && txRes.ok) {
           const tx = (await txRes.json()) as {
-            transactions?: { type: string; amount: number; metadata?: { module?: string } }[];
+            items?: { type: string; amount: number; metadata?: { module?: string } }[];
           };
           const byModule = new Map<string, number>();
-          for (const t of tx.transactions ?? []) {
+          for (const t of tx.items ?? []) {
             if (t.type !== "charge") continue;
             const mod = t.metadata?.module ?? "other";
             byModule.set(mod, (byModule.get(mod) ?? 0) + t.amount);
@@ -75,17 +54,18 @@ export function BillingSection() {
               .sort((a, b) => b.credits - a.credits)
           );
         }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      } catch { if (!cancelled) setUsage([]); }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, getAccessToken]);
 
   if (loading) {
     return <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>;
+  }
+  if (error || !data) {
+    return <p role="alert" className="text-[14px] text-ink-2">Plani nuk u ngarkua. Rifresko faqen për ta provuar sërish.</p>;
   }
 
   const ent = data?.entitlements;

@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/Switch";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { OrdersSection } from "@/components/account/OrdersSection";
 import { BillingSection } from "@/components/account/BillingSection";
+import { useCommerceEntitlements } from "@/lib/commerce/useCommerceEntitlements";
 import {
   AccountSidebar,
   AccountTabSelect,
@@ -46,6 +47,7 @@ const COUNTRY_CODES = [
 function AccountInner() {
   const router = useRouter();
   const { active, setTab } = useAccountTab();
+  const commerce = useCommerceEntitlements();
   const { user, profile, credits, projects, creations, session, updateProfileName, updateAvatar, getAccessToken, refreshProfile } = useMaro();
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState(false);
@@ -116,7 +118,10 @@ function AccountInner() {
                     <div className="truncate text-sm text-ink-3">{user?.email}</div>
                     <div className="mt-[10px] flex flex-wrap items-center gap-[10px]">
                       <Badge tone="brand" className="capitalize">
-                        Plani {user?.plan || "free"}
+                        {commerce.loading ? "Duke ngarkuar planin…" : commerce.error ? "Plani nuk u ngarkua" :
+                          commerce.data?.entitlements.plan_id ? `${commerce.data.entitlements.plan_display_name ?? commerce.data.entitlements.plan_id}${
+                            ["EXPIRED", "BUSINESS_EXPIRED"].includes(commerce.data.entitlements.plan_status) ? " · Ka skaduar" :
+                            commerce.data.entitlements.plan_status === "BUSINESS_SUSPENDED" ? " · I pezulluar" : ""}` : "Pa plan aktiv"}
                       </Badge>
                       {memberSince && (
                         <span className="text-xs text-ink-3">Anëtar që nga {memberSince}</span>
@@ -209,7 +214,7 @@ function AccountInner() {
 
           {active === "billing" && (
             <div className="mt-[30px]">
-              <BillingSection />
+              <BillingSection commerce={commerce} />
             </div>
           )}
 

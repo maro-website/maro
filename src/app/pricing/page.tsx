@@ -10,6 +10,7 @@ import { ArrowUpRight, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import s from "./PricingPage.module.css";
 import { useRaiAcceptAvailability } from "@/lib/payments/useRaiAcceptAvailability";
+import { useCommerceEntitlements } from "@/lib/commerce/useCommerceEntitlements";
 
 type Tab = "plans" | "topup";
 
@@ -41,6 +42,8 @@ export default function PricingPage() {
 
 function PricingPageInner() {
   const purchasesEnabled=useRaiAcceptAvailability();
+  const commerce = useCommerceEntitlements();
+  const entitlements = commerce.data?.entitlements;
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -84,6 +87,24 @@ function PricingPageInner() {
     }]
     : catalogPlans;
   const topups = catalog?.topups ?? [];
+
+  function renderPlanAction(plan: CatalogPlan) {
+    if (!purchasesEnabled) return <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>;
+    if (commerce.loading) return <p className={s.closed}>Duke kontrolluar planin…</p>;
+    if (commerce.error || !entitlements) return <p role="alert" className={s.closed}>Plani nuk u ngarkua. Rifresko faqen.</p>;
+    let href = `/checkout?item=${encodeURIComponent(plan.id)}&provider=raiaccept`;
+    let label = "Zgjedh planin";
+    if (entitlements.can_top_up) {
+      if (entitlements.plan_id === plan.id && entitlements.renewal_available) {
+        href = "/checkout?item=renew&provider=raiaccept"; label = "Rinovo planin";
+      } else if (plan.id === "pro" && commerce.data?.upgradeQuote?.eligible) {
+        href = "/checkout?item=upgrade-pro&provider=raiaccept"; label = "Kalo në maroPro";
+      } else {
+        href = "/account?tab=billing"; label = entitlements.plan_id === plan.id ? "Plani yt aktiv" : "Menaxho planin";
+      }
+    }
+    return <Link href={href} className={`maro-button ${s.contactCta}`} data-variant="inverse">{label}<ArrowUpRight size={16} aria-hidden /></Link>;
+  }
 
   return (
     <AppShell showFooter>
@@ -157,7 +178,7 @@ function PricingPageInner() {
 
                   {plan.contactOnly
                     ? <Link href="/contact" className={`maro-button ${s.contactCta}`} data-variant="inverse">Na kontakto<ArrowUpRight size={16} aria-hidden /></Link>
-                    : purchasesEnabled?<Link href={`/checkout?item=${encodeURIComponent(plan.id)}&provider=raiaccept`} className={`maro-button ${s.contactCta}`} data-variant="inverse">Zgjedh planin<ArrowUpRight size={16} aria-hidden/></Link>:<p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
+                    : renderPlanAction(plan)}
                 </section>
               ))}
             </div>
@@ -241,7 +262,9 @@ function PricingPageInner() {
                 <div>
                   <h2>{purchasesEnabled?"Kredite shtesë për planin tënd":"Blerjet janë të mbyllura"}</h2>
                   <p>
-                    {purchasesEnabled?"Top-up kërkon plan aktiv. Kreditet e blera nuk skadojnë.":"Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen."}
+                    {purchasesEnabled ? entitlements?.can_top_up ? `${entitlements.plan_display_name ?? entitlements.plan_id} është aktiv. Kreditet e blera nuk skadojnë.` :
+                      commerce.error ? "Plani nuk u ngarkua. Rifresko faqen." : commerce.loading ? "Duke kontrolluar planin…" :
+                      "Top-up kërkon plan aktiv. Kreditet e blera nuk skadojnë." : "Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen."}
                   </p>
                   <button
                     type="button"
@@ -255,7 +278,7 @@ function PricingPageInner() {
 
             <div className={s.topupGrid}>
               {topups.map((tier) => {
-                const locked = false;
+                const locked = purchasesEnabled && !commerce.loading && !commerce.error && !entitlements?.can_top_up;
                 return (
                   <div
                     key={tier.id}
@@ -272,7 +295,11 @@ function PricingPageInner() {
                     {tier.discountPct ? (
                       <p className={s.discount}>−{tier.discountPct}% nga çmimi bazë</p>
                     ) : null}
-                    {purchasesEnabled?<Link className="maro-button mt-4" data-variant="inverse" href={`/checkout?item=${encodeURIComponent(tier.id)}&provider=raiaccept`}>Bli kredite<ArrowUpRight size={16} aria-hidden/></Link>:<p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
+                    {!purchasesEnabled ? <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p> :
+                      commerce.loading ? <p className={s.closed}>Duke kontrolluar planin…</p> :
+                      commerce.error || !entitlements ? <p role="alert" className={s.closed}>Plani nuk u ngarkua. Rifresko faqen.</p> :
+                      entitlements.can_top_up ? <Link className="maro-button mt-4" data-variant="inverse" href={`/checkout?item=${encodeURIComponent(tier.id)}&provider=raiaccept`}>Bli kredite<ArrowUpRight size={16} aria-hidden /></Link> :
+                      <Link className="maro-button mt-4" data-variant="inverse" href="/pricing">Zgjedh një plan aktiv</Link>}
                   </div>
                 );
               })}

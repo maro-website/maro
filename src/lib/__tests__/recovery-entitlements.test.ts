@@ -16,6 +16,6 @@ describe("production compatible entitlement accounting", () => {
   it("preserves paid Paddle compatibility without offering legacy renewal", async () => {
     m.profile.mockResolvedValue({ credits: 5, credits_reserved: 5 });
     m.membership.mockResolvedValue({ id: "membership", plan_id: "standard", payment_provider: "paddle", paddle_status: "active", renewal_mode: "automatic" });
-    expect(await resolveEntitlements("owner")).toMatchObject({ credits_available: 5, payment_provider: "paddle", renewal_available: false, can_top_up: false });
+    expect(await resolveEntitlements("owner")).toMatchObject({ credits_available: 5, payment_provider: "paddle", renewal_available: false, can_top_up: true });
   });
 });

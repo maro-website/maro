@@ -5,6 +5,7 @@ import {
   deriveMembershipStatus,
   getLatestMembership,
   isActivePlanStatus,
+  renewalAlreadyFulfilledForCycle,
   resolveLimitsFromPlan,
 } from "@/lib/commerce/memberships";
 import { getCommercePlan } from "@/lib/commerce/plans";
@@ -62,11 +63,13 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
     started_at: membership.started_at,
     expires_at: membership.expires_at,
     renewal_mode: membership.renewal_mode,
-    renewal_available: false,
+    renewal_available:
+      status === "RENEWAL_WINDOW" && membership.payment_provider !== "paddle" &&
+      membership.renewal_mode === "manual" && !renewalAlreadyFulfilledForCycle(membership),
     credits_balance: creditsBalance,
     credits_reserved: creditsReserved,
     credits_available: creditsAvailable,
-    can_top_up: false,
+    can_top_up: isActivePlanStatus(status),
     workspace_limit: limits.workspace_limit,
     current_workspace_count: workspaceCount,
     can_create_workspace: workspaceCount < limits.workspace_limit,
