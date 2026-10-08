@@ -87,6 +87,7 @@ function PricingPageInner() {
     }]
     : catalogPlans;
   const topups = catalog?.topups ?? [];
+  const topupAvailabilityLabel = purchasesEnabled ? "Gjatë planit aktiv" : "I mbyllur";
 
   function renderPlanAction(plan: CatalogPlan) {
     if (!purchasesEnabled) return <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>;
@@ -205,7 +206,7 @@ function PricingPageInner() {
                       ["Kreditet skadojnë?", "Jo", "Jo", "Jo"],
                       ["Workspaces", "1", "Deri në 5", "Sipas nevojës"],
                       ["Gjenerime njëkohësisht", "1", "Deri në 3", "Sipas marrëveshjes"],
-                      ["Top-up", "I mbyllur", "I mbyllur", "I mbyllur"],
+                      ["Top-up", topupAvailabilityLabel, topupAvailabilityLabel, topupAvailabilityLabel],
                     ].map(([label, ...vals]) => (
                       <tr key={label}>
                         <th scope="row">{label}</th>
