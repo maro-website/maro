@@ -9,12 +9,17 @@ import {
 } from "@/lib/payments/orderDisplay";
 import type { CreditOrderRow } from "@/lib/payments/orders";
 import { serializeOrder } from "@/lib/payments/orders";
+import { escapeHtml } from "@/lib/email/variables";
 
-export function buildInvoiceHtml(order: CreditOrderRow): string {
-  const o = serializeOrder(order);
+export function buildInvoiceHtml(order: CreditOrderRow,paymentState?:string): string {
+  const serialized=serializeOrder(order);
+  const o={...serialized,id:escapeHtml(serialized.id),label:escapeHtml(serialized.label),
+    itemId:serialized.itemId?escapeHtml(serialized.itemId):null,currency:escapeHtml(serialized.currency),
+    provider:serialized.provider?escapeHtml(serialized.provider):null};
   const displayStatus = resolveOrderDisplayStatus(order.status, order.cancel_reason);
-  const statusLabel = ORDER_STATUS_LABELS[displayStatus];
-  const billing = order.billing_snapshot;
+  const statusLabel = paymentState==="fully_refunded"?"E rimbursuar plotësisht":paymentState==="partially_refunded"?"E rimbursuar pjesërisht":ORDER_STATUS_LABELS[displayStatus];
+  const billing=order.billing_snapshot?Object.fromEntries(Object.entries(order.billing_snapshot).map(([key,value])=>[key,typeof value==="string"?escapeHtml(value):value])) as unknown as typeof order.billing_snapshot:null;
+  const safeUserEmail=order.user_email?escapeHtml(order.user_email):null;
   const invoiceDate = order.paid_at ?? order.created_at;
   const isPaid = order.status === "paid";
 
@@ -67,8 +72,8 @@ export function buildInvoiceHtml(order: CreditOrderRow): string {
       </div>
       <div class="box">
         <h2>Blerësi</h2>
-        <p><strong>${billing?.fullName ?? order.user_email ?? "—"}</strong></p>
-        <p class="muted">${billing?.email ?? order.user_email ?? ""}</p>
+        <p><strong>${billing?.fullName ?? safeUserEmail ?? "—"}</strong></p>
+        <p class="muted">${billing?.email ?? safeUserEmail ?? ""}</p>
         ${billing?.city || billing?.country ? `<p class="muted">${[billing?.city, billing?.country].filter(Boolean).join(", ")}</p>` : ""}
         ${billing?.businessName ? `<p class="muted">${billing.businessName}${billing.nui ? ` · NUI ${billing.nui}` : ""}</p>` : ""}
       </div>

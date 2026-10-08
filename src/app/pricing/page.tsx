@@ -9,6 +9,7 @@ import { formatCredits } from "@/lib/credits/format";
 import { ArrowUpRight, Check, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import s from "./PricingPage.module.css";
+import { useRaiAcceptAvailability } from "@/lib/payments/useRaiAcceptAvailability";
 
 type Tab = "plans" | "topup";
 
@@ -39,6 +40,7 @@ export default function PricingPage() {
 }
 
 function PricingPageInner() {
+  const purchasesEnabled=useRaiAcceptAvailability();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -96,7 +98,7 @@ function PricingPageInner() {
               <span className={s.noticeIcon}><Lock size={19} aria-hidden /></span>
               <h2 id="pricing-catalog-title">Katalogu, në një vend.</h2>
             </div>
-            <p>Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria.</p>
+            <p>{purchasesEnabled?"Zgjedh planin ose kreditë që të duhen. Pagesa është njëherëshe dhe rinovimi bëhet manualisht.":"Katalogu i planeve dhe krediteve. Blerjet e reja janë të mbyllura në këtë version; plani ekzistues shfaqet te llogaria."}</p>
             <Link href="/account" className={s.accountLink}>Shiko llogarinë<ArrowUpRight size={16} aria-hidden /></Link>
           </aside>
         </header>
@@ -148,14 +150,14 @@ function PricingPageInner() {
                     {plan.features.map((text) => (
                       <li key={text}>
                         <Check size={16} aria-hidden />
-                        {text.startsWith("Top-up") ? "Blerjet e reja janë të mbyllura" : text}
+                        {text.startsWith("Top-up")&&!purchasesEnabled ? "Blerjet e reja janë të mbyllura" : text}
                       </li>
                     ))}
                   </ul>
 
                   {plan.contactOnly
                     ? <Link href="/contact" className={`maro-button ${s.contactCta}`} data-variant="inverse">Na kontakto<ArrowUpRight size={16} aria-hidden /></Link>
-                    : <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
+                    : purchasesEnabled?<Link href={`/checkout?item=${encodeURIComponent(plan.id)}&provider=raiaccept`} className={`maro-button ${s.contactCta}`} data-variant="inverse">Zgjedh planin<ArrowUpRight size={16} aria-hidden/></Link>:<p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
                 </section>
               ))}
             </div>
@@ -207,7 +209,7 @@ function PricingPageInner() {
               {[
                 {
                   q: "A është ky abonim automatik?",
-                  a: "Blerjet e reja janë të mbyllura. Për një plan ekzistues, mënyra e rinovimit dhe afati shfaqen te llogaria.",
+                  a: purchasesEnabled?"Jo. Planet blihen për 30 ditë dhe rinovohen manualisht. Abonimet historike ekzistuese ruajnë kushtet e tyre.":"Blerjet e reja janë të mbyllura. Për një plan ekzistues, mënyra e rinovimit dhe afati shfaqen te llogaria.",
                 },
                 {
                   q: "A skadojnë kreditet?",
@@ -215,11 +217,11 @@ function PricingPageInner() {
                 },
                 {
                   q: "Kur mund ta rinovoj planin?",
-                  a: "Rinovimet manuale janë të mbyllura. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të tij.",
+                  a: purchasesEnabled?"Në 7 ditët e fundit të planit, te llogaria jote. Rinovimi shton 30 ditë nga afati ekzistues.":"Rinovimet manuale janë të mbyllura. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të tij.",
                 },
                 {
                   q: "A mund të blej vetëm kredite?",
-                  a: "Blerjet e reja të krediteve janë të mbyllura në këtë version.",
+                  a: purchasesEnabled?"Po, top-up është i disponueshëm gjatë planit aktiv. Kreditet nuk skadojnë.":"Blerjet e reja të krediteve janë të mbyllura në këtë version.",
                 },
               ].map((item) => (
                 <details key={item.q} className={s.question}>
@@ -237,9 +239,9 @@ function PricingPageInner() {
               <div className={s.topupNotice}>
                 <span className={s.noticeIcon}><Lock size={19} aria-hidden /></span>
                 <div>
-                  <h2>Blerjet janë të mbyllura</h2>
+                  <h2>{purchasesEnabled?"Kredite shtesë për planin tënd":"Blerjet janë të mbyllura"}</h2>
                   <p>
-                    Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen.
+                    {purchasesEnabled?"Top-up kërkon plan aktiv. Kreditet e blera nuk skadojnë.":"Katalogu mbetet i dukshëm; kreditet dhe plani ekzistues ruhen."}
                   </p>
                   <button
                     type="button"
@@ -270,7 +272,7 @@ function PricingPageInner() {
                     {tier.discountPct ? (
                       <p className={s.discount}>−{tier.discountPct}% nga çmimi bazë</p>
                     ) : null}
-                    <p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>
+                    {purchasesEnabled?<Link className="maro-button mt-4" data-variant="inverse" href={`/checkout?item=${encodeURIComponent(tier.id)}&provider=raiaccept`}>Bli kredite<ArrowUpRight size={16} aria-hidden/></Link>:<p className={s.closed}><Lock size={14} aria-hidden />Blerjet janë të mbyllura.</p>}
                   </div>
                 );
               })}

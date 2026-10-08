@@ -27,6 +27,7 @@ export async function loadConfirmedOrder(
     const order = data?.order;
     if (
       !order || order.id !== orderId || order.status !== "paid" ||
+      (order.provider==="raiaccept"&&(order.paymentState!=="paid"||order.fulfillmentState!=="fulfilled"||order.requiresReview)) ||
       typeof order.priceEur !== "number" || !Number.isFinite(order.priceEur) ||
       typeof order.credits !== "number" || !Number.isFinite(order.credits)
     ) return null;

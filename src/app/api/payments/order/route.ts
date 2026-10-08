@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/payments/auth";
-import { getOrderForUser } from "@/lib/payments/orders";
-import { getCheckoutItem } from "@/lib/credits/money";
+import { getOrderForUser,serializeOrder } from "@/lib/payments/orders";
+import { getRaiAcceptOrderState,publicRaiAcceptState } from "@/lib/payments/raiaccept/orderState";
 
 export async function GET(req: Request) {
   const user = await requireUser(req);
@@ -13,23 +13,8 @@ export async function GET(req: Request) {
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const item = order.item_id ? getCheckoutItem(order.item_id) : null;
-
-  return NextResponse.json({
-    order: {
-      id: order.id,
-      status: order.status,
-      provider: order.provider,
-      providerTransactionId: order.provider === "paddle" ? order.provider_transaction_id : undefined,
-      credits: order.credits,
-      amountCents: order.amount_cents,
-      currency: order.currency,
-      itemType: order.item_type,
-      itemId: order.item_id,
-      label: item?.label ?? order.item_id,
-      priceEur: item?.priceEur ?? order.amount_cents / 100,
-      billing: order.billing_snapshot,
-      paidAt: order.paid_at,
-    },
-  });
+  try {
+    const state=order.provider==="raiaccept"?await getRaiAcceptOrderState(user.id,{orderId}):null;
+    return NextResponse.json({order:{...serializeOrder(order),...(state?publicRaiAcceptState(state):{})}}, {headers:{"Cache-Control":"private, no-store"}});
+  } catch {return NextResponse.json({error:"temporarily_unavailable"},{status:503});}
 }

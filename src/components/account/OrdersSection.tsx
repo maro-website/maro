@@ -14,6 +14,7 @@ import {
 } from "@/lib/payments/orderDisplay";
 import { Download, Receipt, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import Link from "next/link";
 
 interface OrderRow {
   id: string;
@@ -28,6 +29,9 @@ interface OrderRow {
   provider?: string | null;
   createdAt: string;
   paidAt?: string | null;
+  paymentState?:string;
+  fulfillmentState?:string;
+  requiresReview?:boolean;
 }
 
 const STATUS_TONE: Record<OrderDisplayStatus, "brand" | "neutral" | "success"> = {
@@ -139,7 +143,7 @@ export function OrdersSection() {
               {list.map((o) => (
                 <tr key={o.id}>
                   <td className="py-3.5 pr-4">
-                    <span className="font-mono text-[12px] text-ink-2">{o.id.slice(0, 8)}…</span>
+                    {o.provider==="raiaccept"?<Link href={`/pay/raiaccept/return?orderId=${encodeURIComponent(o.id)}`} className="font-mono text-[12px] text-ink-2 underline">{o.id.slice(0,8)}…</Link>:<span className="font-mono text-[12px] text-ink-2">{o.id.slice(0, 8)}…</span>}
                   </td>
                   <td className="py-3.5 pr-4">
                     <div className="font-semibold text-ink">{o.label}</div>
@@ -153,7 +157,7 @@ export function OrdersSection() {
                   </td>
                   <td className="py-3.5 pr-4">
                     <Badge tone={STATUS_TONE[o.displayStatus]} className="text-[11px]">
-                      {ORDER_STATUS_LABELS[o.displayStatus]}
+                      {o.paymentState==="fully_refunded"?"E rimbursuar":o.paymentState==="partially_refunded"?"Rimbursim i pjesshëm":o.requiresReview||o.fulfillmentState==="manual_review"?"Në shqyrtim":ORDER_STATUS_LABELS[o.displayStatus]}
                     </Badge>
                   </td>
                   <td className="py-3.5 pr-4 text-ink-3">
@@ -162,7 +166,7 @@ export function OrdersSection() {
                   <td className="py-3.5">
                     <button
                       type="button"
-                      disabled={downloading === o.id}
+                      disabled={downloading === o.id||(o.provider==="raiaccept"&&!["paid","partially_refunded","fully_refunded"].includes(o.paymentState??""))}
                       onClick={() => void downloadInvoice(o.id)}
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-colors",
@@ -177,7 +181,7 @@ export function OrdersSection() {
                       }
                     >
                       <Download className="h-3.5 w-3.5" />
-                      {downloading === o.id ? "…" : "PDF"}
+                      {downloading === o.id ? "…" : "Faturë"}
                     </button>
                   </td>
                 </tr>

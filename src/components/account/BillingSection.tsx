@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
 import { formatOrderDate } from "@/lib/payments/orderDisplay";
 import { cn } from "@/lib/utils/cn";
+import Link from "next/link";
+import { useRaiAcceptAvailability } from "@/lib/payments/useRaiAcceptAvailability";
 
 interface EntitlementsPayload {
   entitlements: {
@@ -38,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function BillingSection() {
+  const purchasesEnabled=useRaiAcceptAvailability();
   const { user, credits } = useMaro();
   const [data, setData] = React.useState<EntitlementsPayload | null>(null);
   const [usage, setUsage] = React.useState<UsageRow[]>([]);
@@ -131,7 +134,11 @@ export function BillingSection() {
           {credits} credits
         </p>
         <p className="mt-1 text-[14px] text-ink-3">Kreditet nuk skadojnë.</p>
-        <p className="mt-4 text-[14px] text-ink-2">Blerjet e reja janë të mbyllura.</p>
+        {purchasesEnabled?<div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold underline">
+          {ent?.can_top_up?<Link href="/pricing?tab=topup">Bli kredite</Link>:<Link href="/pricing">Zgjedh planin</Link>}
+          {ent?.renewal_available&&ent.renewal_mode!=="automatic"&&<Link href="/checkout?item=renew&provider=raiaccept">Rinovo planin</Link>}
+          {data?.upgradeQuote?.eligible&&ent?.renewal_mode!=="automatic"&&<Link href="/checkout?item=upgrade-pro&provider=raiaccept">Kalo në maroPro</Link>}
+        </div>:<p className="mt-4 text-[14px] text-ink-2">Blerjet e reja janë të mbyllura.</p>}
       </section>
 
       {usage.length > 0 && (

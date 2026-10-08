@@ -23,6 +23,7 @@ interface OrderRow {
   providerTransactionId?: string | null;
   createdAt: string;
   paidAt?: string | null;
+  paymentState?:string;fulfillmentState?:string;reviewReason?:string|null;providerOrderId?:string|null;
 }
 
 export default function CommercePaymentsPage() {
@@ -44,7 +45,7 @@ export default function CommercePaymentsPage() {
     <div>
       <AdminPageHeader
         title="Orders"
-        description="Credit orders with commercial snapshot — Raiffeisen live fulfillment on hold"
+        description="Orders, verified payment state and fulfillment review"
         actions={
           <Link href={ADMIN_ROUTES.commerce.ledger} className="text-[13px] font-semibold text-brand hover:underline">
             Credit ledger →
@@ -82,7 +83,7 @@ export default function CommercePaymentsPage() {
                     <td className="px-3 py-2">
                       {(o.amountCents / 100).toFixed(2)} {o.currency}
                     </td>
-                    <td className="px-3 py-2">{o.displayStatus ?? o.status}</td>
+                    <td className="px-3 py-2">{o.paymentState??o.displayStatus??o.status}{o.fulfillmentState&&<div className="mt-1 text-xs text-ink-3">{o.fulfillmentState}{o.reviewReason?` · ${o.reviewReason}`:""}</div>}</td>
                     <td className="px-3 py-2 font-mono text-[10px] text-ink-3">
                       {o.providerTransactionId ? o.providerTransactionId.slice(0, 16) + "…" : "—"}
                     </td>
@@ -102,7 +103,7 @@ export default function CommercePaymentsPage() {
                     <tr>
                       <td colSpan={10} className="bg-surface-2 px-3 py-2">
                         <pre className="max-h-[160px] overflow-auto text-[10px] text-ink-2">
-                          {JSON.stringify(o.commercialSnapshot, null, 2)}
+                          {JSON.stringify({commercialSnapshot:o.commercialSnapshot,providerOrderId:o.providerOrderId,reviewReason:o.reviewReason}, null, 2)}
                         </pre>
                       </td>
                     </tr>

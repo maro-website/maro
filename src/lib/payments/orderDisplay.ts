@@ -9,7 +9,8 @@ export function resolveOrderDisplayStatus(
   if (status === "paid") return "paid";
   if (status === "pending") return "pending";
   if (status === "cancelled" && cancelReason === "declined") return "failed";
-  if (status === "cancelled") return "cancelled";
+  if (status === "cancelled"||status==="canceled") return "cancelled";
+  if (status === "failed") return "failed";
   return "pending";
 }
 

@@ -43,11 +43,12 @@ beforeAll(async () => {
     create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create table auth.users(id uuid primary key, email text);
     create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
+    create function auth.role() returns text language sql as $$ select current_setting('request.jwt.claim.role',true) $$;
     create function public.has_admin_access() returns boolean language sql as $$ select false $$;
     create table profiles(id uuid primary key references auth.users(id), credits integer not null default 0, maro_plan text);
     create table credit_orders(id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id),
       user_email text, credits integer not null default 0, amount_cents integer not null default 0,
-      currency text not null default 'EUR', status text not null default 'pending', provider text,
+      currency text not null default 'EUR', status text not null default 'pending', provider text, provider_order_id text,
       item_type text, item_id text, billing_snapshot jsonb, promo_code text, paid_at timestamptz, cancel_reason text,
       created_at timestamptz not null default now());
     create table credit_transactions(id uuid primary key default gen_random_uuid(), user_id uuid,
@@ -64,6 +65,9 @@ beforeAll(async () => {
   // Already-applied Paddle lineage is preserved as history, outside Golden's
   // differently numbered runnable migration chain. Execute only in local WASM.
   await db.exec(readFileSync("docs/db-history/current-main/0047_paddle_billing.sql", "utf8"));
+  // Exercise the preserved Paddle behavior with the new RaiAccept wrappers installed.
+  await db.exec(readFileSync("supabase/migrations/0054_raiaccept_checkout_intents.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/0055_raiaccept_verified_fulfillment.sql", "utf8"));
 });
 afterAll(async () => { await db?.close(); });
 beforeEach(async () => {
