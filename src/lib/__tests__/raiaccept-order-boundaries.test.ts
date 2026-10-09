@@ -1,5 +1,6 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from "vitest";
-const mocks=vi.hoisted(()=>({auth:vi.fn(),state:vi.fn(),order:vi.fn(),rate:vi.fn(),enqueue:vi.fn(),recover:vi.fn(),client:vi.fn()}));
+const mocks=vi.hoisted(()=>({auth:vi.fn(),state:vi.fn(),order:vi.fn(),rate:vi.fn(),enqueue:vi.fn(),recover:vi.fn(),client:vi.fn(),pdf:vi.fn()}));
+vi.mock("@/lib/payments/invoicePdf",()=>({buildInvoicePdf:mocks.pdf}));
 vi.mock("@/lib/payments/auth",()=>({requireUser:mocks.auth}));
 vi.mock("@/lib/payments/raiaccept/orderState",async importOriginal=>({...await importOriginal<typeof import("@/lib/payments/raiaccept/orderState")>(),getRaiAcceptOrderState:mocks.state}));
 vi.mock("@/lib/payments/orders",async importOriginal=>({...await importOriginal<typeof import("@/lib/payments/orders")>(),getOrderForUser:mocks.order}));
@@ -24,6 +25,7 @@ const verifyReq=()=>new Request("https://sandbox.example.test/api/payments/raiac
 beforeEach(()=>{
   vi.clearAllMocks();mocks.auth.mockResolvedValue({id:user});mocks.state.mockResolvedValue(state);mocks.order.mockResolvedValue(order);
   mocks.rate.mockResolvedValue({allowed:true});mocks.enqueue.mockResolvedValue(undefined);mocks.recover.mockResolvedValue({});
+  mocks.pdf.mockResolvedValue(new TextEncoder().encode("%PDF-1.7 fixture"));
   for(const [name,value] of Object.entries({RAIACCEPT_ENABLED:"true",RAIACCEPT_ENVIRONMENT:"sandbox",RAIACCEPT_MERCHANT_ACCOUNT_ID:"P-007-MA-TEST",
     RAIACCEPT_API_USERNAME:"fixture",RAIACCEPT_API_PASSWORD:"fixture",RAIACCEPT_DATABASE_PROJECT_REF:"a".repeat(20),
     NEXT_PUBLIC_SUPABASE_URL:`https://${"a".repeat(20)}.supabase.co`,APP_ORIGIN:"https://sandbox.example.test"})) vi.stubEnv(name,value);
@@ -54,10 +56,19 @@ describe("Owned RaiAccept order, confirmation and invoice boundaries",()=>{
   });
   it("refuses an invoice until the bank has verified the payment",async()=>{
     mocks.state.mockResolvedValue({...state,payment_state:"unverified"});expect((await invoice(getReq("/api/payments/invoice"))).status).toBe(409);
+    expect(mocks.pdf).not.toHaveBeenCalled();
   });
   it("escapes billing HTML, freezes invoice price and labels refunds",async()=>{
     const html=buildInvoiceHtml(order,"fully_refunded");expect(html).not.toContain('<img src=x');expect(html).toContain("&lt;img");expect(html).toContain("rimbursuar plotësisht");
     const response=await invoice(getReq("/api/payments/invoice"));expect(response.headers.get("Cache-Control")).toBe("private, no-store");expect(response.headers.get("Content-Security-Policy")).toContain("sandbox");
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toContain(`fatura-${id.slice(0,8)}.pdf`);
+    expect(await response.text()).toBe("%PDF-1.7 fixture");expect(mocks.pdf).toHaveBeenCalledWith(order,"paid");
+  });
+  it("returns a retryable failure when PDF rendering is unavailable",async()=>{
+    mocks.pdf.mockRejectedValue(new Error("renderer failed"));const response=await invoice(getReq("/api/payments/invoice"));
+    expect(response.status).toBe(503);expect(response.headers.get("Retry-After")).toBe("5");
+    expect(await response.json()).toEqual({error:"invoice_temporarily_unavailable"});
   });
   it("never says credits are granted when a paid payment is in manual review",()=>{
     expect(raiAcceptPaymentMessage("paid","manual_review",true).title).toBe("Pagesa po shqyrtohet");
@@ -67,6 +78,9 @@ describe("Owned RaiAccept order, confirmation and invoice boundaries",()=>{
   it("creates a receipt from the exact paid order with stable provider idempotency",()=>{
     const receipt=buildRaiAcceptReceipt(order,"https://maro.al");expect(receipt.idempotencyKey).toBe(`raiaccept-receipt-${id}`);
     expect(receipt.text).toContain("9.00 EUR");expect(receipt.html).not.toContain("<img src=x");
+    expect(receipt.html).toContain("Shiko faturën PDF");expect(receipt.html).toContain("Vazhdo në maro");
+    expect(receipt.html).toContain('href="https://maro.al/account?tab=orders"');expect(receipt.html).toContain('bgcolor="#00ff72"');
+    expect(()=>buildRaiAcceptReceipt(order,"javascript:alert(1)")).toThrow();
     expect(()=>buildRaiAcceptReceipt({...order,status:"pending"},"https://maro.al")).toThrow();
   });
 });

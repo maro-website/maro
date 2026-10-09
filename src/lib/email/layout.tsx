@@ -26,7 +26,7 @@ const COLORS = {
   line: "#e5e7eb",
 } as const;
 
-const FONT_STACK = '"Manrope", "Segoe UI", Arial, Helvetica, sans-serif';
+const FONT_STACK = "'Manrope', 'Segoe UI', Arial, Helvetica, sans-serif";
 
 /** Solid same-color gradient — resists Gmail dark-mode background recoloring. */
 const CTA_SOLID_GRADIENT = `linear-gradient(${BRAND_PRIMARY},${BRAND_PRIMARY})`;
@@ -69,6 +69,25 @@ export interface EmailLayoutOptions {
   contactEmail?: string;
   /** Override for tests — defaults to trusted public HTTPS origin. */
   assetOrigin?: string;
+  receipt?: { label: string; amount: string; credits: string; reference: string; date: string };
+  secondaryCta?: { label: string; url: string };
+}
+
+function renderReceipt(receipt: NonNullable<EmailLayoutOptions["receipt"]>): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;border:1px solid ${COLORS.line};border-radius:12px;background-color:#f8faf9;">
+    <tr><td style="padding:20px 20px 4px;font-size:13px;color:${COLORS.inkSecondary};">${escapeHtml(receipt.label)}</td></tr>
+    <tr><td style="padding:0 20px 8px;font-size:32px;line-height:1.2;font-weight:800;color:${COLORS.ink};">${escapeHtml(receipt.amount)}</td></tr>
+    <tr><td style="padding:0 20px 20px;font-size:15px;font-weight:600;color:${COLORS.ink};">${escapeHtml(receipt.credits)} kredite</td></tr>
+    <tr><td style="padding:16px 20px;border-top:1px solid ${COLORS.line};font-size:12px;line-height:1.7;color:${COLORS.inkSecondary};word-break:break-all;">Data: ${escapeHtml(receipt.date)}<br>Porosia: ${escapeHtml(receipt.reference)}</td></tr>
+  </table>`;
+}
+
+function renderSecondaryCta(cta: NonNullable<EmailLayoutOptions["secondaryCta"]>): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 24px;">
+    <tr><td align="center" style="border:1px solid ${COLORS.line};border-radius:8px;">
+      <a href="${escapeHtml(cta.url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;min-width:180px;padding:14px 28px;font-size:15px;line-height:1.25;font-weight:700;color:${COLORS.ink};text-decoration:none;">${escapeHtml(cta.label)}</a>
+    </td></tr>
+  </table>`;
 }
 
 function renderParagraphs(paragraphs: string[]): string {
@@ -147,6 +166,8 @@ export function renderEmailLayout(
     ? `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${COLORS.inkSecondary};">${escapeHtml(content.secondaryText)}</p>`
     : "";
   const cta = content.cta ? renderCta(content.cta) : "";
+  const receipt = options.receipt ? renderReceipt(options.receipt) : "";
+  const secondaryCta = options.secondaryCta ? renderSecondaryCta(options.secondaryCta) : "";
   const footerNote = content.footerNote
     ? `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:${COLORS.inkSecondary};">${escapeHtml(content.footerNote)}</p>`
     : "";
@@ -184,8 +205,10 @@ export function renderEmailLayout(
                 ${heading}
               </h1>
               ${paragraphs}
+              ${receipt}
               ${secondary}
               ${cta}
+              ${secondaryCta}
               ${footerNote}
             </td>
           </tr>

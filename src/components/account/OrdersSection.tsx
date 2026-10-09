@@ -83,7 +83,7 @@ export function OrdersSection() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `fatura-${orderId.slice(0, 8)}.html`;
+    a.download = `fatura-${orderId.slice(0, 8)}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();

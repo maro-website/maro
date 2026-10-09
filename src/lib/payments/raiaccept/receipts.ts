@@ -3,16 +3,25 @@ import type { RaiAcceptConfig } from "./config";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getOrderById,serializeOrder,type CreditOrderRow } from "@/lib/payments/orders";
 import { sendViaResend,type ResendSendInput } from "@/lib/email/provider/resend";
-import { escapeHtml } from "@/lib/email/variables";
+import { renderEmailLayout } from "@/lib/email/layout";
 import { asRecord } from "./contract";
 
 export function buildRaiAcceptReceipt(order:CreditOrderRow,origin:string):ResendSendInput {
   const data=serializeOrder(order);const to=order.billing_snapshot?.email??order.user_email??"";
   if (order.provider!=="raiaccept"||order.status!=="paid"||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) throw new Error("receipt_invalid_order");
   const subject="Pagesa jote në maro.al u konfirmua";
-  const text=`Pagesa për ${data.label} u konfirmua.\nShuma: ${(order.amount_cents/100).toFixed(2)} ${order.currency}\nKredite: ${order.credits}\nPorosia: ${order.id}\nFatura dhe historiku: ${origin}/account?tab=orders\nPër ndihmë: info@maro.al`;
+  const home = new URL(origin);
+  if (home.protocol!=="https:"||home.username||home.password) throw new Error("receipt_invalid_origin");
+  const ordersUrl = new URL("/account?tab=orders",home.origin).href;
+  const amount = `${(order.amount_cents/100).toFixed(2)} ${order.currency}`;
+  const date = new Date(order.paid_at??order.created_at).toLocaleString("sq-AL",{timeZone:"Europe/Tirane",day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+  const text=`Pagesa për ${data.label} u konfirmua.\nShuma: ${amount}\nKredite: ${order.credits}\nData: ${date}\nPorosia: ${order.id}\nShiko dhe shkarko faturën PDF te Porositë e mia: ${ordersUrl}\nVazhdo në maro: ${home.origin}\nPër ndihmë: info@maro.al`;
   return {from:"maro <info@maro.al>",replyTo:"info@maro.al",to,subject,text,
-    html:`<html lang="sq"><body style="font-family:system-ui;max-width:600px;margin:40px auto;padding:24px"><h1>Pagesa u konfirmua</h1><p>${escapeHtml(data.label)}</p><p>${(order.amount_cents/100).toFixed(2)} ${escapeHtml(order.currency)} · ${order.credits} kredite</p><p>Porosia: ${escapeHtml(order.id)}</p><p><a href="${escapeHtml(origin)}/account?tab=orders">Fatura dhe porositë e mia</a></p><p>maro.al · info@maro.al</p></body></html>`,
+    html:renderEmailLayout({heading:"Pagesa u kry me sukses.",paragraphs:["Faleminderit që zgjodhe maro. Blerja jote u konfirmua dhe kreditet janë shtuar në llogarinë tënde."],
+      cta:{label:"Shiko faturën PDF",url:ordersUrl},footerNote:"Faturën mund ta shkarkosh te “Porositë e mia”, pasi të hysh në llogarinë tënde."},
+      {previewText:`${amount} · ${order.credits} kredite. Pagesa jote u konfirmua.`,assetOrigin:home.origin,
+        receipt:{label:data.label,amount,credits:String(order.credits),reference:order.id,date},
+        secondaryCta:{label:"Vazhdo në maro",url:home.origin}}),
     idempotencyKey:`raiaccept-receipt-${order.id}`};
 }
 export async function deliverRaiAcceptReceipts(config:RaiAcceptConfig) {

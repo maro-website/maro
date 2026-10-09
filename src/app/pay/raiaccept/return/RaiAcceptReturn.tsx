@@ -32,7 +32,7 @@ export function RaiAcceptReturn() {
   const message=raiAcceptPaymentMessage(state?.paymentState??"unverified",state?.fulfillmentState??"pending",state?.requiresReview??false);
   async function invoice() {
     try {const token=await getAccessToken();const response=await fetch(`/api/payments/invoice?orderId=${encodeURIComponent(orderId)}`,{headers:{Authorization:`Bearer ${token}`}});
-      if (!response.ok) throw new Error();const url=URL.createObjectURL(await response.blob());const link=document.createElement("a");link.href=url;link.download=`fatura-${orderId.slice(0,8)}.html`;link.click();URL.revokeObjectURL(url);
+      if (!response.ok) throw new Error();const url=URL.createObjectURL(await response.blob());const link=document.createElement("a");link.href=url;link.download=`fatura-${orderId.slice(0,8)}.pdf`;link.click();URL.revokeObjectURL(url);
     } catch {setError("Fatura nuk u shkarkua. Provoje te porositë e llogarisë.");}
   }
   return <AppShell showFooter><section className="mx-auto max-w-xl px-6 py-16">

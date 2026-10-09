@@ -35,6 +35,11 @@ describe("RaiAccept authenticated checkout boundary",()=>{
     mocks.auth.mockResolvedValue({id:"33333333-3333-4333-8333-333333333333"}); expect((await POST(request())).status).toBe(404);
     expect(mocks.start).not.toHaveBeenCalled();
   });
+  it("allows authenticated accounts outside the allowlist after public release",async()=>{
+    const publicUser="33333333-3333-4333-8333-333333333333";
+    mocks.auth.mockResolvedValue({id:publicUser});vi.stubEnv("RAIACCEPT_PUBLIC_RELEASE","true");
+    expect((await POST(request())).status).toBe(200);expect(mocks.start.mock.calls[0][0].userId).toBe(publicUser);
+  });
   it("enforces rate limiting",async()=>{
     mocks.rate.mockResolvedValue({allowed:false,retryAfter:60}); const response=await POST(request());
     expect(response.status).toBe(429); expect(response.headers.get("Retry-After")).toBe("60"); expect(mocks.start).not.toHaveBeenCalled();

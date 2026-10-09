@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/payments/auth";
 import { getOrderForUser } from "@/lib/payments/orders";
-import { buildInvoiceHtml } from "@/lib/payments/invoiceHtml";
+import { buildInvoicePdf } from "@/lib/payments/invoicePdf";
 import { getRaiAcceptOrderState } from "@/lib/payments/raiaccept/orderState";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const user = await requireUser(req);
@@ -24,12 +25,14 @@ export async function GET(req: Request) {
       if (!paymentState||!["paid","partially_refunded","fully_refunded"].includes(paymentState)) return NextResponse.json({error:"payment_not_confirmed"},{status:409});
     } catch {return NextResponse.json({error:"temporarily_unavailable"},{status:503});}
   }
-  const html = buildInvoiceHtml(order,paymentState);
-  const filename = `fatura-${orderId.slice(0, 8)}.html`;
+  let pdf: Uint8Array;
+  try { pdf = await buildInvoicePdf(order,paymentState); }
+  catch { return NextResponse.json({ error: "invoice_temporarily_unavailable" }, { status: 503, headers: { "Cache-Control": "private, no-store", "Retry-After": "5" } }); }
+  const filename = `fatura-${order.id.slice(0, 8)}.pdf`;
 
-  return new NextResponse(html, {
+  return new NextResponse(new Uint8Array(pdf), {
     headers: {
-      "Content-Type": "text/html; charset=utf-8",
+      "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control":"private, no-store",
       "Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'; sandbox",

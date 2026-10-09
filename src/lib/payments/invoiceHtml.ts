@@ -3,7 +3,6 @@ import { formatCredits } from "@/lib/credits/format";
 import { LEGAL_ADDRESS, LEGAL_ENTITY } from "@/components/legal/legal-config";
 import { formatEur } from "@/lib/credits/money";
 import {
-  formatOrderDate,
   ORDER_STATUS_LABELS,
   resolveOrderDisplayStatus,
 } from "@/lib/payments/orderDisplay";
@@ -21,6 +20,7 @@ export function buildInvoiceHtml(order: CreditOrderRow,paymentState?:string): st
   const billing=order.billing_snapshot?Object.fromEntries(Object.entries(order.billing_snapshot).map(([key,value])=>[key,typeof value==="string"?escapeHtml(value):value])) as unknown as typeof order.billing_snapshot:null;
   const safeUserEmail=order.user_email?escapeHtml(order.user_email):null;
   const invoiceDate = order.paid_at ?? order.created_at;
+  const formattedDate = new Date(invoiceDate).toLocaleString("sq-AL",{timeZone:"Europe/Tirane",day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
   const isPaid = order.status === "paid";
 
   return `<!DOCTYPE html>
@@ -30,34 +30,37 @@ export function buildInvoiceHtml(order: CreditOrderRow,paymentState?:string): st
   <title>Faturë ${o.id.slice(0, 8).toUpperCase()} · ${LEGAL_ENTITY.product}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #111; background: #fff; padding: 40px; line-height: 1.5; }
+    @page { size: A4; margin: 18mm 16mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; background: #fff; padding: 0; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .wrap { max-width: 720px; margin: 0 auto; }
-    h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+    h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.04em; }
     .muted { color: #666; font-size: 14px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
-    .box { border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px 18px; }
+    .box { border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px 18px; overflow-wrap: anywhere; }
     .box h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-bottom: 8px; }
     table { width: 100%; border-collapse: collapse; margin-top: 28px; }
     th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
     th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #888; }
-    .total { font-size: 18px; font-weight: 700; text-align: right; margin-top: 16px; }
+    .total { font-size: 24px; font-weight: 700; text-align: right; margin-top: 20px; padding: 20px; background: #effbf4; border-radius: 12px; border-left: 5px solid #00ff72; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f0f0f0; }
     .badge-paid { background: #e8f5e9; color: #1b5e20; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-    @media print { body { padding: 20px; } }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-top: 6px solid #00ff72; padding-top: 22px; }
+    .reference { font-size: 11px; overflow-wrap: anywhere; margin-top: 8px; }
+    .grid, table, .total, .footer { break-inside: avoid; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+    <div class="header">
       <div>
         <h1>${isPaid ? "Faturë" : "Konfirmim porosie"}</h1>
-        <p class="muted" style="margin-top:6px;">Nr. porosisë: <strong>${o.id}</strong></p>
-        <p class="muted">Data: ${formatOrderDate(invoiceDate)}</p>
+        <p class="muted reference">Nr. porosisë: <strong>${o.id}</strong></p>
+        <p class="muted">Data: ${formattedDate}</p>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:20px;font-weight:700;">${LEGAL_ENTITY.product}</div>
-        <p class="muted">${LEGAL_ENTITY.name}</p>
+        <div style="font-size:32px;font-weight:800;letter-spacing:-1px;">${LEGAL_ENTITY.product}</div>
+        <p class="muted" style="font-size:12px;">${LEGAL_ENTITY.name}</p>
       </div>
     </div>
 
