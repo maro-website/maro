@@ -192,6 +192,11 @@ export async function middleware(req: NextRequest) {
   const policy = buildContentSecurityPolicy({ supabaseHost, nonce });
   const response = await routeMiddleware(req, nonce, policy);
   response.headers.set("Content-Security-Policy", policy);
+  // Preserve nonce-bound HTML through the existing CDN, including mailto links.
+  if (!req.nextUrl.pathname.startsWith("/api/") && !/\.[a-z0-9]+$/i.test(req.nextUrl.pathname)) {
+    const cache = response.headers.get("Cache-Control") ?? "private, no-cache, no-store, max-age=0, must-revalidate";
+    response.headers.set("Cache-Control", `${cache}, no-transform`);
+  }
   return response;
 }
 
