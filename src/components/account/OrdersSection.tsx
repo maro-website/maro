@@ -70,16 +70,14 @@ export function OrdersSection() {
 
   const downloadInvoice = async (orderId: string) => {
     setDownloading(orderId);
+    try {
     const token = await getAccessToken();
     const res = await fetch(`/api/payments/invoice?orderId=${encodeURIComponent(orderId)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    setDownloading(null);
-    if (!res.ok) {
-      toast("Fatura nuk u shkarkua.");
-      return;
-    }
+    if (!res.ok || !res.headers.get("Content-Type")?.startsWith("application/pdf")) throw new Error("invoice_unavailable");
     const blob = await res.blob();
+    if (new TextDecoder().decode(await blob.slice(0,5).arrayBuffer())!=="%PDF-") throw new Error("invoice_invalid");
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -87,7 +85,11 @@ export function OrdersSection() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Keep the URL alive long enough for the browser to start saving the file.
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    toast("Fatura PDF është gati.");
+    } catch { toast("Fatura nuk u shkarkua. Provo përsëri.","error"); }
+    finally { setDownloading(null); }
   };
 
   if (loading && orders === null) {

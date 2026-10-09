@@ -32,7 +32,9 @@ export function RaiAcceptReturn() {
   const message=raiAcceptPaymentMessage(state?.paymentState??"unverified",state?.fulfillmentState??"pending",state?.requiresReview??false);
   async function invoice() {
     try {const token=await getAccessToken();const response=await fetch(`/api/payments/invoice?orderId=${encodeURIComponent(orderId)}`,{headers:{Authorization:`Bearer ${token}`}});
-      if (!response.ok) throw new Error();const url=URL.createObjectURL(await response.blob());const link=document.createElement("a");link.href=url;link.download=`fatura-${orderId.slice(0,8)}.pdf`;link.click();URL.revokeObjectURL(url);
+      if (!response.ok||!response.headers.get("Content-Type")?.startsWith("application/pdf")) throw new Error();const blob=await response.blob();
+      if (new TextDecoder().decode(await blob.slice(0,5).arrayBuffer())!=="%PDF-") throw new Error();
+      const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=`fatura-${orderId.slice(0,8)}.pdf`;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),60_000);
     } catch {setError("Fatura nuk u shkarkua. Provoje te porositë e llogarisë.");}
   }
   return <AppShell showFooter><section className="mx-auto max-w-xl px-6 py-16">
