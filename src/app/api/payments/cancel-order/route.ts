@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { legacyPaymentsEnabled } from "@/lib/payments/legacy";
 import { requireUser } from "@/lib/payments/auth";
@@ -11,8 +12,11 @@ export async function POST(req: Request) {
 
   let orderId: string;
   let reason: string | undefined;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    const body = (await req.json()) as { orderId?: string; reason?: string };
+    const body = boundedBody.body as { orderId?: string; reason?: string };
     orderId = String(body.orderId ?? "").trim();
     reason = body.reason ? String(body.reason) : undefined;
   } catch {

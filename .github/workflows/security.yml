@@ -2,7 +2,7 @@ name: Security
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, "codex/**"]
   pull_request:
   schedule:
     - cron: "0 6 * * 1"
@@ -21,6 +21,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --prod
+      - run: node tools/security/check-dev-patches.mjs
+      - run: node tools/security/build-schema-baseline.mjs --check
+      - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm test:reconcile
+      - run: pnpm audit:ui
+      - run: node tools/ui-refinement/tokens.mjs --check
+      - run: node tools/ui-refinement/contrast.mjs
       - run: pnpm build

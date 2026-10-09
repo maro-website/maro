@@ -1,3 +1,4 @@
+import { sanitizeInternalRedirectPath } from "@/lib/auth/safeRedirect";
 import type { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
 import { isSignupEnabled, MIN_PASSWORD_LENGTH } from "@/lib/config/features";
@@ -21,11 +22,13 @@ export async function POST(req: NextRequest) {
     const name = typeof body.name === "string" ? body.name.trim().slice(0, 100) : "";
     if (password.length < MIN_PASSWORD_LENGTH || password.length > 256) return authJson({ error: "weak-password" }, 400);
     if (isDisposableEmail(email)) return authJson({ error: "disposable-email" }, 400);
+    const destination = sanitizeInternalRedirectPath(typeof body.next === "string" ? body.next : null, "/");
+    const signInPath = destination === "/" ? "/sign-in?confirmed=1" : `/sign-in?confirmed=1&next=${encodeURIComponent(destination)}`;
     const response = authJson(CONFIRMATION_NOTICE);
     const supabase = createSupabaseRouteHandlerClient(req, response);
     const { data, error } = await supabase.auth.signUp({ email, password, options: {
       data: { full_name: name || email.split("@")[0] },
-      emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: "/sign-in?confirmed=1" }),
+      emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: signInPath }),
     } });
     const failure = authFailure(error);
     if (failure) return failure;

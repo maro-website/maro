@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
 import { resolvedToken } from "./tokens.mjs";
 
-function luminance(hex) {
-  assert.match(hex, /^#[0-9a-f]{6}$/i);
-  const rgb = hex.slice(1).match(/../g).map(v => parseInt(v, 16) / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+function channels(value, backdrop = [255, 255, 255]) {
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value.slice(1).match(/../g).map(v => parseInt(v,16));
+  const match = value.match(/^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)%\)$/);
+  assert.ok(match, `Unsupported semantic color: ${value}`);
+  const alpha = Number(match[4])/100;
+  return match.slice(1,4).map((v,i) => Number(v)*alpha + backdrop[i]*(1-alpha));
+}
+function luminance(channels) {
+  const rgb = channels.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
   return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
 }
-export function contrast(fg, bg) { const a = luminance(fg), b = luminance(bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }
+export function contrast(fg, bg, backdrop) { const background = channels(bg,backdrop); const a = luminance(channels(fg,background)), b = luminance(background); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }
 const pairs = [];
 for (const text of ["text-primary", "text-secondary", "text-tertiary", "text-muted", "text-brand"]) {
   for (const bg of ["bg-canvas", "bg-surface", "bg-surface-02", "bg-surface-raised", "bg-surface-hover"]) pairs.push([text, bg, 4.5]);
@@ -22,7 +28,7 @@ const results = [], failures = [];
 for (const mode of ["qelt", "mshelt"]) {
   assert.equal(resolvedToken(mode, "--maro-color-accent"), "#00ff72", "Protected Maro accent changed");
   for (const [fg, bg, minimum] of pairs) {
-    const ratio = contrast(resolvedToken(mode, `--maro-color-${fg}`), resolvedToken(mode, `--maro-color-${bg}`));
+    const ratio = contrast(resolvedToken(mode, `--maro-color-${fg}`), resolvedToken(mode, `--maro-color-${bg}`), channels(resolvedToken(mode,"--maro-color-bg-canvas")));
     const row = { mode, foreground: fg, background: bg, ratio: Number(ratio.toFixed(2)), minimum, pass: ratio >= minimum };
     results.push(row);
     if (!row.pass) failures.push(row);

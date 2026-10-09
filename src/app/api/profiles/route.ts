@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, resolveAssetForClient, supabaseServerConfigured } from "@/lib/supabase/server";
 import { exploreUser, UUID } from "@/lib/explore/server";
@@ -20,7 +21,10 @@ export async function PATCH(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "unavailable" }, { status: 503 });
   const user = await exploreUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const body = await req.json().catch(() => null);
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const body = boundedBody.body as Record<string, unknown>;
   const username = normalizeUsername(body?.username);
   if (!username) return NextResponse.json({ error: "invalid-username" }, { status: 400 });
   const { data, error } = await getSupabaseAdmin().from("profiles").update({ username }).eq("id", user.id).select("username").single();

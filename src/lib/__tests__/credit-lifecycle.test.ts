@@ -62,6 +62,7 @@ vi.mock("@/lib/operations/budgetGuards", () => ({
 }));
 
 vi.mock("@/lib/security/rateLimit", () => ({
+  clientIp: vi.fn(() => "127.0.0.1"),
   checkRateLimit: vi.fn(async () => ({ allowed: true })),
   detectPromptInjection: vi.fn(() => false),
   logAbuseEvent: vi.fn(async () => undefined),

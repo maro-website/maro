@@ -17,11 +17,13 @@ export function AuthPanel({
   onDone,
   signupDisabledMessage,
   dedicatedPage = false,
+  nextPath,
 }: {
   initialMode?: "sign-in" | "sign-up";
   onDone?: () => void;
   signupDisabledMessage?: string;
   dedicatedPage?: boolean;
+  nextPath?: string;
 }) {
   const signupEnabled = isSignupEnabled();
   const { signIn, signUp, supabaseReady } = useMaro();
@@ -67,7 +69,7 @@ export function AuthPanel({
     const res =
       mode === "sign-in"
         ? await signIn(email.trim(), password)
-        : await signUp(name.trim(), email.trim(), password, turnstileToken ?? undefined);
+        : await signUp(name.trim(), email.trim(), password, turnstileToken ?? undefined, nextPath);
     setLoading(false);
     if (mode === "sign-up") { setTurnstileToken(null); setCaptchaAttempt(n => n + 1); }
     if (res.error) {

@@ -29,11 +29,11 @@ describe("contextual media previews", () => {
   });
 
   it.each([
-    ["imazh", "lucide-image"], ["logo", "lucide-shapes"], ["web", "lucide-panels-top-left"], ["project", "lucide-file"],
+    ["imazh", "maroImazh-iconSingle.svg"], ["logo", "maroLogo-iconSingle.svg"], ["web", "maroWeb-iconSingle.svg"], ["project", "lucide-file"],
   ])("uses a small contextual icon for %s", (module, icon) => {
     const html = renderToStaticMarkup(React.createElement(PreviewFallback, { module }));
     expect(html).toContain(icon);
-    expect(html).toContain('width="22"');
+    expect(html).toMatch(/width="22"|h-\[22px\]/);
     expect(html).toContain("opacity-40");
     expect(html).not.toMatch(/<img|gradient/);
   });

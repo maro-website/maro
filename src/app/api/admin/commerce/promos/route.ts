@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  const auth = await requirePermission(req, "payments.view");
+  const auth = await requirePermission(req, "creators.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: {
@@ -34,8 +35,11 @@ export async function POST(req: Request) {
     active?: boolean;
     creatorId?: string | null;
   };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }

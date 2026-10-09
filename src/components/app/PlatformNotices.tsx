@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { X } from "lucide-react";
-import { getAccessToken, getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
+import { getAccessToken } from "@/lib/supabase/client";
+import { startVisiblePoll } from "@/lib/services/visiblePoll";
 import { cn } from "@/lib/utils/cn";
 
 export type NoticePlacement = "global" | "promptbox";
@@ -26,37 +27,30 @@ export function PlatformNotices({
   const [items, setItems] = React.useState<Notice[]>([]);
 
   const load = React.useCallback(async () => {
-    const token = await getAccessToken();
-    if (!token) {
-      setItems([]);
-      return;
-    }
-    const query = new URLSearchParams({ placement, module: moduleId });
-    const response = await fetch(`/api/notification-campaigns?${query}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!response.ok) return;
-    const payload = (await response.json()) as { campaigns?: Notice[] };
-    setItems(payload.campaigns ?? []);
+    if (document.hidden) return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setItems([]);
+        return;
+      }
+      const query = new URLSearchParams({ placement, module: moduleId });
+      const response = await fetch(`/api/notification-campaigns?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { campaigns?: Notice[] };
+      setItems(payload.campaigns ?? []);
+    } catch { /* Keep the last notice during a transient network outage. */ }
   }, [moduleId, placement]);
 
   React.useEffect(() => {
-    void load();
-    const interval = window.setInterval(() => void load(), 30_000);
-    return () => {
-      window.clearInterval(interval);
-    };
+    return startVisiblePoll(document, window, () => void load(), 30_000);
   }, [load]);
 
-  React.useEffect(() => {
-    if (!supabaseConfigured) return;
-    const channel = getSupabaseBrowser()
-      .channel(`platform-notices-${placement}-${moduleId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notification_campaigns" }, () => void load())
-      .subscribe();
-    return () => { void getSupabaseBrowser().removeChannel(channel); };
-  }, [load, moduleId, placement]);
+  // V1 uses the existing visible-page poll; a second persistent realtime
+  // connection is unnecessary for these infrequently changed notices.
 
   async function dismiss(id: string) {
     setItems((current) => current.filter((item) => item.id !== id));

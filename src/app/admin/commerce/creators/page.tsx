@@ -58,6 +58,15 @@ export default function CommerceCreatorsPage() {
         description="Manual payout workflow — Mark as Paid records actor, timestamp, and reference only"
       />
 
+      <Button className="mb-3" loading={busy === "reconcile"} onClick={async () => {
+        setBusy("reconcile");
+        try {
+          const res = await fetch("/api/admin/commerce/commissions", { method: "POST", headers: await adminAuthHeaders(true), body: JSON.stringify({ action: "reconcile" }) });
+          if (!res.ok) throw new Error("reconciliation_failed");
+          await load();
+        } catch { window.alert("Komisionet nuk u përditësuan. Provo përsëri."); }
+        finally { setBusy(null); }
+      }}>Përditëso komisionet</Button>
       <div className="mb-3 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[12px] text-ink-2">
         Payouts are intentionally manual for this release. The system does not execute bank transfers.
       </div>

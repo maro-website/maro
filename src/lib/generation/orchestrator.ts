@@ -12,6 +12,7 @@ import { estimateProviderCostUsd } from "@/lib/cost/providerCost";
 import { getProviderCostFallbackMaximumUsd } from "@/lib/cost/fallbackMaximums";
 import { getPromptMaxChars, MAX_REFERENCE_IMAGES } from "@/lib/generation/limits";
 import {
+  ADMISSION_ERROR_CODES,
   countActiveJobs,
   createJob,
   cleanupStaleJobs,
@@ -26,7 +27,7 @@ import { assertBudgetGuards } from "@/lib/operations/budgetGuards";
 import { recordProviderCostEstimate } from "@/lib/cost/recordEstimate";
 import { recordGenerationPricingSnapshot } from "@/lib/pricing/snapshots";
 import { resolveEntitlements } from "@/lib/commerce/entitlements";
-import { checkRateLimit, detectPromptInjection, logAbuseEvent } from "@/lib/security/rateLimit";
+import { checkRateLimit, clientIp, detectPromptInjection, logAbuseEvent } from "@/lib/security/rateLimit";
 import { bumpRiskScore } from "@/lib/security/riskScore";
 import {
   getProfileCredits,
@@ -178,10 +179,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     if (readiness.error || readiness.data !== 2) throw new GenerationGuardError(503, "image_lifecycle_unavailable");
   }
   const idempotencyKey = input.idempotencyKey ?? null;
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = clientIp(req);
 
   if (!supabaseServerConfigured()) {
     throw new GenerationGuardError(503, "no-supabase", "Supabase required for generation");
@@ -197,6 +195,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     throw new GenerationGuardError(401, "unauthorized");
   }
 
+  let admissionConcurrency = 1;
   if (profile.is_admin) {
     /* admins bypass most limits but still log jobs */
   } else {
@@ -273,6 +272,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     const maxConcurrent = profile.is_admin
       ? (limits.maxConcurrentFort ?? 3)
       : entitlements.concurrency_limit;
+    admissionConcurrency = maxConcurrent;
 
     await cleanupStaleJobs();
     await cleanupStaleJobs(user.id);
@@ -320,9 +320,15 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     idempotency_key: idempotencyKey,
     priority: isProOrBusiness ? 10 : 0,
     metadata: metadata ?? {},
+    ...(["reklama", "logo"].includes(module) ? { admission: {
+      exposureUsd: getProviderCostFallbackMaximumUsd(module), maxConcurrent: admissionConcurrency,
+    } } : {}),
   });
 
   if (!created.ok) {
+    if ((ADMISSION_ERROR_CODES as readonly string[]).includes(created.code)) {
+      throw new GenerationGuardError(created.code === "concurrency_limit" ? 429 : 503, created.code);
+    }
     if (created.code === "job_idempotency_conflict") {
       throw new GenerationGuardError(409, "generation_in_progress", undefined, {
         job_id: created.detail,
@@ -417,7 +423,7 @@ export async function recordCompletedGenerationCosts(opts: Parameters<typeof com
     credits_charged: opts.skipBilling ? 0 : opts.cost,
   });
 
-  await recordJobSpend(opts.userId, opts.module, opts.providerReportedUsd ?? costUsd, opts.skipBilling ? 0 : opts.cost);
+  await recordJobSpend(opts.userId, opts.module, opts.providerReportedUsd ?? costUsd, opts.skipBilling ? 0 : opts.cost, opts.jobId);
 
   await recordProviderCostEstimate({
     generationId: opts.generationId,

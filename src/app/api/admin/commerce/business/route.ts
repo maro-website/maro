@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -46,12 +47,15 @@ export async function PATCH(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
   }
-  const auth = await requirePermission(req, "payments.view");
+  const auth = await requirePermission(req, "users.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: Record<string, unknown>;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = boundedBody.body as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -70,7 +74,7 @@ export async function PATCH(req: Request) {
     if ("questionnaire" in patch) update.questionnaire = patch.questionnaire;
 
     const { error } = await admin.from("business_leads").update(update).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
     await writeAuditEvent({
       actorId: auth.admin.userId,
@@ -95,7 +99,7 @@ export async function PATCH(req: Request) {
     if ("business_overrides" in patch) update.business_overrides = patch.business_overrides;
 
     const { error } = await admin.from("memberships").update(update).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
     await writeAuditEvent({
       actorId: auth.admin.userId,

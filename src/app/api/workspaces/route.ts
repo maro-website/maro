@@ -14,8 +14,11 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   let body: Record<string, unknown>;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = boundedBody.body as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -57,7 +60,7 @@ export async function POST(req: Request) {
     if (error.message.includes("WORKSPACE_LIMIT")) {
       return NextResponse.json({ error: "WORKSPACE_LIMIT" }, { status: 403 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "operation_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ workspace: data });

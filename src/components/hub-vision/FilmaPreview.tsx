@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
+import { ViewportVideo } from "./ViewportVideo";
 import s from "./HubVision.module.css";
 
 export function FilmaPreview() {
@@ -18,7 +19,7 @@ export function FilmaPreview() {
   }
 
   return <div className={s.filmaPreview}>
-    <video
+    <ViewportVideo
       ref={video}
       className={s.filmaVideo}
       src="/videos/hub-vision/maroFilma-hub04.mp4"

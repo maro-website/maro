@@ -482,7 +482,7 @@ export function CreationLightbox({
         url: creation.urls[0],
       });
     }
-  }, [open, creation.id]);
+  }, [open, creation.id, creation.prompt, creation.toolId, creation.urls]);
 
   const url = creation.urls[active] ?? creation.urls[0];
 

@@ -11,7 +11,7 @@ export const REQUEST_LIMITS = {
   jsonAiEdit: 512 * 1024,
   jsonWebGenerate: 2 * 1024 * 1024,
   jsonEditHtml: 2 * 1024 * 1024,
-  /** maro Zo audio upload JSON (12 MiB client cap + base64 overhead). */
+  /** maro Audio audio upload JSON (12 MiB client cap + base64 overhead). */
   jsonAiAudio: 16 * 1024 * 1024,
   jsonAvatar: 8 * 1024 * 1024,
   /** Authenticated website asset upload (5 MiB decoded + base64 overhead). */

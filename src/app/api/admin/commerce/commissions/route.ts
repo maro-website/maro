@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -17,7 +18,6 @@ export async function GET(req: Request) {
   const auth = await requirePermission(req, "payments.view");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  await ensureCommissionRecords();
   const commissions = await listCreatorCommissions();
   return NextResponse.json({
     commissions,
@@ -27,16 +27,24 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
-  const auth = await requirePermission(req, "payments.view");
+  const auth = await requirePermission(req, "payments.refund");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  let body: { action?: "mark_paid" | "reverse"; commissionId?: string; paymentReference?: string };
+  let body: { action?: "mark_paid" | "reverse" | "reconcile"; commissionId?: string; paymentReference?: string };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
 
+  if (body.action === "reconcile") {
+    await ensureCommissionRecords();
+    await writeAuditEvent({ actorId: auth.admin.userId, action: "commerce.commission.reconcile", targetType: "creator_commissions", requestId: auth.requestId });
+    return NextResponse.json({ ok: true });
+  }
   if (body.action === "mark_paid" && body.commissionId) {
     const row = await markCommissionPaid({
       commissionId: body.commissionId,

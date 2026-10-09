@@ -9,16 +9,16 @@ export function useMenuKeyboard(open: boolean, panelRef: React.RefObject<HTMLEle
   React.useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
+    const trigger = triggerRef.current;
     if (!panel) return;
     const items = () => Array.from(panel.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled):not([type="hidden"]), [role="menuitem"][tabindex]'))
       .filter(el => el.getClientRects().length > 0 && el.getAttribute("aria-disabled") !== "true");
     items()[0]?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
-      if (event.key === "Escape" && (panel.contains(document.activeElement) || triggerRef.current?.contains(document.activeElement))) {
+      if (event.key === "Escape" && (panel.contains(document.activeElement) || trigger?.contains(document.activeElement))) {
         event.preventDefault();
         closeRef.current();
-        const trigger = triggerRef.current;
         if (trigger?.matches('button, a, [tabindex]')) trigger.focus();
         else trigger?.querySelector<HTMLElement>('button, a, [tabindex]')?.focus();
         return;
@@ -26,7 +26,6 @@ export function useMenuKeyboard(open: boolean, panelRef: React.RefObject<HTMLEle
       if (!panel.contains(document.activeElement)) return;
       if (event.key === "Tab") {
         closeRef.current();
-        const trigger = triggerRef.current;
         if (trigger?.matches('button, a, [tabindex]')) trigger.focus();
         else trigger?.querySelector<HTMLElement>('button, a, [tabindex]')?.focus();
         return;
@@ -47,7 +46,6 @@ export function useMenuKeyboard(open: boolean, panelRef: React.RefObject<HTMLEle
       document.removeEventListener("keydown", onKey, true);
       // Selecting an item removes its DOM node; retain the user's keyboard position.
       if (document.activeElement === document.body || panel.contains(document.activeElement)) {
-        const trigger = triggerRef.current;
         if (trigger?.matches('button, a, [tabindex]')) trigger.focus();
         else trigger?.querySelector<HTMLElement>('button, a, [tabindex]')?.focus();
       }

@@ -180,7 +180,7 @@ function moduleForPath(pathname: string): string {
 
   if (pathname.startsWith("/filma")) return "maroFilma";
 
-  if (pathname.startsWith("/audio") || pathname.startsWith("/zo")) return "maroZo";
+  if (pathname.startsWith("/audio") || pathname.startsWith("/zo")) return "maroAudio";
 
   return "platform";
 

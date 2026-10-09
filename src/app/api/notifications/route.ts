@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/payments/auth";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
   return NextResponse.json({
     notifications: (data ?? []).map((row) => ({
@@ -45,8 +46,11 @@ export async function PATCH(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   let body: { markAllRead?: boolean; ids?: string[] };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }

@@ -13,12 +13,13 @@ export async function upsertBillingNotification(opts: {
   metadata?: Record<string, unknown>;
 }): Promise<boolean> {
   const admin = getSupabaseAdmin();
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from("user_notifications")
     .select("id")
     .eq("user_id", opts.userId)
     .eq("dedupe_key", opts.dedupeKey)
     .maybeSingle();
+  if (existingError) throw new Error("billing_notification_unavailable");
   if (existing) return false;
 
   const { error } = await admin.from("user_notifications").insert({
@@ -30,6 +31,7 @@ export async function upsertBillingNotification(opts: {
     action_href: opts.actionHref ?? "/account?tab=billing",
     metadata: opts.metadata ?? {},
   });
+  if (error && error.code !== "23505") throw new Error("billing_notification_failed");
   return !error;
 }
 
@@ -39,13 +41,14 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
   let inApp = 0;
   let emails = 0;
 
-  const { data: rows } = await admin
+  const { data: rows, error: rowsError } = await admin
     .from("memberships")
     .select("id, user_id, plan_id, expires_at, suspended, commerce_plans!inner(display_name, renewal_window_days)")
     .gt("expires_at", new Date().toISOString())
     .eq("suspended", false)
     .in("plan_id", ["standard", "pro", "business"]);
 
+  if (rowsError) throw new Error("renewal_memberships_unavailable");
   if (!rows?.length) return { inApp, emails };
 
   const now = new Date();
@@ -66,11 +69,13 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
     const planName =
       (r.commerce_plans as { display_name?: string })?.display_name ?? String(r.plan_id);
 
-    const { data: profile } = await admin
+    const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("email, full_name")
       .eq("id", userId)
       .maybeSingle();
+
+    if (profileError) throw new Error("renewal_profile_unavailable");
 
     const expiresLabel = expiresAt.toLocaleDateString("sq-AL", {
       day: "numeric",
@@ -93,13 +98,14 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
 
     if ((daysRemaining === 2 || daysRemaining === 1) && emailSettings.productEmailEnabled) {
       const emailKey = `plan_expiry:${membershipId}:${daysRemaining}:email`;
-      const { data: existingEmail } = await admin
+      const { data: existingEmail, error: emailCheckError } = await admin
         .from("user_notifications")
         .select("id")
         .eq("user_id", userId)
         .eq("dedupe_key", emailKey)
         .maybeSingle();
 
+      if (emailCheckError) throw new Error("renewal_email_check_failed");
       if (!existingEmail && profile?.email) {
         const templateKey =
           daysRemaining === 2 ? "plan_expiring_2_days" : "plan_expiring_1_day";
@@ -116,6 +122,7 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
             user_name: (profile.full_name as string) ?? (profile.email as string),
           },
         });
+        if (!result.ok) throw new Error("renewal_email_failed");
         if (result.ok) {
           await upsertBillingNotification({
             userId,
@@ -130,17 +137,19 @@ export async function runPlanRenewalReminders(): Promise<{ inApp: number; emails
     }
 
     const persistedStatus = daysRemaining <= renewalWindowDays ? "RENEWAL_WINDOW" : "ACTIVE";
-    await admin
+    const { error: membershipError } = await admin
       .from("memberships")
       .update({ persisted_status: persistedStatus, updated_at: new Date().toISOString() })
       .eq("id", membershipId);
+    if (membershipError) throw new Error("renewal_membership_update_failed");
   }
 
-  await admin
+  const { error: expiryError } = await admin
     .from("memberships")
     .update({ persisted_status: "EXPIRED", updated_at: new Date().toISOString() })
     .lte("expires_at", now.toISOString())
     .neq("persisted_status", "EXPIRED");
 
+  if (expiryError) throw new Error("renewal_expiry_update_failed");
   return { inApp, emails };
 }

@@ -44,17 +44,18 @@ function parseGuard(row: Record<string, unknown>): BudgetGuardRow {
 }
 
 export async function listActiveBudgetGuards(): Promise<BudgetGuardRow[]> {
-  const { data } = await getSupabaseAdmin().from("budget_guards").select("*").eq("enabled", true);
+  const { data, error } = await getSupabaseAdmin().from("budget_guards").select("*").eq("enabled", true);
+  if (error) throw new Error("budget_policy_unavailable");
   return (data ?? []).map((r) => parseGuard(r as Record<string, unknown>));
 }
 
 async function spendForScope(scope: string, scopeKey: string | null, sinceIso: string): Promise<number> {
   const admin = getSupabaseAdmin();
-  let q = admin.from("provider_cost_estimates").select("estimated_cost_usd").gte("created_at", sinceIso);
-  if (scope === "tool" && scopeKey) q = q.eq("tool_id", scopeKey);
-  if (scope === "provider" && scopeKey) q = q.eq("provider", scopeKey);
-  const { data } = await q.limit(5000);
-  return (data ?? []).reduce((s, r) => s + Number((r as { estimated_cost_usd?: number }).estimated_cost_usd ?? 0), 0);
+  const { data, error } = await admin.rpc("provider_spend_total", {
+    p_scope: scope, p_scope_key: scopeKey, p_since: sinceIso,
+  });
+  if (error || data == null || !Number.isFinite(Number(data))) throw new Error("budget_spend_unavailable");
+  return Number(data);
 }
 
 export async function evaluateBudgetGuards(input?: {
@@ -64,8 +65,8 @@ export async function evaluateBudgetGuards(input?: {
   const guards = await listActiveBudgetGuards();
   const now = new Date();
   const dayStart = new Date(now);
-  dayStart.setHours(0, 0, 0, 0);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const results: BudgetGuardEvaluation[] = [];
 

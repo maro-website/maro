@@ -71,11 +71,12 @@ function resolveCost(input: RecordProviderCostInput): {
 }
 
 export async function recordProviderCostEstimate(input: RecordProviderCostInput): Promise<void> {
-  try {
     const { estimatedUsd, costSource, reconciliationStatus } = resolveCost(input);
     const provider = input.provider ?? inferProvider(input.modelId);
-
-    await getSupabaseAdmin().from("provider_cost_estimates").insert({
+    if (!input.jobId) throw new Error("cost_job_required");
+    const { error } = await getSupabaseAdmin().rpc("record_provider_cost", {
+      p_job_id: input.jobId,
+      p_record: {
       generation_id: input.generationId ?? null,
       job_id: input.jobId ?? null,
       tool_id: input.toolId ?? null,
@@ -90,10 +91,9 @@ export async function recordProviderCostEstimate(input: RecordProviderCostInput)
         image_count: input.imageCount ?? 0,
         ...(input.usageMetadata ?? {}),
       },
+      },
     });
-  } catch (err) {
-    console.error("[provider_cost_estimates] insert failed:", err);
-  }
+    if (error) throw new Error("provider_cost_accounting_failed");
 }
 
 function inferProvider(modelId?: string): string {

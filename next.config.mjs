@@ -4,12 +4,14 @@ import { buildSecurityHeaders } from "./security-headers.mjs";
 const isProduction = process.env.NODE_ENV === "production";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
-const baseHeaders = buildSecurityHeaders({ supabaseUrl, isProduction });
-const noStoreHeaders = buildSecurityHeaders({
+// HTML CSP is generated per request by middleware so Next hydration uses a nonce.
+const withoutCsp = (headers) => headers.filter((h) => h.key !== "Content-Security-Policy");
+const baseHeaders = withoutCsp(buildSecurityHeaders({ supabaseUrl, isProduction }));
+const noStoreHeaders = withoutCsp(buildSecurityHeaders({
   supabaseUrl,
   isProduction,
   cacheControl: "no-store",
-});
+}));
 
 const nextConfig = {
   serverExternalPackages: ["pdfkit"],

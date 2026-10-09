@@ -54,3 +54,17 @@ export function clearAll(): void {
   if (typeof window === "undefined") return;
   Object.values(StorageKeys).forEach((k) => window.localStorage.removeItem(k));
 }
+
+/** Clear recoverable history/cache and transient creative inputs on logout.
+ * Workspace-scoped local website projects and appearance preferences remain. */
+export function clearCreativeSessionCaches(): void {
+  if (typeof window === "undefined") return;
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith(`${NS}:creations`) || key.startsWith("maro:conversation:")) window.localStorage.removeItem(key);
+    }
+    for (const key of Object.keys(window.sessionStorage)) {
+      if (key.startsWith("maro:") || key.startsWith("maro.")) window.sessionStorage.removeItem(key);
+    }
+  } catch { /* Private-mode storage may be inaccessible. In-memory state is reset separately. */ }
+}

@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { validatePromptContent } from "@/lib/admin/v1Configuration";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
@@ -47,8 +48,11 @@ export async function POST(
   if (!isEngineToolId(toolId)) return NextResponse.json({ error: "unknown_tool" }, { status: 404 });
 
   let body: { action?: string; content?: string; changeNote?: string; status?: "draft" | "review" };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }

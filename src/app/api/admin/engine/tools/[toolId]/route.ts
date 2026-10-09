@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -77,8 +78,11 @@ export async function PATCH(
     brainMapping?: Record<string, unknown>;
     productionPipeline?: string;
   };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
@@ -133,7 +137,7 @@ export async function PATCH(
     .select("*")
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
   if (body.productionPipeline) {
     await writeAuditEvent({

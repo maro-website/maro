@@ -4,7 +4,7 @@ import puppeteer from "puppeteer-core";
 import { getUserFromToken, getSupabaseAdmin, resolveAssetForClient, supabaseServerConfigured, uploadWebThumbnail } from "@/lib/supabase/server";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { clientIp, enforceRateLimit } from "@/lib/security/rateLimit";
-import { validateResolvedOutboundHttpUrl } from "@/lib/security/ssrf";
+import { isTrustedThumbnailAsset, validateResolvedOutboundHttpUrl } from "@/lib/security/ssrf";
 import { verifyThumbnailCaptureToken } from "@/lib/generation/thumbnailToken";
 
 export const runtime = "nodejs";
@@ -118,6 +118,10 @@ export async function POST(req: Request) {
         }
         if (url.startsWith("data:") || url.startsWith("blob:")) {
           await request.continue().catch(() => undefined);
+          return;
+        }
+        if (!isTrustedThumbnailAsset(url)) {
+          await request.abort("blockedbyclient").catch(() => undefined);
           return;
         }
         const validated = await validateResolvedOutboundHttpUrl(url);

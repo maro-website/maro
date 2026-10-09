@@ -9,6 +9,8 @@ vi.mock("@/lib/supabase/server", () => ({
   getProfileCredits: async () => ({ access_role: mock.role }),
   getSupabaseAdmin: () => ({ from: mock.from, rpc: mock.rpc }),
 }));
+import { GET as settingsGet, POST as settingsSave } from "@/app/api/admin/settings/route";
+import { GET as usersGet, POST as creatorSave } from "@/app/api/admin/users/route";
 import { GET as configGet } from "@/app/api/admin/v1/configuration/route";
 import { GET as opsGet, POST as reconcile } from "@/app/api/admin/v1/operations/route";
 import { GET as logoGet, PUT as logoSave } from "@/app/api/admin/v1/logo-content/route";
@@ -32,6 +34,8 @@ beforeEach(() => {
   mock.rpc.mockResolvedValue({ data: "finalized", error: null });
 });
 const routes = [
+  ["settings read", () => settingsGet(request())], ["settings save", () => settingsSave(request())],
+  ["users read", () => usersGet(request())], ["creator flag", () => creatorSave(request())],
   ["configuration", () => configGet(request())], ["operations", () => opsGet(request())], ["Logo read", () => logoGet(request())],
   ["Logo save", () => logoSave(request())], ["models", () => modelsSave(request(), toolCtx)], ["layers", () => layersSave(request(), toolCtx)],
   ["publish", () => publish(request(), { params: Promise.resolve({ id }) })], ["preview", () => preview(request())], ["reconcile", () => reconcile(request({ jobId: id }))],

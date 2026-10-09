@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildContentSecurityPolicy } from "@/lib/security/headers";
+import { startVisiblePoll } from "@/lib/services/visiblePoll";
 
 describe("tab focus stability", () => {
   const store = readFileSync(resolve(process.cwd(), "src/context/store.tsx"), "utf8");
@@ -17,8 +18,36 @@ describe("tab focus stability", () => {
   it("does not start global data refreshes whenever browser focus changes", () => {
     for (const source of [store, notices]) {
       expect(source).not.toContain('addEventListener("focus"');
-      expect(source).not.toContain('addEventListener("visibilitychange"');
     }
+    expect(store).not.toContain('addEventListener("visibilitychange"');
+  });
+
+  it("stops polling while hidden and resumes its timer without an immediate refresh", () => {
+    vi.useFakeTimers();
+    const page = Object.assign(new EventTarget(), { hidden: false });
+    const timers = {
+      setInterval: setInterval as unknown as Window["setInterval"],
+      clearInterval: clearInterval as unknown as Window["clearInterval"],
+    };
+    const refresh = vi.fn();
+    const stop = startVisiblePoll(page, timers, refresh, 30_000);
+    try {
+      expect(refresh).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(30_000);
+      expect(refresh).toHaveBeenCalledTimes(2);
+      page.hidden = true; page.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(120_000);
+      expect(refresh).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+      page.hidden = false; page.dispatchEvent(new Event("visibilitychange"));
+      expect(refresh).toHaveBeenCalledTimes(2);
+      vi.advanceTimersByTime(30_000);
+      expect(refresh).toHaveBeenCalledTimes(3);
+      stop(); page.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(60_000);
+      expect(refresh).toHaveBeenCalledTimes(3);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { stop(); vi.useRealTimers(); }
   });
 
   it("memoizes the user object across unrelated context updates", () => {

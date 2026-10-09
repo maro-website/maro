@@ -207,7 +207,9 @@ export async function processAuthEmailHook(rawBody: string): Promise<AuthHookPro
   } else if (action === "recovery") {
     nextPath = "/reset-password";
   } else if (action === "signup") {
-    nextPath = "/sign-in?confirmed=1";
+    // The app-provided confirmation destination is already same-origin sanitized.
+    // Signup must still lead to sign-in, never directly to an authenticated page.
+    if (!nextPath?.startsWith("/sign-in?confirmed=1")) nextPath = "/sign-in?confirmed=1";
   }
 
   if (deliveries.some(({ recipient, tokenHash }) => !recipient || !tokenHash)) {

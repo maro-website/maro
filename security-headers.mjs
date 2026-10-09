@@ -9,7 +9,9 @@ export function buildContentSecurityPolicy(options = {}) {
   if (!isProduction) {
     connectHosts.push("ws://localhost:*", "http://localhost:*");
   }
-  const scriptSources = ["'self'", "'unsafe-inline'"];
+  const scriptSources = ["'self'"];
+  if (options.nonce) scriptSources.push(`'nonce-${options.nonce}'`);
+  else if (!isProduction) scriptSources.push("'unsafe-inline'");
   // Next.js React Refresh evaluates the updated module graph in development.
   // Without this development-only source, HMR fails and falls back to a full
   // page reload, which clears unfinished form state. Production stays strict.
@@ -70,7 +72,7 @@ export function buildSecurityHeaders(options = {}) {
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
     {
       key: "Content-Security-Policy",
-      value: buildContentSecurityPolicy({ supabaseHost, isProduction }),
+      value: buildContentSecurityPolicy({ supabaseHost, isProduction, nonce: options.nonce }),
     },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },

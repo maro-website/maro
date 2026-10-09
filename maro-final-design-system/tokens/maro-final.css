@@ -237,9 +237,9 @@
   --maro-color-border-subtle: rgb(255 255 255 / 10%);
   --maro-color-border-default: rgb(255 255 255 / 12%);
   --maro-color-border-strong: rgb(255 255 255 / 15%);
-  --maro-color-border-interactive: rgb(255 255 255 / 12%);
-  --maro-color-border-focus: rgb(255 255 255 / 15%);
-  --maro-focus-ring: none;
+  --maro-color-border-interactive: var(--maro-color-text-tertiary);
+  --maro-color-border-focus: var(--maro-color-accent);
+  --maro-focus-ring: 0 0 0 2px var(--maro-color-bg-canvas), 0 0 0 4px var(--maro-color-accent);
   --maro-color-accent-subtle: #173526;
   --maro-color-accent-muted: #326b4b;
   --maro-color-success: #65dfa1;

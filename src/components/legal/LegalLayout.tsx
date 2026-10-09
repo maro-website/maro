@@ -67,7 +67,7 @@ export function LegalLayout({
 
           <p className="mt-5 rounded-maro12 bg-surface px-5 py-4 text-[14px] text-ink-2">
             V1: maroImazh, maroLogo, maroBrain dhe maroPresets. maroWeb dhe Case Studies vijnë në V1.5;
-            maroFilma, maroZo dhe maroMarketing në V2. Blerjet dhe regjistrimet e reja janë të mbyllura.
+            maroFilma, maroAudio dhe maroMarketing në V2. Regjistrimi është i hapur. Blerjet e disponueshme shfaqen te Planet & Kreditet; planet e V1 rinovohen manualisht.
             Të drejtat për llogaritë dhe blerjet ekzistuese ruhen.
           </p>
 

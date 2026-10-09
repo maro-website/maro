@@ -7,7 +7,7 @@ export const MODULE_AVAILABILITY = {
   web: { name: "maroWeb", status: "coming_soon", version: "V1.5", generation: false },
   case_studies: { name: "Case Studies", status: "coming_soon", version: "V1.5", generation: false },
   filma: { name: "maroFilma", status: "coming_soon", version: "V2", generation: false },
-  audio: { name: "maroZo", status: "coming_soon", version: "V2", generation: false },
+  audio: { name: "maroAudio", status: "coming_soon", version: "V2", generation: false },
   marketing: { name: "maroMarketing", status: "coming_soon", version: "V2", generation: false },
   fort: { name: "maroFort", status: "parked", version: "V2", generation: false },
   chat: { name: "maroChat", status: "parked", version: "V2", generation: false },

@@ -10,6 +10,7 @@ import { buildMaroLogoBrief } from "@/lib/marologo/briefBuilder";
 import { LogoContentContext, LogoFields } from "@/components/marologo/LogoContent";
 import { StepBrand } from "@/components/marologo/steps/StepBrand";
 import { ColorEditor } from "@/components/marologo/ui/ColorEditor";
+import { MaroProvider } from "@/context/store";
 import { ReferenceUpload } from "@/components/marologo/ui/ReferenceUpload";
 import { LogoTypeCards } from "@/components/marologo/ui/LogoTypeCards";
 import { OperationalJobRow, type OperationalJob } from "@/components/admin/v1/V1Operations";
@@ -79,7 +80,7 @@ describe("fixed Logo contract, configurable content", () => {
   });
   it("renders configurable color/reference wording without changing their controls", () => {
     const content = structuredClone(DEFAULT_LOGO_CONTENT); content["look.colors"].label = "Brand palette"; content.references.label = "Visual references";
-    const html = renderToStaticMarkup(React.createElement(LogoContentContext.Provider, { value: content }, React.createElement(React.Fragment, null,
+    const html = renderToStaticMarkup(React.createElement(LogoContentContext.Provider, { value: content }, React.createElement(MaroProvider, null,
       React.createElement(ColorEditor, { mode: "maro_decides", values: [], onModeChange: vi.fn(), onValuesChange: vi.fn() }),
       React.createElement(ReferenceUpload, { references: [], onChange: vi.fn() }))));
     expect(html).toContain("Brand palette"); expect(html).toContain("Visual references");

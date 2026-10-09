@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { randomUUID, createHmac, timingSafeEqual } from "node:crypto";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
@@ -6,7 +7,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseServerConfigured() || !secret) return NextResponse.json({ error: "unavailable" }, { status: 503 });
-  const body: { creationId?: unknown } | null = await req.json().catch(() => null);
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const body: { creationId?: unknown } | null = boundedBody.body as Record<string, unknown>;
   if (!body || typeof body.creationId !== "string" || !UUID.test(body.creationId)) return NextResponse.json({ error: "bad-input" }, { status: 400 });
   const user = await exploreUser(req);
   const sign = (text: string) => createHmac("sha256", secret).update(text).digest("hex");

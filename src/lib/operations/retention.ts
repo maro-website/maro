@@ -41,65 +41,10 @@ export async function runGenerationDebugRetention(): Promise<{
   error?: string;
 }> {
   const admin = getSupabaseAdmin();
-  const started = new Date().toISOString();
-  let runId: string | null = null;
-
-  try {
-    const { data: policy } = await admin
-      .from("data_retention_policies")
-      .select("retention_days")
-      .eq("domain", "generation_debug")
-      .maybeSingle();
-    const days = (policy?.retention_days as number) ?? 90;
-    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
-
-    const { data: runRow } = await admin
-      .from("retention_execution_runs")
-      .insert({ domain: "generation_debug", status: "partial", started_at: started })
-      .select("id")
-      .single();
-    runId = runRow?.id as string;
-
-    const { data: staleJobs } = await admin
-      .from("generation_jobs")
-      .select("id, metadata")
-      .lt("created_at", cutoff)
-      .in("status", ["failed", "completed"])
-      .limit(500);
-
-    let affected = 0;
-    for (const job of staleJobs ?? []) {
-      const id = job.id as string;
-      const meta = (job.metadata as Record<string, unknown>) ?? {};
-      if (!meta.debug && !meta.tempPaths && !meta.promptPreview) continue;
-      const { debug: _d, tempPaths: _t, promptPreview: _p, ...rest } = meta;
-      await admin.from("generation_jobs").update({ metadata: rest }).eq("id", id);
-      affected += 1;
-    }
-
-    await admin
-      .from("retention_execution_runs")
-      .update({
-        status: "success",
-        rows_affected: affected,
-        finished_at: new Date().toISOString(),
-        metadata: { cutoff, policy_days: days },
-      })
-      .eq("id", runId);
-
-    return { ok: true, rowsAffected: affected };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "retention_failed";
-    if (runId) {
-      await admin
-        .from("retention_execution_runs")
-        .update({
-          status: "failed",
-          error_message: message,
-          finished_at: new Date().toISOString(),
-        })
-        .eq("id", runId);
-    }
-    return { ok: false, rowsAffected: 0, error: message };
+  const { data, error } = await admin.rpc("run_v1_debug_retention", { p_batch: 500 });
+  if (error || typeof data !== "number") {
+    await admin.from("retention_execution_runs").insert({ domain: "generation_debug", status: "failed", error_message: "retention_failed", finished_at: new Date().toISOString() });
+    return { ok: false, rowsAffected: 0, error: "retention_failed" };
   }
+  return { ok: true, rowsAffected: data };
 }

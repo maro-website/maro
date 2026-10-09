@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/payments/auth";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
       .eq("user_id", user.id),
   ]);
   if (error || dismissalError) {
-    return NextResponse.json({ error: error?.message ?? dismissalError?.message }, { status: 500 });
+    return NextResponse.json({ error: "notifications_unavailable" }, { status: 500 });
   }
 
   const dismissedAt = new Map((dismissals ?? []).map((row) => [row.campaign_id as string, row.dismissed_at as string]));
@@ -69,7 +70,10 @@ export async function POST(req: Request) {
   const user = await requireUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const body = (await req.json().catch(() => null)) as { id?: string } | null;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const body = (boundedBody.body as Record<string, unknown>) as { id?: string } | null;
   if (!body?.id) return NextResponse.json({ error: "id_required" }, { status: 400 });
 
   const admin = getSupabaseAdmin();
@@ -86,6 +90,6 @@ export async function POST(req: Request) {
     { user_id: user.id, campaign_id: body.id, dismissed_at: new Date().toISOString() },
     { onConflict: "user_id,campaign_id" }
   );
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

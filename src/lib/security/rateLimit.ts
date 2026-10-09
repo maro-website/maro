@@ -1,4 +1,5 @@
 import "server-only";
+import { isIP } from "node:net";
 
 import { isProduction } from "@/lib/config/serverEnv";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
@@ -74,12 +75,12 @@ export function detectPromptInjection(text: string): boolean {
   return INJECTION_PATTERNS.some((p) => p.test(text));
 }
 
-export function clientIp(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
+export function clientIp(req: { headers: Pick<Headers, "get"> }): string {
+  // Railway supplies X-Real-IP as the connecting-client address, including
+  // validated Cloudflare traffic. Do not substitute unverified CF headers.
+  const value = (req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",").at(-1) || "").trim();
+  return value.length <= 45 && isIP(value) ? value : "unknown";
 }
 
 export async function enforceRateLimit(

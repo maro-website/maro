@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/admin/auth";
@@ -69,7 +70,10 @@ export async function POST(req: Request) {
   if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
   const auth = await requirePermission(req, "users.manage");
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const body = await req.json().catch(() => null);
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const body = boundedBody.body as Record<string, unknown>;
   const parsed = grantSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   const grant = parsed.data;

@@ -15,6 +15,8 @@ const fileRevisions = new Map<string, number>();
 const listeners = new Map<string, Set<(draft: ComposerDraft) => void>>();
 const prefix = "maro:composer-draft:v1:";
 let database: Promise<IDBDatabase> | undefined;
+const invalidatedUsers = new Set<string>();
+const ownerOf = (key: string) => key.slice(prefix.length).split(":")[0];
 
 export function composerDraftKey(userId: string | undefined, workspaceId: string, toolId: string) {
   return `${prefix}${encodeURIComponent(userId ?? "guest")}:${encodeURIComponent(workspaceId)}:${encodeURIComponent(toolId)}`;
@@ -50,6 +52,7 @@ export function currentComposerDraft(key: string): ComposerDraft {
 }
 
 export async function loadComposerDraft(key: string): Promise<ComposerDraft> {
+  invalidatedUsers.delete(ownerOf(key));
   if (memory.has(key)) return memory.get(key)!;
   const revision = revisions.get(key) ?? 0;
   try {
@@ -69,6 +72,7 @@ export async function loadComposerDraft(key: string): Promise<ComposerDraft> {
 }
 
 export function saveComposerDraft(key: string, draft: ComposerDraft) {
+  if (invalidatedUsers.has(ownerOf(key))) return; // Ignore uploads finishing after logout.
   const previous = memory.get(key);
   memory.set(key, draft);
   listeners.get(key)?.forEach(listener => listener(draft));
@@ -89,4 +93,34 @@ export function saveComposerDraft(key: string, draft: ComposerDraft) {
     transaction.onerror = event => event.preventDefault();
     transaction.objectStore("drafts").put(persisted, key);
   }).catch(() => undefined);
+}
+
+export async function clearComposerDrafts(userId: string): Promise<void> {
+  const owners = new Set([encodeURIComponent(userId), "guest"]);
+  for (const owner of owners) invalidatedUsers.add(owner);
+  const owned = (key: string) => key.startsWith(prefix) && owners.has(ownerOf(key));
+  const keys = new Set([...memory.keys(), ...revisions.keys(), ...fileRevisions.keys()]);
+  try { for (const key of Object.keys(localStorage)) if (owned(key)) keys.add(key); } catch { /* storage unavailable */ }
+  for (const key of keys) if (owned(key)) {
+    memory.delete(key);
+    revisions.set(key, (revisions.get(key) ?? 0) + 1);
+    fileRevisions.set(key, (fileRevisions.get(key) ?? 0) + 1);
+    listeners.get(key)?.forEach(listener => listener(emptyComposerDraft()));
+    try { localStorage.removeItem(key); } catch { /* storage unavailable */ }
+  }
+  try {
+    const store = await db();
+    await new Promise<void>((resolve, reject) => {
+      const tx = store.transaction("drafts", "readwrite");
+      const request = tx.objectStore("drafts").openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        if (typeof cursor.key === "string" && owned(cursor.key)) cursor.delete();
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    });
+  } catch { /* In-memory/text caches have already been cleared. */ }
 }

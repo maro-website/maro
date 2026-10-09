@@ -154,7 +154,7 @@ function noticeModuleId(toolId: string): string {
   if (toolId === "logo" || toolId === "maro_logo") return "maroLogo";
   if (toolId === "website" || toolId === "web") return "maroWeb";
   if (toolId === "filma") return "maroFilma";
-  if (toolId === "audio" || toolId === "zo") return "maroZo";
+  if (toolId === "audio" || toolId === "zo") return "maroAudio";
   return toolId;
 }
 
@@ -347,7 +347,7 @@ export function ToolComposer({
   const maintenance = Boolean(tool.maintenance);
   const functional = tool.functional && !maintenance;
 
-  // Audio (maro Zo) is mode-based: the first setting is the mode selector and
+  // Audio (maro Audio) is mode-based: the first setting is the mode selector and
   // each mode option carries flags for what inputs it needs.
   const modeOpt = isAudio
     ? findOption(tool.settings[0], selections[tool.settings[0].id] ?? tool.settings[0].default)
@@ -491,8 +491,10 @@ export function ToolComposer({
 
   // Only scroll when the latest generation is added or changes status.
   const latestMessage = messages[messages.length - 1];
+  const latestMessageId = latestMessage?.id;
+  const latestMessageStatus = latestMessage?.status;
   React.useEffect(() => {
-    if (!latestMessage) return;
+    if (!latestMessageId) return;
     const frame = requestAnimationFrame(() => {
       const cards = scrollRef.current?.querySelectorAll<HTMLElement>("[data-generation-id]");
       const card = cards?.[cards.length - 1];
@@ -500,7 +502,7 @@ export function ToolComposer({
       target?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [latestMessage?.id, latestMessage?.status]);
+  }, [latestMessageId, latestMessageStatus]);
 
   const cost = isImage ? selectedImageModel?.customerCredits ?? 0 : toolSelectionCost(tool, selections, pricing.options);
 
@@ -1167,7 +1169,7 @@ export function ToolComposer({
 
       {!isReadOnlyView && (
       <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {!mobileComposerOpen && <button type="button" className="ml-auto mr-4 mt-2 grid h-11 w-14 place-items-center rounded-2xl bg-surface text-ink lg:hidden" aria-label="Hap promptbox" aria-expanded={false} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(true)}><ChevronDown className="h-5 w-5 rotate-180" /></button>}
+        {!mobileComposerOpen && <button type="button" className="mx-4 mt-2 flex min-h-12 w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 text-[16px] font-semibold text-ink lg:hidden" aria-label="Hap promptbox" aria-expanded={false} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(true)}>Shkruaj çka do të krijosh<ChevronDown className="h-5 w-5 rotate-180" /></button>}
         <div id="mobile-composer-content" className={cn(!mobileComposerOpen && "max-lg:hidden", "max-lg:max-h-[60dvh] max-lg:overflow-y-auto")}>
         <div className="mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6">
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
@@ -1317,7 +1319,7 @@ export function ToolComposer({
                   <MaroIcon name="fullscreen" fallback={Maximize2} className="h-5 w-5" />
                 </button>
               )}
-              <button type="button" className="absolute right-0 top-0 grid h-9 w-9 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink lg:hidden" aria-label="Mbyll promptbox" aria-expanded={true} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(false)}><ChevronDown className="h-5 w-5" /></button>
+              <button type="button" className="absolute right-0 top-0 grid h-11 w-11 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink lg:hidden" aria-label="Mbyll promptbox" aria-expanded={true} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(false)}><ChevronDown className="h-5 w-5" /></button>
             </div>
 
             {needsPrompt && <PromptLinks value={prompt} />}

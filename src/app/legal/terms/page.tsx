@@ -28,7 +28,7 @@ export default function TermsPage() {
       </LegalSection>
       <LegalSection title="4. Planet, afati dhe rinovimi">
         <p>Oferta përfshin maroStandard, maroPro dhe maroBiz sipas marrëveshjes. Çmimi, kreditet, kohëzgjatja, numri i Workspaces dhe gjenerimet e lejuara njëkohësisht shfaqen te <Link href="/pricing">Planet &amp; Kreditet</Link> dhe në porosi. Detajet e ruajtura për porosinë tuaj vlejnë për atë blerje; ndryshimet e mëvonshme në katalog nuk e ndryshojnë prapa në kohë.</p>
-        <p>Blerjet, rinovimet manuale dhe kalimet e reja të planit janë të mbyllura në këtë version. Afati dhe mënyra e rinovimit të një plani ekzistues shfaqen në llogari. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të pranuara për atë blerje; mbyllja e blerjeve të reja nuk e anulon abonimin.</p>
+        <p>Planet Standard dhe Pro të V1 blihen për 30 ditë dhe rinovohen manualisht. Disponueshmëria, rinovimi dhe kalimi i planit shfaqen te llogaria dhe gjatë blerjes. Afati dhe mënyra e rinovimit të një plani ekzistues shfaqen në llogari. Një abonim ekzistues me rinovim automatik vazhdon sipas kushteve të pranuara për atë blerje; hapja e blerjeve të V1 nuk e ndryshon ose anulon atë abonim.</p>
         <p>Afati i planit dhe balanca e krediteve janë të ndara. Kreditet e blera nuk skadojnë vetëm pse përfundon plani. Pas skadimit ndryshojnë përfitimet dhe kufijtë e planit; rimbushja kërkon plan aktiv. Bonuset mund të kenë afat ose kufizime të shpjeguara kur jepen. Cilësimet e avancuara nuk krijojnë vetvetiu abonim të veçantë ose provë falas.</p>
       </LegalSection>
       <LegalSection title="5. Porositë, pagesat dhe kreditet">

@@ -103,10 +103,16 @@ export async function fetchActiveWorkspaceId(userId: string): Promise<string | n
 
 export async function setActiveWorkspaceId(userId: string, workspaceId: string): Promise<void> {
   if (supabaseConfigured) {
-    const supabase = getSupabaseBrowser();
-    const { error } = await workspaceRequest((signal) => supabase.from("profiles")
-      .update({ active_workspace_id: workspaceId }).eq("id", userId).select("id").abortSignal(signal).single());
-    if (error) throw new Error(error.message);
+    await workspaceRequest(async (signal) => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("unauthorized");
+      const response = await fetch("/api/workspaces/active", {
+        method: "POST", signal,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ workspaceId }),
+      });
+      if (!response.ok) throw new Error("workspace_update_failed");
+    });
   }
   if (!supabaseConfigured) localStorage.setItem(`${LOCAL_ACTIVE_KEY}:${userId}`, workspaceId);
 }

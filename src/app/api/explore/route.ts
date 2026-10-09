@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin, supabaseServerConfigured, publishStoredUrlToExplore } from "@/lib/supabase/server";
@@ -95,8 +96,11 @@ export async function GET(req: Request) {
   }));
   return NextResponse.json(slug ? { item: items[0] ?? null } : { items, nextOffset: rows.length === 60 ? offset + 60 : null }, { headers: privateHeaders });
 }
-async function bodyObject(req: Request): Promise<Record<string, unknown> | null> {
-  const body: unknown = await req.json().catch(() => null);
+async function bodyObject(req: Request): Promise<Record<string, unknown> | NextResponse | null> {
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+  const body: unknown = boundedBody.body as Record<string, unknown>;
   return body && typeof body === "object" && !Array.isArray(body) ? body as Record<string, unknown> : null;
 }
 export async function POST(req: Request) {
@@ -104,6 +108,7 @@ export async function POST(req: Request) {
   const user = await exploreUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await bodyObject(req);
+  if (body instanceof NextResponse) return body;
   if (!body) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   const tool = getTool(typeof body.toolId === "string" ? body.toolId : "");
   if (!tool || tool.kind !== "image") return NextResponse.json({ error: "bad-tool" }, { status: 400 });
@@ -141,6 +146,7 @@ export async function PATCH(req: Request) {
   const user = await exploreUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await bodyObject(req);
+  if (body instanceof NextResponse) return body;
   if (!body || typeof body.id !== "string" || !UUID.test(body.id)) return NextResponse.json({ error: "bad-id" }, { status: 400 });
   const patch: Record<string, string | boolean | null> = { updated_at: new Date().toISOString() };
   if (body.restore === true) patch.deleted_at = null;
@@ -156,6 +162,7 @@ export async function DELETE(req: Request) {
   const user = await exploreUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await bodyObject(req);
+  if (body instanceof NextResponse) return body;
   if (!body || typeof body.id !== "string" || !UUID.test(body.id)) return NextResponse.json({ error: "bad-id" }, { status: 400 });
   const { data, error } = await getSupabaseAdmin().from("public_creations").update({ deleted_at: new Date().toISOString() }).eq("id", body.id).eq("user_id", user.id).select("id").maybeSingle();
   if (error) return NextResponse.json({ error: "delete-failed" }, { status: 503 });

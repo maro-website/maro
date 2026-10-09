@@ -36,7 +36,9 @@ export interface CompletedGenerationResult {
   creditsSpent: number;
 }
 
-export type CreateJobErrorCode =
+export const ADMISSION_ERROR_CODES = ["platform_busy", "concurrency_limit", "hourly_spend_limit", "daily_spend_limit", "user_hourly_spend_limit", "user_daily_spend_limit", "admission_policy_unavailable", "ai_paused", "module_paused"] as const;
+
+export type CreateJobErrorCode = typeof ADMISSION_ERROR_CODES[number]
   | "job_create_failed"
   | "jobs_table_missing"
   | "jobs_db_permission"
@@ -212,8 +214,16 @@ export async function createJob(entry: {
   idempotency_key?: string | null;
   priority?: number;
   metadata?: Record<string, unknown>;
+  admission?: { exposureUsd: number; maxConcurrent: number };
 }): Promise<CreateJobResult> {
-  const { data, error } = await getSupabaseAdmin()
+  const { data, error } = entry.admission
+    ? await getSupabaseAdmin().rpc("create_v1_generation_job", {
+      p_user_id: entry.user_id, p_module: entry.module, p_model: entry.model ?? null,
+      p_idempotency_key: entry.idempotency_key ?? null, p_priority: entry.priority ?? 0,
+      p_metadata: entry.metadata ?? {}, p_exposure_usd: entry.admission.exposureUsd,
+      p_max_concurrent: entry.admission.maxConcurrent,
+    })
+    : await getSupabaseAdmin()
     .from("generation_jobs")
     .insert({
       user_id: entry.user_id,
@@ -229,6 +239,10 @@ export async function createJob(entry: {
 
   if (!error) {
     return { ok: true, job: data as GenerationJob };
+  }
+
+  if (entry.admission && error.code === "P0001" && (ADMISSION_ERROR_CODES as readonly string[]).includes(error.message)) {
+    return { ok: false, code: error.message as CreateJobErrorCode, detail: error.message };
   }
 
   console.error("[generation_jobs] insert failed:", {
@@ -304,9 +318,10 @@ export async function countActiveJobs(userId?: string): Promise<number> {
   });
   if (error) {
     console.error("[generation_jobs] count_active_jobs rpc failed:", error.code, error.message);
-    return 0;
+    throw new Error("active_jobs_unavailable");
   }
-  return typeof data === "number" ? data : 0;
+  if (typeof data !== "number") throw new Error("active_jobs_unavailable");
+  return data;
 }
 
 export async function getJob(jobId: string): Promise<GenerationJob | null> {

@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
 import { writeAuditEvent } from "@/lib/admin/audit";
@@ -15,8 +16,11 @@ export async function POST(req: Request) {
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: { key?: string; enabled?: boolean; guardId?: string; enabledGuard?: boolean };
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as typeof body;
+    body = boundedBody.body as typeof body;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
       .eq("key", body.key)
       .select("*")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
     clearFeatureFlagCache();
     await writeAuditEvent({
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
       .eq("id", body.guardId)
       .select("*")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
     await writeAuditEvent({
       actorId: auth.admin.userId,

@@ -2,13 +2,16 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { sanitizeInternalRedirectPath } from "@/lib/auth/safeRedirect";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { isSignupEnabled } from "@/lib/config/features";
 
-export default function SignUpPage() {
+export default function SignUpPage() { return <React.Suspense fallback={null}><SignUpContent /></React.Suspense>; }
+function SignUpContent() {
   const router = useRouter();
+  const next = sanitizeInternalRedirectPath(useSearchParams().get("next"), "/");
   const enabled = isSignupEnabled();
 
   return (
@@ -38,12 +41,13 @@ export default function SignUpPage() {
           <AuthPanel
             initialMode="sign-up"
             dedicatedPage
-            onDone={() => router.push("/")}
+            nextPath={next}
+            onDone={() => router.push(next)}
             signupDisabledMessage="Regjistrimet e reja janë përkohësisht të mbyllura."
           />
           <p className="mt-5 text-center text-[13px] text-ink-2">
             E ki llogarinë?{" "}
-            <Link href="/sign-in" className="font-semibold text-brand hover:underline">
+            <Link href={`/sign-in?next=${encodeURIComponent(next)}`} className="font-semibold text-brand hover:underline">
               Hyn këtu
             </Link>
           </p>

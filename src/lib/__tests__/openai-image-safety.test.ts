@@ -6,12 +6,12 @@ const mockEdit = vi.fn();
 vi.mock("server-only", () => ({}));
 
 vi.mock("openai", () => ({
-  default: vi.fn(() => ({
+  default: vi.fn(function () { return {
     images: {
       generate: mockGenerate,
       edit: mockEdit,
     },
-  })),
+  }; }),
   toFile: vi.fn(async (buffer: Buffer, name: string, opts: { type: string }) => ({
     buffer,
     name,

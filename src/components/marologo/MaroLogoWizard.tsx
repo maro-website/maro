@@ -129,14 +129,16 @@ export function MaroLogoWizard() {
   const { toast } = useToast();
   const model = useV1ImageModels("logo").find((entry) => entry.key === "flare" && entry.enabled);
   const cost = model?.customerCredits ?? 0;
-  const draftKey = `${user?.id ?? "guest"}:${workspaceId}`;
+  const userId = user?.id;
+  const activeWorkspaceId = activeWorkspace?.id;
+  const draftKey = `${userId ?? "guest"}:${workspaceId}`;
   const [loadedDraftKey, setLoadedDraftKey] = React.useState<string | null>(null);
   const restoredPreset = React.useRef(false);
   const previousDraftKey = React.useRef<string | null>(null);
   React.useEffect(() => {
-    if (!content || !ready || (user && !activeWorkspace)) return;
+    if (!content || !ready || (userId && !activeWorkspaceId)) return;
     let active = true;
-    const guestKey = previousDraftKey.current?.startsWith("guest:") && user ? previousDraftKey.current : null;
+    const guestKey = previousDraftKey.current?.startsWith("guest:") && userId ? previousDraftKey.current : null;
     void readLogoDraft(draftKey).then(async (saved) => {
       const draft = saved ?? (guestKey ? await readLogoDraft(guestKey) : null);
       if (!active) return;
@@ -154,7 +156,7 @@ export function MaroLogoWizard() {
       setLoadedDraftKey(draftKey);
     });
     return () => { active = false; };
-  }, [content, ready, draftKey, user?.id, activeWorkspace?.id]);
+  }, [content, ready, draftKey, userId, activeWorkspaceId]);
   React.useEffect(() => {
     if (loadedDraftKey !== draftKey || isGenerating || state.phase === "generating" || state.phase === "result") return;
     void saveLogoDraft(draftKey, { state, preset: presetAttach });

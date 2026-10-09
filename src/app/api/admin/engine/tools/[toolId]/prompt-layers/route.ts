@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { validateLayerEdit } from "@/lib/admin/v1Configuration";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/admin/auth";
@@ -47,8 +48,11 @@ export async function POST(
   if (!isEngineToolId(toolId)) return NextResponse.json({ error: "unknown_tool" }, { status: 404 });
 
   let body: Record<string, unknown>;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonAi);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = boundedBody.body as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "bad-json" }, { status: 400 });
   }
@@ -85,7 +89,7 @@ export async function POST(
     .select("*")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "operation_failed" }, { status: 500 });
 
   await writeAuditEvent({
     actorId: auth.admin.userId,

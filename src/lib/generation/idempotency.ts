@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { clientIp } from "@/lib/security/rateLimit";
 
 export function getIdempotencyKey(req: Request, bodyKey?: string | null): string | null {
   const header = req.headers.get("idempotency-key") || req.headers.get("Idempotency-Key");
@@ -31,9 +32,5 @@ export function generateClientIdempotencyKey(prefix = "gen"): string {
 
 export async function getRequestIp(): Promise<string> {
   const h = await headers();
-  return (
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip") ||
-    "unknown"
-  );
+  return clientIp({ headers: h });
 }

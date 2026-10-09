@@ -38,7 +38,7 @@ export default async function RootLayout({
     <html lang="sq" data-theme="mshelt" suppressHydrationWarning>
       {isLaunchRequest ? null : (
         <head>
-          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+          <script suppressHydrationWarning nonce={requestHeaders.get("x-nonce") ?? undefined} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         </head>
       )}
       <body

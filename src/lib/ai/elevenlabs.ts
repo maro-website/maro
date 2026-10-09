@@ -1,6 +1,6 @@
 import "server-only";
 
-// ElevenLabs integration for maro Zo. Uses the REST API directly (no SDK) so we
+// ElevenLabs integration for maro Audio. Uses the REST API directly (no SDK) so we
 // stay dependency-light. Audio-returning calls hand back base64 mp3 strings so
 // the route can upload them the same way images are handled; speech-to-text
 // returns plain text.

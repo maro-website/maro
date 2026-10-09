@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { copy } from "./content";
 import { ToolFooter } from "./ToolFooter";
+import { ViewportVideo } from "./ViewportVideo";
 import s from "./HubVision.module.css";
 
 const LOGO_VIDEO_SRC = "/videos/hub-vision/maroLogo-videohero01.mp4";
@@ -20,7 +21,7 @@ export function Launchpad() {
       </article>
       <article className={s.logoDoor}>
         <Link href={copy.logo.href} className={`${s.logoVideoCanvas} block`} aria-label="Hap maroLogo">
-          <video
+          <ViewportVideo
             className={s.logoVideo}
             src={LOGO_VIDEO_SRC}
             autoPlay

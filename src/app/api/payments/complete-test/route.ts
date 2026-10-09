@@ -1,3 +1,4 @@
+import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { NextResponse } from "next/server";
 import { legacyPaymentsEnabled } from "@/lib/payments/legacy";
 import { isPaymentModeValid } from "@/lib/config/serverEnv";
@@ -21,8 +22,11 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   let orderId: string;
+  const boundedBody = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!boundedBody.ok) return boundedBody.response;
+  if (!boundedBody.body || typeof boundedBody.body !== "object" || Array.isArray(boundedBody.body)) return NextResponse.json({ error: "bad-json" }, { status: 400 });
   try {
-    const body = (await req.json()) as { orderId?: string };
+    const body = boundedBody.body as { orderId?: string };
     orderId = String(body.orderId ?? "").trim();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });

@@ -1,3 +1,4 @@
+import { buildContentSecurityPolicy } from "@/lib/security/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
@@ -10,13 +11,16 @@ import {
 } from "@/lib/launch/config";
 
 const ipBuckets = new Map<string, { count: number; reset: number }>();
-const IP_LIMIT = 600;
-const IP_WINDOW_MS = 3600_000;
+const IP_LIMIT = 120;
+const MAX_IP_BUCKETS = 10000;
+const IP_WINDOW_MS = 60_000;
 
 function checkIpLimit(ip: string): { allowed: boolean; retryAfter: number } {
   const now = Date.now();
   let b = ipBuckets.get(ip);
   if (!b || now > b.reset) {
+    for (const [key, bucket] of ipBuckets) if (bucket.reset <= now) ipBuckets.delete(key);
+    if (ipBuckets.size >= MAX_IP_BUCKETS) ipBuckets.delete(ipBuckets.keys().next().value!);
     b = { count: 0, reset: now + IP_WINDOW_MS };
     ipBuckets.set(ip, b);
   }
@@ -92,13 +96,24 @@ async function hasAuthenticatedUser(req: NextRequest): Promise<boolean> {
   }
 }
 
-function launchRequestHeaders(req: NextRequest): Headers {
+function requestHeaders(req: NextRequest, nonce?: string, policy?: string): Headers {
   const headers = new Headers(req.headers);
+  headers.delete("x-nonce");
+  headers.delete("Content-Security-Policy");
+  if (nonce && policy) {
+    headers.set("x-nonce", nonce);
+    headers.set("Content-Security-Policy", policy);
+  }
+  return headers;
+}
+
+function launchRequestHeaders(req: NextRequest, nonce?: string, policy?: string): Headers {
+  const headers = requestHeaders(req, nonce, policy);
   headers.set(LAUNCH_REQUEST_HEADER, "1");
   return headers;
 }
 
-export async function middleware(req: NextRequest) {
+async function routeMiddleware(req: NextRequest, nonce?: string, policy?: string) {
   const path = req.nextUrl.pathname;
 
   if (isComingSoonMode() && !isLaunchPublicRoute(path)) {
@@ -112,7 +127,7 @@ export async function middleware(req: NextRequest) {
       destination.pathname = LAUNCH_PAGE_PATH;
       destination.search = "";
       const response = NextResponse.rewrite(destination, {
-        request: { headers: launchRequestHeaders(req) },
+        request: { headers: launchRequestHeaders(req, nonce, policy) },
       });
       response.headers.set("Cache-Control", "private, no-store");
       response.headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -127,7 +142,7 @@ export async function middleware(req: NextRequest) {
     if (await hasAuthenticatedUser(req)) {
       return NextResponse.redirect(new URL("/", req.url));
     }
-    return NextResponse.next({ request: { headers: launchRequestHeaders(req) } });
+    return NextResponse.next({ request: { headers: launchRequestHeaders(req, nonce, policy) } });
   }
 
   if (path.startsWith("/admin")) {
@@ -143,17 +158,18 @@ export async function middleware(req: NextRequest) {
   }
 
   if (!path.startsWith("/api/")) {
-    const res = NextResponse.next();
+    const res = NextResponse.next({ request: { headers: requestHeaders(req, nonce, policy) } });
     if (path.startsWith("/admin")) {
       res.headers.set("x-maro-admin-path", path);
     }
     return res;
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  // Coarse instance-local burst protection only. Sensitive endpoints retain
+  // their shared database limits keyed by verified user IDs.
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  const candidate = req.headers.get("x-real-ip")?.trim() || forwarded || "unknown";
+  const ip = candidate.length <= 45 && /^[0-9a-f:.]+$/i.test(candidate) ? candidate : "unknown";
 
   const rl = checkIpLimit(ip);
   if (!rl.allowed) {
@@ -163,9 +179,20 @@ export async function middleware(req: NextRequest) {
     );
   }
 
-  const res = NextResponse.next();
+  const res = NextResponse.next({ request: { headers: requestHeaders(req, nonce, policy) } });
   res.headers.set("x-request-id", crypto.randomUUID());
   return res;
+}
+
+export async function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith("/preview-runtime")) return routeMiddleware(req);
+  const nonce = btoa(crypto.randomUUID());
+  const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host : undefined;
+  const policy = buildContentSecurityPolicy({ supabaseHost, nonce });
+  const response = await routeMiddleware(req, nonce, policy);
+  response.headers.set("Content-Security-Policy", policy);
+  return response;
 }
 
 export const config = {

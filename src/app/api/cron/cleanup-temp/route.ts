@@ -6,7 +6,7 @@ import { authorizeCronRequest } from "@/lib/security/cronAuth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Delete stale failed jobs and trim old rate-limit events. */
+/** Reconcile stale reservations and trim transient rate-limit events. Preserve financial jobs. */
 export async function POST(req: Request) {
   if (!supabaseServerConfigured()) {
     return NextResponse.json({ error: "not-configured" }, { status: 503 });
@@ -21,32 +21,14 @@ export async function POST(req: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const failedCutoff = new Date(Date.now() - 7 * 86400000).toISOString();
   const rateCutoff = new Date(Date.now() - 86400000).toISOString();
-
   await cleanupStaleJobs();
-
-  const { data: staleJobs } = await admin
-    .from("generation_jobs")
-    .select("id, metadata")
-    .eq("status", "failed")
-    .lt("created_at", failedCutoff)
-    .limit(500);
-
-  let jobsDeleted = 0;
-  for (const job of staleJobs ?? []) {
-    const meta = (job as { metadata?: { tempPaths?: string[] } }).metadata;
-    void meta?.tempPaths;
-    await admin.from("generation_jobs").delete().eq("id", (job as { id: string }).id);
-    jobsDeleted += 1;
-  }
-
-  await admin.from("rate_limit_events").delete().lt("created_at", rateCutoff);
-
+  const { error } = await admin.from("rate_limit_events").delete().lt("created_at", rateCutoff);
+  if (error) return NextResponse.json({ error: "cleanup_failed" }, { status: 503 });
   return NextResponse.json({
     ok: true,
     staleJobsReconciled: true,
-    jobsDeleted,
+    jobsDeleted: 0,
     rateEventsTrimmed: true,
   });
 }

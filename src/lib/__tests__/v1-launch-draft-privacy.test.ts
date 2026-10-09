@@ -1,0 +1,20 @@
+import {expect,it} from "vitest";
+import {clearComposerDrafts,composerDraftKey,currentComposerDraft,emptyComposerDraft,saveComposerDraft} from "@/lib/services/composerDraft";
+import {clearLogoDrafts,readLogoDraft,saveLogoDraft} from "@/lib/marologo/draft";
+import {INITIAL_APP_STATE} from "@/lib/marologo/defaults";
+it("clears the departing account and ignores late autosaves without clearing another account",async()=>{
+  const a=composerDraftKey("logout-owner","workspace","image"),b=composerDraftKey("other-owner","workspace","image");
+  saveComposerDraft(a,{...emptyComposerDraft(),prompt:"PRIVATE_A"});
+  saveComposerDraft(b,{...emptyComposerDraft(),prompt:"PRIVATE_B"});
+  await clearComposerDrafts("logout-owner");
+  saveComposerDraft(a,{...emptyComposerDraft(),prompt:"LATE_PRIVATE_A"});
+  expect(currentComposerDraft(a).prompt).toBe("");
+  expect(currentComposerDraft(b).prompt).toBe("PRIVATE_B");
+  const draft={state:INITIAL_APP_STATE,preset:null};
+  await saveLogoDraft("logout-owner:workspace",draft);
+  await saveLogoDraft("other-owner:workspace",draft);
+  await clearLogoDrafts("logout-owner");
+  await saveLogoDraft("logout-owner:workspace",draft);
+  expect(await readLogoDraft("logout-owner:workspace")).toBeNull();
+  expect(await readLogoDraft("other-owner:workspace")).toEqual(draft);
+});

@@ -75,7 +75,7 @@ export interface ToolSetting {
   default: string;
   /**
    * Conditional visibility: only show this setting when another setting's
-   * current value is in `in`. Used by mode-based tools (maro Zo).
+   * current value is in `in`. Used by mode-based tools (maro Audio).
    */
   showWhen?: { setting: string; in: string[] };
   /**
@@ -454,7 +454,7 @@ export function findOption(setting: ToolSetting, optionId: string): ToolOption |
 
 // Settings visible for the current selections. A setting with `showWhen` is
 // only shown when the referenced setting's value is in its allowed list. This
-// powers the mode-based maro Zo tool (different filters per mode).
+// powers the mode-based maro Audio tool (different filters per mode).
 export function visibleSettings(tool: ToolDef, selections: ToolSelections): ToolSetting[] {
   return tool.settings.filter((s) => {
     if (!s.showWhen) return true;

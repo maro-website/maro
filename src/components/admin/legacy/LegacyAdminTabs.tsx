@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { getAccessToken } from "@/lib/supabase/client";
+import { readAdminSettings, saveAdminSettings } from "@/lib/admin/settingsClient";
 import { resolveLegacyAdminTabRedirect } from "@/lib/admin/routes";
 import { UserPlanModal } from "@/components/admin/UserPlanModal";
 
@@ -226,20 +227,20 @@ export function LegacyUsersTab() {
   const load = React.useCallback(async () => {
     if (!supabaseConfigured) return setLoading(false);
     setLoading(true);
-    const { data } = await getSupabaseBrowser()
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setProfiles((data as Profile[]) ?? []);
+    const token = await getAccessToken();
+    const response = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token ?? ""}` }, cache: "no-store" });
+    const body = await response.json();
+    setProfiles(response.ok ? (body.users as Profile[]) : []);
+    if (!response.ok) toast("Lista e përdoruesve nuk u ngarkua.");
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   const toggleCreator = async (p: Profile) => {
     const next = !p.is_creator;
-    const { error } = await getSupabaseBrowser()
-      .from("profiles")
-      .update({ is_creator: next })
-      .eq("id", p.id);
+    const token = await getAccessToken();
+    const response = await fetch("/api/admin/users", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" }, body: JSON.stringify({ userId: p.id, isCreator: next }) });
+    const body = await response.json();
+    const error = response.ok ? null : { message: body.error ?? "creator_save_failed" };
     if (error) {
       toast("Gabim: " + error.message);
       return;
@@ -847,11 +848,7 @@ function MasterPromptsTab() {
   React.useEffect(() => {
     (async () => {
       if (!supabaseConfigured) return setLoading(false);
-      const { data } = await getSupabaseBrowser()
-        .from("app_settings")
-        .select("master_prompt, tool_prompts, pricing, tool_option_icons")
-        .eq("id", 1)
-        .single();
+      const { data } = await readAdminSettings();
       setPrompts((data?.tool_prompts as Record<string, string>) ?? {});
       setIcons((data?.tool_option_icons as ToolOptionIcons) ?? {});
       setMasterPrompt((data?.master_prompt as string) ?? "");
@@ -864,25 +861,18 @@ function MasterPromptsTab() {
 
   const save = async () => {
     setSaving(true);
-    const { data } = await getSupabaseBrowser()
-      .from("app_settings")
-      .select("pricing, tool_option_icons")
-      .eq("id", 1)
-      .single();
+    const { data } = await readAdminSettings();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     const existingIcons = (data?.tool_option_icons as ToolOptionIcons) ?? {};
     // Website base prompt is mirrored into master_prompt for the generate route.
     const webBase = prompts["website.base"] ?? masterPrompt;
-    const { error } = await getSupabaseBrowser()
-      .from("app_settings")
-      .update({
+    const { error } = await saveAdminSettings({
         tool_prompts: prompts,
         tool_option_icons: { ...existingIcons, ...icons },
         master_prompt: webBase,
         pricing: { ...pricing, options: { ...(pricing.options ?? {}), ...costs }, chatCost },
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", 1);
+      });
     setSaving(false);
     toast(error ? "Gabim: " + error.message : "Master Prompts u ruajtën");
   };
@@ -1198,11 +1188,7 @@ function ReklamatTab() {
   React.useEffect(() => {
     (async () => {
       if (!supabaseConfigured) return setLoading(false);
-      const { data } = await getSupabaseBrowser()
-        .from("app_settings")
-        .select("pricing")
-        .eq("id", 1)
-        .single();
+      const { data } = await readAdminSettings();
       const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       const existing = pricing.announcements ?? [];
       // Migrate a legacy single ad banner into the list.
@@ -1252,15 +1238,12 @@ function ReklamatTab() {
 
   const save = async () => {
     setSaving(true);
-    const { data } = await getSupabaseBrowser().from("app_settings").select("pricing").eq("id", 1).single();
+    const { data } = await readAdminSettings();
     const pricing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
-    const { error } = await getSupabaseBrowser()
-      .from("app_settings")
-      .update({
+    const { error } = await saveAdminSettings({
         pricing: { ...pricing, announcements: list, ads: undefined },
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", 1);
+      });
     setSaving(false);
     toast(error ? "Gabim: " + error.message : "Njoftimet u ruajtën");
   };
@@ -1665,11 +1648,7 @@ function PricingTab() {
   React.useEffect(() => {
     (async () => {
       if (!supabaseConfigured) return setLoading(false);
-      const { data } = await getSupabaseBrowser()
-        .from("app_settings")
-        .select("pricing")
-        .eq("id", 1)
-        .single();
+      const { data } = await readAdminSettings();
       const p = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
       // Keep the full config so save() never wipes tools/ads/reklamaProduct.
       setPricing({
@@ -1686,11 +1665,7 @@ function PricingTab() {
 
   const save = async () => {
     setSaving(true);
-    const { data } = await getSupabaseBrowser()
-      .from("app_settings")
-      .select("pricing")
-      .eq("id", 1)
-      .single();
+    const { data } = await readAdminSettings();
     const existing = (data?.pricing as PricingConfig) ?? DEFAULT_PRICING;
     const merged: PricingConfig = {
       ...existing,
@@ -1700,10 +1675,7 @@ function PricingTab() {
       editCost: pricing.editCost,
       options: existing.options ?? pricing.options ?? {},
     };
-    const { error } = await getSupabaseBrowser()
-      .from("app_settings")
-      .update({ pricing: merged, updated_at: new Date().toISOString() })
-      .eq("id", 1);
+    const { error } = await saveAdminSettings({ pricing: merged, updated_at: new Date().toISOString() });
     setSaving(false);
     toast(error ? "Gabim: " + error.message : "Çmimet u ruajtën");
   };

@@ -43,7 +43,7 @@ export interface User {
   createdAt: string;
 }
 
-// A generation result (Maro Logo / Maro Imazh images, or maro Zo audio/text),
+// A generation result (Maro Logo / Maro Imazh images, or maro Audio audio/text),
 // persisted locally. For audio, urls[0] is the audio URL. For text output
 // (transcription) the result lives in `text`.
 export interface ImageCreation {

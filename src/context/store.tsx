@@ -1,5 +1,7 @@
 "use client";
 import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
+import { clearLogoDrafts } from "@/lib/marologo/draft";
+import { clearComposerDrafts } from "@/lib/services/composerDraft";
 import { authErrorMessage } from "@/lib/auth/messages";
 
 import React, {
@@ -14,7 +16,7 @@ import React, {
 import type { Session } from "@supabase/supabase-js";
 import type { ImageCreation, Project, User } from "@/lib/types";
 import type { Profile } from "@/lib/supabase/types";
-import { StorageKeys, readJSON, writeJSON, projectsKey, creationsKey, LOCAL_WORKSPACE_SCOPE } from "@/lib/storage/local";
+import { StorageKeys, readJSON, writeJSON, projectsKey, creationsKey, LOCAL_WORKSPACE_SCOPE, clearCreativeSessionCaches } from "@/lib/storage/local";
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import { subscribeToSession } from "@/lib/supabase/sessionSubscription";
 import { workspaceRequest } from "@/lib/workspaces/request";
@@ -64,7 +66,8 @@ interface MaroContextValue {
     name: string,
     email: string,
     password: string,
-    turnstileToken?: string
+    turnstileToken?: string,
+    nextPath?: string
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -128,7 +131,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     let projects = readJSON<Project[]>(projectsKey(workspaceId), []);
     let creations = readJSON<ImageCreation[]>(creationsKey(workspaceId), []);
 
-    if (!legacyMigratedRef.current) {
+    if (!legacyMigratedRef.current && !supabaseConfigured) {
       const legacyProjects = readJSON<Project[]>(StorageKeys.projects, []);
       const legacyCreations = readJSON<ImageCreation[]>(StorageKeys.creations, []);
       if (projects.length === 0 && legacyProjects.length > 0) {
@@ -312,14 +315,30 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = subscribeToSession(sb.auth, (event, session) => {
       const id = session?.user.id ?? null;
       const identityChanged = id !== currentUserId;
+      const previousUserId = currentUserId;
+      if (identityChanged && previousUserId) {
+        clearCreativeSessionCaches();
+        void clearLogoDrafts(previousUserId);
+        void clearComposerDrafts(previousUserId);
+        if (persistTimer.current) clearTimeout(persistTimer.current);
+      }
       currentUserId = id;
-      setState((s) => ({
+      setState((s) => {
+        if (identityChanged) {
+          // Preserve unsynchronized website projects under their original
+          // workspace. Clear the old scope before any async response returns.
+          if (workspaceScopeRef.current && s.projects.length) writeJSON(projectsKey(workspaceScopeRef.current), s.projects);
+          workspaceScopeRef.current = null;
+        }
+        return {
         ...s,
         session,
+        ...(identityChanged ? { projects: [], creations: [], activeWorkspaceScope: null } : {}),
         profile: identityChanged ? null : s.profile,
         ready: id ? s.ready : true,
-      }));
-      void prefetchPublicSettings(session?.access_token ?? null);
+        };
+      });
+      if (identityChanged) void prefetchPublicSettings(session?.access_token ?? null);
       // SIGNED_IN can fire on tab focus. Only a real identity change reloads profile data.
       if (!identityChanged && event !== "USER_UPDATED") return;
       const request = ++profileRequest;
@@ -354,7 +373,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
       name: string,
       email: string,
       password: string,
-      turnstileToken?: string
+      turnstileToken?: string,
+    nextPath?: string
     ): Promise<{ error: string | null }> => {
       if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
 
@@ -362,7 +382,7 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, turnstileToken }),
+          body: JSON.stringify({ name, email, password, turnstileToken, next: nextPath }),
         });
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         if (!res.ok) {
@@ -378,7 +398,8 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!supabaseConfigured) return;
-    await getSupabaseBrowser().auth.signOut();
+    const { error } = await getSupabaseBrowser().auth.signOut();
+    if (error) throw new Error("signout_failed");
     setState((s) => ({ ...s, session: null, profile: null }));
   }, []);
 

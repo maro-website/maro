@@ -1,8 +1,8 @@
 "use client";
 import { useEffect,useState } from "react";
 import { useMaro } from "@/context/store";
-export function useRaiAcceptAvailability() {
-  const {user,getAccessToken}=useMaro(); const [enabled,setEnabled]=useState(false);
+export function useRaiAcceptAvailability(initialEnabled = false) {
+  const {user,getAccessToken}=useMaro(); const [enabled,setEnabled]=useState(initialEnabled);
   useEffect(()=>{
     let stopped=false;
     void (async()=>{try {
