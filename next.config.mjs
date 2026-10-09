@@ -12,6 +12,7 @@ const noStoreHeaders = buildSecurityHeaders({
 });
 
 const nextConfig = {
+  serverExternalPackages: ["pdfkit"],
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
