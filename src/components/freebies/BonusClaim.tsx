@@ -66,7 +66,7 @@ export function BonusClaim() {
       <div><h2 className="text-xl font-bold text-ink">Ke një kod nga maro?</h2><p className="mt-2 text-sm leading-relaxed text-ink-3">Shkruaje këtu për të marrë kreditet. Çdo kod përdoret vetëm një herë nga llogaria jote dhe ka kushtet e veta.</p></div>
       {user ? <form onSubmit={event => void claim(event)} className="space-y-4">
         <Field label="Kodi"><Input required aria-label="Kodi" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={64}
-          placeholder="P.sh. TRAMPOLINE" value={code} onChange={event => setCode(event.target.value.toUpperCase())} disabled={feedback?.status === "working"} /></Field>
+          value={code} onChange={event => setCode(event.target.value.toUpperCase())} disabled={feedback?.status === "working"} /></Field>
         <Button type="submit" variant="brand" icon={<Gift className="h-4 w-4" />} disabled={!code.trim() || feedback?.status === "working"} className="w-full">Merr kredite</Button>
         <p className="text-center text-sm text-ink-3">Bilanci yt: <span className="font-bold text-ink">{credits.toLocaleString("sq-AL")} kredite</span></p>
       </form> : <div className="space-y-4"><p className="text-sm text-ink-3">Hyr ose regjistrohu për ta përdorur kodin. Kodi do të të presë pas hyrjes.</p><div className="grid grid-cols-2 gap-3">
