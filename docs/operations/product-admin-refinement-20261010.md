@@ -32,6 +32,8 @@ The new-chat handler creates an empty draft. Explore only transfers a prompt and
 
 The product changes use the existing Maro components, tokens, colors, browser draft store, private reference upload flow and notification bell. Charts use small SVGs and the current dependencies. No paid service or recurring background task was added. Upcoming modules retain their information pages; they do not become generation tools.
 
+Live browser review also confirmed the guest carousel against the actual catalog: the inherited four-preset server allowance was reduced to the requested three, including direct-detail protection. Locked cards use compact spacing so both authentication actions fit the existing carousel height.
+
 The admin directory groups each user's actual plan, credit balance and enforced storage quota together. Plan replacement is atomic, checks the membership being replaced, retains the previous membership and creates a private audit record. Its notification contains only the new plan and expiry. Manual credit notifications contain the signed adjustment and balance, with one notification per ledger transaction. Notification refresh occurs when the bell opens or the browser returns to the foreground.
 
 Fresh MFA is verified by Supabase using the authenticated administrator's own verified factor and bearer token. The client cannot select a different actor. Deletion protects administrative/self accounts and checks active generation/payment work. Storage cleanup is paged and batched before deleting Auth. Financial rows and checkout proofs remain with a null user reference. A partial cleanup freezes new uploads, jobs and checkout creation, and requires a deliberate retry from the admin screen.
