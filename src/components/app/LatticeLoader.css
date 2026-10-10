@@ -257,6 +257,24 @@
     lattice-turn calc(var(--ll-cycle) * 8) linear infinite;
 }
 .lattice-loader__timer[hidden] { display: none; }
+
+.lattice-loader--stacked {
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  line-height: 1.25;
+  text-align: center;
+}
+.lattice-loader--stacked .lattice-loader__grid { padding: 4px; }
+.lattice-loader--stacked .lattice-loader__label { max-width: 100%; }
+.lattice-loader--stacked .lattice-loader__text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.lattice-loader--stacked .lattice-loader__timer { font-size: 14px; }
+
 @keyframes lattice-turn { to { rotate: 360deg; } }
 @media (max-width: 480px) {
   .lattice-loader { font-size: min(var(--ll-font), 20px); }
