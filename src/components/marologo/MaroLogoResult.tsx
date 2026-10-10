@@ -1,6 +1,7 @@
 "use client";
 
 import { StableImage } from "@/components/app/StableImage";
+import { GenerationLoader } from "@/components/app/GenerationLoader";
 
 import * as React from "react";
 import { Download, ImagePlus } from "lucide-react";
@@ -12,9 +13,11 @@ import type { ImageCreation } from "@/lib/types";
 export function MaroLogoResult({
   creation,
   onRestart,
+  elapsed,
 }: {
   creation: ImageCreation;
   onRestart: () => void;
+  elapsed?: number;
 }) {
   const [lightbox, setLightbox] = React.useState(false);
   const router = useRouter();
@@ -43,6 +46,7 @@ export function MaroLogoResult({
   return (
     <div className="marologo-shell pb-12">
       <h1 className="marologo-step-title mb-8">Logo e gatshme</h1>
+      <GenerationLoader status="done" elapsed={elapsed} className="mx-auto max-w-md" />
         <button
           type="button"
           onClick={() => setLightbox(true)}

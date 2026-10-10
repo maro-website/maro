@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { ToolIcon } from "./OptionIcon";
 import { getProductBrand } from "@/lib/design/maro-system";
-import { AlertCircle, BrainCircuit, Check, Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
+import { AlertCircle, BrainCircuit, Clock, Flame, Globe, Lightbulb, Ratio } from "lucide-react";
 import { GenerationLoader } from "./GenerationLoader";
 import { MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
@@ -98,7 +98,7 @@ function GenerationImageBox({
       data-generation-result
       style={{ aspectRatio: ratio, maxWidth: maxW }}
     >
-      {status === "thinking" && <GenerationLoader className="absolute inset-0 h-full !aspect-auto" />}
+      {status === "thinking" && <div className="absolute inset-0 bg-surface-2" />}
       {status === "done" && !url && <PreviewFallback module={module} className="absolute inset-0" />}
 
       {status === "done" && url && (
@@ -218,25 +218,9 @@ export function GenerationCard({
 
       {/* One stable result box carries all three states: loading, success and error. */}
       {!isAudio && !isText && (
-        <>
-          <div className="mt-2.5 flex items-center gap-2 px-0.5 text-[13px] font-semibold text-ink-3" aria-live="polite">
-            <span className="grid h-8 w-8 place-items-center rounded-maro8 bg-ink text-ink-inv">
-              {message.status === "thinking" ? (
-                <MaroBuildingSpinner className="h-4 w-4 brightness-0 invert" />
-              ) : message.status === "done" ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-            </span>
-            <span>
-              {message.status === "thinking"
-                ? "maro po maron"
-                : message.status === "done"
-                  ? "maro e maroi"
-                  : "maro s’mujti me maru"}
-            </span>
-          </div>
+        <div className="relative mx-auto w-full" style={{ maxWidth: resolveAspectBox(message.format, message.size ?? message.creation?.size).maxW }}>
+          <GenerationLoader status={message.status === "thinking" ? "working" : message.status} startedAt={message.createdAt}
+            className={message.status === "thinking" ? "pointer-events-none absolute inset-0 z-10 h-full !aspect-auto" : undefined} />
           {(message.status === "done" && message.creation ? message.creation.urls : [undefined]).map((url, index) => <React.Fragment key={index}><GenerationImageBox
             format={message.format}
             size={message.size ?? message.creation?.size}
@@ -258,7 +242,7 @@ export function GenerationCard({
               />
             </div>
           )}</React.Fragment>)}
-        </>
+        </div>
       )}
 
       {/* Audio / text results */}

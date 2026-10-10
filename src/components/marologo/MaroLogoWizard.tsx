@@ -31,6 +31,7 @@ import { PROMPT_ATTACH_KEY, type PromptAttach } from "@/lib/prompts/types";
 import type { LogoPresetConfig } from "@/lib/presets/model";
 import { MaroLogoIntro } from "./MaroLogoIntro";
 import { MaroLogoGenerating } from "./MaroLogoGenerating";
+import { GenerationLoader } from "@/components/app/GenerationLoader";
 import { MaroLogoResult } from "./MaroLogoResult";
 import { StepBrand } from "./steps/StepBrand";
 import { StepDirection } from "./steps/StepDirection";
@@ -121,6 +122,7 @@ export function MaroLogoWizard() {
   const [showBuy, setShowBuy] = React.useState(false);
   const [resultCreation, setResultCreation] = React.useState<ImageCreation | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [generationFeedback, setGenerationFeedback] = React.useState<{ status: "working" | "done" | "error"; startedAt: number; endedAt?: number } | null>(null);
   const [presetAttach, setPresetAttach] = React.useState<PromptAttach | null>(null);
   const generatingRef = React.useRef(false);
   const pendingGenerateRef = React.useRef(false);
@@ -144,6 +146,7 @@ export function MaroLogoWizard() {
     void readLogoDraft(draftKey).then(async (saved) => {
       const draft = saved ?? (guestKey ? await readLogoDraft(guestKey) : null);
       if (!active) return;
+      setGenerationFeedback(null);
       if (draft?.state?.wizard?.brand && draft.state.wizard.look && draft.state.wizard.logo) {
         dispatch({ type: "RESTORE", state: { ...draft.state, phase: draft.state.phase === "generating" ? 3 : draft.state.phase } });
         setPresetAttach(draft.preset);
@@ -212,6 +215,8 @@ export function MaroLogoWizard() {
 
     generatingRef.current = true;
     setIsGenerating(true);
+    const startedAt = Date.now();
+    setGenerationFeedback({ status: "working", startedAt });
     dispatch({ type: "SET_PHASE", phase: "generating" });
     const now = new Date().toISOString();
     const conversationId = crypto.randomUUID();
@@ -242,8 +247,10 @@ export function MaroLogoWizard() {
       dispatch({ type: "RESET" });
       dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) });
       setPresetAttach(null);
+      setGenerationFeedback({ status: "done", startedAt, endedAt: Date.now() });
       dispatch({ type: "SET_PHASE", phase: "result" });
     } catch (err) {
+      setGenerationFeedback({ status: "error", startedAt, endedAt: Date.now() });
       dispatch({ type: "SET_PHASE", phase: 3 });
       if (err instanceof InsufficientCreditsError) { setShowBuy(true); toast("Nuk ke kredite të mjaftueshme.", "error"); }
       else if (err instanceof ImageGenerationError) toast(IMG_ERRORS[err.code] || `Gabim gjenerimi (${err.code}).`, "error");
@@ -261,7 +268,8 @@ export function MaroLogoWizard() {
     }
   }, [user, loadedDraftKey, draftKey, runGenerate]);
   const onAuthDone = () => setShowAuth(false);
-  const restart = () => { setResultCreation(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
+  const restart = () => { setResultCreation(null); setGenerationFeedback(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
+  const generationElapsed = generationFeedback?.endedAt !== undefined ? (generationFeedback.endedAt - generationFeedback.startedAt) / 1000 : undefined;
 
   if (!content || loadedDraftKey !== draftKey) return <p className="p-8 text-ink-3">{contentError ? "Konfigurimi nuk është në dispozicion. Rifresko faqen." : "Duke ngarkuar…"}</p>;
   return (
@@ -275,9 +283,9 @@ export function MaroLogoWizard() {
       {state.phase === "intro" && <MaroLogoIntro onStart={() => dispatch({ type: "SET_PHASE", phase: 1 })} />}
       {state.phase === 1 && <StepBrand step={1} highestStepReached={state.highestStepReached} wizard={state.wizard} errors={stepErrors} onChange={(patch) => dispatch({ type: "PATCH_BRAND", patch })} onNext={() => advanceFromStep(1)} onStepClick={goToStep} />}
       {state.phase === 2 && <StepDirection step={2} highestStepReached={state.highestStepReached} wizard={state.wizard} references={state.references} errors={stepErrors} onChangeTraits={(traits) => dispatch({ type: "PATCH_DIRECTION", patch: { traits } })} onChangeLogo={(patch) => dispatch({ type: "PATCH_LOGO", patch })} onChangeLook={(patch) => dispatch({ type: "PATCH_LOOK", patch })} onChangeReferences={(references) => dispatch({ type: "SET_REFERENCES", references })} onMaxTraits={() => toast("Zgjedh maksimum 3 tipare.", "info")} onToast={(message) => toast(message, "error")} onNext={() => advanceFromStep(2)} onStepClick={goToStep} />}
-      {state.phase === 3 && <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} />}
-      {state.phase === "generating" && <MaroLogoGenerating />}
-      {state.phase === "result" && resultCreation && <MaroLogoResult creation={resultCreation} onRestart={restart} />}
+      {state.phase === 3 && <>{generationFeedback?.status === "error" && <div className="marologo-shell"><GenerationLoader status="error" elapsed={generationElapsed} /></div>}<StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} /></>}
+      {state.phase === "generating" && <MaroLogoGenerating startedAt={generationFeedback?.startedAt} />}
+      {state.phase === "result" && resultCreation && <MaroLogoResult creation={resultCreation} elapsed={generationElapsed} onRestart={restart} />}
 
       <Modal open={showAuth} onClose={() => setShowAuth(false)} size="sm"><AuthPanel onDone={onAuthDone} /></Modal>
       <BuyCreditsModal open={showBuy} onClose={() => setShowBuy(false)} needed={cost} />
