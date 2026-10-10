@@ -213,7 +213,4 @@
   color: var(--maro-color-text-on-accent);
 }
 /* Upcoming modules keep their informational destinations and theme text. */
-.maro-nav__link[data-upcoming="true"] {
-  background: var(--maro-color-bg-subtle);
-}
 .maro-nav__link[data-upcoming="true"] .maro-nav__label { opacity: .6; }

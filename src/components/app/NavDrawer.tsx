@@ -91,8 +91,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       onClick={onClose}
                       className={cn(
                         "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
-                        active ? "bg-surface text-brand" : "text-ink hover:bg-surface",
-                        dest.comingSoon && "bg-subtle"
+                        active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span className={dest.comingSoon ? "opacity-60" : undefined}>{getProductBrand(dest.label)?.displayName ?? dest.label}</span></span>
