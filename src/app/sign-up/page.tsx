@@ -30,7 +30,7 @@ function SignUpContent() {
             Regjistrimet e reja janë përkohësisht të mbyllura.
           </p>
           <Link
-            href="/sign-in"
+            href={`/sign-in?next=${encodeURIComponent(next)}`}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-maro12 bg-brand px-5 py-3 text-[14px] font-semibold text-brand-fg hover:bg-brand-hover"
           >
             Kyçu në llogarinë ekzistuese

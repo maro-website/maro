@@ -92,6 +92,17 @@ function GenerationImageBox({
     );
   }
 
+  if (status === "done" && url) {
+    return (
+      <div className="relative mx-auto w-full overflow-hidden rounded-maro16 bg-surface" data-generation-result style={{ maxWidth: maxW }}>
+        <button type="button" onClick={onOpen} className="group relative block w-full overflow-hidden">
+          <StableImage src={url} refreshKey={refreshKey} alt="" module={module} loading="eager"
+            className="h-auto w-full object-contain" fallbackClassName="min-h-40" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative mx-auto w-full overflow-hidden rounded-maro16 bg-surface"
@@ -101,16 +112,6 @@ function GenerationImageBox({
       {status === "thinking" && <div className="absolute inset-0 bg-surface-2" />}
       {status === "done" && !url && <PreviewFallback module={module} className="absolute inset-0" />}
 
-      {status === "done" && url && (
-        <button
-          type="button"
-          onClick={onOpen}
-          className="group absolute inset-0 block h-full w-full overflow-hidden"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <StableImage src={url} refreshKey={refreshKey} alt="" module={module} loading="eager" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
-        </button>
-      )}
     </div>
   );
 }

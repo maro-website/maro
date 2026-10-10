@@ -14,6 +14,7 @@ import {
   BarChart3,
   Shield,
   Image as ImageIcon,
+  Gift,
 } from "lucide-react";
 import type React from "react";
 
@@ -34,6 +35,7 @@ export interface AdminNavGroup {
 export const ADMIN_ROUTES = {
   dashboard: "/admin",
   users: "/admin/users",
+  freebies: "/admin/freebies",
   creators: "/admin/creators",
   access: "/admin/access",
   engine: "/admin/engine",
@@ -117,6 +119,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: ADMIN_ROUTES.commerce.business, label: "Business", permission: "payments.view" },
       { href: ADMIN_ROUTES.commerce.payments, label: "Pagesat", permission: "payments.view", icon: ShoppingCart },
       { href: ADMIN_ROUTES.commerce.promos, label: "Kodet Promo", permission: "payments.view" },
+      { href: ADMIN_ROUTES.freebies, label: "Freebies", permission: "credits.adjust", icon: Gift },
       { href: ADMIN_ROUTES.commerce.creators, label: "Fitimet e Kriatorëve", permission: "payments.view" },
       { href: ADMIN_ROUTES.commerce.ledger, label: "Libri i Krediteve", permission: "payments.view" },
     ],
@@ -192,7 +195,7 @@ export function adminNavGroupForPath(pathname: string): string | null {
   if (pathname.startsWith("/admin/users") || pathname.startsWith(ADMIN_ROUTES.access) || pathname.startsWith(ADMIN_ROUTES.creators)) return "users";
   if (pathname.startsWith("/admin/engine")) return "engine";
   if (pathname.startsWith("/admin/notifications") || pathname.startsWith("/admin/login-ads") || pathname.startsWith("/admin/help") || pathname.startsWith("/admin/emails")) return "content";
-  if (pathname.startsWith("/admin/commerce")) return "commerce";
+  if (pathname.startsWith("/admin/commerce") || pathname.startsWith(ADMIN_ROUTES.freebies)) return "commerce";
   if (pathname.startsWith("/admin/support")) return "support";
   if (pathname.startsWith("/admin/analytics")) return "analytics";
   if (pathname.startsWith("/admin/operations") || pathname.startsWith("/admin/security")) return "operations";
