@@ -1,3 +1,4 @@
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 import { readJSON, writeJSON } from "@/lib/storage/local";
 import { DEFAULT_PRICING, type PricingConfig } from "@/lib/supabase/types";
 import type { FortConfig } from "@/lib/fort/types";

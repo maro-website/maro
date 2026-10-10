@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { StableImage } from "@/components/app/StableImage";
 

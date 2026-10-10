@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { MARO_FORT_ENABLED } from "@/lib/shadow/maroFort";
 import * as React from "react";

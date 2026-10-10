@@ -1,4 +1,6 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
+
 import { useEffect, useState } from "react";
 import type { publicV1ImageModel } from "@/lib/engine/v1ImageModels";
 

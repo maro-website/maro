@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import type { Project } from "@/lib/types";
 import type { AiEditHtmlRequest, AiEditHtmlResponse } from "@/lib/ai/types";

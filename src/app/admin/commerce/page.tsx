@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
 import Link from "next/link";
@@ -11,8 +12,8 @@ import { formatCredits } from "@/lib/credits/format";
 interface OverviewData {
   memberships: { active: number; renewalWindow: number; expired: number; total: number };
   credits: { granted: number; spent: number };
-  recentPlanPurchases: { id: string; orderKind: string | null; itemId: string | null; credits: number; amountCents: number; paidAt: string | null }[];
-  recentTopups: { id: string; credits: number; amountCents: number; paidAt: string | null }[];
+  recentPlanPurchases: { id: string; orderKind: string | null; itemId: string | null; credits: number; amountCents: number; currency: string; paidAt: string | null }[];
+  recentTopups: { id: string; credits: number; amountCents: number; currency: string; paidAt: string | null }[];
   pendingOrFailedOrders: { id: string; status: string; created_at: string }[];
 }
 
@@ -30,8 +31,8 @@ export default function CommerceOverviewPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Commerce Overview"
-        description="Real membership, credit, and order metrics — no live payment revenue"
+        title="Planet dhe pagesat"
+        description="Gjendja e abonimeve dhe pagesat reale. Porositë testuese përjashtohen nga pagesat e fundit."
       />
 
       {!data ? (
@@ -63,7 +64,7 @@ export default function CommerceOverviewPage() {
                       {o.orderKind} · {o.itemId} · {formatCredits(o.credits)} cr
                     </span>
                     <span className="shrink-0 text-ink-3">
-                      €{(o.amountCents / 100).toFixed(2)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
+                      {new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
                     </span>
                   </li>
                 ))}
@@ -80,7 +81,7 @@ export default function CommerceOverviewPage() {
                   <li key={o.id} className="flex justify-between gap-2 text-ink-2">
                     <span>{formatCredits(o.credits)} credits</span>
                     <span className="text-ink-3">
-                      €{(o.amountCents / 100).toFixed(2)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
+                      {new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
                     </span>
                   </li>
                 ))}

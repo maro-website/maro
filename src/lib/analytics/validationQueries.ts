@@ -1,68 +1,30 @@
 import "server-only";
-
-import { getAnalyticsOverview, getGenerationsByTool, getRevenueByMonth } from "@/lib/analytics/aggregates";
+import { getAnalyticsSnapshot, getGenerationsByTool, getRevenueByMonth } from "./aggregates";
 import { loadCommandCenterKpis } from "@/lib/control-center/commandKpis";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-
-function startOfTodayIso(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+async function allRows<T>(read: (offset: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset=0; offset<100000; offset+=500) {
+    const result=await read(offset); if (result.error) throw new Error("validation_unavailable");
+    rows.push(...(result.data??[])); if ((result.data?.length??0)<500) return rows;
+  }
+  throw new Error("validation_row_limit");
 }
-
-/** Direct DB queries for cross-checking admin dashboards during RC validation. */
+/** Independently read the underlying receipt view and V1 jobs, including all REST pages. */
 export async function loadValidationCrossChecks() {
-  const admin = getSupabaseAdmin();
-  const since = startOfTodayIso();
-
-  const [kpis, overview, gensRes, ordersRes, costRes, jobsRes] = await Promise.all([
+  const admin=getSupabaseAdmin(); const snapshot=await getAnalyticsSnapshot(); const since=snapshot.dayStartsAt;
+  const [kpis,jobs,orders,costs]=await Promise.all([
     loadCommandCenterKpis(),
-    getAnalyticsOverview(),
-    admin.from("generations").select("id, user_id, credits_spent, output_urls, created_at").gte("created_at", since),
-    admin.from("credit_orders").select("amount_cents, status, created_at").gte("created_at", since),
-    admin.from("provider_cost_estimates").select("estimated_cost_usd, created_at").gte("created_at", since),
-    admin.from("generation_jobs").select("status", { count: "exact", head: true }).gte("created_at", since),
+    allRows(offset=>admin.from("generation_jobs").select("user_id,status").in("module",["reklama","logo"]).gte("created_at",since).range(offset,offset+499)),
+    allRows(offset=>admin.from("admin_real_paid_orders").select("amount_cents").eq("currency","EUR").gte("paid_at",since).range(offset,offset+499)),
+    allRows(offset=>admin.from("generation_jobs").select("provider_cost_usd").in("module",["reklama","logo"]).eq("status","completed").gte("finished_at",since).range(offset,offset+499)),
   ]);
-
-  const generations = gensRes.data ?? [];
-  const successCount = generations.filter((g) => {
-    const row = g as { output_urls?: string[] | null; credits_spent?: number };
-    return Boolean(row.output_urls?.length) || (row.credits_spent ?? 0) > 0;
-  }).length;
-
-  const revenueTodayDb =
-    (ordersRes.data ?? [])
-      .filter((o) => ["paid", "completed", "fulfilled"].includes((o as { status?: string }).status ?? ""))
-      .reduce((s, o) => s + Number((o as { amount_cents?: number }).amount_cents ?? 0), 0) / 100;
-
-  const aiCostTodayDb = (costRes.data ?? []).reduce(
-    (s, r) => s + Number((r as { estimated_cost_usd?: number }).estimated_cost_usd ?? 0),
-    0
-  );
-
-  const activeUsersDb = new Set(generations.map((g) => (g as { user_id?: string }).user_id).filter(Boolean)).size;
-
-  return {
-    commandCenter: kpis,
-    analyticsOverview: overview,
-    db: {
-      generationsToday: generations.length,
-      generationSuccessRate: generations.length ? (successCount / generations.length) * 100 : null,
-      revenueTodayEur: Math.round(revenueTodayDb * 100) / 100,
-      aiCostTodayUsd: Math.round(aiCostTodayDb * 1000000) / 1000000,
-      activeUsersToday: activeUsersDb,
-      jobsToday: jobsRes.count ?? 0,
-    },
-    deltas: {
-      generationsToday: kpis.generationsToday - generations.length,
-      revenueToday:
-        kpis.revenueToday != null ? Math.round((kpis.revenueToday - revenueTodayDb) * 100) / 100 : null,
-      aiCostToday:
-        kpis.aiCostToday != null ? Math.round((kpis.aiCostToday - aiCostTodayDb) * 1000000) / 1000000 : null,
-      activeUsersToday: kpis.activeUsersToday - activeUsersDb,
-    },
-    byTool: await getGenerationsByTool(1),
-    revenueByMonth: await getRevenueByMonth(1),
-    checkedAt: new Date().toISOString(),
-  };
+  const revenue=orders.reduce((sum,row)=>sum+Number(row.amount_cents),0)/100;
+  const cost=costs.some(row=>row.provider_cost_usd==null) ? null : costs.reduce((sum,row)=>sum+Number(row.provider_cost_usd),0);
+  const activeUsers=new Set(jobs.map(row=>row.user_id).filter(Boolean)).size;
+  const terminal=jobs.filter(row=>["completed","failed","cancelled"].includes(row.status));
+  return {commandCenter:kpis,analyticsOverview:snapshot.overview,
+    db:{generationsToday:jobs.length,generationSuccessRate:terminal.length?terminal.filter(row=>row.status==="completed").length/terminal.length*100:null,revenueTodayEur:revenue,aiCostTodayUsd:cost,activeUsersToday:activeUsers,jobsToday:jobs.length},
+    deltas:{generationsToday:kpis.generationsToday-jobs.length,revenueToday:kpis.revenueToday==null?null:kpis.revenueToday-revenue,aiCostToday:kpis.aiCostToday==null||cost==null?null:kpis.aiCostToday-cost,activeUsersToday:kpis.activeUsersToday-activeUsers},
+    byTool:await getGenerationsByTool(1),revenueByMonth:await getRevenueByMonth(1),checkedAt:new Date().toISOString()};
 }

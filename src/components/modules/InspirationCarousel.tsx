@@ -12,6 +12,7 @@ import {
 } from "@/lib/modules/imazh/inspiration";
 import type { PromptAttach } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils/cn";
+import { GuestPresetPreview } from "@/components/presets/GuestPresetPreview";
 
 /** Full-width auto-scrolling preset/inspiration strip — 1:1 tiles, no pause on hover. */
 export function InspirationCarousel({
@@ -20,12 +21,14 @@ export function InspirationCarousel({
   loading = false,
   activePresetId,
   onPresetSelect,
+  guest = false,
 }: {
   items: InspirationItem[];
   module?: string;
   loading?: boolean;
   activePresetId?: string | null;
   onPresetSelect?: (attach: PromptAttach) => void;
+  guest?: boolean;
 }) {
   const doubled = [...items, ...items];
 
@@ -47,9 +50,9 @@ export function InspirationCarousel({
   };
 
   return (
-    <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden pb-8 sm:-mx-6 sm:w-[calc(100%+3rem)] sm:pb-10 lg:-mx-[max(1.5rem,calc((100vw-100%)/2))] lg:w-screen lg:max-w-[100vw]">
-      <div className="flex w-max animate-hub-carousel gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none sm:px-6">
-        {doubled.map((item, i) => {
+    <div className={cn("relative -mx-4 w-[calc(100%+2rem)] pb-8 sm:-mx-6 sm:w-[calc(100%+3rem)] sm:pb-10 lg:-mx-[max(1.5rem,calc((100vw-100%)/2))] lg:w-screen lg:max-w-[100vw]", guest ? "overflow-x-auto" : "overflow-hidden")}>
+      <div className={cn("flex w-max gap-[var(--carousel-gap)] px-4 motion-reduce:animate-none sm:px-6", !guest && "animate-hub-carousel")}>
+        {(guest ? items : doubled).map((item, i) => {
           const isActive = Boolean(activePresetId && item.preset?.id === activePresetId);
           return (
             <button
@@ -77,6 +80,7 @@ export function InspirationCarousel({
             </button>
           );
         })}
+        {guest && !loading && [0, 1].map(index => <GuestPresetPreview key={`locked-${index}`} previewUrl={items[index]?.imageUrl} className="h-[var(--carousel-card-h)] w-[var(--carousel-card-w)] shrink-0" />)}
       </div>
     </div>
   );

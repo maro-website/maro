@@ -43,9 +43,9 @@ export function WizardStepLayout({
         </div>
       </div>
 
-      <h1 className="marologo-step-title mb-10">{title}</h1>
+      <h1 className="marologo-step-title mb-8">{title}</h1>
 
-      <div className="space-y-[30px]">{children}</div>
+      <div className="space-y-8">{children}</div>
 
       <div className="mt-10">
         {nextExtra ?? (

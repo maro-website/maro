@@ -1,10 +1,12 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
 
 import { AttachmentPicker } from "@/components/app/AttachmentPicker";
 import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attachments";
-import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft } from "@/lib/services/composerDraft";
+import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft, newConversationDraft } from "@/lib/services/composerDraft";
+import { EXPLORE_REMIX_KEY, type ExploreRemix } from "@/lib/explore/remix";
 import { activeConversationKey, conversationHistory, imageConversationId, type ConversationJob } from "@/lib/creations/conversations";
 import { buildGenerationSelections } from "@/lib/marologo/generation";
 import { fetchConversationHistory } from "@/lib/services/creationsService";
@@ -251,9 +253,10 @@ export function ToolComposer({
   const setPromptAttach = React.useCallback(
     (attach: PromptAttach | null) => {
       setPromptAttachInternal(attach);
+      if (attach) setPrompt(current => current.trim() ? current : presetInitialPrompt(attach.tool, attach.config));
       if (promptAttachControlled) onPromptAttachChange!(attach);
     },
-    [promptAttachControlled, onPromptAttachChange, setPromptAttachInternal]
+    [promptAttachControlled, onPromptAttachChange, setPromptAttachInternal, setPrompt]
   );
   const presetHydration = React.useRef<{ key: string; prop: PromptAttach | null | undefined } | null>(null);
   React.useEffect(() => {
@@ -264,8 +267,9 @@ export function ToolComposer({
     } else if (presetHydration.current.prop !== promptAttachProp) {
       presetHydration.current.prop = promptAttachProp;
       setPromptAttachInternal(promptAttachProp ?? null);
+      if (promptAttachProp) setPrompt(current => current.trim() ? current : presetInitialPrompt(promptAttachProp.tool, promptAttachProp.config));
     }
-  }, [draftReady, ready, draftKey, promptAttachControlled, promptAttachProp, promptAttachInternal, onPromptAttachChange, setPromptAttachInternal]);
+  }, [draftReady, ready, draftKey, promptAttachControlled, promptAttachProp, promptAttachInternal, onPromptAttachChange, setPromptAttachInternal, setPrompt]);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [serverHistory, setServerHistory] = React.useState<{ scope: string; items: ImageCreation[]; jobs: ConversationJob[] }>({ scope: "", items: [], jobs: [] });
   const [historyError, setHistoryError] = React.useState(false);
@@ -460,20 +464,6 @@ export function ToolComposer({
       }
     }
 
-    // Remix from Explore — pre-fill prompt
-    try {
-      const remixRaw = sessionStorage.getItem("maro:remix");
-      if (remixRaw) {
-        const remix = JSON.parse(remixRaw) as { prompt?: string; toolId?: string; remixOf?: string };
-        if (!remix.toolId || remix.toolId === tool.id) {
-          if (remix.prompt) setPrompt(remix.prompt);
-        }
-        sessionStorage.removeItem("maro:remix");
-      }
-    } catch {
-      /* ignore */
-    }
-
     // Re-seed whenever the tool OR the ?open= target changes (clicking another
     // recent card while already on the same tool page).
   }, [tool, openId, setPromptAttach, setPrompt, setPrivateImageAttachments, draftReady, ready]);
@@ -652,6 +642,20 @@ export function ToolComposer({
     },
     [isImage, isWebsite, queuePrivateImageFiles, toast, setAttachments]
   );
+
+  React.useEffect(() => {
+    if (!draftReady || !ready || tool.id !== "reklama") return;
+    try {
+      const raw = sessionStorage.getItem(EXPLORE_REMIX_KEY);
+      if (!raw) return;
+      const remix = JSON.parse(raw) as ExploreRemix;
+      if (remix.toolId !== tool.id) return;
+      sessionStorage.removeItem(EXPLORE_REMIX_KEY);
+      setPromptAttach(null);
+      setPrompt(remix.prompt || "maro");
+      if (remix.imageUrl) void addImageUrl(remix.imageUrl);
+    } catch { sessionStorage.removeItem(EXPLORE_REMIX_KEY); }
+  }, [draftReady, ready, tool.id, addImageUrl, setPrompt, setPromptAttach]);
 
   const addImageFiles = React.useCallback(
     (files: File[]) => {
@@ -1141,6 +1145,7 @@ export function ToolComposer({
           {historyError && <p role="alert" className="mb-4 text-sm text-ink-2">Biseda nuk u ngarkua. <button type="button" className="underline" onClick={() => setHistoryRefresh(value => value + 1)}>Provo përsëri</button></p>}
           {(requestedConversation || history.length > 0 || recoveredJobs.length > 0) && <div className="mb-4 flex items-center justify-between gap-3"><span className="text-sm text-ink-3">Biseda · {history.length} gjenerime</span><Button size="sm" variant="secondary" disabled={loading || recoveredPending} onClick={() => {
             const id = crypto.randomUUID();
+            saveComposerDraft(composerDraftKey(user?.id, workspaceId, `${tool.id}:${id}`), newConversationDraft({ ...currentComposerDraft(draftKey), prompt, promptAttach }));
             try { localStorage.setItem(conversationScope, id); } catch { /* Ignore unavailable browser storage. */ }
             router.push(`${tool.route}?chat=${id}`);
           }}>Chat i ri</Button></div>}

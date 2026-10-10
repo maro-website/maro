@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
 import { getAccessToken } from "@/lib/supabase/client";
@@ -40,8 +41,6 @@ export function CommandCenterDashboard() {
 
   React.useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), 60_000);
-    return () => clearInterval(id);
   }, [load]);
 
   return (
@@ -56,7 +55,7 @@ export function CommandCenterDashboard() {
       ) : (
         <>
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <KpiCard label="Revenue Today" value={fmt(kpis?.revenueToday ?? null, kpis?.revenueTodayAvailable ?? false, " ALL")} />
+            <KpiCard label="Arkëtimet sot · bruto" value={fmt(kpis?.revenueToday ?? null, kpis?.revenueTodayAvailable ?? false, " EUR")} />
             <KpiCard label="AI Cost Today" value={fmt(kpis?.aiCostToday ?? null, kpis?.aiCostTodayAvailable ?? false, " USD")} />
             <KpiCard
               label="Gross Margin"
@@ -77,7 +76,7 @@ export function CommandCenterDashboard() {
           </div>
 
           <div className="mt-3 text-[11px] text-ink-3">
-            Production freeze: Engine LIVE blocked · maroWeb shadow only · prompt_compiler_v2=false
+            Arkëtimet përjashtojnë pagesat testuese. Kostot AI janë në USD; marzhi i fitimit nuk llogaritet.
             {kpis?.updatedAt ? ` · Updated ${kpis.updatedAt.slice(11, 19)}` : null}
           </div>
         </>

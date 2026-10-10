@@ -1,3 +1,4 @@
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 import type { ResolvedEntitlements, UpgradeQuote } from "./types";
 
 export interface CommerceEntitlementsPayload {

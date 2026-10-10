@@ -1,15 +1,18 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { useMaro } from "@/context/store";
+import { hasPermission } from "@/lib/admin/permissions";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 import { adminRequest, Section } from "./shared";
-import { V1Operations } from "./V1Operations";
-type Configuration = { modules: Array<{ module: string; configured: boolean; models: Array<{ key: string; label: string; enabled: boolean; isDefault: boolean; customerCredits: number }>; system: { version: string } | null; layers: number }> };
+type Configuration = { modules: Array<{ module: string; configured: boolean; models: Array<{ key: string; label: string; enabled: boolean; isDefault: boolean; customerCredits: number }> }> };
 export function V1Overview() {
-  const [data, setData] = React.useState<Configuration | null>(null); const [error, setError] = React.useState("");
-  React.useEffect(() => { adminRequest<Configuration>("/api/admin/v1/configuration").then(setData).catch((e) => setError(e.message)); }, []);
-  return <div className="space-y-6 p-6 text-ink"><h1 className="text-2xl font-bold">V1 Overview</h1><p role="status">{error}</p><div className="grid gap-4 lg:grid-cols-2">{data?.modules.map((m) => <Section key={m.module} title={m.module === "maro_logo" ? "maroLogo" : "maroImazh"}>
-    <p>{m.configured ? "Production configuration available" : "Configuration needs attention"}</p><p className="text-sm">Published prompt: {m.system?.version ?? "unavailable"} · {m.layers} production instructions</p>
-    {m.models.map((model) => <p key={model.key} className="text-sm">{model.label}: {model.enabled ? "enabled" : "disabled"}{model.isDefault ? " · default" : ""} · {model.customerCredits} credits</p>)}
-    <Link className="text-sm font-semibold underline" href={`/admin/engine/tools/${m.module}`}>Manage configuration</Link>
-  </Section>)}</div><p className="text-sm text-ink-3">Configuration readiness does not verify provider uptime. Future modules remain parked under the V1 release policy.</p><V1Operations compact /></div>;
+  const { accessRole } = useMaro();
+  const canViewEngine = hasPermission(accessRole,"engine.view");
+  const [data,setData] = React.useState<Configuration | null>(null); const [error,setError]=React.useState("");
+  React.useEffect(() => { if (canViewEngine) adminRequest<Configuration>("/api/admin/v1/configuration").then(setData).catch(() => setError("Konfigurimi nuk u ngarkua.")); },[canViewEngine]);
+  return <div className="space-y-8"><AdminPageHeader title="Maro Admin" description="Gjendja e platformës, aktiviteti dhe veprimet kryesore në një vend." /><AnalyticsPanel compact />
+    {canViewEngine && <section><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-bold text-ink">Mjetet aktive · V1</h2><Link href="/admin/engine/generations" className="maro-button" data-variant="secondary">Shiko gjenerimet</Link></div>{error && <p role="alert" className="mb-4 text-danger">{error}</p>}<div className="grid gap-4 lg:grid-cols-2">{data?.modules.map(module => <Section key={module.module} title={module.module === "maro_logo" ? "maroLogo" : "maroImazh"}><p className="text-sm text-ink-3">{module.configured ? "Konfigurimi i prodhimit është gati" : "Konfigurimi kërkon kontroll"}</p><div className="divide-y divide-line">{module.models.map(model => <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm" key={model.key}><span className="font-semibold text-ink">{model.label}<span className="ml-2 font-normal text-ink-3">{model.isDefault ? "Parazgjedhje" : ""}</span></span><span className="text-ink-3">{model.enabled ? `${model.customerCredits} kredite` : "Joaktiv"}</span></div>)}</div><Link href={`/admin/engine/tools/${module.module}`} className="maro-button" data-variant="secondary">Menaxho mjetin</Link></Section>)}</div></section>}
+  </div>;
 }

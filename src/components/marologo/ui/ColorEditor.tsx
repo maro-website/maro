@@ -25,68 +25,71 @@ export function ColorEditor({
 }) {
   const content = useLogoContent();
   const [draft, setDraft] = React.useState("#00ff72");
+  const [feedback, setFeedback] = React.useState("");
   const customActive = mode === "custom";
 
   const addColor = () => {
     const hex = normalizeHex(draft);
-    if (!hex) return;
+    if (!hex) { setFeedback("Shkruaj një ngjyrë HEX të vlefshme, p.sh. #00FF72."); return; }
     if (values.length >= MAX_COLORS) return;
-    if (values.includes(hex)) return;
+    if (values.some(value => normalizeHex(value) === hex)) { setFeedback("Kjo ngjyrë është shtuar tashmë."); return; }
+    setFeedback("");
     onModeChange("custom");
     onValuesChange([...values, hex]);
   };
 
-  const removeColor = (hex: string) => {
-    onValuesChange(values.filter((v) => v !== hex));
+  const removeColor = (index: number) => {
+    setFeedback("");
+    onValuesChange(values.filter((_, i) => i !== index));
   };
 
   const updateColor = (index: number, raw: string) => {
-    const hex = normalizeHex(raw);
-    if (!hex) {
-      const next = [...values];
-      next[index] = raw;
-      onValuesChange(next);
-      return;
-    }
     const next = [...values];
-    next[index] = hex;
+    next[index] = raw;
     onValuesChange(next);
   };
 
   return (
     <div className="space-y-[20px]">
-      <h3 className="text-base font-semibold text-ink">{content["look.colors"].label}</h3>
+      <h3 className="text-xl font-semibold text-ink">{content["look.colors"].label}</h3>
 
       <div className={cn(!customActive && "opacity-50 pointer-events-none")}>
         <span className="marologo-field-label mb-[10px] block">Kam ngjyra:</span>
         <div className="space-y-[10px]">
           {values.map((hex, i) => (
-            <div key={`${hex}-${i}`} className="marologo-card flex items-center gap-[10px] px-[20px] py-[10px]">
-              <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-lg">
-                <span className="block h-full w-full" style={{ background: normalizeHex(hex) ?? hex }} />
+            <div key={i} className="marologo-card flex items-center gap-3 p-3">
+              <label className="relative h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-maro12 border border-line-strong">
+                <span className="block h-full w-full" style={{ background: normalizeHex(hex) ?? "var(--maro-color-bg-surface-02)" }} />
                 <input
                   aria-label={`Ngjyra ${i + 1}`}
                   disabled={!customActive}
                   type="color"
                   value={normalizeHex(hex) ?? "#00ff72"}
                   onChange={(e) => updateColor(i, e.target.value)}
-                  className="absolute inset-0 cursor-pointer opacity-0"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 />
               </label>
-              <input
+              <Input
                 aria-label={`Ngjyra ${i + 1} HEX`}
                 disabled={!customActive}
                 type="text"
                 value={hex}
                 onChange={(e) => updateColor(i, e.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none"
+                maxLength={7}
+                spellCheck={false}
+                aria-invalid={!normalizeHex(hex) || undefined}
+                onBlur={() => {
+                  const clean = normalizeHex(hex);
+                  if (clean) updateColor(i, clean);
+                }}
+                className="min-w-0 flex-1 font-mono uppercase"
               />
               <button
                 disabled={!customActive}
                 type="button"
                 aria-label="Hiq ngjyrën"
-                onClick={() => removeColor(hex)}
-                className="rounded-lg p-2 text-ink-3 hover:bg-surface-2 hover:text-ink"
+                onClick={() => removeColor(i)}
+                className="maro-icon-button text-ink-3 hover:text-danger"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -95,12 +98,17 @@ export function ColorEditor({
         </div>
         {values.length < MAX_COLORS && (
           <div className="mt-[10px] flex gap-[10px]">
+            <label className="relative h-[52px] w-[52px] shrink-0 overflow-hidden rounded-maro12 border border-line-strong">
+              <span className="block h-full w-full" style={{ background: normalizeHex(draft) ?? "var(--maro-color-bg-surface-02)" }} />
+              <input type="color" aria-label="Zgjedh ngjyrën e re" disabled={!customActive} value={normalizeHex(draft) ?? "#00ff72"} onChange={event => setDraft(event.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+            </label>
             <Input
               aria-label="Ngjyra e re HEX"
               disabled={!customActive}
               type="text"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => { setDraft(e.target.value); setFeedback(""); }}
+              maxLength={7}
               placeholder={content["look.colors"].placeholder}
               className="min-w-0 flex-1"
             />
@@ -108,7 +116,7 @@ export function ColorEditor({
               type="button"
               onClick={addColor}
             >
-              SHTO +
+              Shto
             </Button>
           </div>
         )}
@@ -120,7 +128,7 @@ export function ColorEditor({
         label="Leja maro le t'vendos"
       />
 
-      {error && <p className="text-[12px] text-danger">{error}</p>}
+      {(feedback || error) && <p role="alert" className="text-sm text-danger">{feedback || error}</p>}
     </div>
   );
 }

@@ -1,21 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mock = vi.hoisted(() => ({
-  role: "administrator", signedIn: true, mfa: true,
+  role: "administrator", signedIn: true, mfa: true, freshMfa: true,
   rpc: vi.fn(), from: vi.fn(), tables: {} as Record<string, { data: unknown[]; error: unknown }>,
 }));
 vi.mock("@/lib/admin/mfa", () => ({ assertAdminMfa: async () => mock.mfa ? { ok: true } : { ok: false, reason: "mfa_challenge_required" } }));
+vi.mock("@/lib/admin/actionMfa", () => ({ verifyAdminActionMfa: async () => mock.freshMfa ? null : Response.json({ error: "mfa_code_invalid" }, { status: 403 }) }));
 vi.mock("@/lib/supabase/server", () => ({
   supabaseServerConfigured: () => true,
   getUserFromToken: async () => mock.signedIn ? { id: "11111111-1111-4111-8111-111111111111" } : null,
   getProfileCredits: async () => ({ access_role: mock.role }),
   getSupabaseAdmin: () => ({ from: mock.from, rpc: mock.rpc }),
 }));
-import { GET, POST } from "@/app/api/admin/users/plan/route";
+import { GET, POST, PATCH } from "@/app/api/admin/users/plan/route";
 
 const userId = "22222222-2222-4222-8222-222222222222";
 const grantId = "33333333-3333-4333-8333-333333333333";
-const body = { userId, grantId, planId: "pro", durationDays: 30, note: "Plan i falur" };
+const body = { userId, grantId, planId: "pro", durationDays: 30, note: "Plan i falur", mfaCode: "123456" };
 const post = (payload: unknown = body) => POST(new Request("http://localhost/api/admin/users/plan", {
   method: "POST", headers: { Authorization: "Bearer test-only" }, body: JSON.stringify(payload),
 }));
@@ -25,7 +26,7 @@ const get = () => GET(new Request(`http://localhost/api/admin/users/plan?userId=
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mock.role = "administrator"; mock.signedIn = true; mock.mfa = true;
+  mock.role = "administrator"; mock.signedIn = true; mock.mfa = true; mock.freshMfa = true;
   mock.tables = {
     commerce_plans: { data: [{ id: "pro", display_name: "maroPro", duration_days: 30 }], error: null },
     memberships: { data: [{ id: grantId, plan_id: "pro", started_at: "2026-10-05", expires_at: "2026-11-04", suspended: false }], error: null },
@@ -41,6 +42,16 @@ beforeEach(() => {
 });
 
 describe("manual plan admin endpoint", () => {
+  it("requires fresh MFA for both grant and replacement even with an existing AAL2 session", async () => {
+    mock.freshMfa = false;
+    expect((await post()).status).toBe(403);
+    const response = await PATCH(new Request("http://localhost/api/admin/users/plan", { method: "PATCH", body: JSON.stringify({ ...body, expectedMembershipId: null }), headers: { Authorization: "Bearer test-only" } }));
+    expect(response.status).toBe(403); expect(mock.rpc).not.toHaveBeenCalled();
+  });
+  it("passes the expected current membership and authenticated actor into the atomic replacement", async () => {
+    const response = await PATCH(new Request("http://localhost/api/admin/users/plan", { method: "PATCH", body: JSON.stringify({ ...body, planId: "free", expectedMembershipId: grantId }), headers: { Authorization: "Bearer test-only" } }));
+    expect(response.status).toBe(200); expect(mock.rpc).toHaveBeenCalledWith("admin_change_user_plan", expect.objectContaining({ p_actor: "11111111-1111-4111-8111-111111111111", p_user: userId, p_plan: "free", p_expected_membership: grantId }));
+  });
   it("uses the authenticated actor and an access-only RPC", async () => {
     expect((await post()).status).toBe(200);
     expect(mock.rpc).toHaveBeenCalledExactlyOnceWith("admin_grant_plan", {

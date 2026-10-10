@@ -1,4 +1,6 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
+
 import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 import { clearLogoDrafts } from "@/lib/marologo/draft";
 import { clearComposerDrafts } from "@/lib/services/composerDraft";

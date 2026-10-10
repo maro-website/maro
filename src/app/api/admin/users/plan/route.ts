@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/admin/auth";
 import { hasPermission } from "@/lib/admin/permissions";
+import { verifyAdminActionMfa } from "@/lib/admin/actionMfa";
 import type { AdminUserPlans } from "@/lib/admin/userPlans";
 import { getSupabaseAdmin, supabaseServerConfigured } from "@/lib/supabase/server";
 
@@ -15,6 +16,7 @@ const grantSchema = z.object({
   durationDays: z.number().int().min(1).max(365),
   note: z.string().trim().min(3).max(1000),
   grantId: z.uuid(),
+  mfaCode: z.string().regex(/^\d{6}$/),
 }).strict();
 
 export async function GET(req: Request) {
@@ -35,7 +37,7 @@ export async function GET(req: Request) {
   const ids = rows.map(row => String(row.id));
   const [audits, orders] = ids.length ? await Promise.all([
     admin.from("audit_events").select("target_id, metadata, created_at")
-      .eq("action", "users.plan_granted_manually").eq("target_type", "membership").in("target_id", ids),
+      .in("action", ["users.plan_granted_manually", "users.plan_changed"]).in("target_type", ["membership", "plan_change"]).in("target_id", ids),
     admin.from("credit_orders").select("membership_id, amount_cents, provider")
       .eq("user_id", userId).eq("status", "paid").in("membership_id", ids),
   ]) : [{ data: [], error: null }, { data: [], error: null }];
@@ -77,6 +79,8 @@ export async function POST(req: Request) {
   const parsed = grantSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   const grant = parsed.data;
+  const mfaFailure = await verifyAdminActionMfa(req, auth.admin.userId, grant.mfaCode);
+  if (mfaFailure) return mfaFailure;
   const { data, error } = await getSupabaseAdmin().rpc("admin_grant_plan", {
     p_actor: auth.admin.userId,
     p_user: grant.userId,
@@ -95,5 +99,32 @@ export async function POST(req: Request) {
       : ["existing_plan", "idempotency_conflict"].includes(result?.error ?? "") ? 409 : 400;
     return NextResponse.json({ error: result?.error ?? "grant_failed" }, { status });
   }
+  return NextResponse.json({ ok: true, already: result.already, membershipId: result.membership_id, expiresAt: result.expires_at });
+}
+
+const changeSchema = grantSchema.extend({
+  planId: z.enum(["free", "standard", "pro", "business"]),
+  expectedMembershipId: z.uuid().nullable(),
+}).strict();
+
+export async function PATCH(req: Request) {
+  if (!supabaseServerConfigured()) return NextResponse.json({ error: "not-configured" }, { status: 503 });
+  const auth = await requirePermission(req, "users.manage");
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const bounded = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+  if (!bounded.ok) return bounded.response;
+  const parsed = changeSchema.safeParse(bounded.body);
+  if (!parsed.success) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  const change = parsed.data;
+  const mfaFailure = await verifyAdminActionMfa(req, auth.admin.userId, change.mfaCode);
+  if (mfaFailure) return mfaFailure;
+  const { data, error } = await getSupabaseAdmin().rpc("admin_change_user_plan", {
+    p_actor: auth.admin.userId, p_user: change.userId, p_plan: change.planId,
+    p_duration_days: change.durationDays, p_note: change.note,
+    p_change_id: change.grantId, p_expected_membership: change.expectedMembershipId,
+  });
+  if (error || !data) return NextResponse.json({ error: error?.code === "PGRST202" ? "rpc_missing" : "change_failed" }, { status: 503 });
+  const result = data as { ok?: boolean; error?: string; already?: boolean; membership_id?: string | null; expires_at?: string | null };
+  if (!result.ok) return NextResponse.json({ error: result.error ?? "change_failed" }, { status: result.error === "user_not_found" ? 404 : result.error === "forbidden" ? 403 : 409 });
   return NextResponse.json({ ok: true, already: result.already, membershipId: result.membership_id, expiresAt: result.expires_at });
 }

@@ -68,6 +68,7 @@ export function ImazhWorkspace({ toolId }: { toolId: string }) {
       <div className="hidden lg:block"><InspirationCarousel
         items={carouselItems}
         loading={loading}
+        guest={!user}
         activePresetId={promptAttach?.id ?? null}
         onPresetSelect={onPresetSelect}
       /></div>

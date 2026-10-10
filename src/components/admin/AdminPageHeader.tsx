@@ -14,8 +14,8 @@ export function AdminPageHeader({
   return (
     <div className={cn("maro-page-header", className)}>
       <div>
-        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-ink">{title}</h1>
-        {description ? <p className="mt-[10px] text-[13px] text-ink-2">{description}</p> : null}
+        <h1 className="maro-page-title text-ink">{title}</h1>
+        {description ? <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-2">{description}</p> : null}
       </div>
       {actions ? <div className="maro-action-row">{actions}</div> : null}
     </div>

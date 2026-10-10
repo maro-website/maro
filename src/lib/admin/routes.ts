@@ -75,7 +75,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     id: "command",
     label: "Maro V1",
-    items: [{ href: ADMIN_ROUTES.dashboard, label: "Overview", permission: "admin.access", icon: LayoutDashboard }],
+    items: [{ href: ADMIN_ROUTES.dashboard, label: "Përmbledhja", permission: "admin.access", icon: LayoutDashboard }],
   },
   {
     id: "users",
@@ -88,12 +88,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     id: "engine",
-    label: "Product",
+    label: "Mjetet & Presetet",
     items: [
       { href: "/admin/engine/tools/maro_imazh", label: "maroImazh", permission: "engine.view", product: "maroImazh" },
       { href: "/admin/engine/tools/maro_logo", label: "maroLogo", permission: "engine.view", icon: Cpu },
       { href: "/admin/engine/brain", label: "maroBrain", permission: "engine.view", product: "maroBrain" },
-      { href: "/admin/engine/generations", label: "Generations", permission: "operations.view", icon: LayoutDashboard },
+      { href: "/admin/engine/generations", label: "Gjenerimet", permission: "operations.view", icon: LayoutDashboard },
       { href: ADMIN_ROUTES.presets, label: "maroPresets", permission: "presets.manage", product: "maroPresets" },
     ],
   },
@@ -102,9 +102,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Përmbajtja",
     items: [
       { href: ADMIN_ROUTES.notifications, label: "Njoftimet", permission: "notifications.manage", icon: Megaphone },
-      { href: ADMIN_ROUTES.loginAds, label: "Login Ads", permission: "notifications.manage", icon: ImageIcon },
+      { href: ADMIN_ROUTES.loginAds, label: "Reklamat e hyrjes", permission: "notifications.manage", icon: ImageIcon },
       { href: ADMIN_ROUTES.emails, label: "Emailat", permission: "emails.manage", icon: Mail },
-      { href: ADMIN_ROUTES.help, label: "Help Center", permission: "help.manage" },
+      { href: ADMIN_ROUTES.help, label: "Qendra e ndihmës", permission: "help.manage" },
     ],
   },
   {
@@ -134,18 +134,18 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Analitika",
     items: [
       { href: ADMIN_ROUTES.analytics.overview, label: "Përmbledhje", permission: "analytics.view", icon: BarChart3 },
-      { href: ADMIN_ROUTES.analytics.presets, label: "maroPresets", permission: "analytics.view" },
+      { href: ADMIN_ROUTES.analytics.presets, label: "Statistikat e preseteve", permission: "analytics.view" },
     ],
   },
   {
     id: "operations",
     label: "Operacionet",
     items: [
-      { href: ADMIN_ROUTES.operations.audit, label: "Audit Log", permission: "audit.view" },
-      { href: ADMIN_ROUTES.operations.logs, label: "Logs", permission: "operations.view" },
+      { href: ADMIN_ROUTES.operations.audit, label: "Historiku i veprimeve", permission: "audit.view" },
+      { href: ADMIN_ROUTES.operations.logs, label: "Log-et e sistemit", permission: "operations.view" },
       { href: ADMIN_ROUTES.operations.security, label: "Siguria & Kostot", permission: "security.manage" },
 
-      { href: ADMIN_ROUTES.operations.retention, label: "Retention", permission: "security.manage" },
+      { href: ADMIN_ROUTES.operations.retention, label: "Ruajtja e të dhënave", permission: "security.manage" },
     ],
   },
 ];

@@ -1,4 +1,6 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
+
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

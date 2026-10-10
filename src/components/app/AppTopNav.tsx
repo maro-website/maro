@@ -14,6 +14,8 @@ import { iconSrc } from "@/lib/tools/iconMap";
 import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
 import { formatCredits } from "@/lib/credits/format";
+import { Badge } from "@/components/ui/Badge";
+import { StableImage } from "@/components/app/StableImage";
 import { Coins, Compass, Home, Menu, Megaphone } from "lucide-react";
 
 function ModuleNavIcon({
@@ -26,7 +28,7 @@ function ModuleNavIcon({
   const cls = cn("h-5 w-5 shrink-0", active ? "text-brand" : "text-ink");
   const brand = getProductBrand(dest.label);
   if (dest.id === "explore") return <Compass className={cls} />;
-  if (brand && brand.id !== "maroFort") return <ToolIcon toolId={brand.id} className={cls} />;
+  if (brand && brand.id !== "maroFort") return <StableImage src={brand.icon} alt="" className="h-5 w-5 shrink-0 rounded-full" />;
   if (dest.toolId) {
     return <ToolIcon toolId={dest.toolId} fallback={Megaphone} className={cls} />;
   }
@@ -39,9 +41,11 @@ function ModuleNavIcon({
 export function AppTopNav({
   onOpenDrawer,
   className,
+  adminRoleLabel,
 }: {
   onOpenDrawer?: () => void;
   className?: string;
+  adminRoleLabel?: string;
 }) {
   const pathname = usePathname();
   const { user, credits } = useMaro();
@@ -78,7 +82,7 @@ export function AppTopNav({
           <button
             type="button"
             onClick={onOpenDrawer}
-            className="maro-icon-button shrink-0 bg-surface lg:hidden"
+            className="maro-icon-button shrink-0 bg-surface lg:!hidden"
             aria-label="Menu"
           >
             <Menu className="h-5 w-5" />
@@ -91,7 +95,7 @@ export function AppTopNav({
       </div>
 
       <nav
-        className="maro-nav scroll-thin hidden min-w-0 flex-1 overflow-x-auto py-2 lg:flex"
+        className="maro-nav scroll-thin !hidden min-w-0 flex-1 overflow-x-auto py-2 lg:!flex"
         aria-label="Navigimi kryesor"
         onPointerLeave={() => setHoveredIndex(null)}
       >
@@ -114,10 +118,12 @@ export function AppTopNav({
                 className="maro-nav__link"
                 onPointerEnter={() => setHoveredIndex(navIndex)}
                 data-active={active || undefined}
+                data-upcoming={dest.comingSoon || undefined}
+                title={dest.badge}
                 aria-current={active ? "page" : undefined}
               >
                 <ModuleNavIcon dest={dest} active={active} />
-                {getProductBrand(dest.label)?.displayName ?? dest.label}
+                <span className="maro-nav__label">{getProductBrand(dest.label)?.displayName ?? dest.label}</span>
               </Link>
             </React.Fragment>
           );
@@ -125,6 +131,7 @@ export function AppTopNav({
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">
+        {adminRoleLabel && <Badge tone="brand" className="hidden sm:inline-flex">{adminRoleLabel}</Badge>}
         {user && (
           <Link
             href="/pricing"

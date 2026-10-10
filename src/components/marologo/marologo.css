@@ -16,10 +16,20 @@
 }
 
 .marologo-card {
-  border: 0;
+  border: 1px solid var(--maro-color-border-subtle);
   border-radius: var(--maro-radius-16);
   background: var(--surface-01);
   box-shadow: none;
+}
+
+.marologo-upload {
+  border: 2px dashed var(--maro-color-border-interactive);
+  border-radius: var(--maro-radius-20);
+  background: var(--maro-color-bg-surface);
+}
+.marologo-upload:hover, .marologo-upload[data-dragging="true"] {
+  border-color: var(--maro-color-border-focus);
+  background: var(--maro-color-accent-subtle);
 }
 
 .marologo-field-label {
@@ -30,7 +40,7 @@
 }
 
 .marologo-step-title {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(1.75rem, 4vw, 2rem);
   font-weight: var(--maro-font-weight-bold);
   line-height: var(--maro-line-height-heading);
   letter-spacing: var(--maro-tracking-brand);

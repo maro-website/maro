@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 

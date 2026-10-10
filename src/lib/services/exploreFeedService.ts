@@ -1,7 +1,9 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { getAccessToken } from "@/lib/supabase/client";
 import type { ExploreItemExtended, ExploreSort } from "@/lib/explore/types";
+import { buildExploreRemix, EXPLORE_REMIX_KEY } from "@/lib/explore/remix";
 
 export async function exploreWrite(path: string, method: "POST" | "PATCH" | "DELETE", input: Record<string, unknown>): Promise<Record<string, unknown>> {
   const token = await getAccessToken();
@@ -83,21 +85,9 @@ export async function fetchCreationBySlug(slug: string): Promise<ExploreItemExte
 }
 
 export async function remixCreation(item: ExploreItemExtended): Promise<void> {
-  sessionStorage.setItem(
-    "maro:remix",
-    JSON.stringify({
-      prompt: item.prompt,
-      toolId: item.tool_id,
-      remixOf: item.id,
-    })
-  );
-  const route =
-    item.tool_id === "logo"
-      ? "/marologo"
-      : item.tool_id === "website"
-      ? "/web"
-      : "/imazh";
-  window.location.href = route;
+  sessionStorage.setItem(EXPLORE_REMIX_KEY, JSON.stringify(buildExploreRemix(item)));
+  // Explore publishes images, including logos. Remix uses the V1 image composer.
+  window.location.href = `/imazh?chat=${crypto.randomUUID()}`;
 }
 
 export async function toggleFollow(creatorId: string, follow: boolean): Promise<boolean> {

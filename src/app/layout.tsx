@@ -6,6 +6,7 @@ import { WorkspaceProvider } from "@/context/workspace";
 import { ThemeProvider } from "@/context/theme";
 import { ToastProvider } from "@/components/ui/Toast";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { RateLimitNotice } from "@/components/app/RateLimitNotice";
 import { MARO_LOGO } from "@/lib/design/maro-system";
 
 import { THEME_INIT_SCRIPT } from "@/lib/security/headers";
@@ -58,6 +59,7 @@ export default async function RootLayout({
                 <ToastProvider>
                   {children}
                   <CookieBanner />
+                  <RateLimitNotice />
                 </ToastProvider>
               </WorkspaceProvider>
             </ThemeProvider>

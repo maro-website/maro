@@ -26,6 +26,8 @@ export function deriveMembershipStatus(
     return "BUSINESS_ACTIVE";
   }
 
+  if (membership.suspended) return "EXPIRED";
+
   if (expiresAt.getTime() <= now) return "EXPIRED";
 
   const renewalStart = new Date(expiresAt);
@@ -42,7 +44,12 @@ export function isActivePlanStatus(status: MembershipStatus): boolean {
 export async function getLatestMembership(userId: string): Promise<
   (MembershipRow & { renewal_window_days: number }) | null
 > {
-  const { data, error } = await getSupabaseAdmin()
+  const select = "*, commerce_plans!inner(renewal_window_days)";
+  const current = await getSupabaseAdmin().from("memberships").select(select).eq("user_id", userId)
+    .eq("suspended", false).lte("started_at", new Date().toISOString()).gt("expires_at", new Date().toISOString())
+    .order("expires_at", { ascending: false }).limit(1).maybeSingle();
+  if (current.error) return null;
+  const { data, error } = current.data ? current : await getSupabaseAdmin()
     .from("memberships")
     .select(
       "*, commerce_plans!inner(renewal_window_days)"

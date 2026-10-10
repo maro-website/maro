@@ -1,3 +1,4 @@
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 import { getAccessToken, getSupabaseBrowser } from "@/lib/supabase/client";
 import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 

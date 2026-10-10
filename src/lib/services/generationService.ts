@@ -1,3 +1,4 @@
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 // Staged UX for the generation screen. The visual pipeline below is decoupled
 // from the actual content generation (`generateSite`), which calls Claude Opus
 // 5 when an API key is configured and otherwise leaves the local factory

@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { PreviewThumb } from "@/components/website-previews/PreviewThumb";
 import { PreviewFallback } from "@/components/app/PreviewFallback";

@@ -327,7 +327,11 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
 
   if (!created.ok) {
     if ((ADMISSION_ERROR_CODES as readonly string[]).includes(created.code)) {
-      throw new GenerationGuardError(created.code === "concurrency_limit" ? 429 : 503, created.code);
+      const timed = created.code.includes("spend_limit");
+      const now = Date.now();
+      const windowMs = created.code.includes("daily") ? 86400000 : 3600000;
+      const retry = timed ? Math.ceil((windowMs - now % windowMs) / 1000) : undefined;
+      throw new GenerationGuardError(created.code === "concurrency_limit" || timed ? 429 : 503, created.code, undefined, retry ? { retry_after: retry } : undefined);
     }
     if (created.code === "job_idempotency_conflict") {
       throw new GenerationGuardError(409, "generation_in_progress", undefined, {
@@ -477,7 +481,7 @@ export function guardErrorResponse(err: unknown): Response {
   if (err instanceof GenerationGuardError) {
     return Response.json(
       { error: err.code, message: err.message, ...err.extra },
-      { status: err.status }
+      { status: err.status, headers: typeof err.extra?.retry_after === "number" ? { "Retry-After": String(err.extra.retry_after) } : undefined }
     );
   }
   return Response.json({ error: "internal" }, { status: 500 });

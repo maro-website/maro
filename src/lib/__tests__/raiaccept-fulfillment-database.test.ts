@@ -52,6 +52,19 @@ beforeEach(async()=>{
   await db.exec("update commerce_plans set duration_days=30,included_credits=case id when 'standard' then 100 when 'pro' then 500 else 0 end");
 });
 describe("Authenticated RaiAccept evidence and atomic PostgreSQL fulfillment",()=>{
+  it("renews the current shorter plan instead of an older suspended membership",async()=>{
+    const old=await member(90,"business"); await db.query("update memberships set suspended=true where id=$1",[old]);
+    const current=await member(3,"standard"); const p=await prepare("renew");
+    expect(p.r.checkout.expected_membership_id).toBe(current);
+    expect(await apply(p)).toMatchObject({ok:true});
+    expect((await db.query("select suspended,expires_at>now()+interval '89 days' preserved from memberships where id=$1",[old])).rows[0]).toEqual({suspended:true,preserved:true});
+    expect((await db.query<{renewed:boolean}>("select expires_at>now()+interval '32 days' renewed from memberships where id=$1",[current])).rows[0].renewed).toBe(true);
+  });
+  it("allows a new purchase after all old memberships were suspended by a manual change to free",async()=>{
+    const old=await member(90,"business"); await db.query("update memberships set suspended=true where id=$1",[old]);
+    const p=await prepare("standard"); expect(await apply(p)).toMatchObject({ok:true});
+    expect((await db.query<{suspended:boolean}>("select suspended from memberships where id=$1",[old])).rows[0].suspended).toBe(true);
+  });
   it("marks paid, grants the frozen credits/30 days and queues one receipt atomically",async()=>{
     const p=await prepare(); expect(await apply(p)).toMatchObject({ok:true,payment_state:"paid",fulfillment_state:"fulfilled",review_reason:null});
     expect(await balance()).toBe(117);

@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
 import Link from "next/link";
@@ -80,9 +81,11 @@ export function NotificationBell() {
 
   React.useEffect(() => {
     void refresh();
-    return subscribeNotifications(() => {
-      void refresh();
-    });
+    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    const unsubscribe = subscribeNotifications(() => { void refresh(); });
+    return () => { unsubscribe(); window.removeEventListener("focus", onVisible); document.removeEventListener("visibilitychange", onVisible); };
   }, [refresh]);
 
   const unread = items.filter((n) => !n.read).length;
@@ -101,6 +104,7 @@ export function NotificationBell() {
     place();
     void (async () => {
       if (!userId) return;
+      await refresh();
       const token = await getAccessToken();
       await fetch("/api/notifications", {
         method: "PATCH",
@@ -119,7 +123,7 @@ export function NotificationBell() {
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open, place, userId, getAccessToken]);
+  }, [open, place, userId, getAccessToken, refresh]);
 
   if (!user) return null;
 

@@ -2,6 +2,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { rateLimitedFetch } from "@/lib/client/rateLimit";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -18,7 +19,7 @@ export function getSupabaseBrowser(): SupabaseClient {
       "Supabase nuk është konfiguruar. Vendos NEXT_PUBLIC_SUPABASE_URL dhe NEXT_PUBLIC_SUPABASE_ANON_KEY te .env.local."
     );
   }
-  if (!cached) cached = createBrowserClient(url as string, anonKey as string);
+  if (!cached) cached = createBrowserClient(url as string, anonKey as string, { global: { fetch: rateLimitedFetch } });
   return cached;
 }
 

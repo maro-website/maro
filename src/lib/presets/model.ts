@@ -134,14 +134,14 @@ export function presetSelections(tool: PresetTool, config: PresetConfig): Record
 }
 
 export function presetInitialPrompt(tool: PresetTool, config: PresetConfig): string {
-  if (tool === "imazh") return (config as ImazhPresetConfig).initialPrompt ?? "";
+  if (tool === "imazh") return (config as ImazhPresetConfig).initialPrompt?.trim() || "maro";
   if (tool === "web") {
     const value = config as WebPresetConfig;
     if (value.initialPrompt) return value.initialPrompt;
     const direction = [value.useCase, value.siteStyle, value.layout].filter(Boolean).join(", ");
     return direction ? `Krijo një website për ${direction}.` : "";
   }
-  return "";
+  return "maro";
 }
 
 export function wrapPresetRecommendation(prompt: string): string {

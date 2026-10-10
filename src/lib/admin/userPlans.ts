@@ -33,7 +33,7 @@ export function userPlanErrorMessage(error: string): string {
     invalid_note: "Shkruaj një arsye private me 3 deri në 1000 karaktere.",
     user_not_found: "Përdoruesi nuk u gjet.",
     idempotency_conflict: "Kërkesa ka ndryshuar. Hape përsëri dritaren e planit.",
-    rpc_missing: "Aktivizimi manual kërkon migrimin 0052 në databazë.",
+    rpc_missing: "Menaxhimi i planeve për momentin nuk është i disponueshëm.",
     load_failed: "Planet nuk u ngarkuan. Provo përsëri.",
     forbidden: "Nuk ke leje për këtë veprim.",
     insufficient_permission: "Nuk ke leje për të aktivizuar plane.",

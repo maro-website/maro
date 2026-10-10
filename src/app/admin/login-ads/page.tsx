@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
 import { Pencil, Plus, Trash2, Upload, X } from "lucide-react";

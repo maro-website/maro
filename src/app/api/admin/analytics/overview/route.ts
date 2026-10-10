@@ -5,6 +5,7 @@ import {
   getGenerationsByTool,
   getRevenueByMonth,
   getUserSignupTrend,
+  getAnalyticsSnapshot,
 } from "@/lib/analytics/aggregates";
 import { supabaseServerConfigured } from "@/lib/supabase/server";
 
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const section = url.searchParams.get("section") ?? "overview";
 
+  try {
+  if (section === "all") return NextResponse.json(await getAnalyticsSnapshot(), { headers: { "Cache-Control": "no-store" } });
   if (section === "overview") {
     return NextResponse.json({ overview: await getAnalyticsOverview() });
   }
@@ -35,4 +38,5 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({ error: "unknown_section" }, { status: 400 });
+  } catch { return NextResponse.json({ error: "analytics_unavailable" }, { status: 503 }); }
 }

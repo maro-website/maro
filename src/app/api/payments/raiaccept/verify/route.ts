@@ -10,7 +10,7 @@ export const runtime="nodejs";
 export async function POST(req:Request) {
   const user=await requireUser(req); if (!user) return NextResponse.json({error:"unauthorized"},{status:401});
   const limit=await enforceRateLimit(req,"payments:raiaccept-verify",user.id,6,60,"strict");
-  if (!limit.allowed) return NextResponse.json({error:"rate_limited"},{status:429});
+  if (!limit.allowed) return NextResponse.json({error:"rate_limited",retry_after:limit.retryAfter},{status:429,headers:{"Retry-After":String(limit.retryAfter)}});
   const parsed=await readJsonBody(req,REQUEST_LIMITS.jsonCreateOrder);if (!parsed.ok) return parsed.response;
   const orderId=(parsed.body as {orderId?:unknown}|null)?.orderId;
   if (typeof orderId!=="string"||!/^[0-9a-f-]{36}$/i.test(orderId)) return NextResponse.json({error:"invalid_order"},{status:400});

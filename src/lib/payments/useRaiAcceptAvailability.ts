@@ -1,4 +1,6 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
+
 import { useEffect,useState } from "react";
 import { useMaro } from "@/context/store";
 export function useRaiAcceptAvailability(initialEnabled = false) {

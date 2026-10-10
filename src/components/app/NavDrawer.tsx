@@ -31,9 +31,7 @@ function DrawerIcon({ destination, colored = false }: {
 }) {
   const brand = getProductBrand(destination.label);
   if (destination.label === "maroExplore") return <Compass className="h-6 w-6 shrink-0 text-ink" />;
-  if (brand && brand.id !== "maroFort") return colored
-    ? <StableImage src={brand.icon} alt="" className="h-6 w-6 shrink-0" />
-    : <ToolIcon toolId={brand.id} className="h-5 w-5 text-ink" />;
+  if (brand && brand.id !== "maroFort") return colored ? <StableImage src={brand.icon} alt="" className="h-6 w-6 shrink-0 rounded-full" /> : <ToolIcon toolId={brand.id} className="h-5 w-5" />;
   return destination.iconName ? <MaroIcon src={iconSrc(`${destination.iconName}.svg`)} className="h-5 w-5 text-ink" /> : null;
 }
 
@@ -93,12 +91,13 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       onClick={onClose}
                       className={cn(
                         "flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold tracking-brand transition-colors",
-                        active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
+                        active ? "bg-surface text-brand" : "text-ink hover:bg-surface",
+                        dest.comingSoon && "bg-subtle"
                       )}
                     >
-                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span>{getProductBrand(dest.label)?.displayName ?? dest.label}</span></span>
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span className={dest.comingSoon ? "opacity-60" : undefined}>{getProductBrand(dest.label)?.displayName ?? dest.label}</span></span>
                       {dest.comingSoon && (
-                        <span className="text-[11px] font-medium text-ink-3">së shpejti</span>
+                        <span className="text-xs font-medium text-ink-3">{dest.badge?.replace("Së shpejti · ", "")}</span>
                       )}
                     </Link>
                   );

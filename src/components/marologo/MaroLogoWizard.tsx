@@ -1,4 +1,6 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
+
 import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 
 import * as React from "react";

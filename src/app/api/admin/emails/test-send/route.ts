@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const rl = await enforceRateLimit(req, "admin:email-test-send", `${auth.admin.userId}:${ip}`, 10, 3600, "strict");
   if (!rl.allowed) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return NextResponse.json({ error: "rate_limited", retry_after: rl.retryAfter }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } });
   }
 
   if (!isResendConfigured()) {

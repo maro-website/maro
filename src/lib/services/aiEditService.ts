@@ -1,3 +1,4 @@
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 import type { Project, WebsiteSection } from "@/lib/types";
 import { uid, slugify } from "@/lib/utils/format";
 import type { AiEditRequest, AiEditResponse } from "@/lib/ai/types";

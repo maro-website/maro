@@ -39,5 +39,6 @@ export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean
     }
   }
   if (options.receipts) await db.exec(readFileSync("supabase/migrations/0056_raiaccept_receipt_delivery.sql","utf8"));
+  if (options.fulfillment || options.receipts) await db.exec(readFileSync("supabase/migrations/0063_current_membership_ordering.sql", "utf8"));
   return db;
 }

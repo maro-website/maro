@@ -65,7 +65,7 @@ export function ExploreDetails({ item }: { item: ExploreItemExtended }) {
         return <span key={key} className="rounded-lg bg-surface-2 px-2 py-1 text-xs text-ink-2">{setting?.label ?? key}: {setting ? findOption(setting, value)?.label ?? value : value}</span>;
       })}</div>}
       <ExploreEngagement item={{ ...item, view_count: views }} />
-      {item.show_prompt !== false && item.prompt && <Button variant="secondary" onClick={() => void remixCreation(item)} icon={<Repeat2 className="h-4 w-4" />}>Remix</Button>}
+      <Button variant="secondary" onClick={() => void remixCreation(item)} icon={<Repeat2 className="h-4 w-4" />}>Remix</Button>
     </aside>
   </div>;
 }

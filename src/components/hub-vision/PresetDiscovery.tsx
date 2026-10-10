@@ -8,6 +8,7 @@ import { fetchPrompts, fetchPromptDetail } from "@/lib/services/promptsService";
 import { PROMPT_ATTACH_KEY, type PromptItem } from "@/lib/prompts/types";
 import { PRESET_TOOL_META } from "@/lib/presets/model";
 import { StableImage } from "@/components/app/StableImage";
+import { GuestPresetPreview } from "@/components/presets/GuestPresetPreview";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
 import { copy } from "./content";
@@ -53,14 +54,15 @@ export function PresetDiscovery() {
   };
 
   // Empty catalogs do not turn the Hub into an empty-state dashboard.
-  if (loaded && !catalog.imazh.length && !catalog.logo.length) return <div className={s.presetInvitation}><h2>{copy.presets}</h2><Link href="/prompts">Eksploro drejtime kreative<ArrowUpRight size={20} /></Link></div>;
+  if (user && loaded && !catalog.imazh.length && !catalog.logo.length) return <div className={s.presetInvitation}><h2>{copy.presets}</h2><Link href="/prompts">Eksploro drejtime kreative<ArrowUpRight size={20} /></Link></div>;
   return <section className={s.presets} aria-labelledby="presets-title">
     <div className={s.sectionHeading}><h2 id="presets-title">{copy.presets}</h2><Link href={`/prompts?tool=${tool}`} className={s.textLink}>{copy.browse}<ArrowUpRight size={17} /></Link></div>
     <div className={s.presetToolbar}><div className={s.presetTabs} role="group" aria-label="Lloji i preseteve">{(["imazh", "logo"] as const).map((id) => <button type="button" key={id} onClick={() => choose(id)} aria-pressed={tool === id}>{PRESET_TOOL_META[id].label}</button>)}</div></div>
-    <div className={s.presetGrid} data-compact={loaded && catalog[tool].length < 3 || undefined} aria-busy={!loaded}>
+    <div className={s.presetGrid} data-compact={user && loaded && catalog[tool].length < 3 || undefined} aria-busy={!loaded}>
       {!loaded ? Array.from({ length: 5 }, (_, i) => <div className={s.presetSkeleton} key={i} />) : catalog[tool].map((item) => <button type="button" className={s.presetCard} key={item.id} disabled={using !== null} onClick={() => void apply(item)} aria-label={`${copy.usePreset}: ${item.title || item.code}`}>
         <div className={s.presetImage}>{item.featured_url ? <StableImage src={item.featured_url} alt="" className={s.presetMedia} /> : <div className={s.presetNoMedia} aria-hidden="true"><span>{item.category || PRESET_TOOL_META[item.tool].shortLabel}</span><small>MARO PRESET</small></div>}<span className={s.presetUse}>{using === item.id ? <Loader2 className={s.spinner} size={20} /> : <ArrowUpRight size={20} />}</span>{item.access_level === "premium" && <span className={s.premium}>Premium</span>}</div><span className={s.presetName}>{item.title || item.code}</span><span className={s.presetCategory}>{item.category}</span>
       </button>)}
+      {loaded && !user && [0, 1].map(index => <GuestPresetPreview key={`locked-${index}`} previewUrl={catalog[tool][index]?.featured_url ?? undefined} className="aspect-[4/5]" />)}
     </div>
     {loaded && !catalog[tool].length && <Link className={s.emptyCategory} href={`/prompts?tool=${tool}`}>Eksploro katalogun {PRESET_TOOL_META[tool].label}<ArrowUpRight size={16} /></Link>}
   </section>;

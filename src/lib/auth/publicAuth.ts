@@ -39,6 +39,10 @@ export async function readPublicAuthRequest(req: Request, flow: "signup" | "rese
   const ts = await verifyTurnstileToken(typeof body.turnstileToken === "string" ? body.turnstileToken : null, ip, { required: isProduction() });
   if (!ts.ok) return { response: authJson({ error: ts.reason }, 403) };
   const recipientLimit = await enforceRateLimit(req, `auth:email:${flow}`, createHash("sha256").update(email).digest("hex"), 3, 3600, "strict");
-  if (!recipientLimit.allowed) return { response: authJson({ error: "rate_limited" }, 429) };
+  if (!recipientLimit.allowed) {
+    const response = authJson({ error: "rate_limited", retry_after: recipientLimit.retryAfter }, 429);
+    response.headers.set("Retry-After", String(recipientLimit.retryAfter));
+    return { response };
+  }
   return { body, email, ip };
 }

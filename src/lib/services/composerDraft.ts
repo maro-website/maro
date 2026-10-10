@@ -1,5 +1,6 @@
 import type { PrivateImageAttachment } from "./privateImageAttachment";
 import type { PromptAttach } from "@/lib/prompts/types";
+import { presetInitialPrompt } from "@/lib/presets/model";
 
 export type ComposerDraft = {
   prompt: string;
@@ -9,6 +10,15 @@ export type ComposerDraft = {
   promptAttach: PromptAttach | null;
 };
 export const emptyComposerDraft = (): ComposerDraft => ({ prompt: "", attachments: [], privateImageAttachments: [], audioInput: null, promptAttach: null });
+/** A new conversation starts with the selected creative direction, not old outputs/files. */
+export function newConversationDraft(draft: ComposerDraft): ComposerDraft {
+  const next = emptyComposerDraft();
+  if (draft.promptAttach) {
+    next.promptAttach = draft.promptAttach;
+    next.prompt = draft.prompt.trim() ? draft.prompt : presetInitialPrompt(draft.promptAttach.tool, draft.promptAttach.config);
+  }
+  return next;
+}
 const memory = new Map<string, ComposerDraft>();
 const revisions = new Map<string, number>();
 const fileRevisions = new Map<string, number>();

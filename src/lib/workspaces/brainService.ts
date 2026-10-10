@@ -1,4 +1,5 @@
 "use client";
+import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import type { WorkspaceBrainProfile, WorkspaceSource } from "@/lib/workspaces/brainTypes";
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";

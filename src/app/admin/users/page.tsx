@@ -1,16 +1,16 @@
 "use client";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { LegacyUsersTab } from "@/components/admin/legacy/LegacyAdminTabs";
+import { UserDirectory } from "@/components/admin/UserDirectory";
 
 export default function AdminUsersPage() {
   return (
     <div>
       <AdminPageHeader
         title="Përdoruesit"
-        description="Menaxho planet, kreditet dhe statusin e kriatorëve."
+        description="Menaxho planet, kreditet, storage dhe llogaritë e përdoruesve."
       />
-      <LegacyUsersTab />
+      <UserDirectory />
     </div>
   );
 }

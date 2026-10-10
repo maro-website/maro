@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield } from "lucide-react";
 import { ACCESS_ROLE_LABELS, type AccessRole } from "@/lib/admin/permissions";
 import { AdminSidebar } from "./AdminSidebar";
-import { Badge } from "@/components/ui/Badge";
+import { AppTopNav } from "@/components/app/AppTopNav";
+import { NavDrawer } from "@/components/app/NavDrawer";
 
 export function AdminShell({
   role,
@@ -20,6 +20,7 @@ export function AdminShell({
   minimal?: boolean;
 }) {
   const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   if (minimal) {
     return (
@@ -31,7 +32,7 @@ export function AdminShell({
             </span>
             <div>
               <div className="text-[15px] font-bold tracking-[-0.03em] text-ink">Maro Control Center</div>
-              <div className="text-[11px] text-ink-3">Verifikim MFA</div>
+              <div className="text-xs text-ink-3">Verifikim MFA · {email}</div>
             </div>
           </div>
         </header>
@@ -43,35 +44,12 @@ export function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <header className="maro-system-header sticky top-0 z-40 bg-canvas">
-        <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-[20px]">
-          <div className="flex items-center gap-[20px]">
-            <span className="grid h-11 w-11 place-items-center rounded-maro12 bg-ink text-ink-inv">
-              <Shield className="h-4 w-4" />
-            </span>
-            <div>
-              <div className="text-[15px] font-bold tracking-[-0.03em] text-ink">Maro Control Center</div>
-              <div className="text-[11px] text-ink-3">{email}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-[10px]">
-            <Badge tone="brand" className="text-[10px]">
-              {ACCESS_ROLE_LABELS[role]}
-            </Badge>
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center rounded-maro12 px-3 text-[12px] font-semibold text-ink-2 hover:bg-surface-2"
-            >
-              Kthehu te Maro
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-[1400px] gap-[30px] px-[20px] py-[30px] lg:grid-cols-[240px_1fr] lg:px-[30px]">
+    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-canvas">
+      <AppTopNav onOpenDrawer={() => setDrawerOpen(true)} adminRoleLabel={ACCESS_ROLE_LABELS[role]} />
+      <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:overflow-hidden lg:px-8 lg:py-8">
         <AdminSidebar role={role} />
-        <main key={pathname} className="min-w-0">
+        <main key={pathname} className="min-h-0 min-w-0 lg:overflow-y-auto lg:pr-2" aria-label="Maro Admin">
           {children}
         </main>
       </div>

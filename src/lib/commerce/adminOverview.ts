@@ -17,10 +17,11 @@ export async function getCommerceOverviewMetrics() {
     admin
       .from("memberships")
       .select("id, user_id, plan_id, expires_at, suspended, commerce_plans!inner(renewal_window_days)")
+      .order("suspended", { ascending: true })
       .order("expires_at", { ascending: false }),
     admin
-      .from("credit_orders")
-      .select("id, order_kind, item_type, item_id, credits, amount_cents, status, created_at, paid_at")
+      .from("admin_real_paid_orders")
+      .select("id, order_kind, item_type, item_id, credits, amount_cents, currency, status, created_at, paid_at")
       .eq("status", "paid")
       .order("paid_at", { ascending: false })
       .limit(20),
@@ -32,6 +33,7 @@ export async function getCommerceOverviewMetrics() {
     admin
       .from("credit_orders")
       .select("id, status, created_at")
+      .in("provider", ["raiaccept", "paddle", "raiffeisen"])
       .in("status", ["pending", "cancelled"])
       .order("created_at", { ascending: false })
       .limit(20),
@@ -79,6 +81,7 @@ export async function getCommerceOverviewMetrics() {
       itemId: row.item_id as string | null,
       credits: row.credits as number,
       amountCents: row.amount_cents as number,
+      currency: row.currency as string,
       paidAt: row.paid_at as string | null,
     };
   });
