@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Misc";
 import { adminRequest } from "./v1/shared";
 import type { AnalyticsSnapshot } from "@/lib/analytics/types";
+import { OnlineNowCard } from "./OnlineNowCard";
 
 const number = (value: number) => value.toLocaleString("sq-AL");
 const money = (value: number, currency = "EUR") => new Intl.NumberFormat("sq-AL", { style: "currency", currency }).format(value);
@@ -23,6 +24,7 @@ export function AnalyticsPanel({ compact = false }: { compact?: boolean }) {
   }, []);
   React.useEffect(() => { void load(); }, [load]);
   return <div className="space-y-6" aria-busy={loading}>
+    <OnlineNowCard />
     <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink-3">{data ? `Përditësuar ${new Date(data.updatedAt).toLocaleString("sq-AL", { timeZone: data.timezone })} · koha e Tiranës` : "Të dhënat ngarkohen kur hapet kjo faqe."}</p><Button variant="secondary" loading={loading} icon={<RefreshCw className="h-4 w-4" />} onClick={() => void load()}>Rifresko</Button></div>
     {error && <p role="alert" className="rounded-maro16 border border-danger bg-maro-danger p-4 text-danger">{error}</p>}
     {!data && loading && <div className="flex min-h-48 items-center justify-center"><Spinner /></div>}

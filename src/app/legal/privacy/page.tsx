@@ -63,6 +63,7 @@ export default function PrivacyPage() {
         <p>Për heqjen e një publikimi na dërgoni lidhjen. Kopjet që palët e tjera kanë shkarkuar, ndarë ose ruajtur jashtë Maro-s nuk fshihen automatikisht bashkë me origjinalin.</p>
       </LegalSection>
       <LegalSection title="8. Sa kohë ruhen të dhënat">
+        <p>Për numëruesin “Online tani”, serveri mban vetëm një identifikues të koduar me çelës serveri, statusin e kyçjes dhe kohën e fundit të aktivitetit. Llogaritë e kyçura numërohen një herë në këtë dritare. Regjistrimet dalin nga numërimi pas 2 minutave pa aktivitet dhe pastrohen gjatë njoftimit ose leximit të radhës; nuk ruhet historik vizitash për këtë numërues.</p>
         <p>Afati përcaktohet sipas qëllimit, llojit të të dhënave dhe detyrimeve ligjore, jo nga një afat i vetëm për gjithë platformën:</p>
         <ul className="list-disc space-y-2 pl-5">
           <li>Llogaria, projektet, gjenerimet dhe maroBrain ruhen për ofrimin e shërbimit dhe historikun, derisa të kërkoni fshirje ose të mbyllet marrëdhënia, duke shqyrtuar përjashtimet ligjore.</li>
