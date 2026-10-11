@@ -106,8 +106,8 @@ export function ExploreFeed({ author, savedOnly = false, hideAuthorFilter = fals
     </div>
     {error && <p role="alert" className="mb-5 text-sm text-ink-2">Krijimet nuk u ngarkuan. <button className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></p>}
     {!loading && !error && !items.length && <p className="rounded-maro16 bg-surface px-6 py-12 text-center text-sm text-ink-3">{savedOnly ? "Ende pa krijime të ruajtura nga Explore." : "Ende pa krijime publike për këtë filtër."}</p>}
-    <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
-      {items.map(item => <article key={item.id} className="mb-3 break-inside-avoid overflow-hidden rounded-maro16 bg-surface">
+    <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {items.map(item => <article key={item.id} className="overflow-hidden rounded-maro16 bg-surface">
         <Link href={`/c/${item.slug}`} className="block"><StableImage src={item.url} alt="Krijim në Explore" loading="lazy" className="w-full object-cover" /></Link>
         <div className="p-3"><CreatorLink item={item} />{item.show_prompt !== false && item.prompt && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-2">{item.prompt}</p>}<ExploreEngagement item={item} /></div>
       </article>)}
