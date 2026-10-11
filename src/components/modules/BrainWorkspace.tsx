@@ -435,7 +435,7 @@ function BrandTab({
       <SectionTitle>Informatat</SectionTitle>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Emri">
-          <input className={inputCls()} value={b.name} onChange={(e) => setBrand({ name: e.target.value })} placeholder="Cargomax Iveco" />
+          <input className={inputCls()} value={b.name} onChange={(e) => setBrand({ name: e.target.value })} />
         </Field>
         <Field label="Kategoria">
           <select className={inputCls()} value={b.category} onChange={(e) => setBrand({ category: e.target.value })}>
@@ -446,12 +446,12 @@ function BrandTab({
           </select>
         </Field>
         <Field label="Website">
-          <input className={inputCls()} value={b.website} onChange={(e) => setBrand({ website: e.target.value })} placeholder="www.iveco.com" />
+          <input className={inputCls()} value={b.website} onChange={(e) => setBrand({ website: e.target.value })} />
         </Field>
         <Field label="Phone">
           <div className="flex gap-2">
             <input className={cn(inputCls(), "w-24 shrink-0")} value={b.phoneCountry} onChange={(e) => setBrand({ phoneCountry: e.target.value })} />
-            <input className={inputCls()} value={b.phone} onChange={(e) => setBrand({ phone: e.target.value })} placeholder="49585585" />
+            <input className={inputCls()} value={b.phone} onChange={(e) => setBrand({ phone: e.target.value })} />
           </div>
         </Field>
       </div>
@@ -460,7 +460,6 @@ function BrandTab({
           className={textareaCls()}
           value={b.description}
           onChange={(e) => setBrand({ description: e.target.value })}
-          placeholder="Shitje dhe servisim te IVECO per kosove…"
         />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -579,7 +578,6 @@ function BrandTab({
                     },
                   }))
                 }
-                placeholder="@handle"
               />
               <button
                 type="button"
@@ -631,7 +629,7 @@ function TargetTab({
       <SectionTitle>Targeti</SectionTitle>
       <p className="text-[14px] text-ink-2">Kush është klienti ideal dhe çfarë i intereson.</p>
       <Field label="Audienca">
-        <textarea className={textareaCls()} value={t.audience} onChange={(e) => set({ audience: e.target.value })} placeholder="Kompanitë transporti, flotat e ndërtimit…" />
+        <textarea className={textareaCls()} value={t.audience} onChange={(e) => set({ audience: e.target.value })} />
       </Field>
       <Field label="Demografia / profili">
         <textarea className={textareaCls()} value={t.demographics} onChange={(e) => set({ demographics: e.target.value })} />
@@ -660,7 +658,7 @@ function GoalTab({
     <div className="space-y-5">
       <SectionTitle>Goal</SectionTitle>
       <Field label="Qëllimi kryesor">
-        <textarea className={textareaCls()} value={g.primaryGoal} onChange={(e) => set({ primaryGoal: e.target.value })} placeholder="Rrit awareness për shërbimet IVECO në Kosovë…" />
+        <textarea className={textareaCls()} value={g.primaryGoal} onChange={(e) => set({ primaryGoal: e.target.value })} />
       </Field>
       <Field label="Qëllime sekondare">
         <textarea className={textareaCls()} value={g.secondaryGoals} onChange={(e) => set({ secondaryGoals: e.target.value })} />
@@ -686,7 +684,7 @@ function MarketTab({
     <div className="space-y-5">
       <SectionTitle>Market</SectionTitle>
       <Field label="Rajoni / tregu">
-        <input className={inputCls()} value={m.region} onChange={(e) => set({ region: e.target.value })} placeholder="Kosovë, Ballkan…" />
+        <input className={inputCls()} value={m.region} onChange={(e) => set({ region: e.target.value })} />
       </Field>
       <Field label="Konkurrentët">
         <textarea className={textareaCls()} value={m.competitors} onChange={(e) => set({ competitors: e.target.value })} />
@@ -695,7 +693,7 @@ function MarketTab({
         <textarea className={textareaCls()} value={m.positioning} onChange={(e) => set({ positioning: e.target.value })} />
       </Field>
       <Field label="Dalluesit">
-        <textarea className={textareaCls()} value={m.differentiators} onChange={(e) => set({ differentiators: e.target.value })} placeholder="I vetmi autorizuar IVECO për Kosovë…" />
+        <textarea className={textareaCls()} value={m.differentiators} onChange={(e) => set({ differentiators: e.target.value })} />
       </Field>
     </div>
   );
@@ -715,7 +713,7 @@ function ContentTab({
     <div className="space-y-5">
       <SectionTitle>Kontenti</SectionTitle>
       <Field label="Toni">
-        <input className={inputCls()} value={c.tone} onChange={(e) => set({ tone: e.target.value })} placeholder="Profesional, i besueshëm…" />
+        <input className={inputCls()} value={c.tone} onChange={(e) => set({ tone: e.target.value })} />
       </Field>
       <Field label="Zëri i brandit">
         <input className={inputCls()} value={c.voice} onChange={(e) => set({ voice: e.target.value })} />
@@ -727,7 +725,7 @@ function ContentTab({
         <textarea className={textareaCls()} value={c.avoid} onChange={(e) => set({ avoid: e.target.value })} />
       </Field>
       <Field label="Hashtags default">
-        <input className={inputCls()} value={c.hashtags} onChange={(e) => set({ hashtags: e.target.value })} placeholder="#iveco #kosove" />
+        <input className={inputCls()} value={c.hashtags} onChange={(e) => set({ hashtags: e.target.value })} />
       </Field>
     </div>
   );
@@ -783,22 +781,19 @@ function SourcesTab({
       <div>
         <SectionTitle>Burimet</SectionTitle>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-          Ngarko foto/produkte dhe jepu keyword-e të ndara me presje. Kur shkruan prompt (p.sh.{" "}
-          <span className="font-semibold text-ink">iveco daily</span>), platforma i gjen automatikisht
-          referencat.
+          Ngarko foto/produkte dhe jepu keyword-e të ndara me presje. Kur shkruan prompt, platforma i gjen automatikisht referencat.
         </p>
       </div>
 
       <div className="rounded-maro12 bg-surface-2 p-4 space-y-4">
         <Field label="Emri i burimit">
-          <input className={inputCls()} value={name} onChange={(e) => setName(e.target.value)} placeholder="Iveco Daily" />
+          <input className={inputCls()} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Keywords (ndaji me presje)">
           <input
             className={inputCls()}
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
-            placeholder="iveco daily, daily, furgon"
           />
         </Field>
         <Field label="Foto">
