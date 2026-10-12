@@ -1,8 +1,9 @@
+import { metadataForPage } from "@/lib/siteMetadata";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
 import { LEGAL_ADDRESS, LEGAL_ENTITY, LEGAL_SOURCES } from "@/components/legal/legal-config";
 import Link from "next/link";
 
-export const metadata = { title: "Politika e Privatësisë · maro" };
+export const metadata = metadataForPage("/legal/privacy");
 
 export default function PrivacyPage() {
   return (

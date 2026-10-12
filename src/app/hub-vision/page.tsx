@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { HubVision } from "@/components/hub-vision/HubVision";
+import { metadataForPage } from "@/lib/siteMetadata";
 
 export const metadata: Metadata = {
-  title: "maro · Studio kreativ",
+  ...metadataForPage("/hub-vision"),
   robots: { index: false, follow: false },
 };
 export const viewport: Viewport = {

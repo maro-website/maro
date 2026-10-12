@@ -1,16 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { ComingSoonExperience } from "@/components/launch/ComingSoonExperience";
+import { metadataForPage } from "@/lib/siteMetadata";
 
 export const metadata: Metadata = {
-  title: "maro. Po MAROhet.",
-  description: "Diçka e re po marohet.",
+  ...metadataForPage("/coming-soon"),
   robots: { index: false, follow: false, nocache: true },
-  openGraph: {
-    title: "maro. Po MAROhet.",
-    description: "Diçka e re po marohet.",
-    type: "website",
-    siteName: "maro",
-  },
 };
 
 export const viewport: Viewport = {

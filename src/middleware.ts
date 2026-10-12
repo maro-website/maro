@@ -1,6 +1,7 @@
 import { buildContentSecurityPolicy } from "@/lib/security/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { PAGE_PATH_HEADER } from "@/lib/siteMetadata";
 import { createServerClient } from "@supabase/ssr";
 import { resolveAccessRole, hasPermission, ADMIN_ENTRY_PERMISSION } from "@/lib/admin/permissions";
 import {
@@ -98,6 +99,8 @@ async function hasAuthenticatedUser(req: NextRequest): Promise<boolean> {
 
 function requestHeaders(req: NextRequest, nonce?: string, policy?: string): Headers {
   const headers = new Headers(req.headers);
+  // Overwrite caller-supplied values; metadata uses the routed pathname, never query tokens.
+  headers.set(PAGE_PATH_HEADER, req.nextUrl.pathname);
   headers.delete("x-nonce");
   headers.delete("Content-Security-Policy");
   if (nonce && policy) {
@@ -202,6 +205,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|brand/|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|brand/|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
   ],
 };

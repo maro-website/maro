@@ -8,17 +8,15 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { RateLimitNotice } from "@/components/app/RateLimitNotice";
 import { PresencePulse } from "@/components/app/PresencePulse";
-import { MARO_LOGO } from "@/lib/design/maro-system";
+import { metadataForPage, PAGE_PATH_HEADER } from "@/lib/siteMetadata";
 
 import { THEME_INIT_SCRIPT } from "@/lib/security/headers";
 import { LAUNCH_REQUEST_HEADER } from "@/lib/launch/config";
 
-export const metadata: Metadata = {
-  title: "maro · AI Hub",
-  description:
-    "maro AI Hub: krijo logo dhe imazhe me AI. Përshkruaj çka do dhe maro e maron.",
-  icons: { icon: MARO_LOGO.symbol },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const h = await headers();
+  return metadataForPage(h.get(LAUNCH_REQUEST_HEADER) === "1" ? "/coming-soon" : h.get(PAGE_PATH_HEADER) ?? "/");
+}
 
 export const viewport: Viewport = {
   themeColor: "#111315",
