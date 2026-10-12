@@ -6,10 +6,11 @@ const actor = "11111111-1111-4111-8111-111111111111";
 const alice = "22222222-2222-4222-8222-222222222222";
 const bob = "33333333-3333-4333-8333-333333333333";
 const migration = readFileSync("supabase/migrations/0064_freebie_code_drops.sql", "utf8");
+const editingMigration = readFileSync("supabase/migrations/0066_edit_delete_freebie_drops.sql", "utf8");
 const adminMigration = readFileSync("supabase/migrations/0061_admin_user_management.sql", "utf8");
 type Result = { ok: boolean; error?: string; credits?: number; balance?: number; already?: boolean; drop_id?: string; required?: number; current?: number; plan_id?: string };
 
-async function setup() {
+async function setup(withEditing = true) {
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role;
@@ -39,6 +40,7 @@ async function setup() {
   await db.exec(adminMigration.slice(adminMigration.indexOf("create function public.admin_can_manage_users"), adminMigration.indexOf("create table public.user_storage_overrides")));
   await db.exec(adminMigration.slice(adminMigration.indexOf("create function public.maro_notify_manual_credits"), adminMigration.indexOf("-- A suspended older membership")));
   await db.exec(migration);
+  if (withEditing) await db.exec(editingMigration);
   return db;
 }
 async function claim(db: PGlite, code = "TRAMPOLINE", user = alice) {
@@ -56,7 +58,103 @@ async function snapshot(db: PGlite, code: string, user = alice) {
   return (await db.query("select p.credits,p.maro_plan,d.claims_count,(select count(*) from credit_transactions where user_id=$2) transactions,(select count(*) from freebie_claims where user_id=$2) claims from freebie_drops d,profiles p where d.code=$1 and p.id=$2", [code, user])).rows[0];
 }
 
+async function currentDrop(db: PGlite, code = "TRAMPOLINE") {
+  return (await db.query<{ id: string; title: string; credits: number; max_claims: number; min_generations_7d: number; plan_id: string | null; plan_days: number | null; expires_at: Date | null; updated_at: string; claims_count: number; credits_given: number }>(
+    "select id,title,credits,max_claims,min_generations_7d,plan_id,plan_days,expires_at,updated_at::text,claims_count,credits_given from freebie_drops where code=$1 and deleted_at is null", [code])).rows[0];
+}
+async function edit(db: PGlite, options: { code?: string; credits?: number; claims?: number; expected?: string; actor?: string } = {}) {
+  const d = await currentDrop(db, options.code);
+  return (await db.query<{ result: Result }>("select admin_update_freebie_drop($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) result", [
+    options.actor ?? actor, d.id, d.title, options.credits ?? d.credits, options.claims ?? d.max_claims,
+    d.min_generations_7d, d.plan_id, d.plan_days, d.expires_at, options.expected ?? d.updated_at,
+  ])).rows[0].result;
+}
+async function remove(db: PGlite, d: Awaited<ReturnType<typeof currentDrop>>, code = "TRAMPOLINE", admin = actor) {
+  return (await db.query<{ result: Result }>("select admin_delete_freebie_drop($1,$2,$3,$4) result", [admin, d.id, code, d.updated_at])).rows[0].result;
+}
+
 describe("free credit Code Drops", () => {
+  it("edits future rewards while keeping earlier balances, claims and real credit totals", async () => {
+    const db = await setup();
+    try {
+      expect(await claim(db)).toMatchObject({ ok: true, credits: 10, balance: 33 });
+      expect(await edit(db, { credits: 15 })).toMatchObject({ ok: true });
+      expect(await claim(db)).toMatchObject({ error: "already_claimed" });
+      expect(await claim(db, "TRAMPOLINE", bob)).toMatchObject({ ok: true, credits: 15, balance: 38 });
+      expect(await currentDrop(db)).toMatchObject({ credits: 15, claims_count: 2, credits_given: 25 });
+      expect((await db.query("select credits from freebie_claims order by claimed_at")).rows).toEqual([{ credits: 10 }, { credits: 15 }]);
+      expect((await db.query("select sum(amount) total from credit_transactions")).rows[0]).toEqual({ total: 25 });
+    } finally { await db.close(); }
+  });
+
+  it("backfills real credit totals for claims made before the editing migration", async () => {
+    const db = await setup(false);
+    try {
+      await claim(db);
+      await db.exec(editingMigration);
+      expect(await currentDrop(db)).toMatchObject({ claims_count: 1, credits_given: 10 });
+      expect(await edit(db, { credits: 15 })).toMatchObject({ ok: true });
+      expect(await currentDrop(db)).toMatchObject({ claims_count: 1, credits_given: 10 });
+    } finally { await db.close(); }
+  });
+
+  it("blocks stale edits/deletes and limits below used claims without changing rewards", async () => {
+    const db = await setup();
+    try {
+      const before = await currentDrop(db);
+      await claim(db);
+      expect(await edit(db, { credits: 15, expected: before.updated_at })).toMatchObject({ error: "drop_changed" });
+      expect(await remove(db, before)).toMatchObject({ error: "drop_changed" });
+      await claim(db, "TRAMPOLINE", bob);
+      expect(await edit(db, { claims: 1 })).toMatchObject({ error: "claims_below_used" });
+      await create(db, "PERSONAL-EDIT", { target: alice });
+      expect(await edit(db, { code: "PERSONAL-EDIT", claims: 2 })).toMatchObject({ error: "invalid_request" });
+      expect(await edit(db, { credits: 15, actor: alice })).toMatchObject({ error: "forbidden" });
+      expect(await currentDrop(db)).toMatchObject({ credits: 10, max_claims: 100, credits_given: 20 });
+    } finally { await db.close(); }
+  });
+
+  it("releases a deleted code for a new promotion and preserves old claims and ledger", async () => {
+    const db = await setup();
+    try {
+      await claim(db);
+      expect(await create(db, "TRAMPOLINE")).toMatchObject({ error: "code_exists" });
+      const old = await currentDrop(db);
+      expect(await remove(db, old, "OTHER-CODE")).toMatchObject({ error: "confirmation_mismatch" });
+      expect(await remove(db, old, "TRAMPOLINE", alice)).toMatchObject({ error: "forbidden" });
+      expect(await remove(db, old)).toMatchObject({ ok: true, already: false });
+      expect(await remove(db, old)).toMatchObject({ ok: true, already: true });
+      expect(await claim(db)).toMatchObject({ error: "invalid_code" });
+      const toggle = await db.query<{ result: Result }>("select admin_set_freebie_active($1,$2,true) result", [actor, old.id]);
+      expect(toggle.rows[0].result).toMatchObject({ error: "drop_not_found" });
+      expect(await create(db, "TRAMPOLINE", { credits: 15 })).toMatchObject({ ok: true });
+      expect(await claim(db)).toMatchObject({ ok: true, credits: 15, balance: 48 });
+      expect(await currentDrop(db)).toMatchObject({ credits: 15, claims_count: 1, credits_given: 15 });
+      expect((await db.query("select credits from freebie_claims where drop_id=$1", [old.id])).rows).toEqual([{ credits: 10 }]);
+      expect((await db.query("select sum(amount) total,count(*) count from credit_transactions")).rows[0]).toEqual({ total: 25, count: 2 });
+      expect((await db.query("select count(*) count from audit_events where action='freebies.deleted'")).rows[0]).toEqual({ count: 1 });
+    } finally { await db.close(); }
+  });
+
+  it("rolls back edit/delete if audit fails and rejects retrying a deleted creation", async () => {
+    const db = await setup();
+    try {
+      const retry = { id: crypto.randomUUID(), start: new Date(Date.now() - 1000).toISOString() };
+      await create(db, "DELETE-RETRY", retry);
+      await db.exec("alter table audit_events add constraint reject_admin_audit check(action not in ('freebies.updated','freebies.deleted'))");
+      await expect(edit(db, { credits: 15 })).rejects.toThrow("reject_admin_audit");
+      await expect(remove(db, await currentDrop(db))).rejects.toThrow("reject_admin_audit");
+      expect(await currentDrop(db)).toMatchObject({ credits: 10 });
+      expect(await create(db, "TRAMPOLINE")).toMatchObject({ error: "code_exists" });
+      await db.exec("alter table audit_events drop constraint reject_admin_audit");
+      await remove(db, await currentDrop(db, "DELETE-RETRY"), "DELETE-RETRY");
+      expect(await create(db, "DELETE-RETRY", retry)).toMatchObject({ error: "drop_deleted" });
+      await db.exec("set role authenticated; set request.jwt.claim.role='authenticated'");
+      await expect(db.query("select admin_update_freebie_drop($1,$2,'Edited',15,100,0,null,null,null,now())", [actor, retry.id])).rejects.toThrow("permission denied");
+      await expect(db.query("select admin_delete_freebie_drop($1,$2,'DELETE-RETRY',now())", [actor, retry.id])).rejects.toThrow("permission denied");
+    } finally { await db.close(); }
+  });
+
   it("caps the requested promotion at 100 claims / 1000 credits, including competing requests", async () => {
     const db = await setup();
     try {

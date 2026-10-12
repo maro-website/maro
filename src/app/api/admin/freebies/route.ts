@@ -3,7 +3,7 @@ import { requirePermission } from "@/lib/admin/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
-import { createFreebieSchema, setFreebieActiveSchema } from "@/lib/freebies/validation";
+import { createFreebieSchema, setFreebieActiveSchema, updateFreebieSchema, deleteFreebieSchema } from "@/lib/freebies/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export async function GET(req: Request) {
   if (!Number.isInteger(offset) || offset < 0 || offset > 1000000) return json({ error: "invalid_request" }, 400);
   const admin = getSupabaseAdmin();
   const { data: drops, error, count } = await admin.from("freebie_drops")
-    .select("id,code,title,credits,max_claims,claims_count,min_generations_7d,audience,target_user_id,plan_id,plan_days,active,starts_at,expires_at,created_at", { count: "exact" })
+    .select("id,code,title,credits,max_claims,claims_count,credits_given,min_generations_7d,audience,target_user_id,plan_id,plan_days,active,starts_at,expires_at,created_at,updated_at", { count: "exact" })
+    .is("deleted_at", null)
     .order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + 49);
   if (error) return json({ error: "freebies_unavailable" }, 503);
   const targets = [...new Set((drops ?? []).map(drop => drop.target_user_id).filter(Boolean))];
@@ -58,11 +59,39 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const auth = await mutationAuth(req); if (auth.response) return auth.response;
   const bounded = await readJsonBody(req, REQUEST_LIMITS.jsonDefault); if (!bounded.ok) return bounded.response;
-  const parsed = setFreebieActiveSchema.safeParse(bounded.body); if (!parsed.success) return json({ error: "invalid_request" }, 400);
-  const { data, error } = await getSupabaseAdmin().rpc("admin_set_freebie_active", {
-    p_actor: auth.actor, p_drop_id: parsed.data.id, p_active: parsed.data.active,
+  const toggle = setFreebieActiveSchema.safeParse(bounded.body);
+  const edit = updateFreebieSchema.safeParse(bounded.body);
+  if (!toggle.success && !edit.success) return json({ error: "invalid_request" }, 400);
+  const { data, error } = toggle.success
+    ? await getSupabaseAdmin().rpc("admin_set_freebie_active", {
+      p_actor: auth.actor, p_drop_id: toggle.data.id, p_active: toggle.data.active,
+    })
+    : await getSupabaseAdmin().rpc("admin_update_freebie_drop", {
+      p_actor: auth.actor, p_drop_id: edit.data!.id, p_title: edit.data!.title,
+      p_credits: edit.data!.credits, p_max_claims: edit.data!.maxClaims,
+      p_min_generations: edit.data!.minGenerations, p_plan: edit.data!.planId,
+      p_plan_days: edit.data!.planDays, p_expires_at: edit.data!.expiresAt,
+      p_expected_updated_at: edit.data!.expectedUpdatedAt,
+    });
+  if (error || !data) return json({ error: "freebies_unavailable" }, 503);
+  if (!data.ok) return mutationError(data.error);
+  return json({ ok: true });
+}
+
+function mutationError(error: string) {
+  return json({ error }, error === "forbidden" ? 403 : ["drop_not_found", "drop_deleted"].includes(error) ? 404
+    : error === "drop_changed" ? 409 : 400);
+}
+
+export async function DELETE(req: Request) {
+  const auth = await mutationAuth(req); if (auth.response) return auth.response;
+  const bounded = await readJsonBody(req, REQUEST_LIMITS.jsonDefault); if (!bounded.ok) return bounded.response;
+  const parsed = deleteFreebieSchema.safeParse(bounded.body); if (!parsed.success) return json({ error: "invalid_request" }, 400);
+  const { data, error } = await getSupabaseAdmin().rpc("admin_delete_freebie_drop", {
+    p_actor: auth.actor, p_drop_id: parsed.data.id, p_code: parsed.data.code,
+    p_expected_updated_at: parsed.data.expectedUpdatedAt,
   });
   if (error || !data) return json({ error: "freebies_unavailable" }, 503);
-  if (!data.ok) return json({ error: data.error }, data.error === "forbidden" ? 403 : 404);
+  if (!data.ok) return mutationError(data.error);
   return json({ ok: true });
 }

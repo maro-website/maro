@@ -14,3 +14,17 @@ export const createFreebieSchema = z.object({
   .refine(v => !v.expiresAt || Date.parse(v.expiresAt) > Date.parse(v.startsAt), { message: "invalid_expiry" });
 
 export const setFreebieActiveSchema = z.object({ id: z.uuid(), active: z.boolean() }).strict();
+
+export const updateFreebieSchema = z.object({
+  id: z.uuid(), title: z.string().trim().min(3).max(160),
+  credits: z.number().int().min(1).max(10000), maxClaims: z.number().int().min(1).max(100000),
+  minGenerations: z.number().int().min(0).max(10000),
+  planId: z.enum(["standard", "pro", "business"]).nullable(),
+  planDays: z.number().int().min(1).max(365).nullable(),
+  expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  expectedUpdatedAt: z.iso.datetime({ offset: true }),
+}).strict().refine(v => (v.planId === null) === (v.planDays === null), { message: "plan_duration_required" });
+
+export const deleteFreebieSchema = z.object({
+  id: z.uuid(), code: freebieCodeSchema, expectedUpdatedAt: z.iso.datetime({ offset: true }),
+}).strict();

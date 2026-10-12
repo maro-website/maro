@@ -2,7 +2,7 @@ export interface FreebieDrop {
   id: string; code: string; title: string; credits: number; max_claims: number; claims_count: number;
   min_generations_7d: number; audience: "all" | "user"; target_user_id: string | null;
   plan_id: string | null; plan_days: number | null; active: boolean; starts_at: string;
-  expires_at: string | null; created_at: string;
+  expires_at: string | null; created_at: string; updated_at: string; credits_given: number;
   target: { id: string; email: string; username: string | null; full_name: string | null } | null;
 }
 
@@ -30,6 +30,11 @@ export function freebieErrorMessage(code: string, details?: { required?: number;
     plan_unavailable: "Plani që përfshin ky kod nuk është i disponueshëm për momentin.",
     rate_limited: "Shumë kërkesa. Prit deri të përfundojë timer-i dhe provo përsëri.",
     code_exists: "Ky kod ekziston. Zgjidh një kod tjetër.",
+    drop_not_found: "Ky Code Drop nuk ekziston më. Rifresko listën.",
+    drop_deleted: "Ky Code Drop është fshirë. Krijo një promovim të ri.",
+    drop_changed: "Code Drop ndryshoi ose u përdor ndërkohë. Mbylle këtë dritare, rifresko listën dhe provo përsëri.",
+    claims_below_used: "Limiti nuk mund të jetë më i vogël se numri i përdorimeve të kryera.",
+    confirmation_mismatch: "Shkruaje kodin saktë për të konfirmuar fshirjen.",
     user_not_found: "Përdoruesi nuk u gjet. Kërko dhe zgjidhe përsëri.",
     invalid_request: "Kontrollo fushat dhe vlerat që ke shkruar.",
     freebies_unavailable: "Freebies nuk u ngarkuan ose ruajtën. Provo përsëri.",
