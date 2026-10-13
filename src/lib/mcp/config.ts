@@ -1,9 +1,14 @@
 export const MARO_MCP_DEFAULT_RESOURCE = "https://maro.al/api/mcp";
+export const MARO_MCP_OAUTH_SCOPES = ["openid", "profile", "offline_access"] as const;
 export const MARO_MCP_PERMISSIONS = ["account:read", "image:generate", "image:read", "brain:read", "brain:write"] as const;
 export type MaroMcpProduct = "imazh" | "brain";
 
 export function getProductMcpResource(product: MaroMcpProduct): string {
   return `${new URL(getMaroMcpResource()).origin}/api/mcp/${product}`;
+}
+
+function isStandaloneMcpResource(resource: string): boolean {
+  return resource === getProductMcpResource("imazh") || resource === getProductMcpResource("brain");
 }
 
 export type MaroMcpPermission = (typeof MARO_MCP_PERMISSIONS)[number];
@@ -50,6 +55,9 @@ export function getMaroMcpChallenge(input?: {
   const parts = [
     `Bearer resource_metadata="${getMaroMcpProtectedResourceMetadataUrl(input?.resource)}"`,
   ];
+  if (isStandaloneMcpResource(input?.resource ?? getMaroMcpResource())) {
+    parts.push(`scope="${MARO_MCP_OAUTH_SCOPES.join(" ")}"`);
+  }
   if (input?.error) parts.push(`error="${input.error}"`);
   if (input?.description) {
     const safe = input.description.replace(/["\\\r\n]/g, " ").slice(0, 160);
@@ -63,6 +71,7 @@ export function getMaroProtectedResourceMetadata(resource = getMaroMcpResource()
   return {
     resource,
     authorization_servers: issuer ? [issuer] : [],
+    ...(isStandaloneMcpResource(resource) ? { scopes_supported: [...MARO_MCP_OAUTH_SCOPES] } : {}),
     bearer_methods_supported: ["header"],
     resource_documentation: "https://maro.al/mcp",
   };

@@ -49,6 +49,13 @@ describe("maroMCP OAuth resource boundary", () => {
     );
   });
 
+  it.each(["imazh", "brain"])("limits %s discovery and challenges to the approved identity scopes", (product) => {
+    const resource = `${RESOURCE}/${product}`;
+    expect(getMaroProtectedResourceMetadata(resource).scopes_supported).toEqual(["openid", "profile", "offline_access"]);
+    expect(getMaroMcpChallenge({ resource })).toContain('scope="openid profile offline_access"');
+    expect(getMaroMcpChallenge()).not.toContain('scope=');
+  });
+
   it("keeps direct Maro sessions unchanged in the deployable OAuth claims hook", () => {
     const migration = fs.readFileSync(
       path.join(process.cwd(), "docs/db-history/current-main/0046_maro_mcp_oauth_claims.sql"),

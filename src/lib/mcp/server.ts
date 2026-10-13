@@ -14,7 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { MaroMcpActor, MaroMcpAuthResult } from "@/lib/mcp/auth";
 import { actorHasPermission } from "@/lib/mcp/auth";
-import { getMaroMcpChallenge, getMaroMcpResource } from "@/lib/mcp/config";
+import { getMaroMcpChallenge, getMaroMcpResource, MARO_MCP_OAUTH_SCOPES } from "@/lib/mcp/config";
 import {
   generateMaroImageTool,
   getMaroAccountTool,
@@ -181,11 +181,12 @@ export function createMaroMcpServer(input: {
 }) {
   const getAccount = input.handlers?.getAccount ?? getMaroAccountTool;
   const generateImage = input.handlers?.generateImage ?? generateMaroImageTool;
+  const securitySchemes = input.standalone ? [{ type: "oauth2", scopes: [...MARO_MCP_OAUTH_SCOPES] }] : OAUTH_SECURITY_SCHEMES;
   const server = new Server(
     {
       name: input.standalone ? "maro-imazh" : "maro-mcp",
       title: input.standalone ? "maroImazh" : "Maro / maroImazh",
-      version: input.standalone ? "1.0.2" : "1.0.1",
+      version: input.standalone ? "1.0.3" : "1.0.1",
       ...(input.standalone ? { icons: [{ src: "https://maro.al/mcp/maroImazh-icon.svg", mimeType: "image/svg+xml", sizes: ["200x200"] }] } : {}),
       description:
         "Creates images in the connected Maro account. Workspace brand is used only with explicit use_brain opt-in.",
@@ -213,14 +214,14 @@ export function createMaroMcpServer(input: {
             "Confirm the connected Maro account and active workspace. Does not create anything.",
           inputSchema: ACCOUNT_INPUT_JSON_SCHEMA,
           outputSchema: ACCOUNT_OUTPUT_JSON_SCHEMA,
-          securitySchemes: OAUTH_SECURITY_SCHEMES,
+          securitySchemes,
           annotations: {
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
             openWorldHint: false,
           },
-          _meta: { securitySchemes: OAUTH_SECURITY_SCHEMES },
+          _meta: { securitySchemes },
         },
         {
           name: "generate_maro_image",
@@ -229,7 +230,7 @@ export function createMaroMcpServer(input: {
             "Create exactly one image with maroImazh when the user explicitly requests it. Spends Maro credits and returns the saved image. Workspace brand is optional through use_brain; internal prompts are never returned.",
           inputSchema: IMAGE_INPUT_JSON_SCHEMA,
           outputSchema: IMAGE_OUTPUT_JSON_SCHEMA,
-          securitySchemes: OAUTH_SECURITY_SCHEMES,
+          securitySchemes,
           annotations: {
             readOnlyHint: false,
             destructiveHint: false,
@@ -237,7 +238,7 @@ export function createMaroMcpServer(input: {
             openWorldHint: true,
           },
           _meta: {
-            securitySchemes: OAUTH_SECURITY_SCHEMES,
+            securitySchemes,
             ui: { resourceUri: MARO_IMAGE_RESULT_RESOURCE_URI },
             "openai/outputTemplate": MARO_IMAGE_RESULT_RESOURCE_URI,
             "openai/toolInvocation/invoking": "Generating a Maro image…",
@@ -246,7 +247,7 @@ export function createMaroMcpServer(input: {
         },
         ...(input.standalone ? [{ name: "get_maro_image_status", title: "Get image status", description: "Read a user-owned image generation status and retrieve its completed image without creating or charging another generation.",
           inputSchema: { type: "object", properties: { job_id: { type: "string", format: "uuid" } }, required: ["job_id"], additionalProperties: false },
-          securitySchemes: OAUTH_SECURITY_SCHEMES, _meta: { securitySchemes: OAUTH_SECURITY_SCHEMES },
+          securitySchemes, _meta: { securitySchemes },
           annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] : []),
       ],
     } as never;
