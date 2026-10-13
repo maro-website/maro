@@ -1206,7 +1206,7 @@ export function ToolComposer({
       <div className="relative z-20 shrink-0 bg-canvas max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {!mobileComposerOpen && <button type="button" className="mx-4 mt-2 flex min-h-12 w-[calc(100%-2rem)] items-center justify-between gap-3 rounded-2xl bg-surface px-4 text-[16px] font-semibold text-ink lg:hidden" aria-label="Hap promptbox" aria-expanded={false} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(true)}>Shkruaj çka do të krijosh<ChevronDown className="h-5 w-5 rotate-180" /></button>}
         <div id="mobile-composer-content" className={cn(!mobileComposerOpen && "max-lg:hidden", "max-lg:max-h-[60dvh] max-lg:overflow-y-auto")}>
-        <div className="mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6">
+        <div className={cn("mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6", moodsEligible && "maro-moods-dock")}>
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
           {(isImage ? privateImageAttachments.length : attachments.length) > 0 && (
@@ -1317,7 +1317,7 @@ export function ToolComposer({
             </div>
           )}
 
-          <div className={cn(moodsEligible && "flex flex-col gap-3 lg:flex-row lg:items-start")}>
+          <div className={cn(moodsEligible && "flex flex-col gap-3 lg:flex-row lg:items-stretch")}>
           {moodsEligible && <MoodPicker selected={selectedMood} onSelect={setSelectedMood} disabled={loading || !draftReady || !ready} />}
           <div className="maro-composer min-w-0 flex-1">
             {/* Text row */}

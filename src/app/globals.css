@@ -319,6 +319,18 @@ body {
   flex-shrink: 0;
 }
 
+/* Private mood composer: a square discovery tile beside the compact desktop dock. */
+.maro-mood-tile { display: none; }
+.maro-mood-tile__button { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; }
+.maro-mood-tile__preview { position: absolute; inset: 0; filter: blur(3px); transform: scale(1.1); pointer-events: none; }
+.maro-mood-tile__shade { position: absolute; inset: 0; background: rgb(0 0 0 / 55%); pointer-events: none; }
+.maro-mood-tile__label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--maro-gap-10); }
+.maro-mood-search input { padding-inline: 0; border: 0; border-radius: 0; }
+@media (min-width: 64rem) {
+  .maro-mood-tile { position: relative; display: block; flex: 0 0 10rem; width: 10rem; height: 10rem; }
+  .maro-moods-dock { max-width: 76rem; }
+}
+
 .dock-pill {
   max-width: 148px;
 }
