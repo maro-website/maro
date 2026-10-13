@@ -13,7 +13,9 @@ it("recreates all captured public objects in an empty database and refuses a sec
       create function auth.role() returns text language sql as $$select 'service_role'::text$$;
       create function auth.jwt() returns jsonb language sql as $$select '{}'::jsonb$$;
       grant usage on schema public,auth to anon,authenticated,service_role;`);
-    const baseline=readFileSync("docs/db-history/v1-baseline-20261009.sql","utf8");
+    // Git's Windows checkout can use CRLF; compare the same normalized SQL body
+    // as the captured evidence below, rather than platform-specific newlines.
+    const baseline=readFileSync("docs/db-history/v1-baseline-20261009.sql","utf8").replaceAll('\r\n','\n');
     await db.exec(baseline);
     expect((await db.query("select count(*)::integer as n from pg_tables where schemaname='public'")).rows).toEqual([{n:73}]);
     expect((await db.query("select count(*)::integer as n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'")).rows).toEqual([{n:96}]);

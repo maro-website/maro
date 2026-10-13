@@ -6,6 +6,7 @@ import {
   getMaroMcpIssuer,
   getMaroMcpResource,
   type MaroMcpPermission,
+  MARO_MCP_PERMISSIONS,
 } from "@/lib/mcp/config";
 
 export type MaroMcpActor = {
@@ -51,7 +52,7 @@ function readPermissions(value: unknown): MaroMcpPermission[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
     (permission): permission is MaroMcpPermission =>
-      permission === "account:read" || permission === "image:generate"
+      (MARO_MCP_PERMISSIONS as readonly unknown[]).includes(permission)
   );
 }
 
@@ -60,6 +61,7 @@ export function validateVerifiedMaroMcpClaims(input: {
   verifiedUserId: string;
   token: string;
   now?: number;
+  resource?: string;
 }): MaroMcpAuthResult {
   const { claims } = input;
   const issuer = getMaroMcpIssuer();
@@ -72,7 +74,7 @@ export function validateVerifiedMaroMcpClaims(input: {
     return { ok: false, reason: "invalid" };
   }
   if (claims.iss !== issuer) return { ok: false, reason: "wrong_issuer" };
-  if (!audienceMatches(claims.aud, getMaroMcpResource())) {
+  if (!audienceMatches(claims.aud, input.resource ?? getMaroMcpResource())) {
     return { ok: false, reason: "wrong_audience" };
   }
   if (typeof claims.sub !== "string" || claims.sub !== input.verifiedUserId) {
@@ -105,7 +107,7 @@ export function validateVerifiedMaroMcpClaims(input: {
  * for symmetric/unsupported tokens). getUserFromToken then confirms that the
  * subject still maps to the existing Maro user.
  */
-export async function verifyMaroMcpRequest(request: Request): Promise<MaroMcpAuthResult> {
+export async function verifyMaroMcpRequest(request: Request, resource = getMaroMcpResource()): Promise<MaroMcpAuthResult> {
   const token = readBearer(request);
   if (!token) return { ok: false, reason: "missing" };
 
@@ -116,7 +118,7 @@ export async function verifyMaroMcpRequest(request: Request): Promise<MaroMcpAut
   try {
     const [{ data, error }, user] = await Promise.all([
       verifier.auth.getClaims(token),
-      getUserFromToken(token),
+      getUserFromToken(token, { allowMcp: true }),
     ]);
     if (error || !data?.claims || !user) return { ok: false, reason: "invalid" };
 
@@ -124,6 +126,7 @@ export async function verifyMaroMcpRequest(request: Request): Promise<MaroMcpAut
       claims: data.claims as JwtPayload & Record<string, unknown>,
       verifiedUserId: user.id,
       token,
+      resource,
     });
   } catch {
     return { ok: false, reason: "invalid" };

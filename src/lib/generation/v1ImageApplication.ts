@@ -17,6 +17,7 @@ import { stampJobExecutionTelemetry } from "@/lib/engine/executionTelemetry";
 import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
+import { isVerifiedMcpImageRequest } from "@/lib/mcp/internalRequest";
 
 export async function executeV1ImageApplication(req: Request) {
   const requestId = randomUUID();
@@ -39,7 +40,7 @@ export async function executeV1ImageApplication(req: Request) {
     const input = parseV1ImageRequest(parsed.body);
     validation.model = input.logicalModel;
     const header = req.headers.get("authorization");
-    const owner = await getUserFromToken(header?.startsWith("Bearer ") ? header.slice(7) : header);
+    const owner = await getUserFromToken(header?.startsWith("Bearer ") ? header.slice(7) : header, { allowMcp: isVerifiedMcpImageRequest(req) });
     if (!owner) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     await requireStorageSpace(owner.id);
     trusted = await resolveV1ImageRequest(input, owner.id);

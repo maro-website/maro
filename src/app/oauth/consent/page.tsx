@@ -32,6 +32,7 @@ function ConsentContent() {
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState<"approve" | "deny" | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [product, setProduct] = React.useState<"imazh" | "brain" | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -65,6 +66,11 @@ function ConsentContent() {
         return;
       }
       setDetails(data);
+      try {
+        const response = await fetch(`/api/mcp/authorization?authorization_id=${encodeURIComponent(authorizationId)}`, { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } });
+        const context = await response.json();
+        if (active && (context.product === "brain" || context.product === "imazh")) setProduct(context.product);
+      } catch { /* Generic OAuth consent remains usable for other clients. */ }
       setLoading(false);
     };
     void load();
@@ -126,12 +132,16 @@ function ConsentContent() {
               ) : (
                 <li>• përdorë lidhjen OAuth për veprimet që ti kërkon</li>
               )}
-              <li>• përdorë workspace-in aktiv dhe të krijojë maroImazh vetëm kur e kërkon ti</li>
+              {product === "imazh" ? <li>• krijojë imazhe në workspace-in aktiv kur e kërkon ti, duke përdorur kreditë Maro; përdorimi i brendit është opsional</li> : null}
+              {product === "brain" ? <>
+                <li>• lexojë profilin e brendit, burimet dhe kujtimet e workspace-it aktiv</li>
+                <li>• ruajë, përditësojë ose fshijë fakte vetëm kur e kërkon ti; ndryshimet ruhen në Maro</li>
+              </> : null}
             </ul>
           </div>
 
           <p className="rounded-maro12 border border-line px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-2">
-            Promptet private, compiler output dhe inteligjenca e brendshme e markës nuk i dërgohen aplikacionit.
+            {product === "brain" ? "maroBrain ndan përmbajtjen e brendit që ti ke ruajtur në Maro. Nuk merr automatikisht historinë ose memorien e brendshme të ChatGPT. Promptet e sistemit dhe kredencialet mbeten private." : "Promptet private, compiler output dhe kredencialet nuk i dërgohen aplikacionit."}
           </p>
 
           <div className="grid grid-cols-2 gap-3">

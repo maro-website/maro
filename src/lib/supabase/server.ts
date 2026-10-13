@@ -50,7 +50,7 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 // Resolve a Supabase user from a bearer access token (from the Authorization
 // header). Returns null on any failure.
-export async function getUserFromToken(token: string | null): Promise<User | null> {
+export async function getUserFromToken(token: string | null, options: { allowMcp?: boolean } = {}): Promise<User | null> {
   if (!token || !url || !anonKey) return null;
   try {
     const client = createClient(url, anonKey, {
@@ -59,6 +59,12 @@ export async function getUserFromToken(token: string | null): Promise<User | nul
     });
     const { data, error } = await client.auth.getUser(token);
     if (error) return null;
+    // The token has already been verified by Supabase. New MCP tokens are not
+    // browser sessions; only the MCP verifier/internal image adapter opts in.
+    if (!options.allowMcp) {
+      const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+      if (claims.role === "maro_mcp") return null;
+    }
     return data.user ?? null;
   } catch {
     return null;

@@ -6,11 +6,13 @@ import { resolveEntitlements } from "@/lib/commerce/entitlements";
 import { getMaroAccountSummary, resolveAssetListForClient } from "@/lib/supabase/server";
 import type { MaroMcpActor } from "@/lib/mcp/auth";
 import { getMaroMcpResource } from "@/lib/mcp/config";
+import { markVerifiedMcpImageRequest } from "./internalRequest";
 import {
   findJobByIdempotency,
   findRecentInFlightMcpJob,
   getGenerationResultForJob,
   isInFlightJobStatus,
+  getJob,
   type CompletedGenerationResult,
   type GenerationJob,
 } from "@/lib/generation/jobs";
@@ -22,6 +24,7 @@ export const maroImageInputSchema = z
     request: z.string().trim().min(3).max(4_000),
     aspect_ratio: z.enum(["square", "portrait", "story", "landscape"]).optional(),
     text_preference: z.enum(["no_text", "include_text"]).optional(),
+    use_brain: z.boolean().optional(),
   })
   .strict();
 
@@ -259,7 +262,7 @@ export async function generateMaroImageTool(input: {
     selections,
     // Match Golden's explicit Brain opt-in. OAuth image permission does not
     // silently add private Brain material to an otherwise standard request.
-    useWorkspaceBrand: false,
+    useWorkspaceBrand: input.args.use_brain === true,
     n: 1,
     idempotencyKey: input.idempotencyKey,
   };
@@ -280,6 +283,7 @@ export async function generateMaroImageTool(input: {
     body: JSON.stringify(body),
     signal: input.sourceRequest.signal,
   });
+  markVerifiedMcpImageRequest(canonicalRequest);
   const outcome = await readCanonicalOutcome(await executeV1ImageApplication(canonicalRequest));
 
   if (outcome.payload.ok !== true) {
@@ -319,4 +323,17 @@ export async function generateMaroImageTool(input: {
     text,
     structuredContent,
   };
+}
+
+/** Read only a user-owned image job; never expose prompts or retry by starting work. */
+export async function getMaroImageStatusTool(actor: MaroMcpActor, jobId: string): Promise<MaroMcpToolOutcome> {
+  const job = await getJob(jobId);
+  if (!job || job.user_id !== actor.userId || job.module !== "reklama") return fail("INVALID_REQUEST", "Gjenerimi nuk u gjet në llogarinë tënde.");
+  if (job.status === "completed") {
+    const result = await getGenerationResultForJob(job.id, actor.userId);
+    const urls = result ? (await resolveAssetListForClient(result.outputUrls)).filter(isSafeAssetUrl) : [];
+    if (!urls.length) return fail("GENERATION_IN_PROGRESS", "Rezultati po finalizohet. Provo përsëri.", { job_id: job.id, retry_after_seconds: 15 });
+    return { ok: true, text: "Imazhi është përfunduar.", structuredContent: { status: "completed", asset_url: urls[0], credits_spent: result?.creditsSpent, url_expires_in_seconds: 3600 } };
+  }
+  return { ok: true, text: `Statusi i imazhit: ${job.status}.`, structuredContent: { status: job.status, ...(isInFlightJobStatus(job.status) ? { retry_after_seconds: 15 } : {}) } };
 }

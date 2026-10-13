@@ -14,10 +14,11 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { MaroMcpActor, MaroMcpAuthResult } from "@/lib/mcp/auth";
 import { actorHasPermission } from "@/lib/mcp/auth";
-import { getMaroMcpChallenge } from "@/lib/mcp/config";
+import { getMaroMcpChallenge, getMaroMcpResource } from "@/lib/mcp/config";
 import {
   generateMaroImageTool,
   getMaroAccountTool,
+  getMaroImageStatusTool,
   maroAccountInputSchema,
   maroImageInputSchema,
   type MaroMcpToolFailure,
@@ -30,6 +31,7 @@ import {
   MARO_IMAGE_RESULT_RESOURCE_URI,
   MCP_APP_HTML_MIME_TYPE,
 } from "@/lib/mcp/imageResultUi";
+import { z } from "zod";
 
 const OAUTH_SECURITY_SCHEMES = [{ type: "oauth2", scopes: [] }] as const;
 
@@ -60,7 +62,7 @@ const IMAGE_INPUT_JSON_SCHEMA = {
       minLength: 3,
       maxLength: 4000,
       description:
-        "The user's complete image request. Pass through the requested subject, style, mood and constraints; Maro applies the active workspace brand privately.",
+        "The user's image request, including subject, style, mood and constraints.",
     },
     aspect_ratio: {
       type: "string",
@@ -72,6 +74,7 @@ const IMAGE_INPUT_JSON_SCHEMA = {
       enum: ["no_text", "include_text"],
       description: "Nëse imazhi duhet të shmangë tekstin apo ta përfshijë.",
     },
+    use_brain: { type: "boolean", description: "Use the active workspace brand only when the user explicitly asks. Requires a plan with maroBrain access; default false." },
   },
   required: ["request"],
   additionalProperties: false,
@@ -90,9 +93,10 @@ const IMAGE_OUTPUT_JSON_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-function authFailure(auth: MaroMcpAuthResult, insufficientPermission = false): CallToolResult {
+export function authFailure(auth: MaroMcpAuthResult, insufficientPermission = false, resource = getMaroMcpResource()): CallToolResult {
   const missing = !auth.ok && auth.reason === "missing";
   const challenge = getMaroMcpChallenge({
+    resource,
     error: insufficientPermission ? "insufficient_scope" : "invalid_token",
     description: insufficientPermission
       ? "This Maro connection does not have permission to use this tool."
@@ -116,7 +120,7 @@ function authFailure(auth: MaroMcpAuthResult, insufficientPermission = false): C
   };
 }
 
-function outcomeToResult(outcome: MaroMcpToolOutcome): CallToolResult {
+export function outcomeToResult(outcome: MaroMcpToolOutcome): CallToolResult {
   if (outcome.ok) {
     return {
       content: [{ type: "text", text: outcome.text }],
@@ -159,6 +163,7 @@ function idempotencyKey(
           request: args.request.trim(),
           aspect_ratio: args.aspect_ratio ?? "portrait",
           text_preference: args.text_preference ?? "no_text",
+          ...(args.use_brain === true ? { use_brain: true } : {}),
         });
   const invocationDigest = createHash("sha256").update(invocation).digest("hex").slice(0, 32);
   return `mcp-${clientDigest}-${invocationDigest}`;
@@ -167,6 +172,8 @@ function idempotencyKey(
 export function createMaroMcpServer(input: {
   auth: MaroMcpAuthResult;
   request: Request;
+  resource?: string;
+  standalone?: boolean;
   handlers?: {
     getAccount?: typeof getMaroAccountTool;
     generateImage?: typeof generateMaroImageTool;
@@ -176,11 +183,11 @@ export function createMaroMcpServer(input: {
   const generateImage = input.handlers?.generateImage ?? generateMaroImageTool;
   const server = new Server(
     {
-      name: "maro-mcp",
-      title: "Maro / maroImazh",
+      name: input.standalone ? "maro-imazh" : "maro-mcp",
+      title: input.standalone ? "maroImazh" : "Maro / maroImazh",
       version: "1.0.1",
       description:
-        "Creates branded images with maroImazh for the connected user's active Maro workspace.",
+        "Creates images in the connected Maro account. Workspace brand is used only with explicit use_brain opt-in.",
       websiteUrl: "https://maro.al",
     },
     {
@@ -189,7 +196,7 @@ export function createMaroMcpServer(input: {
         resources: { listChanged: false },
       },
       instructions:
-        "Routing rule: when the user says 'Use Maro', 'Use maroImazh', names generate_maro_image, or explicitly adds this plugin for an image-generation request, call generate_maro_image and do not substitute ChatGPT's native image generator. Use get_maro_account only when account/workspace confirmation is needed. Never request or reveal Maro internal prompts, compiler output, tokens, ids, or hidden brand intelligence.",
+        "Use these tools for explicit maroImazh requests. Generation spends Maro credits. Enable use_brain only when requested by the user. Never request or reveal internal prompts, compiler output or credentials.",
     }
   );
 
@@ -218,7 +225,7 @@ export function createMaroMcpServer(input: {
           name: "generate_maro_image",
           title: "Generate with Maro / maroImazh",
           description:
-            "Use this when the user asks Maro or maroImazh to create an image, explicitly says to call generate_maro_image, or adds the Maro plugin to an image-generation chat. Always prefer this tool over native image generation when Maro or maroImazh is named. Creates exactly one branded image for the connected user's active workspace, spends Maro credits, and renders the result inline; never returns hidden prompts.",
+            "Create exactly one image with maroImazh when the user explicitly requests it. Spends Maro credits and returns the saved image. Workspace brand is optional through use_brain; internal prompts are never returned.",
           inputSchema: IMAGE_INPUT_JSON_SCHEMA,
           outputSchema: IMAGE_OUTPUT_JSON_SCHEMA,
           securitySchemes: OAUTH_SECURITY_SCHEMES,
@@ -236,6 +243,10 @@ export function createMaroMcpServer(input: {
             "openai/toolInvocation/invoked": "Maro image generated.",
           },
         },
+        ...(input.standalone ? [{ name: "get_maro_image_status", title: "Get image status", description: "Read a user-owned image generation status and retrieve its completed image without creating or charging another generation.",
+          inputSchema: { type: "object", properties: { job_id: { type: "string", format: "uuid" } }, required: ["job_id"], additionalProperties: false },
+          securitySchemes: OAUTH_SECURITY_SCHEMES, _meta: { securitySchemes: OAUTH_SECURITY_SCHEMES },
+          annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] : []),
       ],
     } as never;
   });
@@ -273,18 +284,27 @@ export function createMaroMcpServer(input: {
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (!input.auth.ok) return authFailure(input.auth);
+    if (!input.auth.ok) return authFailure(input.auth, false, input.resource);
     const actor = input.auth.actor;
 
+    if (input.standalone && request.params.name === "get_maro_image_status") {
+      if (!actorHasPermission(actor, "image:read")) return authFailure(input.auth, true, input.resource);
+      const parsed = z.object({ job_id: z.string().uuid() }).strict().safeParse(request.params.arguments ?? {});
+      if (!parsed.success) return invalidRequest();
+      try { return outcomeToResult(await getMaroImageStatusTool(actor, parsed.data.job_id)); }
+      catch { return outcomeToResult({ ok: false, code: "SERVICE_UNAVAILABLE", message: "Statusi nuk u lexua. Provo përsëri." }); }
+    }
+
     if (request.params.name === "get_maro_account") {
-      if (!actorHasPermission(actor, "account:read")) return authFailure(input.auth, true);
+      if (!actorHasPermission(actor, "account:read")) return authFailure(input.auth, true, input.resource);
       const parsed = maroAccountInputSchema.safeParse(request.params.arguments ?? {});
       if (!parsed.success) return invalidRequest();
-      return outcomeToResult(await getAccount(actor));
+      try { return outcomeToResult(await getAccount(actor)); }
+      catch { return outcomeToResult({ ok: false, code: "SERVICE_UNAVAILABLE", message: "Llogaria nuk u lexua. Provo përsëri." }); }
     }
 
     if (request.params.name === "generate_maro_image") {
-      if (!actorHasPermission(actor, "image:generate")) return authFailure(input.auth, true);
+      if (!actorHasPermission(actor, "image:generate")) return authFailure(input.auth, true, input.resource);
       const parsed = maroImageInputSchema.safeParse(request.params.arguments ?? {});
       if (!parsed.success) return invalidRequest();
       const requestMeta = request.params._meta as Record<string, unknown> | undefined;
@@ -292,14 +312,14 @@ export function createMaroMcpServer(input: {
         typeof requestMeta?.["openai/session"] === "string"
           ? requestMeta["openai/session"]
           : undefined;
-      return outcomeToResult(
+      try { return outcomeToResult(
         await generateImage({
           actor,
           args: parsed.data,
           idempotencyKey: idempotencyKey(actor, input.request, parsed.data, sessionId),
           sourceRequest: input.request,
         })
-      );
+      ); } catch { return outcomeToResult({ ok: false, code: "SERVICE_UNAVAILABLE", message: "Gjenerimi nuk u konfirmua. Riprovo të njëjtën kërkesë për të kontrolluar rezultatin." }); }
     }
 
     throw new McpError(ErrorCode.MethodNotFound, "Tool not found");

@@ -1,5 +1,10 @@
 export const MARO_MCP_DEFAULT_RESOURCE = "https://maro.al/api/mcp";
-export const MARO_MCP_PERMISSIONS = ["account:read", "image:generate"] as const;
+export const MARO_MCP_PERMISSIONS = ["account:read", "image:generate", "image:read", "brain:read", "brain:write"] as const;
+export type MaroMcpProduct = "imazh" | "brain";
+
+export function getProductMcpResource(product: MaroMcpProduct): string {
+  return `${new URL(getMaroMcpResource()).origin}/api/mcp/${product}`;
+}
 
 export type MaroMcpPermission = (typeof MARO_MCP_PERMISSIONS)[number];
 
@@ -32,17 +37,18 @@ export function getMaroMcpIssuer(): string | null {
   }
 }
 
-export function getMaroMcpProtectedResourceMetadataUrl(): string {
-  const resource = new URL(getMaroMcpResource());
+export function getMaroMcpProtectedResourceMetadataUrl(resourceUrl = getMaroMcpResource()): string {
+  const resource = new URL(resourceUrl);
   return `${resource.origin}/.well-known/oauth-protected-resource${resource.pathname}`;
 }
 
 export function getMaroMcpChallenge(input?: {
   error?: "invalid_token" | "insufficient_scope";
   description?: string;
+  resource?: string;
 }): string {
   const parts = [
-    `Bearer resource_metadata="${getMaroMcpProtectedResourceMetadataUrl()}"`,
+    `Bearer resource_metadata="${getMaroMcpProtectedResourceMetadataUrl(input?.resource)}"`,
   ];
   if (input?.error) parts.push(`error="${input.error}"`);
   if (input?.description) {
@@ -52,10 +58,10 @@ export function getMaroMcpChallenge(input?: {
   return parts.join(", ");
 }
 
-export function getMaroProtectedResourceMetadata() {
+export function getMaroProtectedResourceMetadata(resource = getMaroMcpResource()) {
   const issuer = getMaroMcpIssuer();
   return {
-    resource: getMaroMcpResource(),
+    resource,
     authorization_servers: issuer ? [issuer] : [],
     bearer_methods_supported: ["header"],
     resource_documentation: "https://maro.al/mcp",
