@@ -329,6 +329,14 @@ body {
 @media (min-width: 64rem) {
   .maro-mood-tile { position: relative; display: block; flex: 0 0 10rem; width: 10rem; height: 10rem; }
   .maro-moods-dock { max-width: 76rem; }
+  .maro-moods-dock--with-font { max-width: 80rem; }
+  .maro-moods-dock .maro-dock-pill { padding-inline: var(--maro-space-3); }
+  .maro-moods-dock .dock-toolbar,
+  .maro-moods-dock .dock-toolbar-controls { flex-wrap: nowrap; }
+  .maro-moods-dock .dock-toolbar-controls { overflow-x: auto; padding-block: 2px; scrollbar-width: none; }
+  .maro-moods-dock .dock-toolbar-controls[data-more-right] { mask-image: linear-gradient(to right, black calc(100% - 36px), transparent); }
+  .maro-moods-dock .dock-toolbar-controls[data-more-left] { mask-image: linear-gradient(to right, transparent, black 24px); }
+  .maro-moods-dock .dock-toolbar-controls[data-more-left][data-more-right] { mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 36px), transparent); }
 }
 
 .dock-pill {
