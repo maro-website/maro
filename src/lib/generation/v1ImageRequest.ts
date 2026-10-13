@@ -13,6 +13,8 @@ import { resolvePrivateImageReference, type ResolvedImageReference } from "@/lib
 import { loadV1ImageModelRows, resolveV1ImageModel, type V1ImageModule, type V1LogicalImageModel, type V1ImageModelConfiguration } from "@/lib/engine/v1ImageModels";
 import { ImageRequestValidationError, knownKeys, requestBoolean, requestChoice, requestObject, requestString } from "./requestValidation";
 import { IMAZH_REQUEST_PROMPT_MAX_CHARS } from "./imagePromptValidation";
+import { MOOD_ID } from "@/lib/moods/model";
+import { resolveGenerationMood } from "@/lib/moods/server";
 
 export { ImageRequestValidationError } from "./requestValidation";
 export const V1_IMAGE_REQUEST_VERSION = "v1-image-request/1";
@@ -28,6 +30,7 @@ export interface ParsedV1ImageRequest {
   size: ImageSize;
   referenceIds: string[];
   presetId?: string;
+  moodId?: string;
   requestedWorkspaceId?: string;
   conversationId?: string;
   revision?: string;
@@ -42,7 +45,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   const denial = generationAvailabilityError(raw.toolId);
   if (denial) throw new ImageRequestValidationError(denial.error, denial.status, "toolId");
   const logo = resolveProductModule(raw.toolId) === "logo";
-  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "workspaceId", "conversationId", "revision", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort"], "request");
+  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "moodId", "workspaceId", "conversationId", "revision", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort"], "request");
   if (!logo && typeof raw.prompt !== "string") throw new ImageRequestValidationError("invalid_string", 400, "prompt");
   if (!logo && (raw.prompt as string).length > IMAZH_REQUEST_PROMPT_MAX_CHARS) {
     throw new ImageRequestValidationError("prompt_too_long", 400, "prompt", {
@@ -113,6 +116,11 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
     if (!presetId) throw new ImageRequestValidationError("invalid_preset");
   }
   let requestedWorkspaceId: string | undefined;
+  let moodId: string | undefined;
+  if (raw.moodId !== undefined) {
+    if (logo || typeof raw.moodId !== "string" || !MOOD_ID.test(raw.moodId)) throw new ImageRequestValidationError("invalid_mood", 400, "moodId");
+    moodId = raw.moodId;
+  }
   if (raw.workspaceId !== undefined) {
     requestedWorkspaceId = requestString(raw.workspaceId, "workspaceId", 128);
     if (!/^[a-zA-Z0-9_-]+$/.test(requestedWorkspaceId)) throw new ImageRequestValidationError("invalid_workspace");
@@ -127,6 +135,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
     module: logo ? "maro_logo" : "maro_imazh", registryToolId, logicalModel, prompt, selections,
     imageCount: 1, quality, size, referenceIds: [...referenceIds], presetId, requestedWorkspaceId,
     useBrain: !logo && requestedBrain, logoWizard, idempotencyKey, conversationId, revision,
+    ...(moodId ? { moodId } : {}),
   };
 }
 
@@ -150,8 +159,9 @@ const dependencies = {
   resolveWorkspace: resolveOwnedWorkspace,
   resolveReference: resolvePrivateImageReference,
   loadPreset: (...args: Parameters<typeof getPromptTemplate>) => getPromptTemplate(...args),
+  loadMood: resolveGenerationMood,
 };
-export type V1ImageRequestDependencies = Omit<typeof dependencies, "loadLogoContent"> & { loadLogoContent?: () => Promise<LogoContent> };
+export type V1ImageRequestDependencies = Omit<typeof dependencies, "loadLogoContent" | "loadMood"> & { loadLogoContent?: () => Promise<LogoContent>; loadMood?: typeof resolveGenerationMood };
 
 export interface TrustedV1ImageRequest extends Omit<ParsedV1ImageRequest, "requestedWorkspaceId" | "referenceIds"> {
   logicalModel: V1LogicalImageModel;
@@ -163,6 +173,8 @@ export interface TrustedV1ImageRequest extends Omit<ParsedV1ImageRequest, "reque
   model: V1ImageModelConfiguration;
   references: Array<{ id: string; digest: string; mime: string }>;
   presetContentHash?: string;
+  moodContentHash?: string;
+  moodTitle?: string;
 }
 
 function freezeSnapshot<T>(value: T): Readonly<T> {
@@ -178,10 +190,11 @@ export async function resolveV1ImageRequest(
   parsed: ParsedV1ImageRequest,
   userId: string,
   deps: V1ImageRequestDependencies = dependencies
-): Promise<{ snapshot: Readonly<TrustedV1ImageRequest>; resolvedReferences: ReadonlyMap<string, ResolvedImageReference>; presetPrompt?: string }> {
+): Promise<{ snapshot: Readonly<TrustedV1ImageRequest>; resolvedReferences: ReadonlyMap<string, ResolvedImageReference>; presetPrompt?: string; moodPrompt?: string }> {
   if (!userId) throw new ImageRequestValidationError("unauthorized", 401);
   // Clone caller-owned inputs so freezing this generation never freezes UI/test/source objects.
   const input = structuredClone(parsed);
+  const mood = input.moodId ? await (deps.loadMood ?? resolveGenerationMood)(userId, input.moodId) : undefined;
   const model = resolveV1ImageModel(await deps.loadModels(input.module), input.module, input.logicalModel);
   if (input.logoWizard && deps.loadLogoContent) {
     const content = await deps.loadLogoContent();
@@ -212,8 +225,9 @@ export async function resolveV1ImageRequest(
     userId, workspaceId, model, logicalModel: model.logicalModel, selections: { ...input.selections, model: model.logicalModel },
     references: [...resolvedReferences].map(([id, ref]) => ({ id, digest: ref.digest, mime: ref.mime })),
     ...(presetPrompt ? { presetContentHash: createHash("sha256").update(presetPrompt).digest("hex") } : {}),
+    ...(mood ? { moodContentHash: mood.hash, moodTitle: mood.title } : {}),
   });
-  return { snapshot, resolvedReferences, presetPrompt };
+  return { snapshot, resolvedReferences, presetPrompt, ...(mood ? { moodPrompt: mood.prompt } : {}) };
 }
 
 export function v1ImageValidationResponse(error: unknown, requestId?: string): Response {

@@ -13,6 +13,7 @@ const INTENTIONALLY_PUBLIC_PREFIXES = [
   "public/explore/",
   "public/avatars/",
   "public/presets/",
+  "public/moods/",
   "admin-icons/",
   "admin-ads/",
 ] as const;

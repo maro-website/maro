@@ -83,6 +83,7 @@ export const STUDIO_ROUTES = new Set([
   "/audio",
   "/marketing",
   "/explore",
+  "/moods",
   "/prompts",
   "/contests",
   "/krijimet",

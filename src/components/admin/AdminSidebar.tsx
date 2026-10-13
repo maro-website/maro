@@ -19,6 +19,8 @@ import {
 } from "@/lib/admin/routes";
 import { ChevronDown } from "lucide-react";
 import { ToolIcon } from "@/components/app/OptionIcon";
+import { useMaro } from "@/context/store";
+import { canUseMoods } from "@/lib/moods/model";
 
 export type { AdminNavGroup, AdminNavItem };
 
@@ -28,6 +30,7 @@ function itemVisible(role: AccessRole, item: AdminNavItem): boolean {
 }
 
 export function AdminSidebar({ role }: { role: AccessRole }) {
+  const { user } = useMaro();
   const pathname = usePathname();
   const activeGroup = adminNavGroupForPath(pathname);
 
@@ -59,7 +62,7 @@ export function AdminSidebar({ role }: { role: AccessRole }) {
       </div>
       <div className={cn("flex-col gap-2 lg:flex", mobileOpen ? "flex" : "hidden")}>
       {ADMIN_NAV_GROUPS.map((group) => {
-        const items = group.items.filter((item) => itemVisible(role, item));
+        const items = group.items.filter((item) => itemVisible(role, item) && (item.href !== "/admin/engine/moods" || canUseMoods(user?.email)));
         if (items.length === 0) return null;
         const isOpen = openGroups[group.id] !== false;
 

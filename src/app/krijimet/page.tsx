@@ -6,7 +6,7 @@ import { AssetsLibrary } from "@/components/app/AssetsLibrary";
 function LibraryPage() {
   const search = useSearchParams();
   const category = search.get("category");
-  return <AssetsLibrary initialCategory={category === "saved" || category === "published" || category === "uploaded" ? category : "made"} />;
+  return <AssetsLibrary initialCategory={category === "saved" || category === "published" || category === "uploaded" || category === "moods" ? category : "made"} />;
 }
 export default function KrijimetPage() {
   return <AppShell><React.Suspense fallback={null}><LibraryPage /></React.Suspense></AppShell>;

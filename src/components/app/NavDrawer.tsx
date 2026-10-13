@@ -19,7 +19,8 @@ import {
   isNavActive,
 } from "@/lib/nav/destinations";
 import { cn } from "@/lib/utils/cn";
-import { Compass, Home, X } from "lucide-react";
+import { Compass, Home, X, Moon } from "lucide-react";
+import { canUseMoods } from "@/lib/moods/model";
 import type { NavGroup } from "@/lib/nav/destinations";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
@@ -103,6 +104,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                 })}
               </div>
 
+              {canUseMoods(user?.email) && <Link href="/moods" onClick={onClose} aria-current={pathname === "/moods" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Moon className="h-5 w-5 text-brand" />maroMoods</Link>}
               <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Hub</p>
               <div className="mb-5 flex flex-col gap-1">
                 {HUB_MENU_DESTINATIONS.filter((d) => d.id !== "hub").map((dest) =>

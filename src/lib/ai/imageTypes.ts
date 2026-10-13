@@ -21,6 +21,8 @@ export interface AiImageRequest {
   /** maro Prompts: id of an attached curated prompt. The hidden template text
    * is fetched server-side and never sent from the client. */
   maroPrompt?: { id: string };
+  /** Server-resolved thematic layer; no hidden mood prompt travels from the client. */
+  moodId?: string;
   /** Workspace that owns this generation (frozen at insert time). */
   workspaceId?: string;
   conversationId?: string;

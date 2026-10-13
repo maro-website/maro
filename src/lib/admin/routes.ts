@@ -15,6 +15,7 @@ import {
   Shield,
   Image as ImageIcon,
   Gift,
+  Moon,
 } from "lucide-react";
 import type React from "react";
 
@@ -97,6 +98,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/engine/brain", label: "maroBrain", permission: "engine.view", product: "maroBrain" },
       { href: "/admin/engine/generations", label: "Gjenerimet", permission: "operations.view", icon: LayoutDashboard },
       { href: ADMIN_ROUTES.presets, label: "maroPresets", permission: "presets.manage", product: "maroPresets" },
+      { href: "/admin/engine/moods", label: "Moods", permission: "presets.manage", icon: Moon },
     ],
   },
   {

@@ -70,7 +70,7 @@ export async function executeV1ImageApplication(req: Request) {
       metadata: { request_id: requestId, v1_durable: true, v1_request: snapshot, canonical_prompt: { version: canonical.provenance.version, hash: canonical.provenance.promptHash,
         configurationHash: canonical.configurationHash, system: canonical.provenance.system,
         layers: canonical.provenance.layers.map(({ id, key, version, hash }) => ({ id, key, version, hash })),
-        preset: canonical.provenance.preset, brainUsed: canonical.provenance.brainUsed } },
+        preset: canonical.provenance.preset, ...(canonical.provenance.mood ? { mood: canonical.provenance.mood } : {}), brainUsed: canonical.provenance.brainUsed } },
     });
   } catch (error) { return guardErrorResponse(error); }
   logImageValidation({ ...validation, jobId: prep.job.id });

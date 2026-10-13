@@ -32,6 +32,9 @@ import { CreationLightbox } from "@/components/app/cards";
 import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import { GPT_IMAGE_PROMPT_MAX_CHARS } from "@/lib/generation/imagePromptValidation";
 import { PromptExpand } from "@/components/app/PromptExpand";
+import { MoodPicker } from "@/components/moods/MoodPicker";
+import { canUseMoods, MOOD_ID, type Mood } from "@/lib/moods/model";
+import { moodRequest } from "@/lib/moods/client";
 import { PromptLinks } from "@/components/app/PromptLinks";
 import { Switch } from "@/components/ui/Switch";
 import { BrainPill, PresetPill } from "@/components/app/PromptAccessoryRow";
@@ -129,6 +132,9 @@ const IMG_ERRORS: Record<string, string> = {
   file_too_large: "Imazhi është tepër i madh. Përdor PNG, JPG ose WebP deri në 25 MB.",
   unsupported_mime: "Formati nuk mbështetet. Përdor PNG, JPG ose WebP.",
   ...V1_IMAGE_ERRORS,
+  moods_unavailable: "maroMood nuk është i disponueshëm për këtë llogari.",
+  mood_unavailable: "Ky mood nuk është më aktiv. Hiqe ose zgjedh një tjetër.",
+  mood_configuration_unavailable: "Mood-i nuk u ngarkua. Provo përsëri.",
 };
 
 const AUDIO_ERRORS: Record<string, string> = {
@@ -231,6 +237,29 @@ export function ToolComposer({
 
   const { prompt, setPrompt, attachments, setAttachments, privateImageAttachments, setPrivateImageAttachments, audioInput, setAudioInput, promptAttach: promptAttachInternal, setPromptAttachInternal, draftReady: loadedDraftReady } = useComposerDraft(draftKey);
   const draftReady = loadedDraftReady && Boolean(conversationId);
+  const moodsEligible = tool.id === "reklama" && canUseMoods(user?.email);
+  const [moodState, setMoodState] = React.useState<{ key: string; mood: Mood | null }>({ key: "", mood: null });
+  const selectedMood = moodsEligible && moodState.key === draftKey ? moodState.mood : null;
+  const requestedMood = searchParams.get("mood");
+  const setSelectedMood = React.useCallback((mood: Mood | null) => {
+    setMoodState({ key: draftKey, mood });
+    try { if (mood) sessionStorage.setItem(`maro:mood:${draftKey}`, mood.id); else sessionStorage.removeItem(`maro:mood:${draftKey}`); } catch { /* Session storage can be unavailable. */ }
+  }, [draftKey]);
+  React.useEffect(() => {
+    if (!moodsEligible || !draftReady) return;
+    let id = requestedMood;
+    try { id ??= sessionStorage.getItem(`maro:mood:${draftKey}`); } catch { /* In-memory selection still works. */ }
+    if (!id || !MOOD_ID.test(id)) { setMoodState({ key: draftKey, mood: null }); return; }
+    const controller = new AbortController();
+    void moodRequest<{ items: Mood[] }>("/api/moods", { signal: controller.signal }).then(data => {
+      if (controller.signal.aborted) return;
+      const mood = data.items.find(item => item.id === id) ?? null;
+      setSelectedMood(mood);
+      if (!mood) toast("Ky mood nuk është më aktiv.", "error");
+      if (requestedMood) { const query = new URLSearchParams(searchParams.toString()); query.delete("mood"); router.replace(`/imazh${query.size ? `?${query}` : ""}`, { scroll: false }); }
+    }).catch(err => { if (!controller.signal.aborted) { setMoodState({ key: draftKey, mood: null }); toast((err as Error).message, "error"); } });
+    return () => controller.abort();
+  }, [moodsEligible, draftReady, draftKey, requestedMood, setSelectedMood, router, searchParams, toast]);
   const [attachmentPickerOpen, setAttachmentPickerOpen] = React.useState(false);
   const [webPreviews, setWebPreviews] = React.useState<Record<string, string>>({});
   const [selections, setSelections] = React.useState<ToolSelections>(() => defaultSelections(tool));
@@ -926,6 +955,7 @@ export function ToolComposer({
         attachments: canonicalAttachments,
         fort: fortPayload,
         maroPrompt: maroPromptPayload,
+        ...(selectedMood ? { moodId: selectedMood.id } : {}),
         workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
         useWorkspaceBrand: brainReady && useWorkspaceBrand,
       }, { onStarted });
@@ -986,7 +1016,7 @@ export function ToolComposer({
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation]);
+  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, selectedMood, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation]);
 
   // Whether the current inputs are enough to generate.
   const canGenerate = ready && draftReady && !recoveredPending && !historyError && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
@@ -1286,7 +1316,9 @@ export function ToolComposer({
             </div>
           )}
 
-          <div className="maro-composer">
+          <div className={cn(moodsEligible && "flex flex-col gap-3 lg:flex-row lg:items-start")}>
+          {moodsEligible && <MoodPicker selected={selectedMood} onSelect={setSelectedMood} disabled={loading || !draftReady || !ready} />}
+          <div className="maro-composer min-w-0 flex-1">
             {/* Text row */}
             <div className="relative">
               {needsPrompt ? (
@@ -1415,11 +1447,12 @@ export function ToolComposer({
                   loading={loading}
                   onCommit={onGenerate}
                   cost={functional && (!isImage || selectedImageModel) ? cost : undefined}
-                  cancelKey={JSON.stringify([conversationUserId, conversationId, tool.id, workspaceId, prompt, selections, cost, credits, privateImageAttachments.map(item => item.id), attachments, audioInput?.name])}
+                  cancelKey={JSON.stringify([conversationUserId, conversationId, tool.id, workspaceId, prompt, selections, selectedMood?.id, cost, credits, privateImageAttachments.map(item => item.id), attachments, audioInput?.name])}
                   disabled={functional && (!canGenerate || loading)}
                 />
               </div>
             </div>
+          </div>
           </div>
           {maintenance ? (
             <p className="mt-2 text-center text-[12.5px] text-ink-3">

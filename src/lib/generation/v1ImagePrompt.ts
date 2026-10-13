@@ -8,6 +8,7 @@ import { wrapPresetRecommendation } from "@/lib/presets/model";
 import { resolveWorkspaceImageReference, type ResolvedImageReference } from "@/lib/ai/imageReferences";
 import type { TrustedV1ImageRequest, resolveV1ImageRequest } from "./v1ImageRequest";
 import { ImageRequestValidationError } from "./requestValidation";
+import { moodPromptSection } from "@/lib/moods/model";
 
 export const CANONICAL_IMAGE_VERSION = "maro-v1-canonical/1";
 export const promptHash = (value: string) => createHash("sha256").update(value.replace(/\r\n?/g, "\n")).digest("hex");
@@ -23,6 +24,7 @@ export interface ProductionImagePrompt {
 }
 export interface CanonicalImageContext {
   presetPrompt?: string;
+  moodPrompt?: string;
   brainText?: string;
   references: Array<{ id: string; digest: string; source: "user" | "brain" }>;
 }
@@ -60,6 +62,9 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
   const preset = request.presetId && request.presetContentHash && context.presetPrompt ? context.presetPrompt : "";
   if (request.presetId && !preset) throw new ImageRequestValidationError("preset_snapshot_missing", 503);
   if (preset && createHash("sha256").update(preset).digest("hex") !== request.presetContentHash) throw new ImageRequestValidationError("preset_snapshot_mismatch", 503);
+  const mood = request.moodId && request.moodContentHash && context.moodPrompt ? context.moodPrompt : "";
+  if (request.moodId && (!mood || request.module !== "maro_imazh")) throw new ImageRequestValidationError("mood_snapshot_missing", 503);
+  if (mood && createHash("sha256").update(mood).digest("hex") !== request.moodContentHash) throw new ImageRequestValidationError("mood_snapshot_mismatch", 503);
   const brief = request.module === "maro_logo"
     ? [buildMaroLogoBrief(request.logoWizard!, references.length > 0), request.revision ? `USER REQUESTED LOGO REVISION:\n${request.revision}` : ""].filter(Boolean).join("\n\n")
     : request.prompt + (request.selections.format === "4:3" ? "\n\nCompose a landscape 4:3 image. Keep the subject and essential details within the central 4:3 area of the landscape frame." : "");
@@ -67,12 +72,14 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
   const section = (kind: string) => candidates.filter((l) => category(l.layer_key) === kind).map((l) => l.instructions);
   const orderedLayers = ["direction", "reference", "output"].flatMap((kind) => candidates.filter((l) => category(l.layer_key) === kind));
   const parts = [config.system.content, ...section("direction"), preset ? wrapPresetRecommendation(preset) : "", brainText, ...section("reference"), brief, ...section("output")];
+  if (mood) parts.push(moodPromptSection(mood));
   const prompt = parts.map((p) => p.replace(/\r\n?/g, "\n").trim()).filter(Boolean).join("\n\n");
   const provenance = {
     version: CANONICAL_IMAGE_VERSION,
     system: { id: config.system.id, version: config.system.version_label, hash: promptHash(config.system.content) },
     layers: orderedLayers.map((l) => ({ id: l.id, key: l.layer_key, version: l.version_label, hash: promptHash(l.instructions), priority: l.priority, conditions: l.conditions })),
     preset: preset ? { id: request.presetId, hash: request.presetContentHash } : null,
+    ...(mood ? { mood: { id: request.moodId, hash: request.moodContentHash } } : {}),
     brainUsed: Boolean(brainText || references.some((r) => r.source === "brain")), brainHash: brainText ? promptHash(brainText) : null,
     references, promptHash: promptHash(prompt),
   };
@@ -93,7 +100,7 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
     if (error || !data?.content?.trim()) throw new ImageRequestValidationError("invalid_preview_draft", 400);
     config.system = { ...data, status: "live" };
   }
-  const context: CanonicalImageContext = { presetPrompt: trusted.presetPrompt, references: [] };
+  const context: CanonicalImageContext = { presetPrompt: trusted.presetPrompt, moodPrompt: trusted.moodPrompt, references: [] };
   const bytes: string[] = [];
   const digests = new Set<string>();
   function append(id: string, resolved: ResolvedImageReference, source: "user" | "brain") {

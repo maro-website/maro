@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils/cn";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/Badge";
 import { StableImage } from "@/components/app/StableImage";
-import { Coins, Compass, Home, Menu, Megaphone } from "lucide-react";
+import { canUseMoods } from "@/lib/moods/model";
+import { Coins, Compass, Home, Menu, Megaphone, Moon } from "lucide-react";
 
 function ModuleNavIcon({
   dest,
@@ -128,6 +129,7 @@ export function AppTopNav({
             </React.Fragment>
           );
         })}
+        {canUseMoods(user?.email) && <Link href="/moods" className="maro-nav__link" data-active={pathname === "/moods" || undefined} aria-current={pathname === "/moods" ? "page" : undefined}><Moon className="h-5 w-5 shrink-0" /><span className="maro-nav__label">maroMoods</span></Link>}
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">
