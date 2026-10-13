@@ -1302,9 +1302,10 @@ export function ToolComposer({
             </div>
           )}
 
-          {(promptAttach || (canAttachImages && brainUserId && workspaceId)) && !loading && (
-            <div className="prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5">
+          {(promptAttach || moodsEligible || (canAttachImages && brainUserId && workspaceId)) && !loading && (
+            <div className={cn("prompt-accessory-row mb-2.5 flex flex-wrap items-center gap-2.5", !promptAttach && !(canAttachImages && brainUserId && workspaceId) && "lg:hidden")}>
               {canAttachImages && brainUserId && workspaceId && <BrainPill active={brainReady && useWorkspaceBrand} disabled={brainState === "loading"} onToggle={next => { if (brainReady) setUseWorkspaceBrand(next); else setBrainNotice(true); }} />}
+              {moodsEligible && <MoodPicker variant="mobile" selected={selectedMood} onSelect={setSelectedMood} disabled={!draftReady || !ready} />}
               {promptAttach && (
                 <PresetPill
                   code={promptAttach.code}

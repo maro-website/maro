@@ -6,22 +6,29 @@ import { useMaro } from "@/context/store";
 import { canUseMoods, type Mood } from "@/lib/moods/model";
 import { cn } from "@/lib/utils/cn";
 import { MoodCollection, MoodCover } from "./MoodCollection";
+import { SwitchTrack } from "@/components/ui/Switch";
 
-export function MoodPicker({ selected, onSelect, disabled }: { selected: Mood | null; onSelect: (mood: Mood | null) => void; disabled?: boolean }) {
+export function MoodPicker({ selected, onSelect, disabled, variant = "desktop" }: { selected: Mood | null; onSelect: (mood: Mood | null) => void; disabled?: boolean; variant?: "desktop" | "mobile" }) {
   const { user } = useMaro();
   const [open, setOpen] = React.useState(false);
   const [all, setAll] = React.useState(false);
+  const openPicker = () => { setAll(false); setOpen(true); };
   if (!canUseMoods(user?.email)) return null;
   return <>
-    <div className="flex shrink-0 items-center gap-3 lg:block lg:w-24">
+    {variant === "mobile" ? <div className="flex min-w-0 items-center gap-2 lg:hidden">
+      <button type="button" disabled={disabled} role="switch" aria-checked={Boolean(selected) || open} aria-label="maroMood" onClick={() => { if (selected) onSelect(null); else openPicker(); }} className="fort-pill maro-switch disabled:opacity-50" style={{ background: "#fff", color: "#000" }} title="Shtoji një mood idesë">
+        <Moon className="h-3.5 w-3.5" /><span>maroMood</span><SwitchTrack checked={Boolean(selected) || open} />
+      </button>
+      {selected && <button type="button" disabled={disabled} onClick={openPicker} aria-label={`Ndërro mood: ${selected.title}`} className="min-h-11 min-w-0 truncate text-xs text-ink-2 disabled:opacity-50" title={selected.title}>{selected.title}</button>}
+    </div> : <div className="hidden shrink-0 lg:block lg:w-24">
       <div className="relative h-24 w-24 shrink-0">
-        <button type="button" disabled={disabled} onClick={() => { setAll(false); setOpen(true); }} aria-label={selected ? `Ndërro mood: ${selected.title}` : "Zgjedh maroMood"} className={cn("relative h-24 w-24 overflow-hidden rounded-maro20 border bg-surface text-ink transition-colors hover:border-brand disabled:opacity-50", selected ? "border-brand" : "border-line")}>
+        <button type="button" disabled={disabled} onClick={openPicker} aria-label={selected ? `Ndërro mood: ${selected.title}` : "Zgjedh maroMood"} className={cn("relative h-24 w-24 overflow-hidden rounded-maro20 border bg-surface text-ink transition-colors hover:border-brand disabled:opacity-50", selected ? "border-brand" : "border-line")}>
           {selected ? <><MoodCover mood={selected} className="h-full" /><span className="absolute inset-x-0 bottom-0 bg-scrim px-2 py-1.5 text-[10px] font-semibold text-on-scrim">{selected.title}</span></> : <span className="flex h-full flex-col items-center justify-center gap-2"><Moon className="h-6 w-6 text-brand" /><span className="text-xs font-semibold">maroMood</span></span>}
         </button>
         {selected && <button type="button" disabled={disabled} aria-label="Hiq mood-in" onClick={() => onSelect(null)} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-scrim text-on-scrim"><X className="h-3.5 w-3.5" /></button>}
       </div>
       <p className="text-xs text-ink-3 lg:mt-2 lg:text-center">{selected ? "Mood aktiv" : "Shtoji një temë idesë"}</p>
-    </div>
+    </div>}
     <Modal open={open} onClose={() => setOpen(false)} size="lg">
       <ModalHeader title="maroMoods" description="Shtoji një atmosferë idesë tënde." icon={<Moon className="h-5 w-5" />} />
       <div className="px-5 pb-6 sm:px-6"><div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Katalogu i moods">
