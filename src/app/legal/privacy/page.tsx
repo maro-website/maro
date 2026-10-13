@@ -7,7 +7,7 @@ export const metadata = metadataForPage("/legal/privacy");
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Politika e Privatësisë" current="Politika e Privatësisë">
+    <LegalLayout title="Politika e Privatësisë" current="Politika e Privatësisë" updated="13 Tetor 2026">
       <LegalSection title="1. Kontrolluesi dhe ligji i zbatueshëm">
         <p><strong>{LEGAL_ENTITY.name}</strong>, NUI/NRB {LEGAL_ENTITY.nui}, {LEGAL_ADDRESS}, është operatori i maro.al dhe kontrolluesi i të dhënave për llogaritë, faturimin, sigurinë dhe administrimin e platformës. Zbatohet <a href={LEGAL_SOURCES.privacy}>Ligji nr. 06/L-082 për Mbrojtjen e të Dhënave Personale i Republikës së Kosovës</a>. Kontakti për privatësi është <a href={`mailto:${LEGAL_ENTITY.contactEmail}`}>{LEGAL_ENTITY.contactEmail}</a>, tel. <a href={`tel:${LEGAL_ENTITY.phone}`}>{LEGAL_ENTITY.phone}</a>.</p>
         <p>Kur një biznes ngarkon të dhëna të klientëve ose punonjësve të vet dhe Maro i përpunon vetëm sipas udhëzimeve të tij, biznesi përcakton qëllimin e atij përpunimi. Kur kërkohet, kjo marrëdhënie duhet të mbulohet me marrëveshje të veçantë për përpunimin e të dhënave. Kjo politikë nuk e zëvendëson atë marrëveshje dhe as bazën ligjore të biznesit për ngarkimin e të dhënave.</p>
@@ -38,6 +38,12 @@ export default function PrivacyPage() {
         <p>Materialet dhe të dhënat e gjenerimit mund të ruhen për historikun, rikthimin e rezultatit, verifikimin e kostos dhe diagnostikimin. Personeli i autorizuar mund t’i shqyrtojë kur nevojiten për mbështetje, siguri ose hetimin e gabimeve. MaroBrain përdoret si kontekst i kërkesës; plotësimi i tij nuk nënkupton trajnim të një modeli të veçantë për biznesin tuaj.</p>
         <p>Përpunimi nga ofruesit AI mund të përfshijë ruajtje dhe kontrolle sigurie sipas shërbimit dhe marrëveshjes përkatëse. Nuk premtojmë ruajtje zero ose përjashtim universal nga çdo përdorim i ofruesit pa një marrëveshje që e siguron këtë. Për kërkesa të posaçme konfidencialiteti kontaktoni para ngarkimit.</p>
         <p>Mos ngarkoni fjalëkalime, të dhëna të plota karte, dokumente identiteti ose të dhëna të ndjeshme që nuk nevojiten. Për materiale me persona të tjerë duhet të keni bazë ligjore dhe, kur kërkohet, pëlqimin e tyre. Shërbimi standard nuk ofrohet për identifikim biometrik të personave.</p>
+      </LegalSection>
+      <LegalSection title="4a. Lidhjet maroImazh dhe maroBrain përmes MCP">
+        <p>Kur lidhni Maro me ChatGPT ose një klient tjetër MCP, autorizimi OAuth përcakton lidhjen dhe lejet për produktin. Maro përpunon identifikuesin e llogarisë dhe të klientit, workspace-in aktiv dhe argumentet e mjeteve që thërrisni. maroImazh përdor kërkesën e imazhit, formatin, zgjedhjen për tekst dhe, vetëm kur e kërkoni, kontekstin e brendit. Gjenerimet përdorin të njëjtin historik dhe përllogaritje kreditesh si platforma.</p>
+        <p>maroBrain lexon profilin e brendit dhe faktet e ruajtura në workspace. Kur kërkoni ruajtje ose ndryshim, Maro mban tekstin, burimin, versionin dhe datën për rikujtim e historik. Nuk importojmë automatikisht bisedat e plota ose kujtesën e brendshme të ChatGPT. Mos dërgoni sekrete ose të dhëna të panevojshme në argumentet e mjeteve.</p>
+        <p>Klienti ku e përdorni lidhjen, përfshirë OpenAI kur përdorni ChatGPT, merr përgjigjet e mjeteve: të dhënat përkatëse të llogarisë/workspace-it, profilin ose kujtimet e kërkuara dhe statusin ose lidhjen me afat të imazhit. Ky informacion mund të hyjë në bisedën tuaj te ai klient dhe i nënshtrohet edhe politikave të tij. Maro nuk kthen kredenciale ose promptet e brendshme të sistemit.</p>
+        <p>Mund ta shkëputni lidhjen te klienti ku e keni instaluar. Shkëputja nuk fshin të dhënat që tashmë janë ruajtur në Maro ose te klienti. Përmes maroBrain mund të kërkoni fshirjen e një fakti me të gjitha versionet e tij; profili dhe historia ndjekin aksesin dhe afatin ekzistues të ruajtjes së Brain. Për fshirje ose eksport të llogarisë vlejnë të drejtat dhe kontakti në këtë politikë.</p>
       </LegalSection>
       <LegalSection title="5. Kush mund t’i marrë të dhënat">
         <ul className="list-disc space-y-2 pl-5">

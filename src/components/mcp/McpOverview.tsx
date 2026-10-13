@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Check, CheckCheck, Copy, ExternalLink, Link2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductLogo } from "@/components/ui/ProductLogo";
@@ -45,7 +46,7 @@ export function McpOverview() {
       <section aria-label="Integrimet me ChatGPT" className="grid gap-5 lg:grid-cols-2">
         {Object.entries(integrations).map(([id, item]) => (
           <article key={id} className="flex min-w-0 flex-col rounded-maro20 bg-surface p-6 sm:p-8">
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-3"><ProductLogo product={item.name} className="h-10 w-40" /><span className="shrink-0 rounded-full bg-surface-2 px-3 py-1 text-[12px] text-ink-2">MCP për ChatGPT</span></div>
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-3"><ProductLogo product={item.name} className="h-10 w-40" /><span className="inline-flex shrink-0 items-center gap-2 rounded-maro12 bg-surface-2 px-3 py-2 text-[12px] text-ink-2"><Image src={`/mcp/${item.name}-icon.svg`} alt="" width={32} height={32} className="h-8 w-8 rounded-maro8" />MCP për ChatGPT</span></div>
             <h2 className="maro-text-h3 text-ink">{item.title}</h2>
             <p className="mt-3 text-[14px] leading-relaxed text-ink-2">{item.description}</p>
             <ul className="my-6 space-y-3 text-[14px] text-ink">{item.features.map(feature => <li key={feature} className="flex items-start gap-3"><Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />{feature}</li>)}</ul>

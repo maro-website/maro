@@ -7,10 +7,12 @@ import { LEGAL_ADDRESS, LEGAL_ENTITY, LEGAL_PAGES, LEGAL_UPDATED } from "./legal
 export function LegalLayout({
   title,
   current,
+  updated = LEGAL_UPDATED,
   children,
 }: {
   title: string;
   current: string;
+  updated?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -62,7 +64,7 @@ export function LegalLayout({
             <h1 className="mt-[20px] text-[clamp(28px,5vw,40px)] font-bold tracking-brand text-ink">
               {title}
             </h1>
-            <p className="mt-[10px] text-[13.5px] text-ink-3">Përditësuar: {LEGAL_UPDATED}</p>
+            <p className="mt-[10px] text-[13.5px] text-ink-3">Përditësuar: {updated}</p>
           </header>
 
           <p className="mt-5 rounded-maro12 bg-surface px-5 py-4 text-[14px] text-ink-2">
