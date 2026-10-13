@@ -11,7 +11,7 @@ import { HUB_MENU_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
-import { ChevronDown, Home } from "lucide-react";
+import { ChevronDown, Home, Plug } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 function NavIcon({ name, className, hub }: { name: string; className?: string; hub?: boolean }) {
@@ -19,6 +19,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
     return <Home className={cn("shrink-0", className)} />;
   }
   if (name === "maro-brain") return <ToolIcon toolId="brain" className={className} />;
+  if (name === "mcp") return <Plug className={cn("shrink-0", className)} />;
   const known = ["history", "folder-open", "settings", "maro-imazh", "maro-web", "maro-brand", "maroLogo", "maro-brain", "maro-fort", "idea"];
   if (known.includes(name)) {
     return <MaroIcon src={iconSrc(`${name}.svg`)} className={className} />;
