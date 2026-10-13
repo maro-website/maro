@@ -185,7 +185,7 @@ export function createMaroMcpServer(input: {
     {
       name: input.standalone ? "maro-imazh" : "maro-mcp",
       title: input.standalone ? "maroImazh" : "Maro / maroImazh",
-      version: "1.0.2",
+      version: input.standalone ? "1.0.2" : "1.0.1",
       ...(input.standalone ? { icons: [{ src: "https://maro.al/mcp/maroImazh-icon.svg", mimeType: "image/svg+xml", sizes: ["200x200"] }] } : {}),
       description:
         "Creates images in the connected Maro account. Workspace brand is used only with explicit use_brain opt-in.",
