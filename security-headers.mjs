@@ -34,7 +34,7 @@ export function buildContentSecurityPolicy(options = {}) {
     "form-action 'self'",
     `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://${supabaseHost} https://images.unsplash.com https://picsum.photos`,
+    `img-src 'self' data: blob: https://${supabaseHost} https://images.unsplash.com https://picsum.photos https://launchstreak.dev`,
     "font-src 'self' data:",
     `connect-src ${connectHosts.join(" ")}`,
     `media-src 'self' data: blob: https://${supabaseHost}`,
