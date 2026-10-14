@@ -29,20 +29,6 @@ export function AppFooter({ className }: { className?: string }) {
         <p className="mt-0.5 hidden text-[11px] leading-relaxed text-footer-muted lg:block">
           NRB {LEGAL_ENTITY.nrb} · {LEGAL_ADDRESS} · {LEGAL_ENTITY.phone}
         </p>
-        <a
-          href="https://launchstreak.dev/ai/maro-al"
-          target="_blank"
-          rel="noopener"
-          className="mt-3 inline-flex max-w-full"
-        >
-          <img
-            src="https://launchstreak.dev/badge/launch-streak-badge-light.svg"
-            alt="Launched on Launch Streak"
-            width="248"
-            height="68"
-            className="block h-auto max-w-full"
-          />
-        </a>
       </div>
       <nav className="flex flex-wrap items-center gap-x-[20px] gap-y-[10px]">
         {FOOTER_LINKS.map((link) => (
