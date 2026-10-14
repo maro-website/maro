@@ -33,7 +33,7 @@ export async function GET(req: Request) {
 
   try {
     const user = await getUserFromToken(bearer(req));
-    const allowedIds = user ? null : await guestPresetIds();
+    const allowedIds = user ? null : await guestPresetIds(tool);
     if (!user && (page > 0 || !allowedIds?.length)) {
       return NextResponse.json({ items: [], liked: [], categories: [], hasMore: false, page });
     }

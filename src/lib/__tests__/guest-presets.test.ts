@@ -38,32 +38,32 @@ function query(table: string) {
 beforeEach(() => {
   vi.clearAllMocks(); mocks.fail = false; mocks.auth.mockResolvedValue(null);
   mocks.admin.mockReturnValue({ from: query });
-  mocks.rows = Array.from({ length: 9 }, (_, index) => ({ id: String(index), title: `Preset ${index}`, tool: index % 2 ? "logo" : "imazh",
+  mocks.rows = Array.from({ length: 36 }, (_, index) => ({ id: String(index), title: `Preset ${index}`, tool: index % 2 ? "logo" : "imazh",
     target_tool: index % 2 ? "logo" : "reklama", active: true, status: "published", featured: index === 0,
-    sort_order: index, created_at: `2026-10-${String(index + 1).padStart(2, "0")}`, category: index === 0 ? "Old category" : "Latest",
+    sort_order: index, created_at: new Date(Date.UTC(2026, 8, index + 1)).toISOString(), category: index === 0 ? "Old category" : "Latest",
     search_text: `search ${index}`, config: { version: 1 }, full_prompt: "HIDDEN" }));
 });
 const request = (params = "") => new Request(`https://maro.test/api/prompts?${params}`);
 describe("guest preset catalog", () => {
-  it("exposes only three newest published presets across tools, ignoring old featured placement", async () => {
+  it("exposes twelve newest published presets per live tool, ignoring drafts and old featured placement", async () => {
     mocks.rows.push({ ...mocks.rows[8], id: "draft", status: "draft", created_at: "2027-01-01" });
     mocks.rows.push({ ...mocks.rows[8], id: "future-web", tool: "web", created_at: "2027-01-02" });
     const imazh = await (await browse(request("tool=imazh&limit=60"))).json();
     const logo = await (await browse(request("tool=logo&limit=60"))).json();
-    expect(imazh.items.map((item: { id: string }) => item.id)).toEqual(["8", "6"]);
-    expect(logo.items.map((item: { id: string }) => item.id)).toEqual(["7"]);
+    expect(imazh.items.map((item: { id: string }) => item.id)).toEqual(Array.from({ length: 12 }, (_, index) => String(34 - index * 2)));
+    expect(logo.items.map((item: { id: string }) => item.id)).toEqual(Array.from({ length: 12 }, (_, index) => String(35 - index * 2)));
     expect(imazh.hasMore).toBe(false);
     expect(JSON.stringify(imazh)).not.toContain("HIDDEN");
   });
-  it.each(["page=1", "category=Old%20category", "q=search%200"])("cannot bypass the latest-three limit with %s", async params => {
+  it.each(["page=1", "category=Old%20category", "q=search%200"])("cannot bypass the latest-twelve limit with %s", async params => {
     expect((await (await browse(request(params))).json()).items).toEqual([]);
   });
   it("blocks an older detail requested directly without a session", async () => {
     expect((await detail(request(), { params: Promise.resolve({ id: "0" }) })).status).toBe(401);
     expect((await detail(request(), { params: Promise.resolve({ id: "5" }) })).status).toBe(401);
   });
-  it("allows preview details for one of the latest three without leaking hidden prompts", async () => {
-    const response = await detail(request(), { params: Promise.resolve({ id: "8" }) });
+  it.each(["12", "13", "34", "35"])("allows preview details for latest-twelve preset %s without leaking hidden prompts", async id => {
+    const response = await detail(request(), { params: Promise.resolve({ id }) });
     expect(response.status).toBe(200);
     expect(JSON.stringify(await response.json())).not.toContain("HIDDEN");
   });

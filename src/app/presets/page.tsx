@@ -21,6 +21,7 @@ import { getModuleAvailability, isModuleLive } from "@/lib/modules/availability"
 import { fetchPromptDetail, fetchPrompts, toggleLike } from "@/lib/services/promptsService";
 import { PROMPT_ATTACH_KEY, type PresetCategoryItem, type PromptItem } from "@/lib/prompts/types";
 import { isPresetTool, PRESET_TOOL_META, PRESET_TOOLS, type PresetTool } from "@/lib/presets/model";
+import { GUEST_PRESET_LIMIT } from "@/lib/presets/policy";
 import { cn } from "@/lib/utils/cn";
 import "@/components/presets/presets.css";
 
@@ -200,7 +201,7 @@ function PresetsPageInner() {
             {(category || queryFromUrl || onlyLiked) && <div className="presets-filter-summary"><span>{[category, queryFromUrl && `“${queryFromUrl}”`, onlyLiked && "Të preferuarat"].filter(Boolean).join(" · ")}</span><Button size="sm" variant="ghost" onClick={resetFilters} iconRight={<X className="h-4 w-4" />}>Pastro filtrat</Button></div>}
             {loading ? <div className="presets-grid" data-tool={tool}>{Array.from({ length: 8 }, (_, index) => <PreviewFallback key={index} state="loading" className={cn("h-auto rounded-3xl", tool === "logo" ? "aspect-square" : "aspect-[3/4]")} />)}</div> : filtered.length === 0 ? <div className="presets-empty"><Sparkles className="h-8 w-8" /><h3>{onlyLiked ? "Ruaje një ide për më vonë." : "S’u gjet asnjë preset."}</h3><p>{onlyLiked ? "Kliko zemrën te presetet që të pëlqejnë." : "Provo një fjalë tjetër ose shiko të gjitha kategoritë."}</p><Button variant="secondary" onClick={resetFilters}>Shiko të gjitha</Button></div> : <div className="presets-grid" data-tool={tool}>{filtered.map((item) => <PresetCard key={item.id} item={item} liked={liked.has(item.id)} onOpen={() => setActive(item)} onLike={() => onToggleLike(item)} onUse={() => setActive(item)} />)}</div>}
             {!loading && user && hasMore && !onlyLiked && <div className="mt-8 flex justify-center"><Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>Shfaq më shumë</Button></div>}
-            {!user && <div className="presets-guest"><div><h3>Më shumë ide për me maru.</h3><p>Presetet më të fundit i sheh pa llogari. Hyr për krejt koleksionin.</p></div><div><Link href={`/sign-in?next=${encodeURIComponent(`/presets?tool=${tool}`)}`} className="maro-button" data-variant="secondary">Hyr</Link><Link href={`/sign-up?next=${encodeURIComponent(`/presets?tool=${tool}`)}`} className="maro-button" data-variant="brand">Regjistrohu <ArrowUpRight className="h-4 w-4" /></Link></div></div>}
+            {!user && <div className="presets-guest"><div><h3>Don me pa më shumë?</h3><p>{GUEST_PRESET_LIMIT} presetet e fundit i sheh pa llogari. Hyr ose regjistrohu për krejt koleksionin.</p></div><div><Link href={`/sign-in?next=${encodeURIComponent(`/presets?tool=${tool}`)}`} className="maro-button" data-variant="secondary">Hyr</Link><Link href={`/sign-up?next=${encodeURIComponent(`/presets?tool=${tool}`)}`} className="maro-button" data-variant="brand">Regjistrohu <ArrowUpRight className="h-4 w-4" /></Link></div></div>}
           </section>
         </section>
       </div>
