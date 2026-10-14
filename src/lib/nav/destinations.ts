@@ -43,7 +43,7 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 const MODULE_DESTINATIONS: NavDestination[] = [
   { id: "imazh", label: "maroImazh", route: "/imazh", group: "tools", showInTopBar: true, toolId: "reklama", iconName: "maro-imazh" },
   { id: "marologo", label: "maroLogo", route: "/marologo", group: "tools", showInTopBar: true, toolId: "logo", iconName: "maroLogo" },
-  { id: "presets", label: "maroPresets", route: "/prompts", group: "studio", showInTopBar: true, iconName: "idea" },
+  { id: "presets", label: "maroPresets", route: "/presets", group: "studio", showInTopBar: true, iconName: "idea" },
   { id: "explore", label: "maroExplore", route: "/explore", group: "discover", showInTopBar: true },
   { id: "web", label: "maroWeb", route: "/web", group: "tools", showInTopBar: true, toolId: "website", iconName: "maro-web" },
   { id: "filma", label: "maroFilma", route: "/filma", group: "tools", showInTopBar: true, toolId: "filma", iconName: "maro-filma" },
@@ -85,7 +85,7 @@ export const STUDIO_ROUTES = new Set([
   "/marketing",
   "/explore",
   "/moods",
-  "/prompts",
+  "/presets",
   "/contests",
   "/krijimet",
   "/brain",

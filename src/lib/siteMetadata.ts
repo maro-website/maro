@@ -10,7 +10,7 @@ export const PAGE_TITLES: Readonly<Record<string, string>> = {
   "/": "Hub", "/hub-vision": "Hub", "/coming-soon": "Së shpejti",
   "/imazh": "maroImazh", "/marologo": "maroLogo", "/logo": "maroLogo", "/brand": "maroLogo",
   "/web": "maroWeb", "/new": "Projekt i ri", "/filma": "maroFilma", "/audio": "maroAudio", "/zo": "maroAudio",
-  "/marketing": "maroMarketing", "/fjale": "maroFjalë", "/brain": "maroBrain", "/prompts": "maroPresets",
+  "/marketing": "maroMarketing", "/fjale": "maroFjalë", "/brain": "maroBrain", "/presets": "maroPresets",
   "/explore": "Explore", "/krijimet": "Krijimet e mia", "/favourites": "Të preferuarat", "/dashboard": "Paneli im",
   "/moods": "maroMoods", "/admin/engine/moods": "Admin · maroMoods",
   "/account": "Llogaria ime", "/account/workspaces": "Hapësirat e punës",

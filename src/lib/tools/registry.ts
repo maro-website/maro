@@ -288,7 +288,7 @@ export const TOOLS: ToolDef[] = [
       "Preset profesionale gati për t'u përdorur. Zgjidh një, shtoje te tooli dhe gjenero me produktin tënd.",
     icon: Lightbulb,
     kind: "prompts",
-    route: "/prompts",
+    route: "/presets",
     ...moduleAvailabilityFlags("presets"),
     baseCost: 0,
     settings: [],

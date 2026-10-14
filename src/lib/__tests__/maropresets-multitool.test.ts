@@ -75,7 +75,7 @@ describe("maroPresets 2.0 migration", () => {
 });
 
 describe("maroPresets browse architecture", () => {
-  const page = readFileSync(resolve(process.cwd(), "src/app/prompts/page.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/app/presets/page.tsx"), "utf8");
   const cards = readFileSync(resolve(process.cwd(), "src/components/presets/PresetCard.tsx"), "utf8");
   const browseApi = readFileSync(resolve(process.cwd(), "src/app/api/prompts/route.ts"), "utf8");
   const detailApi = readFileSync(resolve(process.cwd(), "src/app/api/prompts/[id]/route.ts"), "utf8");

@@ -50,7 +50,8 @@ const nextConfig = {
       { source: "/logo", destination: "/marologo", permanent: true },
       { source: "/zo", destination: "/audio", permanent: true },
       { source: "/tools/filma", destination: "/filma", permanent: true },
-      { source: "/tools/prompte", destination: "/prompts", permanent: true },
+      { source: "/tools/prompte", destination: "/presets", permanent: true },
+      { source: "/prompts", destination: "/presets", permanent: true },
       { source: "/tools", destination: "/", permanent: true },
     ];
   },

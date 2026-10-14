@@ -30,7 +30,7 @@ export function RecentPresets() {
         <h2 id="recent-presets-title" className="text-[clamp(30px,4vw,42px)] font-bold leading-none tracking-brand text-ink">
           Presetat e fundit
         </h2>
-        <Link href="/prompts" className="inline-flex min-h-11 items-center rounded-maro12 px-3 text-[14px] font-semibold text-brand hover:bg-surface">
+        <Link href="/presets" className="inline-flex min-h-11 items-center rounded-maro12 px-3 text-[14px] font-semibold text-brand hover:bg-surface">
           Shiko krejt
         </Link>
       </div>
@@ -39,7 +39,7 @@ export function RecentPresets() {
         {items.map((item) => (
           <Link
             key={item.id}
-            href="/prompts"
+            href="/presets"
             className="group relative aspect-[4/5] overflow-hidden rounded-maro20 bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             aria-label={`Hap maroPreset ${item.code}`}
           >

@@ -136,7 +136,7 @@ export function AppShell({
 
                 : "overflow-x-clip overflow-y-auto",
 
-            pathname === "/prompts" && "[scrollbar-gutter:stable]"
+            pathname === "/presets" && "[scrollbar-gutter:stable]"
 
           )}
 

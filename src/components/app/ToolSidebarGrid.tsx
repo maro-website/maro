@@ -59,7 +59,7 @@ export function ToolSidebarGrid({ onNavigate }: { onNavigate?: () => void }) {
         </div>
 
         <div className="mt-[20px] flex flex-col gap-[9px]">
-          <button type="button" onClick={() => go("/prompts")} className={utilityBtn}>
+          <button type="button" onClick={() => go("/presets")} className={utilityBtn}>
             <span>{MARO_PRODUCTS.maroPresets.displayName}</span>
             <MaroIcon
               name="prompts"

@@ -32,9 +32,9 @@ describe("User-facing RC — navigation IA", () => {
     expect(krijimetInNav).toHaveLength(0);
   });
 
-  it("presets route is /prompts labeled maroPresets", () => {
+  it("presets route is /presets labeled maroPresets", () => {
     const presets = TOP_BAR_DESTINATIONS.find((d) => d.id === "presets");
-    expect(presets?.route).toBe("/prompts");
+    expect(presets?.route).toBe("/presets");
     expect(presets?.label).toBe("maroPresets");
   });
 });
