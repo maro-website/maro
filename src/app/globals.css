@@ -395,6 +395,13 @@ body {
   filter: none;
 }
 
+/* Keep the official lockup's geometry and theme artwork together. */
+.maro-logo-lockup { aspect-ratio: 851.65 / 232.41; }
+.maro-logo-on-light { display: block; }
+.maro-logo-on-dark { display: none; }
+html[data-theme="mshelt"] .maro-logo-on-light { display: none; }
+html[data-theme="mshelt"] .maro-logo-on-dark { display: block; }
+
 .bg-footer {
   background-color: var(--footer-bg);
 }

@@ -7,7 +7,7 @@ export function MaroSymbol({ className }: { className?: string }) {
     <img
       src={MARO_LOGO.symbol}
       alt="maro"
-      className={cn("h-[30px] w-[30px] select-none", className)}
+      className={cn("h-[30px] w-[30px] shrink-0 object-contain select-none", className)}
       draggable={false}
     />
   );
@@ -20,7 +20,7 @@ export function MaroSymbolWhite({ className }: { className?: string }) {
       src={MARO_LOGO.symbolWhite}
       alt=""
       aria-hidden
-      className={cn("maro-symbol-inverse h-[30px] w-[30px] select-none", className)}
+      className={cn("maro-symbol-inverse h-[30px] w-[30px] shrink-0 object-contain select-none", className)}
       draggable={false}
     />
   );
@@ -28,33 +28,23 @@ export function MaroSymbolWhite({ className }: { className?: string }) {
 
 function MaroLockup({ wordClassName }: { wordClassName?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={MARO_LOGO.lockup}
-      alt="maro"
-      className={cn("logo-lockup-light h-7 w-auto select-none", wordClassName)}
-      draggable={false}
-    />
+    <span
+      role="img"
+      aria-label="maro"
+      className={cn("maro-logo-lockup inline-flex h-7 w-auto shrink-0 select-none", wordClassName)}
+    >
+      <img src={MARO_LOGO.lockup} alt="" aria-hidden className="maro-logo-on-light h-full w-full shrink-0 object-contain" draggable={false} />
+      <img src={MARO_LOGO.lockupWhite} alt="" aria-hidden className="maro-logo-on-dark h-full w-full shrink-0 object-contain" draggable={false} />
+    </span>
   );
 }
 
 function MaroTextLogo({ className }: { className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={MARO_LOGO.lockup}
-      alt="maro"
-      className={cn("maro-text-logo h-[22px] w-auto select-none sm:h-6", className)}
-      draggable={false}
-    />
-  );
+  return <MaroLockup wordClassName={cn("h-[22px] sm:h-6", className)} />;
 }
 
 export function NavigationLogo() {
-  return <span className="inline-flex items-center gap-1.5" aria-label="maro">
-    <MaroSymbol className="h-8 w-8" />
-    <img src={MARO_LOGO.wordmark} alt="" className="maro-text-logo h-7 w-auto select-none" draggable={false} />
-  </span>;
+  return <MaroLockup wordClassName="h-8" />;
 }
 
 export function Logo({
