@@ -38,6 +38,8 @@ import { workspaceErrorMessage } from "@/lib/workspaces/request";
 import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
 import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
 import planStyle from "./BrainPlanNotice.module.css";
+import { canFetchBrand } from "@/lib/brain-fetch/types";
+import { FetchBrandPilot } from "./FetchBrandPilot";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -427,11 +429,13 @@ function BrandTab({
 }) {
   const { toast } = useToast();
   const b = profile.brand;
+  const { user: currentUser } = useMaro();
   const setBrand = (patch: Partial<typeof b>) =>
     setProfile((p) => ({ ...p, brand: { ...p.brand, ...patch } }));
 
   return (
     <div className="space-y-8">
+      {canFetchBrand(currentUser?.id) && <FetchBrandPilot workspaceId={workspaceId} profile={profile} setProfile={setProfile} />}
       <SectionTitle>Informatat</SectionTitle>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Emri">
@@ -462,6 +466,7 @@ function BrandTab({
           onChange={(e) => setBrand({ description: e.target.value })}
         />
       </Field>
+      {b.colors?.length ? <div><SectionTitle>Ngjyrat e brandit</SectionTitle><div className="mt-3 flex flex-wrap gap-3">{b.colors.filter(color => /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(color)).slice(0, 6).map(color => <span className="inline-flex items-center gap-2 text-xs text-ink-2" key={color}><span className="h-6 w-6 rounded border border-line" style={{ backgroundColor: color }} />{color}<button type="button" className="grid h-11 w-11 place-items-center rounded-maro12 hover:bg-surface-hover" aria-label={`Hiq ngjyrën ${color}`} onClick={() => setBrand({ colors: b.colors?.filter(value => value !== color) })}><Trash2 size={14} /></button></span>)}</div></div> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Lokacioni">
           <input className={inputCls()} value={b.location} onChange={(e) => setBrand({ location: e.target.value })} />

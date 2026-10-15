@@ -5,7 +5,9 @@ export function normalizeBrainProfile(raw?: Partial<WorkspaceBrainProfile> | nul
   const base = emptyBrainProfile();
   if (!raw) return base;
   return {
-    brand: { ...base.brand, ...raw.brand, channels: raw.brand?.channels ?? base.brand.channels },
+    brand: { ...base.brand, ...raw.brand, channels: raw.brand?.channels ?? base.brand.channels,
+      ...(raw.brand?.colors !== undefined ? { colors: Array.isArray(raw.brand.colors) ? [...new Set(raw.brand.colors.filter(color => typeof color === "string" && /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(color)))].slice(0, 6) : [] } : {}),
+    },
     target: { ...base.target, ...raw.target },
     goal: { ...base.goal, ...raw.goal },
     market: { ...base.market, ...raw.market },
@@ -83,6 +85,7 @@ export function buildBrainBrief(profile: WorkspaceBrainProfile): string {
   if (b.description) lines.push(`About: ${b.description}`);
   if (b.location) lines.push(`Location: ${b.location}`);
   if (b.language) lines.push(`Language: ${b.language}`);
+  if (Array.isArray(b.colors) && b.colors.length) lines.push(`Brand colors: ${b.colors.filter(color => /^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(color)).slice(0, 6).join(", ")}`);
   if (b.businessModel) lines.push(`Business model: ${b.businessModel}`);
   if (b.salesChannel) lines.push(`Sales: ${b.salesChannel}`);
   if (b.website) lines.push(`Website: ${b.website}`);

@@ -23,6 +23,8 @@ export interface BrainBrandSection {
   /** Stable private object identity when the logo is uploaded to Maro storage. */
   logoStorageRef?: string | null;
   channels: BrainChannel[];
+  /** Optional, user-approved palette imported by the private Fetch Brand pilot. */
+  colors?: string[];
 }
 
 export interface BrainTargetSection {
