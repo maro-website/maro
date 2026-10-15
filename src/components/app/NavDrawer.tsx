@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { Compass, Home, X, Moon } from "lucide-react";
 import { canUseMoods } from "@/lib/moods/model";
+import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import type { NavGroup } from "@/lib/nav/destinations";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 
@@ -95,7 +96,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
-                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span className={dest.comingSoon ? "opacity-60" : undefined}>{getProductBrand(dest.label)?.displayName ?? dest.label}</span></span>
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} colored /><span className={dest.comingSoon ? "opacity-60" : undefined}>{navigationDisplayLabel(getProductBrand(dest.label)?.displayName ?? dest.label)}</span></span>
                       {dest.comingSoon && (
                         <span className="text-xs font-medium text-ink-3">{dest.badge?.replace("Së shpejti · ", "")}</span>
                       )}
@@ -104,7 +105,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                 })}
               </div>
 
-              {canUseMoods(user?.email) && <Link href="/moods" onClick={onClose} aria-current={pathname === "/moods" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Moon className="h-5 w-5 text-brand" />maroMoods</Link>}
+              {canUseMoods(user?.email) && <Link href="/moods" onClick={onClose} aria-current={pathname === "/moods" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Moon className="h-5 w-5 text-brand" />Moods</Link>}
               <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-3">Hub</p>
               <div className="mb-5 flex flex-col gap-1">
                 {HUB_MENU_DESTINATIONS.filter((d) => d.id !== "hub").map((dest) =>
@@ -113,7 +114,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                       key={dest.id}
                       className="flex min-h-[52px] items-center justify-between rounded-maro16 px-4 py-3 text-[16px] font-semibold text-ink-3"
                     >
-                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{dest.label}</span></span>
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{navigationDisplayLabel(dest.label)}</span></span>
                       {dest.badge && <span className="text-[11px]">{dest.badge}</span>}
                     </span>
                   ) : (
@@ -127,7 +128,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                         isNavActive(pathname, dest) ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                       )}
                     >
-                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{dest.label}</span></span>
+                      <span className="flex min-w-0 items-center gap-3"><DrawerIcon destination={dest} /><span>{navigationDisplayLabel(dest.label)}</span></span>
                     </Link>
                   )
                 )}
@@ -157,7 +158,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
                               active ? "bg-surface text-brand" : "text-ink hover:bg-surface"
                             )}
                           >
-                            {dest.label}
+                            {navigationDisplayLabel(dest.label)}
                             {dest.badge && (
                               <span className="text-[11px] font-medium text-ink-3">{dest.badge}</span>
                             )}

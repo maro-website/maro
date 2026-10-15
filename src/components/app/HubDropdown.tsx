@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { useWorkspace } from "@/context/workspace";
 import { HUB_MENU_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
+import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
@@ -170,7 +171,7 @@ export function HubDropdown() {
                           hub={item.id === "hub"}
                           className={cn("h-5 w-5", active ? "text-brand" : "text-ink")}
                         />
-                        <span className="flex-1">{item.label}</span>
+                        <span className="flex-1">{navigationDisplayLabel(item.label)}</span>
                         {item.badge && <span className="text-[11px] font-medium text-ink-3">{item.badge}</span>}
                       </>
                     );

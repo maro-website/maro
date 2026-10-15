@@ -10,6 +10,7 @@ import { HubDropdown } from "@/components/app/HubDropdown";
 import { MaroIcon, ToolIcon } from "@/components/app/OptionIcon";
 import { useMaro } from "@/context/store";
 import { TOP_BAR_DESTINATIONS, isNavActive } from "@/lib/nav/destinations";
+import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { getProductBrand } from "@/lib/design/maro-system";
 import { cn } from "@/lib/utils/cn";
@@ -124,12 +125,12 @@ export function AppTopNav({
                 aria-current={active ? "page" : undefined}
               >
                 <ModuleNavIcon dest={dest} active={active} />
-                <span className="maro-nav__label">{getProductBrand(dest.label)?.displayName ?? dest.label}</span>
+                <span className="maro-nav__label">{navigationDisplayLabel(getProductBrand(dest.label)?.displayName ?? dest.label)}</span>
               </Link>
             </React.Fragment>
           );
         })}
-        {canUseMoods(user?.email) && <Link href="/moods" className="maro-nav__link" data-active={pathname === "/moods" || undefined} aria-current={pathname === "/moods" ? "page" : undefined}><Moon className="h-5 w-5 shrink-0" /><span className="maro-nav__label">maroMoods</span></Link>}
+        {canUseMoods(user?.email) && <Link href="/moods" className="maro-nav__link" data-active={pathname === "/moods" || undefined} aria-current={pathname === "/moods" ? "page" : undefined}><Moon className="h-5 w-5 shrink-0" /><span className="maro-nav__label">Moods</span></Link>}
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">

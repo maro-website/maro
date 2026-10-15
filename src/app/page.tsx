@@ -9,7 +9,7 @@ export default function HomePage() {
   const firstName = user?.name?.split(" ")[0];
 
   return (
-    <AppShell>
+    <AppShell hideFooter>
       <HomeHub firstName={firstName} />
     </AppShell>
   );

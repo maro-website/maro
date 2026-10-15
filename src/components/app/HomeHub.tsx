@@ -1,8 +1,8 @@
 "use client";
 
-import { HubVision } from "@/components/hub-vision/HubVision";
+import { HubLanding } from "@/components/hub-landing/HubLanding";
 
 /** Main Hub content; account identity is read from the existing Maro provider. */
 export function HomeHub(_props: { firstName?: string }) {
-  return <HubVision embedded />;
+  return <HubLanding />;
 }

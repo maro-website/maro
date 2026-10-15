@@ -1,0 +1,295 @@
+.landing { --hub-max: 1280px; width: 100%; min-width: 0; overflow: clip; color: var(--maro-color-text-primary); font-family: var(--maro-font-family); letter-spacing: -.03em; }
+.section { max-width: var(--hub-max); width: calc(100% - 96px); margin-inline: auto; }
+.sectionTitle { margin: 0 0 32px; font-size: clamp(34px, 3.5vw, 48px); font-weight: 400; line-height: 1.13; letter-spacing: -.045em; }
+.hero { position: relative; isolation: isolate; padding-top: calc(var(--maro-shell-header-height) + clamp(112px, 8.5vw, 210px)); }
+.tunnel { position: absolute; top: var(--maro-shell-header-height); left: 0; right: 0; height: 600px; z-index: 0; pointer-events: none; mask-image: linear-gradient(black 0%, black 68%, transparent 100%); }
+.heroCopy { position: relative; z-index: 3; text-align: center; margin-bottom: clamp(140px, 10vw, 240px); padding-inline: 20px; }
+.heroCopy h1 { margin: 0; font-size: clamp(24px, 7.2vw, 94px); font-weight: 400; line-height: 1.08; letter-spacing: -.055em; white-space: nowrap; }
+.heroActions { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 32px; }
+.heroActions > a { min-width: 144px; min-height: 48px; }
+.heroActions .signIn { background: var(--maro-color-bg-surface-02); }
+.sessionLoading { height: 80px; }
+.workspace { position: relative; width: 300px; max-width: 100%; margin: 32px auto 0; text-align: left; }
+.workspaceLabel { display: block; margin-bottom: 8px; font-size: 12px; color: var(--maro-color-text-secondary); }
+.workspaceTrigger, .workspaceLoading { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 12px 20px; border-radius: 16px; background: var(--maro-color-bg-surface); text-align: left; font-size: 14px; font-weight: 500; }
+.workspaceTrigger:hover { background: var(--maro-color-bg-surface-hover); }
+.workspaceTrigger:disabled { cursor: wait; opacity: .65; }
+.workspaceTrigger > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspaceTrigger > svg:last-child { margin-left: auto; flex-shrink: 0; color: var(--maro-color-text-secondary); }
+.workspaceLayers { color: var(--maro-color-text-brand); flex-shrink: 0; }
+.workspaceImage { width: 24px; height: 24px; object-fit: cover; border-radius: 8px; }
+.workspaceMenu { position: absolute; z-index: var(--maro-z-dropdown); top: calc(100% + 8px); left: 0; right: 0; padding: 8px; max-height: 280px; overflow-y: auto; }
+.workspaceGlyph { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--maro-color-bg-surface-02); flex-shrink: 0; font-size: 12px; }
+.workspaceName { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.carousel { position: relative; z-index: 1; }
+.carouselViewport { position: relative; width: calc(100% - 2 * clamp(18px, 2.75vw, 72px)); padding: 0 48px; margin-inline: auto; overflow: hidden; touch-action: pan-y; --preset-width: clamp(225px, 21vw, 292px); }
+.carouselViewport::before, .carouselViewport::after { content: ''; position: absolute; z-index: 2; top: 0; bottom: 0; width: 48px; pointer-events: none; }
+.carouselViewport::before { left: 0; background: linear-gradient(90deg, var(--maro-color-bg-canvas), transparent); }
+.carouselViewport::after { right: 0; background: linear-gradient(-90deg, var(--maro-color-bg-canvas), transparent); }
+.carouselTrack { display: flex; align-items: stretch; gap: 16px; will-change: transform; transition-property: transform; transition-timing-function: cubic-bezier(.24, .65, .3, 1); }
+.presetCard { position: relative; flex: 0 0 var(--preset-width); width: var(--preset-width); height: 342px; padding: 0; border: 0; border-radius: 16px; overflow: hidden; text-align: left; background: var(--maro-color-bg-surface); }
+.presetCard::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 60%, rgb(0 0 0 / 60%)); }
+.presetCard:focus-visible { outline-offset: -4px; }
+.presetImage { height: 100%; width: 100%; object-fit: cover; transition: transform .4s; }
+.presetCard:hover .presetImage { transform: scale(1.035); }
+.presetCaption { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; left: 20px; right: 20px; bottom: 20px; color: var(--maro-color-text-on-scrim); }
+.presetCaption > span { display: flex; flex-direction: column; gap: 4px; }
+.presetCaption strong { font-size: 16px; font-weight: 600; letter-spacing: -.03em; }
+.presetCaption small { font-size: 12px; opacity: .85; }
+.presetSkeleton { background: var(--maro-color-bg-surface); }
+.presetSkeleton::after { display: none; }
+.carouselControls { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 20px; }
+.browseLink { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; color: var(--maro-color-text-brand); font-size: 14px; font-weight: 600; }
+.browseLink:hover { color: var(--maro-color-text-primary); }
+.carouselControls > div { display: flex; align-items: center; gap: 4px; }
+.carouselControls .carouselControl { width: 44px; height: 44px; background: var(--maro-color-bg-surface); border-radius: 12px; }
+.carouselControls .carouselPause { width: 44px; height: 44px; color: var(--maro-color-text-secondary); background: transparent; }
+.catalogEmpty, .catalogStatus { margin-top: 24px; font-size: 14px; line-height: 1.7; color: var(--maro-color-text-secondary); }
+.catalogEmpty a, .catalogStatus a { color: var(--maro-color-text-brand); }
+.tools { margin-top: 88px; padding-bottom: 80px; }
+.toolGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.toolCard { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; padding: 24px; border-radius: 20px; background: var(--maro-color-bg-surface); transition: transform .2s; }
+.toolCard::before { content: ''; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none; opacity: .65; background: radial-gradient(ellipse at 0 0, color-mix(in srgb, var(--hub-tool-color) 9%, transparent), transparent 72%); transition: opacity .2s; }
+.toolHeading { display: flex; align-items: center; gap: 12px; }
+.toolIcon { position: relative; flex-shrink: 0; width: 44px; height: 44px; }
+.toolIcon img { width: 100%; height: 100%; }
+.toolHeading h3 { margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -.045em; }
+.toolCard > p { color: var(--maro-color-text-secondary); font-size: 14px; line-height: 1.6; margin: 20px 0 0; max-width: 220px; min-height: 44px; }
+.tryButton { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 8px 8px 8px 16px; margin-top: 24px; border-radius: 12px; background: var(--hub-tool-color); color: var(--maro-black); font-size: 14px; font-weight: 700; transition: filter .2s; }
+.tryArrow { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--maro-black) 7%, transparent); }
+.tryArrow svg { transition: transform .2s; }
+.tryButton:hover { filter: brightness(1.06); }
+.tryButton:hover .tryArrow svg { transform: translateX(2px); }
+.tryButton:focus-visible { outline-color: var(--hub-tool-color); }
+.toolCard:focus-within::before { opacity: 1; }
+.future { padding-bottom: 80px; }
+.futureGrid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 32px; }
+.filmCard { min-width: 0; overflow: hidden; border-radius: 20px; background: var(--maro-color-bg-surface); }
+.filmPreview { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+.filmFooter { display: flex; align-items: center; justify-content: space-between; min-height: 88px; padding: 20px 24px; gap: 20px; }
+.filmLogo { width: 180px; height: 36px; }
+.filmFooter > a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; color: var(--maro-color-text-secondary); }
+.filmFooter > a:hover { color: var(--maro-color-text-brand); }
+.futureList { display: flex; flex-direction: column; gap: 16px; }
+.futureRow { display: flex; align-items: center; gap: 24px; min-height: 112px; padding: 20px 24px; background: var(--maro-color-bg-surface); border-radius: 20px; flex: 1; transition: background .2s; }
+.futureRow:hover { background: var(--maro-color-bg-surface-hover); }
+.futureRow > img { width: 64px; height: 64px; flex-shrink: 0; }
+.futureRow > span { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.futureRow strong { font-size: 28px; line-height: 1.2; font-weight: 500; letter-spacing: -.04em; }
+.futureRow > span > span { color: var(--maro-color-text-secondary); font-size: 12px; }
+.futureRow > svg { flex-shrink: 0; color: var(--maro-color-text-secondary); }
+.pricing { padding-bottom: 64px; }
+.pricingHeading > .sectionTitle { font-size: clamp(40px, 5vw, 64px); margin-bottom: 16px; }
+.pricingHeading > .sectionTitle > span { color: var(--maro-color-text-brand); }
+.pricingHeading > p { color: var(--maro-color-text-secondary); font-size: 14px; line-height: 1.7; }
+.pricingTabs { display: inline-flex; gap: 4px; padding: 4px; margin: 32px 0 28px; border-radius: 16px; background: var(--maro-color-bg-surface); }
+.pricingTabs > button { min-height: 44px; padding: 8px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--maro-color-text-secondary); }
+.pricingTabs > button[aria-pressed=true] { color: var(--maro-color-text-primary); background: var(--maro-color-bg-surface-02); }
+.planGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.planCard { display: flex; flex-direction: column; min-width: 0; padding: 32px; border-radius: 20px; background: var(--maro-color-bg-surface); }
+.planCard h3 { margin: 0 0 12px; font-size: 24px; font-weight: 500; letter-spacing: -.03em; }
+.planCard > p { margin: 0; font-size: 14px; color: var(--maro-color-text-secondary); }
+.planPrice { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; min-height: 64px; margin-top: 32px; }
+.planPrice > strong { font-size: 40px; line-height: 1.2; font-weight: 400; letter-spacing: -.04em; }
+.planPrice > span { font-size: 14px; color: var(--maro-color-text-secondary); }
+.planPrice > .businessPrice { font-size: 28px; }
+.planCard > ul { display: flex; flex-direction: column; gap: 16px; padding: 0; margin: 24px 0 32px; list-style: none; font-size: 14px; flex: 1; }
+.planCard li { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+.planCard li svg { flex-shrink: 0; color: var(--maro-color-text-brand); margin-top: 2px; }
+.planCard .purchaseButton, .topupCard .purchaseButton { display: flex; width: 100%; justify-content: space-between; min-height: 48px; margin-top: auto; gap: 12px; }
+.purchaseStatus { display: flex; gap: 8px; align-items: center; min-height: 48px; margin-top: auto; font-size: 12px; line-height: 1.6; color: var(--maro-color-text-secondary); }
+.purchaseStatus a { color: var(--maro-color-text-brand); }
+.pricingPolicy { margin-top: 24px; font-size: 12px; line-height: 1.7; color: var(--maro-color-text-tertiary); }
+.topupNotice { margin-bottom: 24px; font-size: 14px; color: var(--maro-color-text-secondary); }
+.topupGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.topupCard { display: flex; flex-direction: column; min-width: 0; padding: 28px; background: var(--maro-color-bg-surface); border-radius: 20px; }
+.topupCard h3 { margin: 0; font-size: 40px; font-weight: 400; letter-spacing: -.04em; }
+.topupCard h3 > span { display: block; margin-top: 8px; font-size: 14px; color: var(--maro-color-text-secondary); letter-spacing: -.01em; }
+.topupCard > strong { margin-block: 24px 32px; font-size: 28px; font-weight: 400; }
+.faq { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.6fr); gap: clamp(36px, 6vw, 88px); margin-top: 72px; padding-top: 52px; border-top: 1px solid var(--maro-color-border-subtle); text-align: left; }
+.faqIntro h3 { margin: 0; font-size: clamp(28px, 2.8vw, 36px); font-weight: 400; line-height: 1.2; letter-spacing: -.045em; }
+.faqIntro > p { font-size: 14px; line-height: 1.7; color: var(--maro-color-text-secondary); margin-top: 16px; }
+.faqContact { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 32px; font-size: 14px; }
+.faqContact > span { color: var(--maro-color-text-secondary); }
+.faqContact > a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--maro-color-text-brand); font-weight: 600; }
+.faqContact > a:hover { color: var(--maro-color-text-primary); }
+.faqItems { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.faqItems details { padding: 0 24px; border-radius: 16px; background: var(--maro-color-bg-surface); }
+.faqItems summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; padding-block: 16px; cursor: pointer; font-size: 14px; font-weight: 500; line-height: 1.5; list-style: none; }
+.faqItems summary > span:first-child { flex: 1; min-width: 0; }
+.faqItems summary::-webkit-details-marker { display: none; }
+.faqToggle { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--maro-color-bg-surface-02); color: var(--maro-color-text-secondary); }
+.faqToggle svg { transition: rotate .2s; }
+.faqItems details[open] .faqToggle { color: var(--maro-color-text-brand); }
+.faqItems details[open] .faqToggle svg { rotate: 45deg; }
+.faqItems details > p { margin: 0; padding: 0 36px 24px 0; color: var(--maro-color-text-secondary); font-size: 14px; line-height: 1.8; max-width: 70ch; }
+.faqItems summary:focus-visible { outline-offset: 4px; border-radius: 8px; }
+.footer { padding-top: 48px; padding-bottom: 24px; border-top: 1px solid var(--maro-color-border-subtle); }
+.footerMain { display: flex; align-items: center; justify-content: space-between; gap: 48px; padding-bottom: 40px; }
+.footerBrand { display: flex; align-items: center; gap: 32px; flex-shrink: 0; }
+.footerLogo .footerLockup { width: 211px; height: auto; }
+.footerBrand > p { margin: 0; color: var(--maro-color-text-secondary); font-size: 12px; line-height: 1.8; }
+.niceLink { position: relative; display: inline-block; min-height: 28px; font-size: 14px; font-weight: 600; color: var(--maro-color-text-primary); }
+.niceLink:hover, .niceLink:focus-visible { color: var(--maro-color-text-brand); }
+.niceTooltip { position: absolute; z-index: var(--maro-z-dropdown); bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 12px 16px; border-radius: 12px; background: var(--maro-color-bg-surface-raised); color: var(--maro-color-text-primary); box-shadow: var(--maro-shadow-float); font-size: 12px; font-weight: 500; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s; }
+.niceLink:hover .niceTooltip, .niceLink:focus-visible .niceTooltip { opacity: 1; visibility: visible; }
+.footerLinks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 16px 24px; max-width: 560px; font-size: 12px; line-height: 1.6; }
+.footerLinks > a:hover { color: var(--maro-color-text-brand); }
+.footerBottom { display: flex; justify-content: space-between; gap: 20px; padding-top: 24px; border-top: 1px solid var(--maro-color-border-subtle); color: var(--maro-color-text-tertiary); font-size: 12px; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .toolCard:hover { transform: translateY(-2px); } .toolCard:hover::before { opacity: 1; } }
+@media (min-width: 1600px) { .carouselViewport { --preset-width: 300px; } .presetCard { height: 368px; } }
+@media (max-width: 1250px) {
+  .section { width: calc(100% - 76px); }
+  .futureGrid { gap: 24px; }
+  .futureRow { gap: 16px; padding: 16px 20px; }
+  .futureRow > img { width: 60px; height: 60px; }
+  .futureRow strong { font-size: 24px; }
+  .planCard { padding: 24px; }
+  .planCard > ul { font-size: 12px; }
+  .planPrice > strong { font-size: 36px; }
+  .planPrice > .businessPrice { font-size: 24px; }
+  .footerMain { gap: 32px; }
+  .footerBrand { gap: 24px; }
+  .footerLogo .footerLockup { width: 184px; }
+  .footerLinks { gap: 12px 20px; font-size: 12px; }
+  .carouselViewport { padding-inline: 40px; }
+  .presetCard { height: 320px; }
+}
+@media (max-width: 1023px) {
+  .hero { padding-top: calc(var(--maro-shell-header-height) + 88px); }
+  .heroCopy { margin-bottom: 96px; }
+  .section { width: calc(100% - 56px); }
+  .carouselViewport { padding-inline: 28px; --preset-width: 244px; }
+  .presetCard { height: 308px; }
+  .toolCard { padding: 20px; }
+  .toolHeading { gap: 8px; }
+  .toolIcon { width: 36px; height: 36px; }
+  .toolHeading h3 { font-size: 20px; }
+  .toolCard > p { font-size: 12px; }
+  .tools { margin-top: 72px; padding-bottom: 64px; }
+  .sectionTitle { font-size: 40px; }
+  .futureGrid { grid-template-columns: 1.1fr 1fr; gap: 20px; }
+  .futureRow { gap: 12px; padding: 16px; min-height: 96px; }
+  .futureRow > img { width: 48px; height: 48px; }
+  .futureRow strong { font-size: 20px; }
+  .filmFooter { padding: 16px; gap: 12px; }
+  .filmLogo { width: 152px; height: 32px; }
+  .future { padding-bottom: 64px; }
+  .planGrid { gap: 16px; }
+  .planCard { padding: 24px; }
+  .planCard h3 { font-size: 20px; }
+  .planCard > p { font-size: 12px; }
+  .planPrice { flex-direction: column; gap: 4px; }
+  .planPrice > span { font-size: 12px; }
+  .planCard li { gap: 8px; }
+  .planCard .purchaseButton { font-size: 12px; padding-inline: 12px; }
+  .topupCard { padding: 20px; }
+  .topupCard .purchaseButton { font-size: 12px; padding-inline: 12px; }
+  .footerMain { align-items: flex-start; }
+  .footerBrand { flex-direction: column; align-items: flex-start; gap: 20px; }
+}
+@media (max-width: 760px) {
+  .hero { padding-top: calc(var(--maro-shell-header-height) + 76px); }
+  .tunnel { height: 420px; }
+  .heroCopy { margin-bottom: 84px; }
+  .heroActions, .workspace { margin-top: 28px; }
+  .workspaceLabel { text-align: center; }
+  .heroActions > a { min-width: 132px; min-height: 48px; }
+  .carouselViewport { width: 100%; padding-inline: 24px; --preset-width: 236px; }
+  .presetCard { height: 300px; }
+  .carouselViewport::before, .carouselViewport::after { width: 24px; }
+  .presetCaption { left: 16px; right: 16px; bottom: 16px; }
+  .section { width: calc(100% - 48px); }
+  .browseLink { font-size: 12px; gap: 8px; }
+  .tools { margin-top: 60px; padding-bottom: 48px; }
+  .sectionTitle { font-size: 32px; margin-bottom: 24px; }
+  .toolGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .toolCard { padding: 24px; }
+  .futureGrid { grid-template-columns: 1fr; gap: 20px; }
+  .filmPreview { aspect-ratio: 16 / 9; }
+  .filmFooter { min-height: 76px; padding: 20px; }
+  .filmLogo { width: 180px; height: 36px; }
+  .futureRow { gap: 20px; padding: 20px; min-height: 104px; }
+  .futureRow > img { width: 60px; height: 60px; }
+  .futureRow strong { font-size: 24px; }
+  .future { padding-bottom: 48px; }
+  .pricing { padding-bottom: 48px; }
+  .pricingHeading > .sectionTitle { font-size: 44px; }
+  .pricingHeading > p { max-width: 340px; font-size: 12px; }
+  .pricingTabs { margin-top: 24px; margin-bottom: 24px; }
+  .planGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .planCard:last-child { grid-column: 1 / -1; }
+  .planPrice > .businessPrice { font-size: 28px; }
+  .planCard:last-child > ul { display: grid; grid-template-columns: 1fr 1fr; }
+  .topupGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faq { grid-template-columns: 1fr; gap: 28px; margin-top: 48px; padding-top: 36px; }
+  .faqIntro h3 { font-size: 28px; }
+  .faqContact { flex-direction: row; align-items: center; gap: 12px; margin-top: 16px; }
+  .footerMain { flex-direction: column; gap: 32px; padding-bottom: 32px; }
+  .footerBrand { flex-direction: row; align-items: center; gap: 28px; }
+  .footerLogo .footerLockup { width: 172px; }
+  .footerLinks { justify-content: flex-start; max-width: 100%; }
+}
+@media (max-width: 480px) {
+  .hero { padding-top: calc(var(--maro-shell-header-height) + 72px); }
+  .tunnel { height: 400px; }
+  .heroCopy { margin-bottom: 72px; padding-inline: 16px; }
+  .heroActions, .workspace { margin-top: 24px; }
+  .heroActions { gap: 12px; }
+  .heroActions > a { min-width: 124px; }
+  .workspace { width: min(300px, 100%); }
+  .workspaceTrigger { padding-inline: 16px; }
+  .carouselViewport { padding-inline: 20px; --preset-width: 228px; }
+  .presetCard { height: 284px; }
+  .carouselViewport::before, .carouselViewport::after { width: 20px; }
+  .section { width: calc(100% - 36px); }
+  .carouselControls { gap: 8px; margin-top: 16px; }
+  .carouselControls > div { gap: 0; }
+  .browseLink { gap: 8px; font-size: 12px; }
+  .browseLink > svg { width: 16px; height: 16px; }
+  .tools { margin-top: 52px; padding-bottom: 44px; }
+  .sectionTitle { font-size: 28px; }
+  .toolGrid { gap: 12px; }
+  .toolCard { padding: 16px; border-radius: 16px; }
+  .toolIcon { width: 32px; height: 32px; }
+  .toolHeading h3 { font-size: 20px; }
+  .toolCard > p { font-size: 12px; margin-top: 16px; min-height: 60px; }
+  .tryButton { margin-top: 16px; padding-left: 12px; font-size: 12px; gap: 8px; }
+  .tryArrow { width: 24px; height: 24px; }
+  .futureRow { padding: 16px; gap: 16px; min-height: 96px; border-radius: 16px; }
+  .futureRow > img { width: 52px; height: 52px; }
+  .futureRow strong { font-size: 24px; }
+  .filmCard { border-radius: 16px; }
+  .filmFooter { padding: 16px; }
+  .filmLogo { width: 160px; height: 32px; }
+  .future { padding-bottom: 44px; }
+  .pricingHeading > .sectionTitle { font-size: 40px; }
+  .planGrid { grid-template-columns: 1fr; }
+  .planCard:last-child { grid-column: auto; }
+  .planCard { padding: 28px; }
+  .planCard h3 { font-size: 24px; }
+  .planCard > p { font-size: 14px; }
+  .planPrice { flex-direction: row; align-items: baseline; gap: 8px; }
+  .planPrice > strong { font-size: 40px; }
+  .planCard > ul { font-size: 14px; }
+  .planCard:last-child > ul { display: flex; }
+  .planCard .purchaseButton { font-size: 14px; }
+  .topupCard { padding: 20px 16px; }
+  .topupCard h3 { font-size: 32px; }
+  .topupCard .purchaseButton { gap: 8px; padding-inline: 12px; font-size: 12px; }
+  .topupCard .purchaseButton > svg { width: 16px; height: 16px; }
+  .faq { gap: 24px; margin-top: 40px; padding-top: 32px; }
+  .faqIntro > p, .faqContact { font-size: 12px; }
+  .faqItems { gap: 8px; }
+  .faqItems details { padding-inline: 16px; }
+  .faqItems summary { gap: 12px; min-height: 64px; font-size: 12px; }
+  .faqItems details > p { font-size: 12px; padding-right: 0; padding-bottom: 20px; }
+  .faqToggle { width: 28px; height: 28px; }
+  .footerBrand { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .footerLogo .footerLockup { width: 188px; }
+  .footerLinks { gap: 12px 20px; font-size: 12px; }
+  .niceTooltip { left: 0; transform: none; }
+  .footerBottom { flex-direction: column; gap: 8px; font-size: 12px; }
+}
+@media (max-width: 360px) { .toolHeading h3 { font-size: 18px; } .toolIcon { width: 28px; height: 28px; } .toolCard { padding: 12px; } .tryButton { padding-left: 8px; } .futureRow strong { font-size: 20px; } }
+@media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; } .carouselTrack { will-change: auto; } }
