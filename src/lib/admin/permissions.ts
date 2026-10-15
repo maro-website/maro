@@ -25,6 +25,7 @@ export type PermissionKey =
   | "presets.manage"
   | "notifications.manage"
   | "operations.view"
+  | "generations.review"
   | "security.manage"
   | "analytics.view"
   | "audit.view"
@@ -45,6 +46,7 @@ const ALL_PERMISSIONS: PermissionKey[] = [
   "presets.manage",
   "notifications.manage",
   "operations.view",
+  "generations.review",
   "security.manage",
   "analytics.view",
   "audit.view",

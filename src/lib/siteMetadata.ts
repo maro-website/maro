@@ -41,6 +41,7 @@ export function pageName(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
   if (PAGE_TITLES[path]) return PAGE_TITLES[path];
   if (/^\/account\/workspaces\/[^/]+$/.test(path)) return "Cilësimet e hapësirës";
+  if (/^\/admin\/engine\/generations\/[^/]+\/image$/.test(path)) return "Admin · Origjinali i gjenerimit";
   if (/^\/admin\/engine\/tools\/[^/]+$/.test(path)) {
     return ({ maro_imazh: "Admin · maroImazh", maro_logo: "Admin · maroLogo" } as Record<string, string>)[path.split("/").at(-1)!] ?? "Admin · Konfigurimi i mjetit";
   }
