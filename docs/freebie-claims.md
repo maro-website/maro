@@ -1,0 +1,9 @@
+# Freebie claim directory
+
+In Admin → Freebies, click a Code Drop's code to open its claim history. Codes remain readable when paused, expired or exhausted. The modal shows the claiming profile's name, email and username, the claim timestamp and the credits actually granted. Rewards come from the historical claim row, so later changes to a code's credit amount do not rewrite earlier rewards.
+
+The directory reads the existing `freebie_claims` table through `GET /api/admin/freebies/[dropId]/claims?offset=0`. It requires the same `credits.adjust` permission and existing MFA gate as Freebies management; no role permissions or storage policies change. Responses, including errors, are `no-store` and vary by Authorization. Results are restricted to the requested non-deleted drop, limited to 50, newest first with an ID tie-breaker. Reads are rate-limited per verified admin. Profile lookups cover only the returned page and select ID, email, username and full name. Account balances, prompts, generations and other account fields are not returned.
+
+Claims survive account deletion; missing profiles are shown as unavailable without reconstructing historical identities. An unused code shows an empty state. Loading, retry, refresh, previous/next pages and request cancellation are supported. The existing shared modal provides focus trapping, Escape, scroll locking and trigger focus restoration.
+
+No schema migration, new dependency, grant/revoke logic, credit adjustment or claim mutation is added. Google Analytics continues to exclude admin routes. Verification covers authorization/MFA rejection, malformed IDs/pagination, exact drop scoping, real historical credit values, deleted users, database failures, rate limits and cache headers. UI checks use synthetic local fixtures only; the temporary QA route is removed before production build/deployment.

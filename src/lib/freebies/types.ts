@@ -12,6 +12,21 @@ export interface FreebieClaimResult {
   error?: string; required?: number; current?: number; retry_after?: number;
 }
 
+export interface FreebieClaim {
+  id: string;
+  credits: number;
+  claimed_at: string;
+  user: FreebieDrop["target"];
+}
+
+export interface FreebieClaimsDirectory {
+  drop: Pick<FreebieDrop, "id" | "code" | "title" | "claims_count" | "credits_given">;
+  claims: FreebieClaim[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 export function freebieErrorMessage(code: string, details?: { required?: number; current?: number }) {
   if (code === "activity_required") return `Për këtë kod duhen të paktën ${details?.required ?? 1} gjenerime të përfunduara në 7 ditët e fundit. Ti ke ${details?.current ?? 0}.`;
   return ({
@@ -39,6 +54,7 @@ export function freebieErrorMessage(code: string, details?: { required?: number;
     invalid_request: "Kontrollo fushat dhe vlerat që ke shkruar.",
     freebies_unavailable: "Freebies nuk u ngarkuan ose ruajtën. Provo përsëri.",
     users_unavailable: "Përdoruesit nuk u ngarkuan. Provo kërkimin përsëri.",
+    claims_unavailable: "Lista e përdoruesve nuk u ngarkua. Provo përsëri.",
     invalid_plan: "Plani ose kohëzgjatja e zgjedhur nuk është e vlefshme.",
     idempotency_conflict: "Kjo kërkesë është ruajtur me vlera të tjera. Rifresko faqen para se të krijosh një kod tjetër.",
     forbidden: "Nuk ke leje për këtë veprim.",
