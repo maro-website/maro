@@ -21,6 +21,7 @@ export default function PrivacyPage() {
           <li><strong>Komuniteti:</strong> krijime dhe tekste të publikuara në Explore, emri i autorit, lidhjet, pëlqimet, remix-et, të preferuarat, pjesëmarrjet në gara dhe raportimet.</li>
           <li><strong>Komunikimet:</strong> kërkesa për mbështetje, ankesa, aplikime kreatorësh, kontakte e llogari sociale të dorëzuara, kode referimi, email për listën e pritjes, njoftime dhe të dhëna për dërgimin e emaileve.</li>
           <li><strong>Përdorimi dhe siguria:</strong> IP sipas funksionit, pajisja/shfletuesi, koha e kërkesës, sesioni, gabimet, kufizimet e përdorimit dhe regjistrat administrativë. Regjistrohen edhe ngjarje si shikimi/kopjimi i materialeve të gatshme, përdorimi i referimeve dhe statistika të gjenerimeve.</li>
+          <li><strong>Analitika opsionale:</strong> pas pëlqimit, Google Analytics 4 merr shikime të faqeve me URL pa parametra, identifikues të shfletuesit/seancës, angazhim, burimin e trafikut dhe të dhëna teknike të pajisjes. Nuk i dërgojmë përmbajtjen krijuese, të dhënat e llogarisë ose identifikues përdoruesi. Matja e faqeve private, autorizimit dhe pagesave përjashtohet.</li>
         </ul>
         <p>Të dhënat vijnë nga ju, nga veprimet në platformë dhe nga ofruesit e autentifikimit, AI, emailit e pagesave gjatë përmbushjes së kërkesës suaj. Materialet e publikuara nga përdorues të tjerë janë burim kur përdorni ndarjen ose remix-in.</p>
       </LegalSection>
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
           <li><strong>Përmbushja e kontratës ose kërkesa para saj:</strong> hapja e llogarisë, gjenerimi dhe redaktimi, ruajtja e punës, maroBrain, publikimi i kërkuar, përllogaritja e krediteve, porositë dhe mbështetja.</li>
           <li><strong>Detyrimi ligjor:</strong> faturimi, evidencat tatimore e kontabël, trajtimi i të drejtave, ankesave dhe kërkesave të ligjshme të autoriteteve.</li>
           <li><strong>Interesi legjitim:</strong> parandalimi i mashtrimit, mbrojtja e llogarive, moderimi, diagnostikimi, statistikat e përdorimit dhe përmirësimi i funksioneve. Ky përpunim duhet të jetë i nevojshëm e proporcional dhe të mos mbizotërojë mbi të drejtat tuaja; mund ta kundërshtoni.</li>
-          <li><strong>Pëlqimi, kur kërkohet:</strong> njoftimi për lansim që kërkoni në listën e pritjes, komunikime promocionale dhe teknologji opsionale. Mund ta tërhiqni pa cenuar ligjshmërinë e përpunimit të mëparshëm.</li>
+          <li><strong>Pëlqimi:</strong> Google Analytics dhe cookies e tij opsionale; gjithashtu njoftimi për lansim që kërkoni në listën e pritjes dhe komunikimet promocionale kur kërkohen. Mund ta tërhiqni pa cenuar ligjshmërinë e përpunimit të mëparshëm. Për analitikën përdorni “Cilësimet e cookies” në fund të faqes ose te <Link href="/legal/cookies">Politika e Cookies</Link>.</li>
         </ul>
         <p>Fushat e kërkuara për llogarinë, gjenerimin ose faturimin nevojiten për funksionin përkatës; pa to nuk mund ta ofrojmë atë. Profili i zgjeruar i brendit, publikimi në Explore dhe lista e pritjes janë zgjedhje. Pranimi i kushteve nuk është pëlqim për çdo përdorim të mundshëm të të dhënave.</p>
       </LegalSection>
@@ -53,6 +54,7 @@ export default function PrivacyPage() {
           <li><strong>OpenAI:</strong> promptet, cilësimet dhe referencat e nevojshme për imazhe e logo.</li>
           <li><strong>ElevenLabs:</strong> tekst dhe audio vetëm kur përdorni funksionet audio të aktivizuara që mbështeten te ky ofrues.</li>
           <li><strong>Railway dhe Cloudflare:</strong> hostimi i platformës, shpërndarja e trafikut, lidhja e sigurt dhe mbrojtja e shërbimit.</li>
+          <li><strong>Google:</strong> statistika trafiku përmes Google Analytics 4 vetëm pas pëlqimit. Google merr të dhëna teknike gjatë lidhjes; <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">shihni si i përpunon këto të dhëna</a>. Google Signals dhe personalizimi i reklamave nuk aktivizohen nga Maro.</li>
           <li><strong>Resend:</strong> adresa e marrësit, përmbajtja e emailit të shërbimit dhe të dhënat e dërgimit.</li>
           <li><strong>Raiffeisen Bank Kosova dhe procesori përkatës:</strong> të dhënat e transaksionit kur pagesa reale përmes tyre është e disponueshme dhe e zgjedhur.</li>
           <li><strong>Paddle:</strong> të dhënat e faturimit dhe transaksionit për përpunimin e abonimeve ose blerjeve ekzistuese me këtë ofrues. Paddle nuk përdoret për blerje të reja në V1; blerjet e reja të aktivizuara përdorin Raiffeisen/RaiAccept.</li>
@@ -71,6 +73,7 @@ export default function PrivacyPage() {
         <p>Për heqjen e një publikimi na dërgoni lidhjen. Kopjet që palët e tjera kanë shkarkuar, ndarë ose ruajtur jashtë Maro-s nuk fshihen automatikisht bashkë me origjinalin.</p>
       </LegalSection>
       <LegalSection title="8. Sa kohë ruhen të dhënat">
+        <p>Për Google Analytics kemi zgjedhur ruajtje 2-mujore të të dhënave të lidhura me përdoruesin dhe ngjarjet, pa rifillim të afatit nga aktiviteti i ri. Kjo nuk e kufizon njësoj historikun e raporteve standarde të agreguara te Google. Cookies analitike dhe zgjedhja e pëlqimit në pajisje kanë afat 180 ditë; mund ta tërhiqni pëlqimin më herët.</p>
         <p>Për numëruesin “Online tani”, serveri mban vetëm një identifikues të koduar me çelës serveri, statusin e kyçjes dhe kohën e fundit të aktivitetit. Llogaritë e kyçura numërohen një herë në këtë dritare. Regjistrimet dalin nga numërimi pas 2 minutave pa aktivitet dhe pastrohen gjatë njoftimit ose leximit të radhës; nuk ruhet historik vizitash për këtë numërues.</p>
         <p>Afati përcaktohet sipas qëllimit, llojit të të dhënave dhe detyrimeve ligjore, jo nga një afat i vetëm për gjithë platformën:</p>
         <ul className="list-disc space-y-2 pl-5">

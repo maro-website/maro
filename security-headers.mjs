@@ -17,6 +17,12 @@ export function buildContentSecurityPolicy(options = {}) {
   // page reload, which clears unfinished form state. Production stays strict.
   if (!isProduction) scriptSources.push("'unsafe-eval'");
   scriptSources.push("https://challenges.cloudflare.com");
+  const analyticsConfigured = /^G-[A-Z0-9]+$/.test(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "");
+  const analyticsImages = analyticsConfigured ? " https://www.google-analytics.com https://region1.google-analytics.com" : "";
+  if (analyticsConfigured) {
+    scriptSources.push("https://www.googletagmanager.com");
+    connectHosts.push("https://www.googletagmanager.com", "https://www.google-analytics.com", "https://region1.google-analytics.com");
+  }
   const paddle = process.env.NEXT_PUBLIC_PADDLE_ENABLED === "true";
   const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT;
   const paddlePrefix = paddleEnvironment === "sandbox" ? "sandbox-" : "";
@@ -34,7 +40,7 @@ export function buildContentSecurityPolicy(options = {}) {
     "form-action 'self'",
     `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://${supabaseHost} https://images.unsplash.com https://picsum.photos https://launchstreak.dev`,
+    `img-src 'self' data: blob: https://${supabaseHost} https://images.unsplash.com https://picsum.photos https://launchstreak.dev${analyticsImages}`,
     "font-src 'self' data:",
     `connect-src ${connectHosts.join(" ")}`,
     `media-src 'self' data: blob: https://${supabaseHost}`,

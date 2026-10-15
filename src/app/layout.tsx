@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { RateLimitNotice } from "@/components/app/RateLimitNotice";
 import { PresencePulse } from "@/components/app/PresencePulse";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { metadataForPage, PAGE_PATH_HEADER } from "@/lib/siteMetadata";
 
 import { THEME_INIT_SCRIPT } from "@/lib/security/headers";
@@ -59,6 +60,7 @@ export default async function RootLayout({
                   {children}
                   <PresencePulse />
                   <CookieBanner />
+                  <GoogleAnalytics measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? ""} nonce={requestHeaders.get("x-nonce") ?? undefined} />
                   <RateLimitNotice />
                 </ToastProvider>
               </WorkspaceProvider>

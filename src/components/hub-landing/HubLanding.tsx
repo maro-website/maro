@@ -8,6 +8,7 @@ import { getModuleAvailability } from "@/lib/modules/availability";
 import { ProductLogo } from "@/components/ui/ProductLogo";
 import { Logo } from "@/components/ui/Logo";
 import { LEGAL_ENTITY } from "@/components/legal/legal-config";
+import { CookiePreferences } from "@/components/legal/CookiePreferences";
 import { FilmaPreview } from "@/components/hub-vision/FilmaPreview";
 import { HubHero } from "./HubHero";
 import { HubPricing } from "./HubPricing";
@@ -61,7 +62,7 @@ export function HubLanding() {
     <section className={`${s.section} ${s.pricing}`} id="plans" aria-labelledby="hub-pricing-title"><HubPricing /><HubFaq /></section>
     <footer className={`${s.section} ${s.footer}`}>
       <div className={s.footerMain}><div className={s.footerBrand}><a href="#top" aria-label="Kthehu në ballinë"><Logo showWord className={s.footerLogo} wordClassName={s.footerLockup} /></a><p>Produkt i krijuar me dashuri nga<br /><Link className={s.niceLink} href="/contact" aria-describedby="hub-nice-tooltip">NICE.al<span className={s.niceTooltip} id="hub-nice-tooltip" role="tooltip">NICE Creative Agency sh.p.k</span></Link></p></div><nav className={s.footerLinks} aria-label="Ligjore dhe kontakt">{footerLinks.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}</nav></div>
-      <div className={s.footerBottom}><span>© {new Date().getFullYear()} · maro.al</span><span>NRB {LEGAL_ENTITY.nrb}</span></div>
+      <div className={s.footerBottom}><span>© {new Date().getFullYear()} · maro.al</span><CookiePreferences /><span>NRB {LEGAL_ENTITY.nrb}</span></div>
     </footer>
   </div>;
 }

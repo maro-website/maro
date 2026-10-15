@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LEGAL_ADDRESS, LEGAL_ENTITY } from "@/components/legal/legal-config";
 import { cn } from "@/lib/utils/cn";
+import { CookiePreferences } from "@/components/legal/CookiePreferences";
 
 const FOOTER_LINKS = [
   { href: "/legal/fair-use", label: "Përdorimi i drejtë" },
@@ -40,6 +41,7 @@ export function AppFooter({ className }: { className?: string }) {
             {link.label}
           </Link>
         ))}
+        <CookiePreferences />
       </nav>
     </footer>
   );
