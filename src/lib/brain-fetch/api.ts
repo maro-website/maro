@@ -9,7 +9,8 @@ import { canFetchBrand } from "./types";
 import { BrandFetchError, normalizeBrandUrl } from "./network";
 import { fetchBrand, fetchBrandLogo } from "./service";
 
-const bodySchema = z.object({ workspaceId: z.uuid(), url: z.string().trim().min(1).max(2048) }).strict();
+// Production workspaces use text IDs (including ws_... bootstrap IDs), not only UUIDs.
+const bodySchema = z.object({ workspaceId: z.string().trim().min(1).max(160), url: z.string().trim().min(1).max(2048) }).strict();
 const headers = { "Cache-Control": "no-store", Vary: "Authorization", "X-Content-Type-Options": "nosniff" };
 const response = (body: unknown, status = 200, extra: Record<string, string> = {}) => NextResponse.json(body, { status, headers: { ...headers, ...extra } });
 

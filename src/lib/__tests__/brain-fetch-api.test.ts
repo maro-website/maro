@@ -39,6 +39,14 @@ describe("private Fetch Brand API", () => {
     mocks.policy.mockRejectedValueOnce(new AccountPolicyError("brain_plan_required", 403));
     expect((await POST(request())).status).toBe(403); expect(mocks.fetch).not.toHaveBeenCalled();
   });
+  it("accepts existing text workspace IDs from the production workspace bootstrap", async () => {
+    const textId = "ws_owner_1729000000_example";
+    query.maybeSingle.mockResolvedValueOnce({ data: { id: textId }, error: null });
+    expect((await POST(request({ workspaceId: textId, url: "example.test" }))).status).toBe(200);
+    expect(query.eq).toHaveBeenCalledWith("id", textId);
+    expect(mocks.policy).toHaveBeenCalledWith(BRAND_FETCH_PILOT_USER_ID, textId);
+    expect(mocks.fetch).toHaveBeenCalledWith("https://example.test/", `${BRAND_FETCH_PILOT_USER_ID}:${textId}`);
+  });
   it("rejects private or invalid URLs, oversized bodies and caller-supplied identity", async () => {
     for (const url of ["http://127.0.0.1/", "https://localhost/", "file:///etc/passwd", "https://example.test:8080", "https://u:p@example.test/"]) expect((await POST(request({ workspaceId, url }))).status).toBe(422);
     expect((await POST(request({ workspaceId, url: "example.test", userId: BRAND_FETCH_PILOT_USER_ID }))).status).toBe(400);
