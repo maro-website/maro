@@ -64,7 +64,6 @@ export const HUB_MENU_DESTINATIONS: HubMenuDestination[] = [
   { id: "hub", label: "Hub", route: "/", iconName: "maro-imazh" },
   { id: "krijimet", label: "Asetet", route: "/krijimet", iconName: "folder-open" },
   { id: "brain", label: "maroBrain", route: "/brain", iconName: "maro-brain" },
-  { id: "mcp", label: "Integrimet MCP", route: "/mcp", iconName: "mcp" },
   { id: "workspaces", label: "Cilesimet", route: "/account/workspaces", iconName: "settings" },
 ];
 
@@ -72,7 +71,6 @@ export const NAV_DESTINATIONS: NavDestination[] = [
   { id: "home", label: "Hub", route: "/", group: "home" },
   ...TOP_BAR_DESTINATIONS,
   { id: "case_studies", label: "Case Studies", route: "/case-studies", group: "later", badge: "Së shpejti · V1.5", comingSoon: true },
-  { id: "mcp", label: "Integrimet MCP", route: "/mcp", group: "studio", badge: "ChatGPT" },
 ];
 
 export const STUDIO_ROUTES = new Set([

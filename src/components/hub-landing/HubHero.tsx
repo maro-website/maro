@@ -53,7 +53,7 @@ function WorkspacePicker() {
     {!activeWorkspace ? <div className={s.workspaceLoading} role="status" aria-label="Duke ngarkuar hapësirën" /> : <>
       <button ref={trigger} className={s.workspaceTrigger} type="button" aria-labelledby="hub-workspace-label hub-workspace-name" aria-haspopup="listbox" aria-expanded={open} disabled={busy} onClick={() => setOpen(value => !value)}>
         {activeWorkspace.iconUrl ? <StableImage src={activeWorkspace.iconUrl} alt="" className={s.workspaceImage} loading="eager" /> : <Layers size={20} className={s.workspaceLayers} aria-hidden />}
-        <span id="hub-workspace-name">{activeWorkspace.name}</span><ChevronDown size={16} aria-hidden />
+        <span id="hub-workspace-name" className={s.workspaceTriggerName}>{activeWorkspace.name}</span><ChevronDown size={16} aria-hidden />
       </button>
       {open && <ul ref={panel} className={`maro-menu ${s.workspaceMenu}`} role="listbox" aria-label="Workspace-et">{workspaces.map(item => <li key={item.id} role="none"><button type="button" role="option" aria-selected={item.id === activeWorkspace.id} disabled={busy} className="maro-menu__item" onClick={() => void choose(item.id)}><span className={s.workspaceGlyph} aria-hidden>{item.iconUrl ? <StableImage src={item.iconUrl} alt="" className={s.workspaceImage} /> : item.name.charAt(0)}</span><span className={s.workspaceName}>{item.name}</span>{item.id === activeWorkspace.id && <Check size={16} className={s.workspaceLayers} aria-hidden />}</button></li>)}</ul>}
     </>}
