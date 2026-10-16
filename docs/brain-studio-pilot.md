@@ -20,6 +20,8 @@ No AI API calls, background agents, new providers, credit deductions or recurrin
 
 The previously requested shared EUR 1/account/month budget remains a prerequisite for any future paid agent feature. This pilot does not implement or invoke one. Existing opted-in image generation remains on its current credit/model flow.
 
+The answer importer accepts a whole JSON block, optionally fenced with Markdown. A bounded local fallback tolerates trailing commas before closing objects/arrays, a reproduced external-AI formatting issue. It skips quoted/escaped strings without changing their contents and still uses JSON.parse; it does not evaluate code, infer missing values or accept other syntax repairs. Both paths keep the same section/version/key/type/enum/length checks, suggestion labels, explicit review and stale-profile protection. Incomplete or otherwise invalid JSON gets copying guidance and remains editable. Prompts explicitly request valid JSON without trailing commas. Regression evidence and the exact reported target answer are in `brain-prompt-import-20261017` and the test fixture.
+
 ## Rollout and rollback
 
 Deploy only to the existing Railway WEB service after the repository checks and synthetic desktop/mobile/theme tests pass. Do not open the gate publicly as part of this release. Back up the current production commit and record release/live verification in `brain-studio-pilot-20261016` outside the repository.

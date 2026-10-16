@@ -1,0 +1,11 @@
+{
+  "maroBrain": 1,
+  "section": "target",
+  "fields": {
+    "audience": "Konsumatorë që kërkojnë një alternativë ndaj pijeve të zakonshme të gazuara, me më pak sheqer dhe përbërës me bazë bimore. Persona që dëshirojnë të shijojnë shijet klasike të sodës, por preferojnë produkte me fibra dhe prebiotikë. Audienca përfshin konsumatorë të interesuar për ushqyerje të ndërgjegjshme, produkte vegane dhe pije që përshtaten me preferenca të ndryshme ushqimore. Një segment tjetër potencial janë konsumatorët që dëshirojnë të reduktojnë konsumin e sheqerit pa hequr dorë nga pijet freskuese.",
+    "demographics": "",
+    "interests": "Ushqyerja e balancuar, pijet me përmbajtje të ulët sheqeri, fibrat bimore, prebiotikët, mirëqenia e përditshme, produktet vegane, ushqimet pa gluten, alternativat ndaj pijeve tradicionale, zbulimi i shijeve të reja, përbërësit me bazë bimore dhe produktet ushqimore inovative. Interes potencial për receta kreative me pije, përmbajtje rreth stilit të jetesës dhe informacione të qarta mbi përbërësit dhe vlerat ushqyese.",
+    "painPoints": "Dëshira për të reduktuar sheqerin pa sakrifikuar shijen e pijeve të preferuara. Vështirësia për të gjetur pije të gazuara që kombinojnë shije të këndshme, pak sheqer dhe përbërës me bazë bimore. Pakënaqësia me alternativat që nuk ofrojnë shijen karakteristike të sodës tradicionale. Nevoja për informacion transparent mbi përbërësit, përmbajtjen e sheqerit dhe fibrave. Kërkimi i produkteve që përshtaten me preferenca ushqimore si veganizmi ose shmangia e glutenit. Pasiguria nëse një alternativë e re ndaj sodës mund të ofrojë të njëjtën kënaqësi në shije.",
+  },
+  "suggestedFields": ["audience", "interests", "painPoints"]
+}
