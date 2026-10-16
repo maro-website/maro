@@ -6,15 +6,20 @@ vi.mock("node:https", () => ({ request: mocks.request }));
 vi.mock("node:http", () => ({ request: mocks.request }));
 import { fetchBrandResource, normalizeBrandUrl } from "@/lib/brain-fetch/network";
 const options = () => ({ maxBytes: 20, kind: "html" as const, signal: AbortSignal.timeout(1000) });
-function reply(status: number, headers: Record<string, string>, body = "ok") {
+function reply(status: number, headers: Record<string, string>, body: string | Buffer[] = "ok", abortOnDestroy = false) {
+  const destroy = vi.fn();
   mocks.request.mockImplementationOnce((_url, _options, callback) => {
     const req = new EventEmitter() as EventEmitter & { end: () => void };
     req.end = () => {
-      const res = Object.assign(new EventEmitter(), { statusCode: status, headers, destroy: vi.fn() });
-      callback(res); res.emit("data", Buffer.from(body)); res.emit("end");
+      const res = Object.assign(new EventEmitter(), { statusCode: status, headers, destroy });
+      if (abortOnDestroy) destroy.mockImplementation(() => { res.emit("aborted"); res.emit("error", new Error("intentional close")); });
+      callback(res);
+      for (const chunk of typeof body === "string" ? [Buffer.from(body)] : body) res.emit("data", chunk);
+      res.emit("end");
     };
     return req;
   });
+  return destroy;
 }
 beforeEach(() => { vi.resetAllMocks(); mocks.lookup.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]); });
 describe("Fetch Brand network boundary", () => {
@@ -37,13 +42,34 @@ describe("Fetch Brand network boundary", () => {
     await expect(fetchBrandResource("https://example.test", options())).rejects.toThrow("unsafe_redirect");
     expect(mocks.request).toHaveBeenCalledTimes(2);
   });
-  it("bounds streamed bodies, rejects compressed data and prevents follow-page cross-origin redirects", async () => {
+  it("returns bounded HTML prefixes, rejects compressed data and prevents cross-origin follow-page redirects", async () => {
     reply(200, { "content-type": "text/html" }, "x".repeat(21));
-    await expect(fetchBrandResource("https://example.test", options())).rejects.toThrow("page_too_large");
+    expect(await fetchBrandResource("https://example.test", options())).toMatchObject({ bytes: Buffer.from("x".repeat(20)), truncated: true });
     reply(200, { "content-type": "text/html", "content-encoding": "gzip" });
     await expect(fetchBrandResource("https://example.test", options())).rejects.toThrow("unsupported_content");
     reply(302, { location: "https://other.test/about" });
     await expect(fetchBrandResource("https://example.test/about", { ...options(), origin: "https://example.test" })).rejects.toThrow("cross_origin_redirect");
+  });
+  it("reads the prefix of a declared large HTML page and closes the connection at the existing byte cap", async () => {
+    const destroy = reply(200, { "content-type": "text/html", "content-length": "10000000" }, [Buffer.from("<title>Shop</title>x"), Buffer.from("never retained")], true);
+    const result = await fetchBrandResource("https://large.test", options());
+    expect(result.bytes).toEqual(Buffer.from("<title>Shop</title>x"));
+    expect(result.truncated).toBe(true); expect(destroy).toHaveBeenCalledOnce();
+  });
+  it("keeps only a byte-bounded prefix across chunks and ignores events after intentional truncation", async () => {
+    const bytes = Buffer.from("<title>Më shumë</title>".repeat(20));
+    const destroy = reply(200, { "content-type": "text/html" }, [bytes.subarray(0, 7), bytes.subarray(7), Buffer.alloc(10000)], true);
+    const result = await fetchBrandResource("https://chunks.test", options());
+    expect(result.bytes).toEqual(bytes.subarray(0, 20)); expect(result.truncated).toBe(true); expect(destroy).toHaveBeenCalledOnce();
+  });
+  it("does not mark a complete body at the exact cap as partial", async () => {
+    reply(200, { "content-type": "text/html", "content-length": "20" }, "x".repeat(20));
+    const result = await fetchBrandResource("https://exact.test", options());
+    expect(result.bytes).toHaveLength(20); expect(result.truncated).toBeUndefined();
+  });
+  it.each([true, false])("still rejects oversized images completely (declared size: %s)", async declared => {
+    reply(200, { "content-type": "image/png", ...(declared ? { "content-length": "21" } : {}) }, "x".repeat(21));
+    await expect(fetchBrandResource("https://image.test/logo.png", { ...options(), kind: "image" })).rejects.toThrow("page_too_large");
   });
   it("normalizes domains and strips credentials-bearing queries from crawl URLs", () => {
     expect(normalizeBrandUrl("example.test?token=private#fragment").href).toBe("https://example.test/");

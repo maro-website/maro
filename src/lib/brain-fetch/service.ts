@@ -5,6 +5,7 @@ import { BrandFetchError, fetchBrandResource, normalizeBrandUrl } from "./networ
 import type { FetchedBrand } from "./types";
 
 const cache = new Map<string, { expires: number; result: FetchedBrand }>();
+const partialPageWarning = "Një faqe e madhe u lexua pjesërisht. Disa të dhëna mund të mungojnë.";
 export async function fetchBrand(raw: string, accountKey: string): Promise<FetchedBrand> {
   const url = normalizeBrandUrl(raw);
   const key = `${accountKey}:${url.href}`;
@@ -16,6 +17,7 @@ export async function fetchBrand(raw: string, accountKey: string): Promise<Fetch
   const social = socialPlatform(first.url);
   if (social && (!initial.fields.name || /^(?:Instagram|Facebook|TikTok|LinkedIn|YouTube|X|Log in|Login|Sign in)(?:\s*[-|·]|$)/i.test(initial.fields.name.value))) throw new BrandFetchError("site_blocked");
   const result: FetchedBrand = { fields: initial.fields, channels: initial.channels, logos: initial.logos, colors: initial.colors, pages: [first.url], warnings: [], fetchedAt: new Date().toISOString(), aiUsed: false };
+  if (first.truncated) result.warnings.push(partialPageWarning);
   if (social) {
     // A social profile is a source; it must not replace the brand's own website.
     delete result.fields.website;
@@ -28,6 +30,7 @@ export async function fetchBrand(raw: string, accountKey: string): Promise<Fetch
       const page = await fetchBrandResource(next, { maxBytes: 768 * 1024, kind: "html", signal, origin: new URL(first.url).origin });
       const data = extractBrandPage(page.bytes.toString("utf8"), page.url);
       result.pages.push(page.url);
+      if (page.truncated) result.warnings.push(partialPageWarning);
       for (const [field, fact] of Object.entries(data.fields)) if (!result.fields[field as keyof typeof result.fields]) result.fields[field as keyof typeof result.fields] = fact;
       for (const channel of data.channels) if (!result.channels.some(c => c.handle === channel.handle) && result.channels.length < 12) result.channels.push(channel);
       for (const logo of data.logos) if (!result.logos.some(l => l.url === logo.url) && result.logos.length < 8) result.logos.push(logo);

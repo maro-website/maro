@@ -6,7 +6,7 @@ import { request as httpsRequest } from "node:https";
 import { isBlockedNetworkHost, validateOutboundHttpUrl } from "@/lib/security/ssrf";
 
 export class BrandFetchError extends Error {}
-export interface BrandResource { url: string; bytes: Buffer; contentType: string }
+export interface BrandResource { url: string; bytes: Buffer; contentType: string; truncated?: boolean }
 
 export function normalizeBrandUrl(raw: string): URL {
   const input = raw.trim();
@@ -35,7 +35,7 @@ export async function fetchBrandResource(raw: string, options: { maxBytes: numbe
     signal.throwIfAborted();
     if (!answers.length || answers.some(answer => isBlockedNetworkHost(answer.address))) throw new BrandFetchError("blocked_host");
     const address = answers.find(answer => answer.family === 4) ?? answers[0];
-    const response = await new Promise<{ status: number; location?: string; contentType: string; bytes: Buffer }>((resolve, reject) => {
+    const response = await new Promise<{ status: number; location?: string; contentType: string; bytes: Buffer; truncated?: boolean }>((resolve, reject) => {
       const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(url, {
         agent: false, signal,
         lookup: (_hostname, opts, callback) => {
@@ -54,16 +54,32 @@ export async function fetchBrandResource(raw: string, options: { maxBytes: numbe
         if (status !== 200 || !allowed || (res.headers["content-encoding"] && res.headers["content-encoding"] !== "identity")) {
           reject(new BrandFetchError(status === 403 || status === 429 ? "site_blocked" : "unsupported_content")); res.destroy(); return;
         }
-        if (Number(res.headers["content-length"] ?? 0) > options.maxBytes) { reject(new BrandFetchError("page_too_large")); res.destroy(); return; }
-        const chunks: Buffer[] = []; let size = 0;
+        const declaredSize = Number(res.headers["content-length"] ?? 0);
+        // Large HTML often contains usable metadata near the start. Keep only a
+        // bounded prefix; binary images still require the complete bounded body.
+        if (options.kind === "image" && declaredSize > options.maxBytes) { reject(new BrandFetchError("page_too_large")); res.destroy(); return; }
+        const chunks: Buffer[] = []; let size = 0, done = false;
+        const finish = (truncated = false) => {
+          if (done) return;
+          done = true;
+          resolve({ status, contentType, bytes: Buffer.concat(chunks, size), ...(truncated ? { truncated: true } : {}) });
+        };
         res.on("data", (chunk: Buffer) => {
-          size += chunk.length;
-          if (size > options.maxBytes) { reject(new BrandFetchError("page_too_large")); res.destroy(); }
-          else chunks.push(chunk);
+          if (done) return;
+          const remaining = options.maxBytes - size;
+          if (chunk.length > remaining) {
+            if (options.kind === "html") {
+              if (remaining > 0) chunks.push(chunk.subarray(0, remaining));
+              size = options.maxBytes; finish(true);
+            } else { done = true; reject(new BrandFetchError("page_too_large")); }
+            res.destroy(); return;
+          }
+          chunks.push(chunk); size += chunk.length;
+          if (options.kind === "html" && size === options.maxBytes && declaredSize > size) { finish(true); res.destroy(); }
         });
-        res.on("end", () => resolve({ status, contentType, bytes: Buffer.concat(chunks) }));
-        res.on("error", reject);
-        res.on("aborted", () => reject(new BrandFetchError("fetch_failed")));
+        res.on("end", () => finish());
+        res.on("error", error => { if (!done) { done = true; reject(error); } });
+        res.on("aborted", () => { if (!done) { done = true; reject(new BrandFetchError("fetch_failed")); } });
       });
       request.on("error", reject); request.end();
     });
@@ -73,7 +89,7 @@ export async function fetchBrandResource(raw: string, options: { maxBytes: numbe
       if (url.protocol === "https:" && next.protocol !== "https:") throw new BrandFetchError("unsafe_redirect");
       url = next; continue;
     }
-    return { url: url.href, contentType: response.contentType, bytes: response.bytes };
+    return { url: url.href, contentType: response.contentType, bytes: response.bytes, ...(response.truncated ? { truncated: true } : {}) };
   }
   throw new BrandFetchError("fetch_failed");
 }

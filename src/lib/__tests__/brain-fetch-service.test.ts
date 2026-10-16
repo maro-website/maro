@@ -17,6 +17,16 @@ describe("bounded no-AI brand import", () => {
     const result = await fetchBrand("https://partial.test", "partial");
     expect(result.fields.name?.value).toBe("Partial"); expect(result.pages).toHaveLength(1); expect(result.warnings.length).toBeGreaterThan(0);
   });
+  it("imports useful metadata/logos from partial large pages, merges contact data and reports the partial read once", async () => {
+    mocks.resource.mockResolvedValueOnce({ url: "https://large-brand.test/", bytes: Buffer.from('<meta property="og:site_name" content="Large Brand"><meta name="description" content="Brand description"><img alt="Brand logo" src="/logo.png"><a href="/contact">Contact</a>'), contentType: "text/html", truncated: true })
+      .mockResolvedValueOnce({ url: "https://large-brand.test/contact", bytes: Buffer.from('<a href="tel:+38344123456">Call</a>'), contentType: "text/html", truncated: true });
+    const result = await fetchBrand("https://large-brand.test", "large-pages");
+    expect(result.fields.name?.value).toBe("Large Brand"); expect(result.fields.phone?.value).toBe("+38344123456");
+    expect(result.logos[0].url).toBe("https://large-brand.test/logo.png"); expect(result.pages).toHaveLength(2);
+    expect(result.warnings.filter(w => w.includes("pjesërisht"))).toHaveLength(1); expect(result.aiUsed).toBe(false);
+    expect(mocks.resource.mock.calls[0][1].maxBytes).toBe(1024 * 1024);
+    expect(mocks.resource.mock.calls[1][1].maxBytes).toBe(768 * 1024);
+  });
   it("rejects social login walls instead of importing Instagram as the business", async () => {
     mocks.resource.mockResolvedValueOnce({ url: "https://instagram.com/test/", bytes: Buffer.from("<title>Instagram</title>"), contentType: "text/html" });
     await expect(fetchBrand("https://instagram.com/test/", "social")).rejects.toThrow("site_blocked");

@@ -15,7 +15,7 @@ const messages: Record<string, string> = {
   invalid_url: "Shkruaj një adresë publike website-i, p.sh. biznesi.com.",
   site_blocked: "Faqja nuk lejon leximin automatik. Provo website-in e biznesit në vend të profilit social.",
   unsupported_content: "Ky link nuk ktheu një faqe të lexueshme. Provo faqen kryesore të biznesit.",
-  page_too_large: "Faqja ose logoja është tepër e madhe për këtë import. Provo një faqe tjetër.",
+  page_too_large: "Logoja është tepër e madhe. Zgjidh një tjetër ose ngarkoje manualisht.",
   brand_not_found: "Nuk u gjetën të dhëna të mjaftueshme. Provo faqen kryesore të biznesit.",
   rate_limited: "E ke arritur limitin e provave. Provo përsëri më vonë.",
   brain_plan_required: "Për Fetch Brand të duhet një plan aktiv me maroBrain.",
