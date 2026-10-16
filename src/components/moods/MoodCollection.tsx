@@ -1,42 +1,50 @@
 "use client";
+
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bookmark, Check, Moon, Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, Bookmark, LayoutGrid, Moon, Search, Sparkles, X } from "lucide-react";
 import { useMaro } from "@/context/store";
 import { Button } from "@/components/ui/Button";
-import { StableImage } from "@/components/app/StableImage";
+import { PreviewFallback } from "@/components/app/PreviewFallback";
 import { useToast } from "@/components/ui/Toast";
 import { canUseMoods, type Mood } from "@/lib/moods/model";
 import { moodRequest, MOODS_CHANGED, notifyMoodsChanged } from "@/lib/moods/client";
 import { cn } from "@/lib/utils/cn";
+import { MoodCard } from "./MoodCard";
+import { MoodHero } from "./MoodHero";
+import { MoodQuickView } from "./MoodQuickView";
+import "./moods.css";
 
-export function MoodCover({ mood, className }: { mood?: Pick<Mood, "title" | "cover_url"> | null; className?: string }) {
-  return mood?.cover_url
-    ? <StableImage src={mood.cover_url} alt="" className={cn("aspect-square w-full object-cover", className)} />
-    : <div className={cn("grid aspect-square place-items-center bg-surface-2 text-brand", className)}><Moon className="h-9 w-9" /></div>;
-}
+export { MoodCover } from "./MoodCover";
 
-export function MoodCollection({ savedOnly = false, onSelect, selectedId, compact = false }: {
-  savedOnly?: boolean; onSelect?: (mood: Mood) => void; selectedId?: string; compact?: boolean;
+export function MoodCollection({ savedOnly = false, onSelect, selectedId, compact = false, discovery = false }: {
+  savedOnly?: boolean; onSelect?: (mood: Mood) => void; selectedId?: string; compact?: boolean; discovery?: boolean;
 }) {
   const { user, ready } = useMaro();
   const { toast } = useToast();
   const router = useRouter();
+  const libraryId = React.useId();
   const eligible = canUseMoods(user?.email);
   const userId = user?.id;
   const [result, setResult] = React.useState<{ owner: string; items: Mood[] }>({ owner: "", items: [] });
   const [query, setQuery] = React.useState("");
+  const [onlySaved, setOnlySaved] = React.useState(false);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
   const [refresh, setRefresh] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [busy, setBusy] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState<{ use: boolean } | null>(null);
+  const actionPending = React.useRef(false);
   React.useEffect(() => {
     const update = () => setRefresh(value => value + 1);
     window.addEventListener(MOODS_CHANGED, update);
     window.addEventListener("focus", update);
     return () => { window.removeEventListener(MOODS_CHANGED, update); window.removeEventListener("focus", update); };
   }, []);
+  React.useEffect(() => {
+    setQuery(""); setOnlySaved(false); setActiveId(null);
+  }, [userId]);
   React.useEffect(() => {
     if (!eligible || !userId) return;
     const controller = new AbortController();
@@ -46,15 +54,21 @@ export function MoodCollection({ savedOnly = false, onSelect, selectedId, compac
     }).catch(err => { if (!controller.signal.aborted) setError((err as Error).message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [eligible, userId, refresh]);
-  const items = result.owner === user?.id && eligible ? result.items : [];
-  const filtered = items.filter(mood => (!savedOnly || mood.saved) && `${mood.title} ${mood.description}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const items = result.owner === userId && eligible ? result.items : [];
+  const savedCount = items.filter(mood => mood.saved).length;
+  const showSaved = savedOnly || onlySaved;
+  const filtered = items.filter(mood => (!showSaved || mood.saved) && `${mood.title} ${mood.description}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const active = items.find(mood => mood.id === activeId);
+  const initialLoading = loading && result.owner !== userId;
   async function save(mood: Mood, saved: boolean) {
     await moodRequest("/api/moods/save", { method: "POST", body: { moodId: mood.id, saved } });
     setResult(current => ({ ...current, items: current.items.map(item => item.id === mood.id ? { ...item, saved } : item) }));
     notifyMoodsChanged();
   }
   async function act(mood: Mood, use: boolean) {
-    setBusy(mood.id);
+    if (actionPending.current) return;
+    actionPending.current = true;
+    setBusy({ use });
     try {
       if (use) {
         if (!mood.saved) await save(mood, true);
@@ -62,20 +76,28 @@ export function MoodCollection({ savedOnly = false, onSelect, selectedId, compac
         else router.push(`/imazh?mood=${mood.id}`);
       } else { await save(mood, !mood.saved); toast(mood.saved ? "Mood-i u largua nga asetet." : "Mood-i u ruajt te asetet."); }
     } catch (err) { toast((err as Error).message, "error"); }
-    finally { setBusy(null); }
+    finally { actionPending.current = false; setBusy(null); }
   }
+  const resetFilters = () => { setQuery(""); setOnlySaved(false); };
   if (!ready) return <p role="status" className="py-10 text-center text-ink-3">Duke ngarkuar…</p>;
   if (!eligible) return <div className="py-16 text-center"><Moon className="mx-auto h-8 w-8 text-ink-3" /><p className="mt-4 text-ink-2">maroMood nuk është i disponueshëm për këtë llogari.</p><Link href="/imazh" className="mt-4 inline-block text-brand">Kthehu te maroImazh</Link></div>;
-  return <div className="min-w-0">
-    <label className="maro-mood-search mb-5 flex min-h-11 items-center gap-3 rounded-maro16 bg-surface-2 px-4"><Search className="h-4 w-4 shrink-0 text-ink-3" /><input aria-label="Kërko moods" placeholder="Kërko një mood…" value={query} onChange={event => setQuery(event.target.value)} className="maro-search-input w-full min-w-0 bg-transparent py-3 text-sm text-ink outline-none placeholder:text-ink-3" /></label>
-    {error ? <div role="alert" className="py-8 text-center text-ink-2"><p>{error}</p><Button variant="secondary" className="mt-3" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</Button></div>
-      : loading ? <p role="status" className="py-10 text-center text-ink-3">Duke ngarkuar moods…</p>
-      : !filtered.length ? <div className="rounded-maro20 bg-surface py-12 text-center"><Bookmark className="mx-auto h-7 w-7 text-ink-3" /><p className="mt-3 font-semibold text-ink">{query ? "Nuk u gjet asnjë mood" : savedOnly ? "Ende s’ke moods të ruajtura" : "Moods po vijnë"}</p><p className="mt-2 px-4 text-sm text-ink-3">{savedOnly && !query ? "Gjej një mood dhe ruaje për ta përdorur me idetë e tua." : "Provo përsëri më vonë ose ndrysho kërkimin."}</p>{savedOnly && !onSelect && <Link href="/moods" className="mt-5 inline-block font-semibold text-brand">Gjej moods</Link>}</div>
-      : <div className={cn("grid grid-cols-2 gap-3", compact ? "sm:grid-cols-3" : "sm:grid-cols-3 xl:grid-cols-4")}>
-        {filtered.map(mood => <article key={mood.id} className={cn("overflow-hidden rounded-maro20 border bg-surface", selectedId === mood.id ? "border-brand" : "border-line")}>
-          <button type="button" onClick={() => void act(mood, true)} disabled={busy !== null} aria-label={`Përdore ${mood.title}`} className="relative block w-full overflow-hidden text-left transition-opacity hover:opacity-90 disabled:opacity-60"><MoodCover mood={mood} />{selectedId === mood.id && <span className="absolute right-3 top-3 rounded-full bg-brand p-2 text-brand-fg"><Check className="h-4 w-4" /></span>}</button>
-          <div className="p-3 sm:p-4"><h3 className="text-sm font-bold text-ink">{mood.title}</h3><p className="mt-1 min-h-10 text-xs leading-relaxed text-ink-3">{mood.description}</p><div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => void act(mood, true)} icon={<Sparkles className="h-3.5 w-3.5" />}>Përdore</Button><button type="button" disabled={busy !== null} onClick={() => void act(mood, false)} aria-pressed={mood.saved} aria-label={mood.saved ? `Largo ${mood.title} nga të ruajturat` : `Ruaj ${mood.title}`} className={cn("grid min-h-11 min-w-11 place-items-center rounded-maro12 hover:bg-surface-2 disabled:opacity-50", mood.saved ? "text-brand" : "text-ink-3")}><Bookmark className={cn("h-4 w-4", mood.saved && "fill-current")} /></button></div></div>
-        </article>)}
+  return <div className={cn("moods-collection", compact && "moods-collection--compact")}>
+    {discovery && <MoodHero items={items} loading={initialLoading} paused={Boolean(active)} libraryId={libraryId} onOpen={setActiveId} />}
+    <section id={libraryId} className="moods-library" aria-label="Biblioteka e moods">
+      {!savedOnly && <div className="moods-tabs" role="group" aria-label="Katalogu i moods">
+        <button type="button" aria-pressed={!onlySaved} onClick={() => setOnlySaved(false)}><LayoutGrid className="h-4 w-4" /><span>Gjej moods</span><span className="moods-tab-count">{items.length}</span></button>
+        <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(true)}><Bookmark className={cn("h-4 w-4", onlySaved && "fill-current")} /><span>Të ruajtura</span><span className="moods-tab-count">{savedCount}</span></button>
       </div>}
+      <div className="moods-search-row">
+        <label className="moods-search"><span className="moods-search-icon"><Search className="h-5 w-5" /></span><input type="search" aria-label="Kërko moods" placeholder="Çfarë atmosfere po kërkon?" value={query} onChange={event => setQuery(event.target.value)} className="moods-search-input" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Pastro kërkimin" className="moods-search-clear"><X className="h-4 w-4" /></button>}</label>
+        {discovery && <Link href="/krijimet?category=moods" aria-label="Moods te asetet e mia" className="moods-assets-link"><Bookmark className="h-5 w-5" /><span>Te asetet e mia</span><ArrowUpRight className="h-4 w-4" /></Link>}
+      </div>
+      <div className="moods-results-heading"><div>{!compact && <p>maroMoods</p>}<h2>{query.trim() ? `Rezultatet për “${query.trim()}”` : showSaved ? "Atmosferat që i ke ruajtur." : "Zgjedhe atmosferën."}</h2></div><span aria-live="polite">{!initialLoading && `${filtered.length} ${filtered.length === 1 ? "mood" : "moods"}`}</span></div>
+      {error ? <div role="alert" className="moods-empty"><Moon className="h-8 w-8" /><h3>Moods nuk u ngarkuan.</h3><p>{error}</p><Button variant="secondary" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</Button></div>
+        : initialLoading ? <div className="moods-grid" aria-label="Duke ngarkuar moods">{Array.from({ length: compact ? 3 : 4 }, (_, index) => <PreviewFallback key={index} state="loading" className="aspect-[4/5] h-auto rounded-3xl" />)}</div>
+        : !filtered.length ? <div className="moods-empty"><span className="moods-empty-icon">{showSaved ? <Bookmark className="h-7 w-7" /> : <Sparkles className="h-7 w-7" />}</span><h3>{query.trim() ? "S’u gjet ky mood." : showSaved ? "Ruaje një atmosferë për më vonë." : "Atmosferat e reja po vijnë."}</h3><p>{query.trim() ? "Provo një fjalë tjetër ose shiko krejt moods." : showSaved ? "Kliko shenjën e ruajtjes te moods që të pëlqejnë. I gjen edhe te asetet e tua." : "Kthehu së shpejti për ide të reja."}</p>{savedOnly && !query.trim() ? <Link href="/moods" className="maro-button" data-variant="brand">Gjej moods <ArrowUpRight className="h-4 w-4" /></Link> : (query.trim() || onlySaved) && <Button variant="secondary" onClick={resetFilters}>{savedOnly ? "Pastro kërkimin" : "Shiko krejt moods"}</Button>}</div>
+        : <div className="moods-grid">{filtered.map(mood => <MoodCard key={mood.id} mood={mood} selected={selectedId === mood.id} busy={busy !== null} onOpen={() => setActiveId(mood.id)} onSave={() => void act(mood, false)} />)}</div>}
+    </section>
+    {active && <MoodQuickView mood={active} selected={selectedId === active.id} busy={busy !== null} using={Boolean(busy?.use)} inComposer={Boolean(onSelect)} onClose={() => setActiveId(null)} onSave={() => void act(active, false)} onUse={() => void act(active, true)} />}
   </div>;
 }

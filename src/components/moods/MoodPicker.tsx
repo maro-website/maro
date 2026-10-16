@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { BadgePlus, Moon, X } from "lucide-react";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { useMaro } from "@/context/store";
 import { canUseMoods, type Mood } from "@/lib/moods/model";
 import { cn } from "@/lib/utils/cn";
@@ -12,7 +12,6 @@ import { moodRequest } from "@/lib/moods/client";
 export function MoodPicker({ selected, onSelect, disabled, variant = "desktop" }: { selected: Mood | null; onSelect: (mood: Mood | null) => void; disabled?: boolean; variant?: "desktop" | "mobile" }) {
   const { user } = useMaro();
   const [open, setOpen] = React.useState(false);
-  const [all, setAll] = React.useState(false);
   const [preview, setPreview] = React.useState<{ owner: string; mood: Mood } | null>(null);
   const userId = user?.id;
   const eligible = canUseMoods(user?.email);
@@ -41,8 +40,8 @@ export function MoodPicker({ selected, onSelect, disabled, variant = "desktop" }
     load(); media.addEventListener("change", load);
     return () => { controller.abort(); media.removeEventListener("change", load); };
   }, [eligible, userId, variant]);
-  const previewMood = preview && preview.owner === userId ? preview.mood : selected;
-  const openPicker = () => { setAll(false); setOpen(true); };
+  const previewMood = selected ?? (preview && preview.owner === userId ? preview.mood : null);
+  const openPicker = () => setOpen(true);
   if (!canUseMoods(user?.email)) return null;
   return <>
     {variant === "mobile" ? <div className="flex min-w-0 items-center gap-2 lg:hidden">
@@ -58,12 +57,9 @@ export function MoodPicker({ selected, onSelect, disabled, variant = "desktop" }
       </button>
       {selected && <button type="button" disabled={disabled} aria-label="Hiq mood-in" onClick={() => onSelect(null)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-scrim text-on-scrim"><X className="h-3.5 w-3.5" /></button>}
     </div>}
-    <Modal open={open} onClose={() => setOpen(false)} size="lg">
-      <ModalHeader title="maroMoods" description="Shtoji një atmosferë idesë tënde." icon={<Moon className="h-5 w-5" />} />
-      <div className="px-5 pb-6 sm:px-6"><div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Katalogu i moods">
-        <button type="button" aria-pressed={!all} onClick={() => setAll(false)} className={cn("min-h-11 rounded-maro12 px-4 text-sm font-semibold", !all ? "bg-surface-selected text-brand" : "bg-surface-2 text-ink-2")}>Të ruajtura</button>
-        <button type="button" aria-pressed={all} onClick={() => setAll(true)} className={cn("min-h-11 rounded-maro12 px-4 text-sm font-semibold", all ? "bg-surface-selected text-brand" : "bg-surface-2 text-ink-2")}>Gjej moods</button>
-      </div><MoodCollection compact savedOnly={!all} selectedId={selected?.id} onSelect={mood => { onSelect(mood); setOpen(false); }} /></div>
+    <Modal open={open} onClose={() => setOpen(false)} size="lg" aria-label="Zgjedh maroMood" className="moods-picker max-w-5xl p-0">
+      <header className="moods-picker-header"><p className="moods-eyebrow"><Moon className="h-5 w-5" /> maroMoods</p><h2>Çfarë mood-i po i jep?</h2><p>Një atmosferë e re për idenë që e ke gati.</p></header>
+      <div className="moods-picker-body"><MoodCollection compact selectedId={selected?.id} onSelect={mood => { onSelect(mood); setOpen(false); }} /></div>
     </Modal>
   </>;
 }
