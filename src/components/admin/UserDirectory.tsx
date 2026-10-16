@@ -3,7 +3,7 @@ import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 
 import * as React from "react";
-import { Coins, HardDrive, RefreshCw, Search, ShieldCheck, Trash2, Users } from "lucide-react";
+import { Coins, HardDrive, LayoutGrid, RefreshCw, Search, ShieldCheck, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -14,11 +14,12 @@ import { useMaro } from "@/context/store";
 import { adminAuthHeaders } from "@/lib/admin/clientFetch";
 import { adminUserErrorMessage, type AdminDirectoryUser, type AdminUserDirectory } from "@/lib/admin/userDirectory";
 import { UserPlanModal } from "./UserPlanModal";
+import { MAX_STORAGE_GB, MAX_WORKSPACES, userLimitPayload } from "@/lib/admin/userLimits";
 
 const PAGE_SIZE = 50;
 const planLabel = (plan: string) => ({ free: "Falas", standard: "Standard", pro: "Pro", business: "Business" })[plan] ?? plan;
 const storageLabel = (bytes: number | null) => bytes == null ? "Pa limit" : `${(bytes / 1e9).toLocaleString("sq-AL", { maximumFractionDigits: 2 })} GB`;
-type Action = "credits" | "storage" | "delete";
+type Action = "credits" | "storage" | "workspaces" | "delete";
 
 export function UserDirectory() {
   const { user: actor } = useMaro();
@@ -77,11 +78,13 @@ export function UserDirectory() {
             <div className="mb-5 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-bold text-ink">{user.full_name || "Pa emër"}</h2><p className="break-all text-sm text-ink-3">{user.email}</p></div>{privileged && <ShieldCheck aria-label="Llogari administrative" className="h-5 w-5 shrink-0 text-ink-3" />}</div>
             <div className="grid grid-cols-2 gap-3 rounded-maro16 bg-surface-2 p-4"><div><p className="text-xs text-ink-3">Plani aktual</p><p className="mt-1 text-lg font-bold text-ink">{planLabel(user.plan)}</p></div><div><p className="text-xs text-ink-3">Bilanci</p><p className="mt-1 text-lg font-bold tabular-nums text-ink">{user.credits.toLocaleString("sq-AL")} <span className="text-xs font-medium text-ink-3">kredite</span></p></div></div>
             <div className="my-4"><div className="flex items-center justify-between gap-2 text-xs text-ink-3"><span className="flex items-center gap-1"><HardDrive className="h-3.5 w-3.5" />Storage</span><span>{storageLabel(user.storageUsedBytes)} / {storageLabel(user.storageLimitBytes)}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={`h-full rounded-full ${overLimit ? "bg-danger" : "bg-brand"}`} style={{ width: `${ratio}%` }} /></div>{overLimit && <p className="mt-1 text-xs text-danger">Mbi limitin · skedarët ekzistues ruhen.</p>}{user.storageOverrideBytes != null && <p className="mt-1 text-xs text-ink-3">Limit manual</p>}</div>
+            <div className="mb-4 text-xs text-ink-3"><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" />Workspaces</span><span>{user.workspaceCount ?? "—"} / {user.workspaceLimit ?? "—"}</span></div>{user.workspaceOverride != null && <p className="mt-1">Limit manual</p>}{user.workspaceCount >= user.workspaceLimit && <p className="mt-1">Limiti u arrit · workspace-t ekzistuese ruhen.</p>}</div>
             <div className="mb-4 flex flex-wrap items-center gap-2"><Badge>{user.is_creator ? "Kreator" : "Përdorues"}</Badge><span className="text-xs text-ink-3">{user.planExpiresAt ? `Plani deri ${new Date(user.planExpiresAt).toLocaleDateString("sq-AL")}` : `Regjistruar ${new Date(user.created_at).toLocaleDateString("sq-AL")}`}</span></div>
             <div className="flex flex-wrap gap-2 border-t border-line pt-4">
               {data.canManage && <Button variant="secondary" onClick={() => setPlanUser(user)}>Ndrysho planin</Button>}
               {data.canAdjustCredits && <Button variant="secondary" icon={<Coins className="h-4 w-4" />} onClick={() => setAction({ kind: "credits", user })}>Kreditet</Button>}
               {data.canManage && <Button variant="secondary" onClick={() => setAction({ kind: "storage", user })}>Storage</Button>}
+              {data.canManage && <Button variant="secondary" onClick={() => setAction({ kind: "workspaces", user })}>Workspaces</Button>}
               {data.canManageCreators && <Button variant="ghost" loading={creatorBusy === user.id} onClick={() => void toggleCreator(user)}>{user.is_creator ? "Hiq kreatorin" : "Bëj kreator"}</Button>}
               {data.canManage && !privileged && user.id !== actor?.id && <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => setAction({ kind: "delete", user })}>Fshi</Button>}
             </div>
@@ -97,8 +100,8 @@ export function UserDirectory() {
 
 function UserActionModal({ kind, user, onClose, onChanged }: { kind: Action; user: AdminDirectoryUser; onClose: () => void; onChanged: () => void }) {
   const [mode, setMode] = React.useState("delta");
-  const [amount, setAmount] = React.useState(kind === "storage" ? String((user.storageOverrideBytes ?? user.storageLimitBytes ?? 1e9) / 1e9) : "");
-  const [defaultStorage, setDefaultStorage] = React.useState(false);
+  const [amount, setAmount] = React.useState(kind === "storage" ? String((user.storageOverrideBytes ?? user.storageLimitBytes ?? 1e9) / 1e9) : kind === "workspaces" ? String(user.workspaceOverride ?? user.workspaceLimit ?? 1) : "");
+  const [usePlan, setUsePlan] = React.useState(false);
   const [reason, setReason] = React.useState("");
   const [mfaCode, setMfaCode] = React.useState("");
   const [error, setError] = React.useState("");
@@ -107,11 +110,14 @@ function UserActionModal({ kind, user, onClose, onChanged }: { kind: Action; use
   const idempotencyKey = React.useRef(crypto.randomUUID());
   const changed = () => { idempotencyKey.current = crypto.randomUUID(); setError(""); };
   const number = Number(amount);
-  const validAmount = amount.trim() !== "" && Number.isFinite(number) && (kind === "storage" ? number >= 0 && number <= 1000 : Number.isSafeInteger(number) && (mode === "delta" ? number !== 0 && user.credits + number >= 0 : number >= 0));
+  const isLimit = kind === "storage" || kind === "workspaces";
+  const limitPayload = isLimit ? userLimitPayload(kind, user.id, amount, usePlan, reason) : null;
+  const validAmount = amount.trim() !== "" && Number.isSafeInteger(number) && (mode === "delta" ? number !== 0 && user.credits + number >= 0 : number >= 0);
+  const ready = kind === "delete" ? /^\d{6}$/.test(mfaCode) : isLimit ? limitPayload?.success === true : reason.trim().length >= 3 && validAmount;
   async function submit(event: React.FormEvent) {
-    event.preventDefault(); if (busy.current) return; busy.current = true; setSaving(true); setError("");
+    event.preventDefault(); if (busy.current || !ready) return; busy.current = true; setSaving(true); setError("");
     try {
-      const body = kind === "delete" ? { userId: user.id, email: user.email, mfaCode } : kind === "storage" ? { userId: user.id, limitBytes: defaultStorage ? null : Math.round(number * 1e9), note: reason } : { userId: user.id, mode, delta: number, newBalance: number, reason, idempotencyKey: idempotencyKey.current };
+      const body = kind === "delete" ? { userId: user.id, email: user.email, mfaCode } : isLimit && limitPayload?.success ? limitPayload.data : { userId: user.id, mode, delta: number, newBalance: number, reason, idempotencyKey: idempotencyKey.current };
       const url = kind === "credits" ? "/api/admin/credits/adjust" : `/api/admin/users/${kind}`;
       const response = await fetch(url, { method: "POST", headers: await adminAuthHeaders(true), body: JSON.stringify(body) });
       const result = await response.json();
@@ -120,13 +126,12 @@ function UserActionModal({ kind, user, onClose, onChanged }: { kind: Action; use
     } catch (err) { setError(adminUserErrorMessage(err instanceof Error ? err.message : "failed")); setMfaCode(""); }
     finally { busy.current = false; setSaving(false); }
   }
-  const ready = kind === "delete" ? /^\d{6}$/.test(mfaCode) : reason.trim().length >= 3 && ((kind === "storage" && defaultStorage) || validAmount);
   return <Modal open onClose={() => { if (!saving) onClose(); }} closeOnBackdrop={!saving} aria-label={kind === "delete" ? "Fshi përdoruesin" : "Menaxho përdoruesin"}>
-    <ModalHeader title={kind === "credits" ? "Menaxho kreditet" : kind === "storage" ? "Limiti i storage" : "Fshi përdoruesin"} description={user.email} />
+    <ModalHeader title={kind === "credits" ? "Menaxho kreditet" : kind === "storage" ? "Limiti i storage" : kind === "workspaces" ? "Limiti i workspace-ve" : "Fshi përdoruesin"} description={user.email} />
     <form className="space-y-5 px-6 pb-6" onSubmit={event => void submit(event)}>
       {kind === "delete" ? <><p className="rounded-maro16 border border-danger bg-maro-danger p-4 text-sm text-danger">Fshihen llogaria, krijimet dhe skedarët e këtij përdoruesi. Ky veprim nuk zhbëhet. Historiku i pagesave dhe krediteve ruhet për auditim.</p><Field label="Kodi MFA" hint="Kodi i ri me 6 shifra nga aplikacioni Authenticator."><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mfaCode} onChange={event => setMfaCode(event.target.value.replace(/\D/g, ""))} /></Field></> : <>
-        {kind === "credits" ? <Field label="Veprimi"><Select value={mode} onChange={event => { setMode(event.target.value); changed(); }}><option value="delta">Shto / hiq kredite</option><option value="set">Vendos bilancin</option></Select></Field> : <label className="flex min-h-11 items-center gap-3 text-sm text-ink"><input type="checkbox" checked={defaultStorage} onChange={event => { setDefaultStorage(event.target.checked); changed(); }} />Përdor limitin e planit aktual</label>}
-        <Field label={kind === "storage" ? "Limiti në GB" : mode === "set" ? "Bilanci i ri" : "Ndryshimi i krediteve"} hint={kind === "storage" ? "1 GB = 1,000,000,000 bytes. Ulja e limitit nuk fshin skedarë ekzistues." : `Bilanci aktual: ${user.credits} kredite. ${mode === "delta" ? "Përdor numër negativ për të hequr kredite." : ""}`}><Input type="number" step={kind === "storage" ? "0.01" : "1"} disabled={kind === "storage" && defaultStorage} value={amount} onChange={event => { setAmount(event.target.value); changed(); }} /></Field>
+        {kind === "credits" ? <Field label="Veprimi"><Select value={mode} onChange={event => { setMode(event.target.value); changed(); }}><option value="delta">Shto / hiq kredite</option><option value="set">Vendos bilancin</option></Select></Field> : <label className="flex min-h-11 items-center gap-3 text-sm text-ink"><input type="checkbox" checked={usePlan} onChange={event => { setUsePlan(event.target.checked); changed(); }} />Përdor limitin e planit aktual</label>}
+        <Field label={kind === "storage" ? "Limiti në GB" : kind === "workspaces" ? "Numri maksimal i workspace-ve" : mode === "set" ? "Bilanci i ri" : "Ndryshimi i krediteve"} hint={kind === "storage" ? "0–1,000 GB. 1 GB = 1,000,000,000 bytes. Ulja e limitit nuk fshin skedarë ekzistues." : kind === "workspaces" ? `${user.workspaceCount ?? 0} workspace aktualisht. Vendos 1–1,000. Ulja e limitit nuk fshin workspace-t ekzistuese.` : `Bilanci aktual: ${user.credits} kredite. ${mode === "delta" ? "Përdor numër negativ për të hequr kredite." : ""}`}><Input type="number" step={kind === "storage" ? "any" : "1"} min={isLimit ? kind === "storage" ? 0 : 1 : undefined} max={kind === "storage" ? MAX_STORAGE_GB : kind === "workspaces" ? MAX_WORKSPACES : undefined} disabled={isLimit && usePlan} value={amount} onChange={event => { setAmount(event.target.value); changed(); }} /></Field>
         {kind === "credits" && validAmount && <p className="text-sm font-semibold text-ink">Bilanci pas ndryshimit: {mode === "set" ? number : user.credits + number} kredite</p>}
         <Field label="Arsyeja private" hint="Ruhet në historikun e adminit."><Textarea rows={3} maxLength={1000} value={reason} onChange={event => { setReason(event.target.value); changed(); }} /></Field>
       </>}

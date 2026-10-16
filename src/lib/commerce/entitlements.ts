@@ -12,12 +12,14 @@ import { getCommercePlan } from "@/lib/commerce/plans";
 import type { ResolvedEntitlements } from "@/lib/commerce/types";
 import { EXPIRED_DEFAULTS } from "@/lib/commerce/types";
 import { getProfileCredits } from "@/lib/supabase/server";
+import { getWorkspaceLimit } from "@/lib/workspaces/limitServer";
 
 export async function resolveEntitlements(userId: string): Promise<ResolvedEntitlements> {
-  const [profile, membership, workspaceCount] = await Promise.all([
+  const [profile, membership, workspaceCount, workspaceLimit] = await Promise.all([
     getProfileCredits(userId),
     getLatestMembership(userId),
     countUserWorkspaces(userId),
+    getWorkspaceLimit(userId),
   ]);
 
   const creditsBalance = profile?.credits ?? 0;
@@ -38,9 +40,9 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
       credits_reserved: creditsReserved,
       credits_available: creditsAvailable,
       can_top_up: false,
-      workspace_limit: EXPIRED_DEFAULTS.workspace_limit,
+      workspace_limit: workspaceLimit,
       current_workspace_count: workspaceCount,
-      can_create_workspace: workspaceCount < EXPIRED_DEFAULTS.workspace_limit,
+      can_create_workspace: workspaceCount < workspaceLimit,
       concurrency_limit: EXPIRED_DEFAULTS.concurrency_limit,
       maro_brain_access: false,
       maro_presets_access: true,
@@ -70,9 +72,9 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
     credits_reserved: creditsReserved,
     credits_available: creditsAvailable,
     can_top_up: isActivePlanStatus(status),
-    workspace_limit: limits.workspace_limit,
+    workspace_limit: workspaceLimit,
     current_workspace_count: workspaceCount,
-    can_create_workspace: workspaceCount < limits.workspace_limit,
+    can_create_workspace: workspaceCount < workspaceLimit,
     concurrency_limit: limits.concurrency_limit,
     maro_brain_access: isActivePlanStatus(status),
     maro_presets_access: true,

@@ -15,6 +15,9 @@ export interface AdminDirectoryUser {
   storageUsedBytes: number;
   storageLimitBytes: number | null;
   storageOverrideBytes: number | null;
+  workspaceCount: number;
+  workspaceLimit: number;
+  workspaceOverride: number | null;
 }
 export interface AdminUserDirectory {
   users: AdminDirectoryUser[];
@@ -41,6 +44,10 @@ export function adminUserErrorMessage(error: string): string {
     delete_cleanup_pending: "Pastrimi nuk përfundoi. Llogaria është bllokuar për veprime të reja; provo fshirjen përsëri me kod të ri MFA.",
     rate_limited: "Shumë tentativa. Ndiq kohën e pritjes dhe provo përsëri.",
     invalid_request: "Kontrollo fushat dhe provo përsëri.",
+    storage_save_failed: "Limiti i storage-it nuk u ruajt. Provo përsëri.",
+    workspace_limit_save_failed: "Limiti i workspace-ve nuk u ruajt. Provo përsëri.",
+    mfa_required: "Rikthehu te verifikimi MFA i adminit dhe provo përsëri.",
+    mfa_challenge_required: "Rikthehu te verifikimi MFA i adminit dhe provo përsëri.",
     rpc_missing: "Përditësimi i databazës për këtë veprim ende nuk është aplikuar.",
   };
   return messages[error] ?? "Veprimi nuk përfundoi. Provo përsëri.";

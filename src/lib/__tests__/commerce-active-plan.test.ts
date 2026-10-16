@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ membership: vi.fn(), profile: vi.fn() }));
+vi.mock("@/lib/workspaces/limitServer", () => ({ getWorkspaceLimit: async () => 5 }));
 vi.mock("@/lib/supabase/server", () => ({ getProfileCredits: mocks.profile, getSupabaseAdmin: () => { throw new Error("no_test_database"); } }));
 vi.mock("@/lib/commerce/memberships", async importOriginal => ({
   ...await importOriginal<typeof import("@/lib/commerce/memberships")>(),

@@ -1,0 +1,11 @@
+# Per-account storage and workspace limits
+
+Admin → Users shows workspace count/effective limit alongside account storage. Users with `users.manage` and a valid privileged MFA session can set 1–1,000 workspaces or 0–1,000 GB, with a private reason of 3–1,000 characters. “Përdor limitin e planit aktual” removes the override. Limits belong to the account, persist across membership changes and do not grant paid Brain, concurrent generations or credits. Lower limits retain all existing resources and prevent new creations/uploads when full.
+
+The storage form now uses the same strict request schema as its API: `{userId, limitBytes, reason}`. Previously it sent `note` instead of `reason`, so valid submissions (including 6 GB and `test`) were rejected before reaching the existing atomic/audited storage RPC. Decimal GB are converted to integer bytes; large limits remain within safe integer and PostgreSQL bigint ranges. Existing storage policy and upload triggers continue to enforce the override across workspaces.
+
+Apply `supabase/migrations/0069_admin_workspace_limits.sql` to the existing application database before deploying WEB. It adds the private, service-only `user_workspace_overrides` table and atomic audited admin setter, extends the directory and gives manual overrides priority in the existing workspace calculator. The API, entitlement response and existing database insert trigger now use that same calculator. Per-owner transaction locks serialize workspace creation and limit edits. Existing plan/business defaults remain the fallback. No users receive an automatic override.
+
+The new endpoint is `/api/admin/users/workspaces` (POST `{userId, limit: integer | null, reason}`). It preserves the central permission/MFA gate and the database actor permission check. Browser users cannot read/write override tables or execute the setter directly. No generation, payment, Brain rollout, plan configuration or Railway reconciliation changes are part of this release.
+
+To revert the UI/API, revert the release commit normally after reconciling later production work. Preserve the additive database objects and audit records; do not remove overrides silently. To retire an override, use the plan-default option first. The previous source archive is retained outside the repository in `admin-quota-limits-20261016/`.
