@@ -1,6 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { emptyMemoryMetadata, encodeMemoryCard, memoryFromRow } from "@/lib/brain-studio/memories";
 let db: PGlite;
 const user = "00000000-0000-4000-8000-000000000001";
 const other = "00000000-0000-4000-8000-000000000002";
@@ -29,6 +30,19 @@ describe("versioned Brain persistence and OAuth boundaries", () => {
   });
   it("does not let an actor write another owner's workspace", async () => {
     await expect(scalar(`select maro_mcp_remember('${other}','workspace','attack','No','Other',0) as data`)).rejects.toThrow("WORKSPACE_NOT_FOUND");
+  });
+  it("stores reversible card metadata in the same versioned memory record without a migration", async () => {
+    const metadata = { ...emptyMemoryMetadata(), title: "Card", kind: "rule" as const };
+    const first = await db.query<{ result: { revision: number } }>("select maro_mcp_remember($1,'workspace','card',$2,'Manual',0) as result", [user, encodeMemoryCard("Confirmed text", metadata)]);
+    const revision = first.rows[0].result.revision;
+    const payload = encodeMemoryCard("Confirmed text", { ...metadata, archived: true });
+    const saved = await db.query<{ result: { revision: number } }>("select maro_mcp_remember($1,'workspace','card',$2,'Manual',$3) as result", [user, payload, revision]);
+    await expect(db.query("select maro_mcp_remember($1,'workspace','card',$2,'Manual',$3)", [user, encodeMemoryCard("Stale change", metadata), revision])).rejects.toThrow("MEMORY_CONFLICT");
+    const rows = (await db.query<Record<string, unknown>>("select * from maro_brain_memories where memory_key='card' order by revision desc")).rows;
+    expect(rows).toHaveLength(2); expect(memoryFromRow(rows[0])?.metadata.archived).toBe(true); expect(memoryFromRow(rows[1])?.metadata.archived).toBe(false);
+    await db.query("select maro_mcp_remember($1,'workspace','card',$2,'Manual',$3)", [user, encodeMemoryCard("Confirmed text", metadata), saved.rows[0].result.revision]);
+    const restored = (await db.query<Record<string, unknown>>("select * from maro_brain_memories where memory_key='card' order by revision desc limit 1")).rows[0];
+    expect(memoryFromRow(restored)?.metadata.archived).toBe(false);
   });
   it("tracks web profile edits and blocks stale MCP updates", async () => {
     await db.exec(`update workspaces set brain_profile='{"content":{"tone":"Clear"}}' where id='workspace';`);

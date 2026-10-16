@@ -40,6 +40,8 @@ import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
 import planStyle from "./BrainPlanNotice.module.css";
 import { canFetchBrand } from "@/lib/brain-fetch/types";
 import { FetchBrandPilot } from "./FetchBrandPilot";
+import { BrainStudio } from "./BrainStudio";
+import { canUseBrainStudio } from "@/lib/brain-studio/pilot";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -278,6 +280,19 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
     );
   }
 
+  if (canUseBrainStudio(user) && workspaceId) return <BrainStudio
+    profile={profile} setProfile={setProfile} workspaceId={workspaceId} workspaceName={activeWorkspace?.name ?? "Brendi yt"}
+    workspaces={workspaces} onWorkspaceChange={id => { void setActiveWorkspace(id).catch(error => toast(workspaceErrorMessage(error, "Workspace nuk u aktivizua."), "error")); }}
+    resetAt={resetAt ?? null} sources={sources} loading={loading} loadError={loadError} onRetry={() => setLoadAttempt(value => value + 1)}
+    saving={saving} saveError={saveError} onSave={() => void onSave()} onClear={onClear}
+    renderTab={selected => selected === "brand" ? <BrandTab profile={profile} setProfile={setProfile} workspaceId={workspaceId} showFetch={false} />
+      : selected === "target" ? <TargetTab profile={profile} setProfile={setProfile} />
+      : selected === "goal" ? <GoalTab profile={profile} setProfile={setProfile} />
+      : selected === "market" ? <MarketTab profile={profile} setProfile={setProfile} />
+      : selected === "content" ? <ContentTab profile={profile} setProfile={setProfile} />
+      : <SourcesTab userId={user.id} workspaceId={workspaceId} sources={sources} onRefresh={refreshSources} />}
+  />;
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-canvas">
       {/* Header */}
@@ -422,10 +437,12 @@ function BrandTab({
   profile,
   setProfile,
   workspaceId,
+  showFetch = true,
 }: {
   profile: WorkspaceBrainProfile;
   setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>;
   workspaceId: string;
+  showFetch?: boolean;
 }) {
   const { toast } = useToast();
   const b = profile.brand;
@@ -435,7 +452,7 @@ function BrandTab({
 
   return (
     <div className="space-y-8">
-      {canFetchBrand(currentUser?.id) && <FetchBrandPilot workspaceId={workspaceId} profile={profile} setProfile={setProfile} />}
+      {showFetch && canFetchBrand(currentUser?.id) && <FetchBrandPilot workspaceId={workspaceId} profile={profile} setProfile={setProfile} />}
       <SectionTitle>Informatat</SectionTitle>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Emri">
