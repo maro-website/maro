@@ -78,10 +78,10 @@ export async function resolveOrderItem(
   const membership = await getLatestMembership(userId);
   const entitlements = await resolveEntitlements(userId);
 
-  // Existing provider paths must not create a second renewal/upgrade for a
-  // subscription managed by Paddle, including during payment recovery.
-  if (membership?.payment_provider === "paddle" && membership.paddle_status !== "canceled" &&
-      !itemId.startsWith("topup-")) return { ok: false, error: "plan_already_active" };
+  // Automatic renewals cannot also be renewed through manual checkout.
+  if (membership?.renewal_mode === "automatic" && !itemId.startsWith("topup-")) {
+    return { ok: false, error: "plan_already_active" };
+  }
 
   if (itemId === "renew") {
     if (!membership || !entitlements.renewal_available) {

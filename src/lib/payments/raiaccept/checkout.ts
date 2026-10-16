@@ -29,7 +29,7 @@ export type CheckoutResult = { orderId: string; state: "ready"; redirectUrl: str
   { orderId: string; state: "pending" | "review" | "rejected" } | { error: string };
 
 const RESERVATION_ERRORS = new Set(["invalid_request", "invalid_billing", "invalid_item", "user_not_found",
-  "idempotency_conflict", "topup_requires_active_plan", "paddle_managed_subscription", "order_in_progress",
+  "idempotency_conflict", "topup_requires_active_plan", "automatic_subscription", "order_in_progress",
   "plan_already_active", "renewal_not_available", "renewal_already_fulfilled", "upgrade_not_eligible"]);
 
 export function createCheckoutStore(): CheckoutStore {

@@ -36,7 +36,6 @@ export async function POST(req: Request) {
 
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (order.provider === "paddle") return NextResponse.json({ error: "paddle_webhook_required" }, { status: 403 });
   if (order.status === "cancelled") {
     return NextResponse.json({ error: "cancelled" }, { status: 409 });
   }

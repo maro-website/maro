@@ -27,7 +27,6 @@ export async function POST(req: Request) {
 
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (order.provider === "paddle") return NextResponse.json({ error: "paddle_managed_payment" }, { status: 409 });
   if (order.status === "paid") {
     return NextResponse.json({ error: "already_paid" }, { status: 409 });
   }

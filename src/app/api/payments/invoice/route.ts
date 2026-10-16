@@ -16,7 +16,6 @@ export async function GET(req: Request) {
 
   const order = await getOrderForUser(orderId, user.id);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (order.provider === "paddle") return NextResponse.json({ error: "use_paddle_portal" }, { status: 409 });
 
   let paymentState:string|undefined;
   if (order.provider==="raiaccept") {

@@ -67,8 +67,6 @@ export async function getLatestMembership(userId: string): Promise<
   return {
     id: String(row.id),
     payment_provider: row.payment_provider as string | null,
-    paddle_status: row.paddle_status as string | null,
-    paddle_scheduled_change: row.paddle_scheduled_change as MembershipRow["paddle_scheduled_change"],
     user_id: String(row.user_id),
     plan_id: row.plan_id as CanonicalPlanId,
     started_at: String(row.started_at),
@@ -109,7 +107,7 @@ export async function getUpgradeQuote(userId: string): Promise<UpgradeQuote> {
   }
 
   const status = deriveMembershipStatus(membership);
-  if (!isActivePlanStatus(status) || membership.plan_id !== "standard" || membership.payment_provider === "paddle") {
+  if (!isActivePlanStatus(status) || membership.plan_id !== "standard" || membership.renewal_mode === "automatic") {
     return {
       from_plan: membership.plan_id,
       to_plan: "pro",

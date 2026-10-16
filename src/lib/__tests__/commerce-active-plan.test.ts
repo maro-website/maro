@@ -11,7 +11,7 @@ import { resolveOrderItem } from "@/lib/payments/orders";
 
 const active = {
   id: "manual-plan", user_id: "owner", plan_id: "pro", payment_provider: null,
-  paddle_status: null, started_at: "2026-10-05T18:50:31.000Z", expires_at: "2026-11-04T18:50:31.000Z",
+  started_at: "2026-10-05T18:50:31.000Z", expires_at: "2026-11-04T18:50:31.000Z",
   renewal_mode: "manual", suspended: false, renewal_window_days: 7, business_overrides: {}, cycle_renewal_fulfilled_at: null,
 };
 beforeEach(() => {
@@ -51,8 +51,8 @@ describe("canonical membership agrees with checkout eligibility", () => {
     mocks.membership.mockResolvedValue({ ...window, cycle_renewal_fulfilled_at: "2026-10-08T20:00:00.000Z" });
     expect(await resolveEntitlements("owner")).toMatchObject({ renewal_available: false, can_top_up: true });
   });
-  it("permits top-ups for an active Paddle plan while keeping provider-managed renewal closed", async () => {
-    mocks.membership.mockResolvedValue({ ...active, expires_at: "2026-10-12T18:50:31.000Z", payment_provider: "paddle", paddle_status: "active", renewal_mode: "automatic" });
+  it("permits top-ups for an automatic plan while keeping provider-managed renewal closed", async () => {
+    mocks.membership.mockResolvedValue({ ...active, expires_at: "2026-10-12T18:50:31.000Z", payment_provider: "raiaccept", renewal_mode: "automatic" });
     expect(await resolveEntitlements("owner")).toMatchObject({ can_top_up: true, renewal_available: false });
     expect(await resolveOrderItem("owner", "topup-100")).toMatchObject({ ok: true });
     expect(await resolveOrderItem("owner", "renew")).toEqual({ ok: false, error: "plan_already_active" });

@@ -33,7 +33,7 @@ export async function getCommerceOverviewMetrics() {
     admin
       .from("credit_orders")
       .select("id, status, created_at")
-      .in("provider", ["raiaccept", "paddle", "raiffeisen"])
+      .in("provider", ["raiaccept", "raiffeisen"])
       .in("status", ["pending", "cancelled"])
       .order("created_at", { ascending: false })
       .limit(20),

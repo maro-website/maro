@@ -94,7 +94,7 @@ describe("admin plan, notifications, quota and account deletion", () => {
       await db.exec("insert into credit_orders(provider,status,paid_at,amount_cents) select 'test','paid',now(),900 from generate_series(1,1200)");
       const paid = async (currency: string, environment: string, status = "paid") => { const id = crypto.randomUUID(); await db.query("insert into credit_orders(id,user_id,provider,status,paid_at,currency) values($1,$2,'raiaccept',$3,now(),$4)", [id, owner, status, currency]); await db.query("insert into raiaccept_checkouts(order_id,user_id,environment) values($1,$2,$3)", [id, owner, environment]); };
       await paid("EUR", "production"); await paid("EUR", "production"); await paid("EUR", "sandbox"); await paid("EUR", "production", "pending");
-      await db.exec("insert into credit_orders(provider,status,paid_at,currency,amount_cents) values('paddle','paid',now(),'USD',1200),('raiaccept','paid',now(),'EUR',10000)");
+      await db.exec("insert into credit_orders(provider,status,paid_at,currency,amount_cents) values('raiffeisen','paid',now(),'USD',1200),('raiaccept','paid',now(),'EUR',10000)");
       const snapshot = (await db.query<{ result: { overview: { ordersPaid: number; revenueEur: number; excludedPaidOrders: number; receiptsByCurrency: unknown[] }; daily: unknown[] } }>("select admin_analytics_snapshot() result")).rows[0].result;
       expect(snapshot.overview).toMatchObject({ ordersPaid: 3, revenueEur: 18, excludedPaidOrders: 1202 });
       expect(snapshot.overview.receiptsByCurrency).toEqual([{ currency: "EUR", orders: 2, amount: 18 }, { currency: "USD", orders: 1, amount: 12 }]); expect(snapshot.daily).toHaveLength(30);
@@ -108,7 +108,7 @@ describe("admin plan, notifications, quota and account deletion", () => {
     const db = await refinementDb();
     try {
       const membership = crypto.randomUUID();
-      await db.query("insert into memberships(id,user_id,plan_id,started_at,expires_at,payment_provider,renewal_mode) values($1,$2,'pro',now()-interval '1 day',now()+interval '30 days','paddle','automatic')", [membership, owner]);
+      await db.query("insert into memberships(id,user_id,plan_id,started_at,expires_at,payment_provider,renewal_mode) values($1,$2,'pro',now()-interval '1 day',now()+interval '30 days','raiaccept','automatic')", [membership, owner]);
       const change = await db.query<{ result: { error: string } }>("select admin_change_user_plan($1,$2,'standard',30,'Change request',$3,$4) result", [actor, owner, crypto.randomUUID(), membership]);
       expect(change.rows[0].result.error).toBe("automatic_subscription");
       const deletion = await db.query<{ result: { error: string } }>("select admin_begin_user_delete($1,$2,'owner@example.invalid') result", [actor, owner]);

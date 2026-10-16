@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 const OPTIONS = { headers: { "Cache-Control": "no-store" } };
 const ERROR_STATUS: Record<string, number> = {
   invalid_request: 400, invalid_billing: 400, invalid_item: 400, user_not_found: 403,
-  idempotency_conflict: 409, topup_requires_active_plan: 403, paddle_managed_subscription: 409,
+  idempotency_conflict: 409, topup_requires_active_plan: 403, automatic_subscription: 409,
   order_in_progress: 409, plan_already_active: 403, renewal_not_available: 403,
   renewal_already_fulfilled: 409, upgrade_not_eligible: 403,
 };

@@ -33,8 +33,8 @@ function proof(c: CheckoutIntent & Record<string, unknown>) {
     merchantReference: c.merchant_reference, amountCents: 900, currency: "EUR" };
 }
 async function member(plan = "standard", days = 20, extra = "") {
-  return (await db.query<{ id: string }>(`insert into memberships(user_id,plan_id,expires_at${extra ? ",payment_provider,paddle_status" : ""})
-    values($1,$2,now()+$3*interval '1 day'${extra ? ", 'paddle','past_due'" : ""}) returning id`, [user, plan, days])).rows[0].id;
+  return (await db.query<{ id: string }>(`insert into memberships(user_id,plan_id,expires_at${extra ? ",renewal_mode" : ""})
+    values($1,$2,now()+$3*interval '1 day'${extra ? ", 'automatic'" : ""}) returning id`, [user, plan, days])).rows[0].id;
 }
 beforeAll(async () => { db = await createRaiAcceptTestDatabase(); });
 afterAll(async () => { await db?.close(); });
@@ -95,9 +95,9 @@ describe("RaiAccept durable checkout SQL", () => {
     await db.exec("update memberships set expires_at=now()+interval '3 days'");
     expect((await reserve("renew")).order.order_kind).toBe("plan_renewal");
   });
-  it("preserves Paddle subscription ownership even if its status is past_due", async () => {
-    await member("standard",20,"paddle");
-    expect((await reserve("renew")).error).toBe("paddle_managed_subscription");
+  it("blocks a duplicate manual renewal for an automatic subscription", async () => {
+    await member("standard",20,"automatic");
+    expect((await reserve("renew")).error).toBe("automatic_subscription");
   });
   it("rejects invalid consent, environment and contact-only product", async () => {
     expect((await reserve("standard",randomUUID(),user,{...billing,legalConsent:false})).error).toBe("invalid_billing");

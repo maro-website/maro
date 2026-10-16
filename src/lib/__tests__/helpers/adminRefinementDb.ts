@@ -48,5 +48,14 @@ export async function refinementDb() {
   await db.exec(readFileSync("supabase/migrations/0052_admin_manual_plan.sql", "utf8"));
   await db.exec(readFileSync("supabase/migrations/0061_admin_user_management.sql", "utf8"));
   await db.exec(readFileSync("supabase/migrations/0062_admin_analytics.sql", "utf8"));
+  const retirement = readFileSync("supabase/migrations/0070_retire_unused_provider.sql", "utf8");
+  for (const name of ["admin_change_user_plan", "admin_begin_user_delete"]) {
+    const definition = retirement.match(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\([\\s\\S]*?\\$function\\$;`));
+    if (!definition) throw new Error(`Missing current admin routine: ${name}`);
+    await db.exec(definition[0]);
+  }
+  const reporting = retirement.match(/create view public\.admin_real_paid_orders[\s\S]*?grant select on public\.admin_real_paid_orders to service_role;/);
+  if (!reporting) throw new Error("Missing current paid-order view");
+  await db.exec(`drop view admin_real_paid_orders; ${reporting[0]}`);
   return db;
 }

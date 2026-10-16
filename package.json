@@ -25,8 +25,6 @@
     "@fontsource/manrope": "^5.2.5",
     "@fontsource/playfair-display": "^5.2.5",
     "@modelcontextprotocol/sdk": "^1.31.0",
-    "@paddle/paddle-js": "^1.6.5",
-    "@paddle/paddle-node-sdk": "^3.10.0",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.6",

@@ -2,7 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 
 /** Disposable PostgreSQL WASM only. Production credentials/data are never loaded. */
-export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean;receipts?:boolean} = {}) {
+export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean;receipts?:boolean;retirement?:boolean} = {}) {
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
@@ -19,6 +19,7 @@ export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean
     create table credit_transactions(id uuid primary key default gen_random_uuid(), user_id uuid,
       type text, amount integer, balance_after integer, idempotency_key text, metadata jsonb,
       unique(user_id,idempotency_key,type));
+    create table audit_events(id uuid primary key, actor_id uuid, metadata jsonb, after_state jsonb);
     set request.jwt.claim.role='service_role';
   `);
   const cancel = readFileSync("supabase/migrations/0014_payments_maro_plan.sql", "utf8")
@@ -30,7 +31,7 @@ export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean
   }
   await db.exec(readFileSync("docs/db-history/current-main/0047_paddle_billing.sql", "utf8"));
   await db.exec(readFileSync("supabase/migrations/0054_raiaccept_checkout_intents.sql", "utf8"));
-  if (options.fulfillment||options.receipts) {
+  {
     try {await db.exec(readFileSync("supabase/migrations/0055_raiaccept_verified_fulfillment.sql", "utf8"));}
     catch(error) {
       const diagnostic=error as {message?:string;where?:string;internalPosition?:string;internalQuery?:string;position?:string};
@@ -39,6 +40,7 @@ export async function createRaiAcceptTestDatabase(options: {fulfillment?:boolean
     }
   }
   if (options.receipts) await db.exec(readFileSync("supabase/migrations/0056_raiaccept_receipt_delivery.sql","utf8"));
-  if (options.fulfillment || options.receipts) await db.exec(readFileSync("supabase/migrations/0063_current_membership_ordering.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/0063_current_membership_ordering.sql", "utf8"));
+  if (options.retirement !== false) await db.exec(readFileSync("supabase/migrations/0070_retire_unused_provider.sql", "utf8"));
   return db;
 }

@@ -58,15 +58,13 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
   return {
     plan_id: membership.plan_id,
     payment_provider: membership.payment_provider,
-    paddle_status: membership.paddle_status,
-    paddle_scheduled_change: membership.paddle_scheduled_change,
     plan_status: status,
     plan_display_name: plan?.display_name ?? membership.plan_id,
     started_at: membership.started_at,
     expires_at: membership.expires_at,
     renewal_mode: membership.renewal_mode,
     renewal_available:
-      status === "RENEWAL_WINDOW" && membership.payment_provider !== "paddle" &&
+      status === "RENEWAL_WINDOW" &&
       membership.renewal_mode === "manual" && !renewalAlreadyFulfilledForCycle(membership),
     credits_balance: creditsBalance,
     credits_reserved: creditsReserved,
@@ -84,7 +82,7 @@ export async function resolveEntitlements(userId: string): Promise<ResolvedEntit
   };
 }
 
-/** Sync denormalized profile cache — never use for authorization. */
+/** Sync denormalized profile cache â€” never use for authorization. */
 export async function syncMaroPlanCache(userId: string, entitlements: ResolvedEntitlements): Promise<void> {
   const { getSupabaseAdmin } = await import("@/lib/supabase/server");
   const cachePlan =

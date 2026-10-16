@@ -15,10 +15,10 @@ describe("production compatible entitlement accounting", () => {
     m.profile.mockResolvedValue({ credits: 5, credits_reserved: 5 }); m.membership.mockResolvedValue(null);
     expect(await resolveEntitlements("owner")).toMatchObject({ credits_balance: 5, credits_reserved: 5, credits_available: 5 });
   });
-  it("preserves paid Paddle compatibility without offering legacy renewal", async () => {
+  it("keeps automatic plans from offering a duplicate manual renewal", async () => {
     m.profile.mockResolvedValue({ credits: 5, credits_reserved: 5 });
-    m.membership.mockResolvedValue({ id: "membership", plan_id: "standard", payment_provider: "paddle", paddle_status: "active", renewal_mode: "automatic" });
-    expect(await resolveEntitlements("owner")).toMatchObject({ credits_available: 5, payment_provider: "paddle", renewal_available: false, can_top_up: true });
+    m.membership.mockResolvedValue({ id: "membership", plan_id: "standard", payment_provider: "raiaccept", renewal_mode: "automatic" });
+    expect(await resolveEntitlements("owner")).toMatchObject({ credits_available: 5, payment_provider: "raiaccept", renewal_available: false, can_top_up: true });
   });
   it.each([null, { id: "membership", plan_id: "standard", renewal_mode: "manual" }])("uses the database allowance for both free and paid accounts", async membership => {
     m.profile.mockResolvedValue({ credits: 5 }); m.membership.mockResolvedValue(membership);

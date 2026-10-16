@@ -19,7 +19,7 @@ export const PAGE_TITLES: Readonly<Record<string, string>> = {
   "/sign-in": "Hyr", "/sign-up": "Regjistrohu", "/forgot-password": "Ke harruar fjalëkalimin",
   "/reset-password": "Ndrysho fjalëkalimin", "/confirm-email": "Konfirmo email-in", "/oauth/consent": "Autorizimi",
   "/mcp": "Integrimet", "/checkout": "Pagesa", "/order/success": "Pagesa u përfundua", "/order/cancel": "Pagesa u anulua",
-  "/pay/paddle": "Pagesa", "/pay/raiaccept/return": "Konfirmimi i pagesës", "/pay/redirect": "Vazhdo te pagesa", "/pay/test": "Testimi i pagesës",
+  "/pay/raiaccept/return": "Konfirmimi i pagesës", "/pay/redirect": "Vazhdo te pagesa", "/pay/test": "Testimi i pagesës",
   "/legal/terms": "Kushtet e Përdorimit", "/legal/privacy": "Politika e Privatësisë",
   "/legal/refund": "Politika e Rimbursimit", "/legal/cookies": "Politika e Cookies", "/legal/fair-use": "Përdorimi i drejtë",
   "/admin": "Admin", "/admin/users": "Admin · Përdoruesit", "/admin/freebies": "Admin · Freebies",
