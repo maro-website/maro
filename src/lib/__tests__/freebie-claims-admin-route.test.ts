@@ -14,24 +14,25 @@ const claim = { id: "44444444-4444-4444-8444-444444444444", user_id: userId, cre
 function query() {
   return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), maybeSingle: vi.fn(), range: vi.fn(), in: vi.fn() };
 }
-let drops: ReturnType<typeof query>, claims: ReturnType<typeof query>, profiles: ReturnType<typeof query>;
+let drops: ReturnType<typeof query>, claims: ReturnType<typeof query>, profiles: ReturnType<typeof query>, attempts: ReturnType<typeof query>;
 const request = (suffix = "") => new Request(`https://maro.al/api/admin/freebies/${dropId}/claims${suffix}`);
 const context = (id = dropId) => ({ params: Promise.resolve({ dropId: id }) });
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.auth.mockResolvedValue({ ok: true, admin: { userId: actor } });
   mocks.rate.mockResolvedValue({ allowed: true, retryAfter: 0 });
-  drops = query(); claims = query(); profiles = query();
+  drops = query(); claims = query(); profiles = query(); attempts = query();
   drops.maybeSingle.mockResolvedValue({ data: drop, error: null });
   claims.range.mockResolvedValue({ data: [claim], error: null, count: 1 });
   profiles.in.mockResolvedValue({ data: [profile], error: null });
-  mocks.from.mockImplementation((name: string) => ({ freebie_drops: drops, freebie_claims: claims, profiles })[name as "profiles"]);
+  attempts.range.mockResolvedValue({ data: [], error: null, count: 0 });
+  mocks.from.mockImplementation((name: string) => ({ freebie_drops: drops, freebie_claims: claims, profiles, freebie_exhausted_attempts: attempts })[name as "profiles"]);
 });
 
 describe("admin Freebie claim directory", () => {
   it.each(["forbidden", "insufficient_permission", "mfa_enrollment_required", "mfa_challenge_required"])("blocks %s before any claim data query", async error => {
     mocks.auth.mockResolvedValue({ ok: false, status: 403, error });
-    const res = await GET(request(), context());
+    const res = await GET(request("?view=missed"), context());
     expect(res.status).toBe(403); expect(await res.json()).toEqual({ error });
     expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(mocks.from).not.toHaveBeenCalled(); expect(mocks.rate).not.toHaveBeenCalled();
@@ -54,6 +55,30 @@ describe("admin Freebie claim directory", () => {
     expect(res.headers.get("Vary")).toBe("Authorization");
   });
 
+  it("returns only the selected drop's late accounts and page identities, with no balances", async () => {
+    const attempt = { id: claim.id, user_id: userId, attempts: 4, first_attempt_at: claim.claimed_at, last_attempt_at: "2026-10-17T10:00:00Z", private_extra: "never returned" };
+    drops.maybeSingle.mockResolvedValue({ data: { ...drop, missed_users: 61, missed_attempts: 80 }, error: null });
+    attempts.range.mockResolvedValue({ data: [attempt, { ...attempt, id: "deleted", user_id: null, attempts: 1 }], count: 61, error: null });
+    const res = await GET(request("?view=missed&offset=50"), context()); const data = await res.json();
+    expect(res.status).toBe(200); expect(data).toMatchObject({ total: 61, offset: 50, limit: 50, claims: [], drop: { missed_users: 61, missed_attempts: 80 } });
+    expect(data.attempts).toEqual([{ id: attempt.id, attempts: 4, first_attempt_at: attempt.first_attempt_at, last_attempt_at: attempt.last_attempt_at, user: profile }, { id: "deleted", attempts: 1, first_attempt_at: attempt.first_attempt_at, last_attempt_at: attempt.last_attempt_at, user: null }]);
+    expect(attempts.eq).toHaveBeenCalledWith("drop_id", dropId);
+    expect(attempts.select).toHaveBeenCalledWith("id,user_id,attempts,first_attempt_at,last_attempt_at", { count: "exact" });
+    expect(attempts.order.mock.calls).toEqual([["last_attempt_at", { ascending: false }], ["id", { ascending: false }]]);
+    expect(attempts.range).toHaveBeenCalledWith(50,99); expect(profiles.in).toHaveBeenCalledWith("id", [userId]);
+    expect(claims.range).not.toHaveBeenCalled(); expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("handles empty interest and fails closed on interest/profile database errors", async () => {
+    const empty = await (await GET(request("?view=missed"),context())).json();
+    expect(empty).toMatchObject({ total: 0, attempts: [] }); expect(profiles.in).not.toHaveBeenCalled();
+    attempts.range.mockResolvedValueOnce({ error: { message: "private" }, data: [], count: 0 });
+    expect((await GET(request("?view=missed"),context())).status).toBe(503);
+    attempts.range.mockResolvedValue({ error: null, data: [{ id: claim.id, user_id: userId, attempts: 1 }], count: 1 });
+    profiles.in.mockResolvedValueOnce({ error: { message: "private" }, data: [] });
+    expect((await GET(request("?view=missed"),context())).status).toBe(503);
+  });
+
   it("retains deleted users' claims without recovering their old identities", async () => {
     claims.range.mockResolvedValue({ data: [{ ...claim, user_id: null }], error: null, count: 1 });
     const res = await GET(request(), context()); const data = await res.json();
@@ -69,7 +94,7 @@ describe("admin Freebie claim directory", () => {
     expect((await (await GET(request(), context())).json()).claims[0].user).toBeNull();
   });
 
-  it.each(["?offset=-1", "?offset=1.5", "?offset=Infinity", "?offset=no", "?offset=1000001"])("rejects invalid pagination %s", async suffix => {
+  it.each(["?offset=-1", "?offset=1.5", "?offset=Infinity", "?offset=no", "?offset=1000001", "?view=other"])("rejects invalid pagination/view %s", async suffix => {
     expect((await GET(request(suffix), context())).status).toBe(400);
     expect(mocks.from).not.toHaveBeenCalled(); expect(mocks.rate).not.toHaveBeenCalled();
   });

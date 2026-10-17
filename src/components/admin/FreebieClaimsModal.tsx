@@ -12,7 +12,8 @@ import { freebieErrorMessage, type FreebieDrop, type FreebieClaimsDirectory } fr
 const number = (value: number) => value.toLocaleString("sq-AL");
 const date = (value: string) => new Date(value).toLocaleString("sq-AL", { dateStyle: "medium", timeStyle: "short" });
 
-export function FreebieClaimsModal({ drop, onClose }: { drop: FreebieDrop; onClose: () => void }) {
+export function FreebieClaimsModal({ drop, onClose, initialView = "claims" }: { drop: FreebieDrop; onClose: () => void; initialView?: "claims" | "missed" }) {
+  const [view, setView] = React.useState(initialView);
   const [offset, setOffset] = React.useState(0);
   const [data, setData] = React.useState<FreebieClaimsDirectory | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -26,7 +27,7 @@ export function FreebieClaimsModal({ drop, onClose }: { drop: FreebieDrop; onClo
     try {
       const headers = await adminAuthHeaders();
       if (controller.signal.aborted) return;
-      const res = await fetch(`/api/admin/freebies/${encodeURIComponent(drop.id)}/claims?offset=${offset}`, {
+      const res = await fetch(`/api/admin/freebies/${encodeURIComponent(drop.id)}/claims?offset=${offset}&view=${view}`, {
         headers, cache: "no-store", signal: controller.signal,
       });
       const body = await res.json();
@@ -37,21 +38,34 @@ export function FreebieClaimsModal({ drop, onClose }: { drop: FreebieDrop; onClo
       const known = ["forbidden", "insufficient_permission", "mfa_challenge_required", "mfa_enrollment_required", "rate_limited", "drop_not_found", "claims_unavailable"];
       if (!controller.signal.aborted) setError(freebieErrorMessage(known.includes(code) ? code : "claims_unavailable"));
     } finally { if (!controller.signal.aborted) setLoading(false); }
-  }, [drop.id, offset]);
+  }, [drop.id, offset, view]);
 
   React.useEffect(() => { void load(); return () => request.current?.abort(); }, [load]);
   return <Modal open onClose={onClose} size="lg" aria-label={`Përdorimet e kodit ${drop.code}`}>
-    <ModalHeader title="Kush e ka përdorur kodin?" icon={<Users className="h-5 w-5" />} />
+    <ModalHeader title="Interesimi për kodin" icon={<Users className="h-5 w-5" />} />
     <div className="space-y-5 px-6 pb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1"><p className="break-all font-mono text-lg font-bold text-ink">{drop.code}</p><p className="mt-1 break-words text-sm text-ink-3">{drop.title}</p></div>
         <Button variant="secondary" size="icon" aria-label="Rifresko përdorimet" icon={<RefreshCw className="h-4 w-4" />} disabled={loading} onClick={() => { if (offset) setOffset(0); else void load(); }} />
       </div>
+      <div role="group" aria-label="Shfaq përdorimet ose interesimin" className="flex flex-wrap gap-2">{([['claims','E morën'],['missed','Pas limitit']] as const).map(([value,label]) => <Button key={value} variant={view === value ? "brand" : "secondary"} aria-pressed={view === value} onClick={() => { setOffset(0); setView(value); }}>{label}</Button>)}</div>
       {loading ? <div role="status" className="grid min-h-48 place-items-center"><Spinner /><span className="sr-only">Duke ngarkuar përdoruesit…</span></div>
         : error ? <div className="space-y-3"><p role="alert" className="text-sm text-danger">{error}</p><Button variant="secondary" onClick={() => void load()}>Provo përsëri</Button></div>
-        : data && <FreebieClaimsList data={data} onOffsetChange={setOffset} />}
+        : data && (view === "missed" ? <FreebieAttemptsList data={data} onOffsetChange={setOffset}/> : <FreebieClaimsList data={data} onOffsetChange={setOffset} />)}
     </div>
   </Modal>;
+}
+
+export function FreebieAttemptsList({ data, onOffsetChange }: { data: FreebieClaimsDirectory; onOffsetChange: (offset: number) => void }) {
+  return <>
+    <div className="grid grid-cols-2 gap-3 rounded-maro16 bg-surface-2 p-4"><div><p className="text-xs text-ink-3">Persona unikë</p><p className="mt-1 text-2xl font-bold text-ink">{number(data.drop.missed_users ?? data.total)}</p></div><div><p className="text-xs text-ink-3">Tentime gjithsej</p><p className="mt-1 text-2xl font-bold text-ink">{number(data.drop.missed_attempts ?? 0)}</p></div></div>
+    <p className="text-sm leading-relaxed text-ink-3">Provuan kur të gjitha vendet ishin mbushur. Një person numërohet vetëm një herë; tentimet e përsëritura ruhen veçmas. Tentimet para aktivizimit të matjes nuk janë përfshirë.</p>
+    {!data.total ? <p className="rounded-maro16 bg-surface-2 p-5 text-sm text-ink-2">Ende nuk ka tentime të regjistruara pas limitit.</p> : <>
+      <ul aria-label="Personat që provuan pas limitit" className="divide-y divide-line border-y border-line">{data.attempts?.map(attempt => <li key={attempt.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5"><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-ink">{attempt.user?.full_name || attempt.user?.username || attempt.user?.email || "Llogaria nuk është më e disponueshme"}</p>{attempt.user?.email && <p className="mt-1 break-all text-sm text-ink-2">{attempt.user.email}</p>}{attempt.user?.username && <p className="mt-1 break-all text-xs text-ink-3">@{attempt.user.username}</p>}</div><div className="sm:max-w-60 sm:text-right"><p className="text-sm font-semibold text-ink">{number(attempt.attempts)} tentime</p><p className="mt-1 text-xs text-ink-3">E fundit: <time dateTime={attempt.last_attempt_at}>{date(attempt.last_attempt_at)}</time></p><p className="mt-1 text-xs text-ink-3">E para: <time dateTime={attempt.first_attempt_at}>{date(attempt.first_attempt_at)}</time></p></div></li>)}</ul>
+      {!data.attempts?.length && <p className="text-sm text-ink-2">Nuk ka persona në këtë faqe. Kthehu prapa ose rifresko listën.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-ink-3">{data.attempts?.length ? `${number(data.offset + 1)}–${number(Math.min(data.offset + data.limit, data.total))}` : "0"} nga {number(data.total)} · Tentimet e fundit në fillim</p><div className="flex gap-2"><Button variant="secondary" disabled={data.offset === 0} onClick={() => onOffsetChange(Math.max(0,data.offset-data.limit))}>Para</Button><Button variant="secondary" disabled={data.offset+data.limit>=data.total} onClick={() => onOffsetChange(data.offset+data.limit)}>Pas</Button></div></div>
+    </>}
+  </>;
 }
 
 export function FreebieClaimsList({ data, onOffsetChange }: { data: FreebieClaimsDirectory; onOffsetChange: (offset: number) => void }) {

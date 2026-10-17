@@ -4,6 +4,7 @@ export interface FreebieDrop {
   plan_id: string | null; plan_days: number | null; active: boolean; starts_at: string;
   expires_at: string | null; created_at: string; updated_at: string; credits_given: number;
   target: { id: string; email: string; username: string | null; full_name: string | null } | null;
+  missed_users?: number; missed_attempts?: number;
 }
 
 export interface FreebieClaimResult {
@@ -20,8 +21,9 @@ export interface FreebieClaim {
 }
 
 export interface FreebieClaimsDirectory {
-  drop: Pick<FreebieDrop, "id" | "code" | "title" | "claims_count" | "credits_given">;
+  drop: Pick<FreebieDrop, "id" | "code" | "title" | "claims_count" | "credits_given" | "missed_users" | "missed_attempts">;
   claims: FreebieClaim[];
+  attempts?: { id: string; attempts: number; first_attempt_at: string; last_attempt_at: string; user: FreebieDrop["target"] }[];
   total: number;
   offset: number;
   limit: number;

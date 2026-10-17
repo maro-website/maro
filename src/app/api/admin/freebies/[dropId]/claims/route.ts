@@ -15,7 +15,8 @@ export async function GET(req: Request, context: { params: Promise<{ dropId: str
   if (!auth.ok) return json({ error: auth.error }, auth.status);
   const { dropId } = await context.params;
   const offset = Number(new URL(req.url).searchParams.get("offset") ?? 0);
-  if (!z.uuid().safeParse(dropId).success || !Number.isInteger(offset) || offset < 0 || offset > 1000000) {
+  const view = new URL(req.url).searchParams.get("view") ?? "claims";
+  if (!["claims", "missed"].includes(view) || !z.uuid().safeParse(dropId).success || !Number.isInteger(offset) || offset < 0 || offset > 1000000) {
     return json({ error: "invalid_request" }, 400);
   }
   const rate = await checkRateLimit("freebies:admin:claims", auth.admin.userId, 120, 60, "strict");
@@ -25,9 +26,25 @@ export async function GET(req: Request, context: { params: Promise<{ dropId: str
 
   const admin = getSupabaseAdmin();
   const { data: drop, error: dropError } = await admin.from("freebie_drops")
-    .select("id,code,title,claims_count,credits_given").eq("id", dropId).is("deleted_at", null).maybeSingle();
+    .select("id,code,title,claims_count,credits_given,missed_users,missed_attempts").eq("id", dropId).is("deleted_at", null).maybeSingle();
   if (dropError) return json({ error: "claims_unavailable" }, 503);
   if (!drop) return json({ error: "drop_not_found" }, 404);
+
+  if (view === "missed") {
+    const { data: attempts, error, count } = await admin.from("freebie_exhausted_attempts")
+      .select("id,user_id,attempts,first_attempt_at,last_attempt_at", { count: "exact" }).eq("drop_id", dropId)
+      .order("last_attempt_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + 49);
+    if (error) return json({ error: "claims_unavailable" }, 503);
+    const userIds = [...new Set((attempts ?? []).map(attempt => attempt.user_id).filter(Boolean))];
+    const { data: profiles, error: profileError } = userIds.length ? await admin.from("profiles")
+      .select("id,email,username,full_name").in("id", userIds) : { data: [], error: null };
+    if (profileError) return json({ error: "claims_unavailable" }, 503);
+    const users = new Map((profiles ?? []).map(profile => [profile.id, profile]));
+    return json({ drop, total: count ?? 0, offset, limit: 50, claims: [], attempts: (attempts ?? []).map(attempt => ({
+      id: attempt.id, attempts: attempt.attempts, first_attempt_at: attempt.first_attempt_at,
+      last_attempt_at: attempt.last_attempt_at, user: users.get(attempt.user_id) ?? null,
+    })) });
+  }
 
   const { data: claims, error, count } = await admin.from("freebie_claims")
     .select("id,user_id,credits,claimed_at", { count: "exact" }).eq("drop_id", dropId)

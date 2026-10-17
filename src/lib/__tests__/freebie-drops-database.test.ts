@@ -7,6 +7,7 @@ const alice = "22222222-2222-4222-8222-222222222222";
 const bob = "33333333-3333-4333-8333-333333333333";
 const migration = readFileSync("supabase/migrations/0064_freebie_code_drops.sql", "utf8");
 const editingMigration = readFileSync("supabase/migrations/0066_edit_delete_freebie_drops.sql", "utf8");
+const interestMigration = readFileSync("supabase/migrations/0072_freebie_exhausted_interest.sql", "utf8");
 const adminMigration = readFileSync("supabase/migrations/0061_admin_user_management.sql", "utf8");
 type Result = { ok: boolean; error?: string; credits?: number; balance?: number; already?: boolean; drop_id?: string; required?: number; current?: number; plan_id?: string };
 
@@ -40,7 +41,7 @@ async function setup(withEditing = true) {
   await db.exec(adminMigration.slice(adminMigration.indexOf("create function public.admin_can_manage_users"), adminMigration.indexOf("create table public.user_storage_overrides")));
   await db.exec(adminMigration.slice(adminMigration.indexOf("create function public.maro_notify_manual_credits"), adminMigration.indexOf("-- A suspended older membership")));
   await db.exec(migration);
-  if (withEditing) await db.exec(editingMigration);
+  if (withEditing) { await db.exec(editingMigration); await db.exec(interestMigration); }
   return db;
 }
 async function claim(db: PGlite, code = "TRAMPOLINE", user = alice) {
@@ -74,6 +75,53 @@ async function remove(db: PGlite, d: Awaited<ReturnType<typeof currentDrop>>, co
 }
 
 describe("free credit Code Drops", () => {
+  it("counts unique late accounts separately from repeated attempts, without granting rewards", async () => {
+    const db = await setup();
+    try {
+      await create(db, "FULL-DROP", { claims: 1 });
+      expect(await claim(db, "FULL-DROP")).toMatchObject({ ok: true });
+      const before = await currentDrop(db, "FULL-DROP");
+      for (let i=0;i<3;i++) expect(await claim(db, "FULL-DROP", bob)).toMatchObject({ error: "claims_exhausted" });
+      expect(await claim(db, "FULL-DROP", actor)).toMatchObject({ error: "claims_exhausted" });
+      expect(await claim(db, "FULL-DROP", alice)).toMatchObject({ error: "already_claimed" });
+      expect((await db.query("select missed_users,missed_attempts,claims_count,credits_given,updated_at::text from freebie_drops where id=$1", [before.id])).rows[0]).toMatchObject({ missed_users: 2, missed_attempts: 4, claims_count: 1, credits_given: 10, updated_at: before.updated_at });
+      const rows = (await db.query<{ user_id: string; attempts: number; first_attempt_at: Date; last_attempt_at: Date }>("select * from freebie_exhausted_attempts where drop_id=$1 order by attempts desc", [before.id])).rows;
+      expect(rows).toHaveLength(2); expect(rows[0]).toMatchObject({ user_id: bob, attempts: 3 });
+      expect(new Date(rows[0].last_attempt_at).getTime()).toBeGreaterThanOrEqual(new Date(rows[0].first_attempt_at).getTime());
+      expect((await db.query("select credits from profiles where id=$1", [bob])).rows[0]).toEqual({ credits: 23 });
+      expect((await db.query("select count(*) n from credit_transactions")).rows[0]).toEqual({ n: 1 });
+      expect((await db.query("select count(*) n from freebie_claims")).rows[0]).toEqual({ n: 1 });
+      await edit(db, { code: "FULL-DROP", claims: 2 });
+      expect(await claim(db, "FULL-DROP", bob)).toMatchObject({ ok: true });
+      expect((await db.query("select missed_users,missed_attempts,claims_count from freebie_drops where id=$1", [before.id])).rows[0]).toMatchObject({ missed_users: 2, missed_attempts: 4, claims_count: 2 });
+      await db.exec(`delete from auth.users where id='${actor}'`);
+      expect((await db.query("select count(*) n from freebie_exhausted_attempts where user_id is null")).rows[0]).toEqual({ n: 1 });
+      await db.exec("set role authenticated");
+      await expect(db.query("select * from freebie_exhausted_attempts")).rejects.toThrow(/permission denied/i);
+    } finally { await db.close(); }
+  });
+
+  it("does not record invalid, paused, expired, future, wrong-account, unconfirmed or unauthorized attempts", async () => {
+    const db = await setup();
+    try {
+      await create(db, "PERSONAL-FULL", { target: alice }); await claim(db, "PERSONAL-FULL");
+      expect(await claim(db, "PERSONAL-FULL", bob)).toMatchObject({ error: "wrong_account" });
+      await create(db, "LATE-CHECK", { claims: 1 }); await claim(db, "LATE-CHECK");
+      await db.exec("update freebie_drops set active=false where code='LATE-CHECK'");
+      expect(await claim(db, "LATE-CHECK", bob)).toMatchObject({ error: "code_inactive" });
+      await db.exec("update freebie_drops set active=true,starts_at=now()-interval '2 days',expires_at=now()-interval '1 day' where code='LATE-CHECK'");
+      expect(await claim(db, "LATE-CHECK", bob)).toMatchObject({ error: "code_expired" });
+      await db.exec("update freebie_drops set starts_at=now()+interval '1 day',expires_at=null where code='LATE-CHECK'");
+      expect(await claim(db, "LATE-CHECK", bob)).toMatchObject({ error: "not_started" });
+      await db.exec("update freebie_drops set starts_at=now()-interval '1 day' where code='LATE-CHECK'");
+      await db.exec(`update auth.users set email_confirmed_at=null where id='${bob}'`);
+      expect(await claim(db, "LATE-CHECK", bob)).toMatchObject({ error: "email_unconfirmed" });
+      expect(await claim(db, "MISSING-DROP")).toMatchObject({ error: "invalid_code" });
+      await db.exec("set request.jwt.claim.role='authenticated'");
+      expect(await claim(db, "LATE-CHECK", actor)).toMatchObject({ error: "forbidden" });
+      expect((await db.query("select count(*) n from freebie_exhausted_attempts")).rows[0]).toEqual({ n: 0 });
+    } finally { await db.close(); }
+  });
   it("edits future rewards while keeping earlier balances, claims and real credit totals", async () => {
     const db = await setup();
     try {

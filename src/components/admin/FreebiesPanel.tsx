@@ -40,6 +40,7 @@ export function FreebiesPanel() {
   const [editing, setEditing] = React.useState<FreebieDrop | null>(null);
   const [removing, setRemoving] = React.useState<FreebieDrop | null>(null);
   const [viewingClaims, setViewingClaims] = React.useState<FreebieDrop | null>(null);
+  const [claimsView, setClaimsView] = React.useState<"claims" | "missed">("claims");
   const [offset, setOffset] = React.useState(0);
   const [busy, setBusy] = React.useState<string | null>(null);
   const { toast } = useToast();
@@ -83,10 +84,11 @@ export function FreebiesPanel() {
         const status = dropStatus(drop);
         const finished = ["Përfunduar", "Skaduar", "Llogaria u fshi"].includes(status);
         return <article key={drop.id} className="min-w-0 rounded-maro20 border border-line bg-surface p-5">
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3><button type="button" aria-haspopup="dialog" aria-label={`Shiko kush e ka përdorur kodin ${drop.code}`} disabled={loading} onClick={() => setViewingClaims(drop)} className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-maro12 text-left font-mono text-xl font-bold text-ink transition-colors hover:text-brand disabled:opacity-50"><span className="min-w-0 break-all">{drop.code}</span><ChevronRight className="h-5 w-5 shrink-0" aria-hidden /></button></h3><p className="mt-1 break-words text-sm text-ink-3">{drop.title}</p></div><Badge>{status}</Badge></div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3><button type="button" aria-haspopup="dialog" aria-label={`Shiko kush e ka përdorur kodin ${drop.code}`} disabled={loading} onClick={() => { setClaimsView("claims"); setViewingClaims(drop); }} className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-maro12 text-left font-mono text-xl font-bold text-ink transition-colors hover:text-brand disabled:opacity-50"><span className="min-w-0 break-all">{drop.code}</span><ChevronRight className="h-5 w-5 shrink-0" aria-hidden /></button></h3><p className="mt-1 break-words text-sm text-ink-3">{drop.title}</p></div><Badge>{status}</Badge></div>
           <div className="my-5 grid grid-cols-2 gap-4 rounded-maro16 bg-surface-2 p-4"><div><p className="text-xs text-ink-3">Kredite për përdorues</p><p className="mt-1 text-2xl font-bold text-ink">{number(drop.credits)}</p></div><div><p className="text-xs text-ink-3">Përdorime</p><p className="mt-1 text-2xl font-bold text-ink">{number(drop.claims_count)} <span className="text-sm font-medium text-ink-3">/ {number(drop.max_claims)}</span></p></div></div>
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, drop.claims_count / drop.max_claims * 100)}%` }} /></div>
           <div className="mt-3 flex flex-wrap justify-between gap-2 text-sm text-ink-3"><span>Dhënë: <strong className="text-ink">{number(drop.credits_given)}</strong> kredite</span><span>Maksimum: <strong className="text-ink">{number(drop.credits_given + (drop.max_claims - drop.claims_count) * drop.credits)}</strong> kredite</span></div>
+          <button type="button" aria-haspopup="dialog" disabled={loading} onClick={() => { setClaimsView("missed"); setViewingClaims(drop); }} className="mt-4 flex min-h-11 w-full items-center justify-between gap-3 rounded-maro12 bg-surface-2 px-4 py-3 text-left text-sm text-ink-2 hover:text-ink disabled:opacity-50"><span><strong>{number(drop.missed_users ?? 0)}</strong> persona provuan pas limitit <span className="text-ink-3">· {number(drop.missed_attempts ?? 0)} tentime</span></span><ChevronRight className="h-4 w-4 shrink-0" aria-hidden /></button>
           <dl className="my-5 space-y-3 text-sm"><div><dt className="text-xs text-ink-3">Për kë</dt><dd className="mt-1 break-words text-ink">{drop.audience === "all" ? "100% publike · çdo llogari vetëm një herë" : drop.target ? `${drop.target.email}${drop.target.username ? ` · @${drop.target.username}` : ""}` : "Llogaria e synuar nuk ekziston më"}</dd></div>
             <div><dt className="text-xs text-ink-3">Aktiviteti në 7 ditët e fundit</dt><dd className="mt-1 text-ink">{drop.min_generations_7d ? `Të paktën ${number(drop.min_generations_7d)} gjenerime të përfunduara` : "Pa kusht aktiviteti"}</dd></div>
             <div><dt className="text-xs text-ink-3">Plani</dt><dd className="mt-1 text-ink">{drop.plan_id ? `${data.plans.find(plan => plan.id === drop.plan_id)?.display_name ?? drop.plan_id} · ${drop.plan_days} ditë` : "Vetëm kredite"}</dd></div>
@@ -100,7 +102,7 @@ export function FreebiesPanel() {
     {creating && data && <DropModal plans={data.plans} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); if (offset) setOffset(0); else void load(); }} />}
     {editing && data && <DropModal key={editing.id} initial={editing} plans={data.plans} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void load(); }} />}
     {removing && <DeleteDropModal drop={removing} onClose={() => setRemoving(null)} onDeleted={() => { setRemoving(null); if (offset) setOffset(0); else void load(); }} />}
-    {viewingClaims && <FreebieClaimsModal key={viewingClaims.id} drop={viewingClaims} onClose={() => setViewingClaims(null)} />}
+    {viewingClaims && <FreebieClaimsModal key={viewingClaims.id} drop={viewingClaims} initialView={claimsView} onClose={() => setViewingClaims(null)} />}
   </div>;
 }
 
