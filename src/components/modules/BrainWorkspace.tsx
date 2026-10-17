@@ -37,11 +37,14 @@ import { readBrainDraft, writeBrainDraft, clearSavedBrainDraft, recoverLegacyBra
 import { workspaceErrorMessage } from "@/lib/workspaces/request";
 import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
 import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
+import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 import planStyle from "./BrainPlanNotice.module.css";
 import { canFetchBrand } from "@/lib/brain-fetch/types";
 import { FetchBrandPilot } from "./FetchBrandPilot";
-import { BrainStudio } from "./BrainStudio";
+import { BrainStudio, type StudioTab } from "./BrainStudio";
 import { canUseBrainStudio } from "@/lib/brain-studio/pilot";
+import { clearStudio } from "@/lib/brain-studio/libraryClient";
+import type { BrainClearSection } from "@/lib/brain-studio/operations";
 
 const SALES_OPTIONS: { id: SalesChannel; label: string }[] = [
   { id: "ONLINE", label: "ONLINE" },
@@ -64,6 +67,7 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
   const creatingRef = React.useRef(false);
   const [error, setError] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
+  const [studioTab, setStudioTab] = React.useState<StudioTab>("brand");
   const onPolicyChange = React.useCallback(() => setAttempt((value) => value + 1), []);
   React.useEffect(() => {
     if (!userId || !workspaceId) return;
@@ -114,7 +118,7 @@ function BrainAccessGate({ userId, workspaceId }: { userId?: string; workspaceId
     } finally { creatingRef.current = false; setCreating(false); }
   };
   if (policy && created === false) return <BrainCreateNotice access={policy.brainAccess} creating={creating} error={error} onCreate={() => void create()} />;
-  if (policy?.brainAccess && created) return <BrainWorkspaceEditor resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} />;
+  if (policy?.brainAccess && created) return <BrainWorkspaceEditor key={policy.brainResetAt || "initial"} resetAt={policy.brainResetAt} onPolicyChange={onPolicyChange} studioTab={studioTab} onStudioTabChange={setStudioTab} />;
   if (policy && created) return <BrainPlanNotice policy={policy} onRefresh={onPolicyChange} />;
   if (!userId) return <BrainCreateNotice access={false} guest creating={false} error={null} onCreate={() => {}} />;
   return <div className="grid h-full place-items-center px-6 text-center text-ink-2">
@@ -149,12 +153,13 @@ function BrainCreateNotice({ access, guest = false, creating, error, onCreate }:
   </section>;
 }
 
-function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | null; onPolicyChange: () => void }) {
+function BrainWorkspaceEditor({ resetAt, onPolicyChange, studioTab, onStudioTabChange }: { resetAt: string | null; onPolicyChange: () => void; studioTab: StudioTab; onStudioTabChange: (tab: StudioTab) => void }) {
   const { user } = useMaro();
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspace();
   const { toast } = useToast();
   const workspaceId = activeWorkspace?.id;
   const userId = user?.id;
+  const studio = canUseBrainStudio(user);
 
   const [tab, setTab] = React.useState<BrainTabId>("brand");
   const [profile, setProfileState] = React.useState<WorkspaceBrainProfile>(() =>
@@ -170,26 +175,28 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
     setProfileState(next);
     if (userId && workspaceId && !writeBrainDraft(userId, workspaceId, next, resetAt) && !storageWarning.current) {
       storageWarning.current = true;
-      toast("Shfletuesi nuk po e ruan draftin. Shtyp Ruaje para se të largohesh.", "error");
+      toast("Shfletuesi nuk po e ruan draftin. Kontrollo gjendjen e ruajtjes para se të largohesh.", "error");
     }
   }, [userId, workspaceId, toast, resetAt]);
   const [sources, setSources] = React.useState<WorkspaceSource[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const clearingRef = React.useRef(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = React.useState(0);
   const mounted = React.useRef(true);
   const canAutosave = React.useRef(false);
-  canAutosave.current = !loading && !loadError;
-  const inFlight = React.useRef<{ profile: WorkspaceBrainProfile; task: Promise<void> } | null>(null);
+  canAutosave.current = !loading && !loadError && !clearingRef.current;
+  const inFlight = React.useRef<{ profile: WorkspaceBrainProfile; task: Promise<boolean> } | null>(null);
 
   const progress = brainProgress(profile, sources.length);
 
   const refreshSources = React.useCallback(async () => {
     if (!userId || !workspaceId) return;
-    setSources(await fetchWorkspaceSources(userId, workspaceId));
-  }, [userId, workspaceId]);
+    setSources(await fetchWorkspaceSources(userId, workspaceId, studio ? { paged: true, resolveAssets: false } : undefined));
+  }, [userId, workspaceId, studio]);
 
   React.useEffect(() => {
     if (!userId || !workspaceId) {
@@ -201,7 +208,7 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
     setLoadError(null);
     void Promise.all([
       fetchBrainProfile(userId, workspaceId),
-      fetchWorkspaceSources(userId, workspaceId),
+      fetchWorkspaceSources(userId, workspaceId, studio ? { paged: true, resolveAssets: false } : undefined),
     ]).then(([p, s]) => {
       if (!active) return;
       // Server hydration and source refreshes must never overwrite an unsaved draft.
@@ -218,16 +225,17 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [userId, workspaceId, loadAttempt, resetAt]);
+  }, [userId, workspaceId, loadAttempt, resetAt, studio]);
 
-  const persistDraft = React.useCallback((snapshot: WorkspaceBrainProfile, manual = false): Promise<void> => {
-    if (!userId || !workspaceId) return Promise.resolve();
+  const persistDraft = React.useCallback((snapshot: WorkspaceBrainProfile, manual = false): Promise<boolean> => {
+    if (!userId || !workspaceId) return Promise.resolve(false);
     if (inFlight.current?.profile === snapshot) return inFlight.current.task;
     if (mounted.current) { setSaving(true); setSaveError(null); }
     const task = saveBrainProfile(userId, workspaceId, snapshot, resetAt).then(() => {
       clearSavedBrainDraft(userId, workspaceId, snapshot);
       if (profileRef.current === snapshot) dirtyRef.current = false;
       if (manual && mounted.current) toast("maroBrain u ruajt.");
+      return true;
     }).catch((error) => {
       if (error instanceof Error && /brain_plan_required|brain_refresh_required/.test(error.message)) {
         canAutosave.current = false;
@@ -238,6 +246,7 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
         setSaveError(message);
         if (manual) toast(message, "error");
       }
+      return false;
     }).finally(() => {
       if (inFlight.current?.task === task) {
         inFlight.current = null;
@@ -249,10 +258,10 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
   }, [userId, workspaceId, toast, resetAt, onPolicyChange]);
 
   React.useEffect(() => {
-    if (loading || loadError || !dirtyRef.current) return;
+    if (loading || loadError || clearing || !dirtyRef.current) return;
     const timer = setTimeout(() => void persistDraft(profileRef.current), saveError ? 10_000 : 800);
     return () => clearTimeout(timer);
-  }, [profile, loading, loadError, saveError, persistDraft]);
+  }, [profile, loading, loadError, saveError, clearing, persistDraft]);
 
   React.useEffect(() => {
     mounted.current = true;
@@ -272,6 +281,22 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
     setProfile(emptyBrainProfile());
   };
 
+  const onStudioClear = async (section: BrainClearSection) => {
+    if (!workspaceId || !userId || clearingRef.current) throw Error("Provo përsëri.");
+    await inFlight.current?.task;
+    if (dirtyRef.current) throw Error("Prit të ruhen ndryshimet në pritje, pastaj provo përsëri.");
+    clearingRef.current = true; setClearing(true); canAutosave.current = false;
+    try {
+      const snapshot = profileRef.current;
+      const result = await clearStudio(workspaceId, resetAt, section, snapshot, sources.map(source => source.id));
+      dirtyRef.current = false; clearSavedBrainDraft(userId, workspaceId, snapshot);
+      notifyStorageChanged();
+      if (section === "all") onStudioTabChange("brand");
+      toast(result.cleanupPending ? "Të dhënat u fshinë. Lirimi i storage vazhdon në sfond." : "Pjesa e zgjedhur u pastrua.");
+      onPolicyChange();
+    } catch (cause) { clearingRef.current = false; setClearing(false); throw cause; }
+  };
+
   if (!user) {
     return (
       <div className="grid h-full place-items-center px-6 text-center text-ink-2">
@@ -284,7 +309,9 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange }: { resetAt: string | n
     profile={profile} setProfile={setProfile} workspaceId={workspaceId} workspaceName={activeWorkspace?.name ?? "Brendi yt"}
     workspaces={workspaces} onWorkspaceChange={id => { void setActiveWorkspace(id).catch(error => toast(workspaceErrorMessage(error, "Workspace nuk u aktivizua."), "error")); }}
     resetAt={resetAt ?? null} sources={sources} loading={loading} loadError={loadError} onRetry={() => setLoadAttempt(value => value + 1)}
-    saving={saving} saveError={saveError} onSave={() => void onSave()} onClear={onClear}
+    userId={user.id} onRefreshSources={refreshSources}
+    tab={studioTab} onTabChange={onStudioTabChange}
+    saving={saving} saveError={saveError} onSave={() => void onSave()} onClear={onStudioClear} clearing={clearing}
     renderTab={selected => selected === "brand" ? <BrandTab profile={profile} setProfile={setProfile} workspaceId={workspaceId} showFetch={false} />
       : selected === "target" ? <TargetTab profile={profile} setProfile={setProfile} />
       : selected === "goal" ? <GoalTab profile={profile} setProfile={setProfile} />

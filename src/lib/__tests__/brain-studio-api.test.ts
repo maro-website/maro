@@ -38,7 +38,7 @@ describe("verified account-only memory API", () => {
   });
   it("saves a versioned card using the existing conflict-aware RPC and private response headers", async () => {
     const response = await POST(request(body())); expect(response.status).toBe(200);
-    expect(mocks.rpc).toHaveBeenCalledWith("maro_mcp_remember", expect.objectContaining({ p_user: BRAIN_STUDIO_OWNER, p_workspace: workspaceId, p_key: "card_1", p_expected: 0, p_content: encodeMemoryCard(body().content, metadata) }));
+    expect(mocks.rpc).toHaveBeenCalledWith("maro_studio_remember", expect.objectContaining({ p_user: BRAIN_STUDIO_OWNER, p_workspace: workspaceId, p_reset: null, p_key: "card_1", p_expected: 0, p_content: encodeMemoryCard(body().content, metadata) }));
     expect(response.headers.get("cache-control")).toBe("no-store"); expect(response.headers.get("vary")).toBe("Authorization");
   });
   it("rejects injected identity, invalid dates, oversized records, reset races and stale revisions", async () => {

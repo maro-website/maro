@@ -167,17 +167,23 @@ async function persistBrainProfile(
 
 export async function fetchWorkspaceSources(
   userId: string,
-  workspaceId: string
+  workspaceId: string,
+  options?: { paged?: boolean; resolveAssets?: boolean }
 ): Promise<WorkspaceSource[]> {
   if (supabaseConfigured) {
     const supabase = getSupabaseBrowser();
-    const { data, error } = await workspaceRequest((signal) => supabase
+    const data: { id: string; workspace_id: string; name: string; keywords: string | null; file_url: string; mime_type: string | null; created_at: string; folder_id: string | null }[] = [];
+    for (let offset = 0; offset < (options?.paged ? 2000 : 1000); offset += 1000) {
+    const page = await workspaceRequest((signal) => supabase
       .from("workspace_sources")
-      .select("id, workspace_id, name, keywords, file_url, mime_type, created_at")
+      .select("id, workspace_id, name, keywords, file_url, mime_type, created_at, folder_id")
       .eq("workspace_id", workspaceId)
       .eq("owner_id", userId)
-      .order("created_at", { ascending: false }).abortSignal(signal));
-    if (error) throw new Error(error.message);
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + 999).abortSignal(signal));
+    if (page.error) throw new Error(page.error.message);
+    data.push(...page.data ?? []);
+    if ((page.data?.length ?? 0) < 1000) break;
+    }
     if (data) {
       const items = data.map((r) => ({
         id: r.id,
@@ -189,10 +195,11 @@ export async function fetchWorkspaceSources(
           ? r.file_url
           : undefined,
         mimeType: r.mime_type,
+        folderId: r.folder_id ?? null,
         createdAt: r.created_at,
       }));
       const refs = items.map((item) => item.storageRef).filter((value): value is string => Boolean(value));
-      const resolved = await resolvePrivateAssetRefs(refs);
+      const resolved: Record<string,string> = options?.resolveAssets === false ? {} : await resolvePrivateAssetRefs(refs);
       return items.map((item) => item.storageRef && resolved[item.storageRef]
         ? { ...item, fileUrl: resolved[item.storageRef] }
         : item);

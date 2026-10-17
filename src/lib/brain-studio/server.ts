@@ -54,7 +54,7 @@ export async function handleStudioMemories(req: Request) {
       if (policy.brainResetAt !== input.resetAt) return response({ error: "brain_refresh_required" }, 409);
       let content: string;
       try { content = encodeMemoryCard(input.content, input.metadata); } catch { return response({ error: "memory_too_long" }, 422); }
-      const saved = await getSupabaseAdmin().rpc("maro_mcp_remember", { p_user: user.id, p_workspace: id, p_key: input.key, p_content: content, p_source: "Shkruar manualisht në maroBrain", p_expected: input.expectedRevision });
+      const saved = await getSupabaseAdmin().rpc("maro_studio_remember", { p_user: user.id, p_workspace: id, p_reset: input.resetAt, p_key: input.key, p_content: content, p_source: "Shkruar manualisht në maroBrain", p_expected: input.expectedRevision });
       if (saved.error) {
         const code = ["MEMORY_CONFLICT", "MEMORY_LIMIT", "BRAIN_REFRESH_REQUIRED", "BRAIN_PLAN_REQUIRED", "WORKSPACE_NOT_FOUND", "INVALID_REQUEST", "PILOT_REQUIRED"].find(value => saved.error.message.includes(value));
         return response({ error: code?.toLowerCase() ?? "unavailable" }, code === "MEMORY_CONFLICT" || code === "BRAIN_REFRESH_REQUIRED" ? 409 : code === "BRAIN_PLAN_REQUIRED" ? 403 : code === "MEMORY_LIMIT" ? 422 : 503);

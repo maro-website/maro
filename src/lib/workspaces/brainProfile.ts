@@ -123,6 +123,12 @@ export function buildBrainBrief(profile: WorkspaceBrainProfile): string {
   if (c.themes) lines.push(`Content themes: ${c.themes}`);
   if (c.avoid) lines.push(`Avoid: ${c.avoid}`);
   if (c.hashtags) lines.push(`Hashtags: ${c.hashtags}`);
+  for (const [label, value] of [
+    ["Products and services", b.offering], ["Mission", b.mission], ["Brand values", b.values],
+    ["Buying triggers", t.buyingTriggers], ["Purchase objections", t.objections],
+    ["Goal timeframe", g.timeframe], ["Pricing and offers", m.pricing], ["Evidence and trust", m.proof],
+    ["Call to action", c.cta], ["Communication examples", c.examples],
+  ]) if (value?.trim()) lines.push(`${label}: ${value.slice(0, 4000)}`);
 
   lines.push("Use this brand context automatically. Do not ask the user to repeat basic brand facts.");
   return lines.join("\n");

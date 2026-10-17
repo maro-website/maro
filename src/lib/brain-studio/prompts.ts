@@ -5,11 +5,11 @@ import { buildMemoryBrief, selectMemories, type BrainMemory } from "./memories";
 export type TextSection = Exclude<BrainTabId, "sources">;
 export const studioLabels: Record<BrainTabId, string> = { brand: "Brendi", target: "Audienca", goal: "Qëllimet", market: "Tregu", content: "Komunikimi", sources: "Burimet" };
 export const sectionFields: Record<TextSection, [string, string][]> = {
-  brand: [["name", "Emri"], ["category", "Kategoria"], ["description", "Përshkrimi"], ["website", "Website"], ["phoneCountry", "Prefiksi i telefonit"], ["phone", "Telefoni"], ["location", "Lokacioni"], ["language", "Gjuha"], ["businessModel", "Modeli i biznesit"], ["salesChannel", "Shitjet"]],
-  target: [["audience", "Audienca"], ["demographics", "Profili demografik"], ["interests", "Interesat"], ["painPoints", "Nevojat dhe sfidat"]],
-  goal: [["primaryGoal", "Qëllimi kryesor"], ["secondaryGoals", "Qëllimet tjera"], ["successMetrics", "Si e mat suksesin?"]],
-  market: [["region", "Rajoni / tregu"], ["competitors", "Konkurrentët"], ["positioning", "Pozicionimi"], ["differentiators", "Çka të dallon?"]],
-  content: [["tone", "Toni"], ["voice", "Zëri"], ["themes", "Temat"], ["avoid", "Çka me shmangë?"], ["hashtags", "Hashtag-ët"]],
+  brand: [["name", "Emri"], ["category", "Kategoria"], ["description", "Përshkrimi"], ["website", "Website"], ["phoneCountry", "Prefiksi i telefonit"], ["phone", "Telefoni"], ["location", "Lokacioni"], ["language", "Gjuha"], ["businessModel", "Modeli i biznesit"], ["salesChannel", "Shitjet"], ["offering", "Produktet dhe shërbimet"], ["mission", "Misioni"], ["values", "Vlerat e brendit"]],
+  target: [["audience", "Audienca"], ["demographics", "Profili demografik"], ["interests", "Interesat"], ["painPoints", "Nevojat dhe sfidat"], ["buyingTriggers", "Çka e nxit blerjen?"], ["objections", "Dyshimet para blerjes"]],
+  goal: [["primaryGoal", "Qëllimi kryesor"], ["secondaryGoals", "Qëllimet tjera"], ["successMetrics", "Si e mat suksesin?"], ["timeframe", "Afati dhe prioritetet"]],
+  market: [["region", "Rajoni / tregu"], ["competitors", "Konkurrentët"], ["positioning", "Pozicionimi"], ["differentiators", "Çka të dallon?"], ["pricing", "Çmimet dhe ofertat"], ["proof", "Provat e besueshmërisë"]],
+  content: [["tone", "Toni"], ["voice", "Zëri"], ["themes", "Temat"], ["avoid", "Çka me shmangë?"], ["hashtags", "Hashtag-ët"], ["cta", "Thirrja për veprim"], ["examples", "Shembuj të komunikimit"]],
 };
 const options = (key: string): readonly string[] | undefined => key === "category" ? BRAIN_CATEGORIES : key === "businessModel" ? BRAIN_BUSINESS_MODELS : key === "salesChannel" ? ["ONLINE", "FIZIKISHT", "HYBRID"] : undefined;
 export function buildSectionPrompt(profile: WorkspaceBrainProfile, section: BrainTabId, memories: BrainMemory[] = []): string {
@@ -81,6 +81,6 @@ export function parseSectionAnswer(raw: string, section: TextSection, profile: W
 export function applySectionAnswer(profile: WorkspaceBrainProfile, section: TextSection, candidates: AnswerCandidate[], selected: string[]): WorkspaceBrainProfile {
   const current = profile[section] as unknown as Record<string, unknown>;
   const chosen = candidates.filter(item => selected.includes(item.key));
-  if (chosen.some(item => !sectionFields[section].some(([key]) => key === item.key) || current[item.key] !== item.previous)) throw new Error("Profili ndryshoi gjatë kontrollit. Kontrolloje përgjigjen përsëri.");
+  if (chosen.some(item => !sectionFields[section].some(([key]) => key === item.key) || String(current[item.key] ?? "") !== item.previous)) throw new Error("Profili ndryshoi gjatë kontrollit. Kontrolloje përgjigjen përsëri.");
   return { ...profile, [section]: { ...current, ...Object.fromEntries(chosen.map(item => [item.key, item.value])) } };
 }

@@ -31,6 +31,20 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("workspace and maroBrain persistence", () => {
+  it("loads the private library's second metadata page without signing or downloading the whole collection", async () => {
+    const fetch = vi.fn(async (url: string) => {
+      const offset = Number(new URL(url).searchParams.get("offset") || 0);
+      const rows = Array.from({length:offset === 0 ? 1000 : 1},(_,index)=>({id:`src_${offset+index}`,workspace_id:"ws-a",name:"Photo",keywords:"product",file_url:`storage:generations/alice/workspace-assets/ws-a/${offset+index}.png`,mime_type:"image/png",created_at:"2026-10-17T00:00:00Z",folder_id:null}));
+      return new Response(JSON.stringify(rows),{status:200});
+    });
+    vi.stubGlobal("fetch",fetch);
+    const { fetchWorkspaceSources } = await import("@/lib/workspaces/brainService");
+    const sources=await fetchWorkspaceSources("alice","ws-a",{paged:true,resolveAssets:false});
+    expect(sources).toHaveLength(1001);expect(sources[1000].id).toBe("src_1000");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url])=>url.includes("workspace_sources"))).toBe(true);
+    expect(new URL(fetch.mock.calls[1][0]).searchParams.get("offset")).toBe("1000");
+  });
   it("reads whether Brain was created without saving a default profile or requiring an active plan", async () => {
     mocks.brainAccess = false;
     let raw: object = {};

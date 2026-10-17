@@ -22,9 +22,13 @@ export interface BrainBrandSection {
   logoUrl: string | null;
   /** Stable private object identity when the logo is uploaded to Maro storage. */
   logoStorageRef?: string | null;
+  logoBackdrop?: "auto" | "light" | "dark";
   channels: BrainChannel[];
   /** Optional, user-approved palette imported by the private Fetch Brand pilot. */
   colors?: string[];
+  offering?: string;
+  mission?: string;
+  values?: string;
 }
 
 export interface BrainTargetSection {
@@ -32,12 +36,15 @@ export interface BrainTargetSection {
   demographics: string;
   interests: string;
   painPoints: string;
+  buyingTriggers?: string;
+  objections?: string;
 }
 
 export interface BrainGoalSection {
   primaryGoal: string;
   secondaryGoals: string;
   successMetrics: string;
+  timeframe?: string;
 }
 
 export interface BrainMarketSection {
@@ -45,6 +52,8 @@ export interface BrainMarketSection {
   competitors: string;
   positioning: string;
   differentiators: string;
+  pricing?: string;
+  proof?: string;
 }
 
 export interface BrainContentSection {
@@ -53,6 +62,8 @@ export interface BrainContentSection {
   themes: string;
   avoid: string;
   hashtags: string;
+  cta?: string;
+  examples?: string;
 }
 
 export interface WorkspaceBrainProfile {
@@ -72,8 +83,11 @@ export interface WorkspaceSource {
   fileUrl: string;
   storageRef?: string;
   mimeType?: string | null;
+  folderId?: string | null;
   createdAt: string;
 }
+
+export interface BrainSourceFolder { id: string; name: string; }
 
 export const BRAIN_TABS: { id: BrainTabId; label: string }[] = [
   { id: "brand", label: "Brendi" },
