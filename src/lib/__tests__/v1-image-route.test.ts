@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { modelRow, imazhRequest, logoRequest } from "./helpers/v1ImageFixtures";
 
+const localPromptSource = vi.hoisted(() => "LOCAL REVIEWED PLATFORM. ".repeat(500));
+vi.mock("@/lib/ai/recraftPromptVariants", async () => {
+  const { createHash } = await import("node:crypto");
+  return { RECRAFT_LOCAL_PROMPT_VARIANTS: { [createHash("sha256").update(localPromptSource).digest("hex")]: { version: "local-system/1", text: "LOCAL COMPACT PLATFORM" } } };
+});
+
 const mocks = vi.hoisted(() => ({
   storagePolicy: vi.fn(), brainPolicy: vi.fn(),
   rows: [] as unknown[], workspace: vi.fn(), reference: vi.fn(), preset: vi.fn(), auth: vi.fn(),
@@ -383,5 +389,26 @@ describe("private Recraft uses the durable production lifecycle", () => {
     vi.clearAllMocks(); mocks.settle.mockResolvedValue("settlement_pending");
     const text = await (await request(body)).text(); expect(text).toContain('"recoverable":true'); expect(text).toContain('"refunded":false');
     expect(mocks.fail).not.toHaveBeenCalled(); expect(mocks.costs).not.toHaveBeenCalled();
+  });
+  it("compiles locally before admission and uses the same exact hash for job, private trace and the single image call", async () => {
+    mocks.canonical.mockImplementation(async (trusted) => {
+      const { buildCanonicalImagePrompt } = await import("@/lib/generation/v1ImagePrompt");
+      const s = trusted.snapshot;
+      return { compilation: buildCanonicalImagePrompt(s, { system: { id: "production", tool_id: s.module, status: "live", version_label: "v1", content: localPromptSource }, layers: [] }, { references: [] }), images: [] };
+    });
+    const text = await (await request({ ...body, prompt: "KEEP EXACT USER TEXT" })).text();
+    expect(text).toContain('"ok":true'); expect(text).toContain('"creditsSpent":7');
+    const canonical = mocks.trace.mock.calls[0][2];
+    expect(canonical.prompt).toContain("LOCAL COMPACT PLATFORM"); expect(canonical.prompt).toContain("KEEP EXACT USER TEXT");
+    expect(mocks.prepare.mock.calls[0][0].metadata.canonical_prompt.hash).toBe(canonical.provenance.promptHash);
+    expect(mocks.recraft.mock.calls[0][0].body.prompt).toBe(canonical.prompt);
+    expect(mocks.trace).toHaveBeenCalledOnce(); expect(mocks.recraft).toHaveBeenCalledOnce(); expect(mocks.settle).toHaveBeenCalledOnce();
+    expect(mocks.generate).not.toHaveBeenCalled(); expect(mocks.edit).not.toHaveBeenCalled();
+  });
+  it("rejects an unreviewed oversized preset before creating a job, reserving credits or calling any image provider", async () => {
+    mocks.preset.mockResolvedValue({ full_prompt: "UNREVIEWED PRESET. ".repeat(800), target_tool: "reklama" });
+    const response = await request({ ...body, maroPrompt: { id: "preset" } });
+    expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ error: "recraft_prompt_too_long", field: "model" });
+    for (const mock of [mocks.prepare, mocks.trace, mocks.recraft, mocks.generate, mocks.edit, mocks.costs]) expect(mock).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,7 @@ import { selectMemories, buildMemoryBrief } from "@/lib/brain-studio/memories";
 import { buildBrainBrief, buildMatchedSourcesBrief, matchSourcesByPrompt } from "@/lib/workspaces/brainProfile";
 import { buildWorkspaceBrandBrief } from "@/lib/workspaces/brand";
 import { buildMaroLogoBrief } from "@/lib/marologo/briefBuilder";
-import { wrapPresetRecommendation } from "@/lib/presets/model";
+import { adaptRecraftImagePrompt, type RecraftPromptPart } from "@/lib/ai/recraftPrompt";
 import { resolveWorkspaceImageReference, type ResolvedImageReference } from "@/lib/ai/imageReferences";
 import type { TrustedV1ImageRequest, resolveV1ImageRequest } from "./v1ImageRequest";
 import { ImageRequestValidationError } from "./requestValidation";
@@ -73,14 +73,19 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
   const category = (key: string) => key.startsWith("v1.production.reference.") ? "reference" : key.startsWith("v1.production.output.") ? "output" : "direction";
   const section = (kind: string) => candidates.filter((l) => category(l.layer_key) === kind).map((l) => l.instructions);
   const orderedLayers = ["direction", "reference", "output"].flatMap((kind) => candidates.filter((l) => category(l.layer_key) === kind));
-  const parts = [config.system.content, ...section("direction"), preset ? wrapPresetRecommendation(preset) : "", brainText, ...section("reference"), brief, ...section("output")];
-  if (mood) parts.push(moodPromptSection(mood));
-  const prompt = parts.map((p) => p.replace(/\r\n?/g, "\n").trim()).filter(Boolean).join("\n\n");
+  const contextPart = (text: string): RecraftPromptPart => ({ kind: "context", text });
+  const parts: RecraftPromptPart[] = [
+    { kind: "system", text: config.system.content }, ...section("direction").map(contextPart),
+    { kind: "preset", text: preset }, contextPart(brainText), ...section("reference").map(contextPart), contextPart(brief), ...section("output").map(contextPart),
+  ];
+  if (mood) parts.push(contextPart(moodPromptSection(mood)));
+  const { prompt, adaptation } = adaptRecraftImagePrompt(request.model.providerModelId, parts);
   const provenance = {
     version: CANONICAL_IMAGE_VERSION,
     system: { id: config.system.id, version: config.system.version_label, hash: promptHash(config.system.content) },
     layers: orderedLayers.map((l) => ({ id: l.id, key: l.layer_key, version: l.version_label, hash: promptHash(l.instructions), priority: l.priority, conditions: l.conditions })),
     preset: preset ? { id: request.presetId, hash: request.presetContentHash } : null,
+    ...(adaptation ? { promptAdaptation: adaptation } : {}),
     ...(mood ? { mood: { id: request.moodId, hash: request.moodContentHash } } : {}),
     brainUsed: Boolean(brainText || references.some((r) => r.source === "brain")), brainHash: brainText ? promptHash(brainText) : null,
     references, promptHash: promptHash(prompt),
