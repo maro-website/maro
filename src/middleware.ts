@@ -2,6 +2,7 @@ import { buildContentSecurityPolicy } from "@/lib/security/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { PAGE_PATH_HEADER } from "@/lib/siteMetadata";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { createServerClient } from "@supabase/ssr";
 import { resolveAccessRole, hasPermission, ADMIN_ENTRY_PERMISSION } from "@/lib/admin/permissions";
 import {
@@ -118,6 +119,11 @@ function launchRequestHeaders(req: NextRequest, nonce?: string, policy?: string)
 
 async function routeMiddleware(req: NextRequest, nonce?: string, policy?: string) {
   const path = req.nextUrl.pathname;
+
+  if (!EXPLORE_VISIBLE && /^\/(?:explore|c|u)(?:\/|$)/.test(path)) {
+    // Temporary redirect: existing Explore links work again when visibility returns.
+    return NextResponse.redirect(new URL("/", req.url), 307);
+  }
 
   if (isComingSoonMode() && !isLaunchPublicRoute(path)) {
     const authenticated = await hasAuthenticatedUser(req);

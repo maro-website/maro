@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { shareToExplore } from "@/lib/services/exploreFeedService";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { useMaro } from "@/context/store";
 import { useToast } from "@/components/ui/Toast";
 import { Globe, Loader2 } from "lucide-react";
@@ -33,6 +34,8 @@ export function PublishToExploreButton({
   const [showPrompt, setShowPrompt] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
   React.useEffect(() => { setPublished(false); setOpen(false); setShowPrompt(false); setShowSettings(false); }, [storedUrl, url]);
+
+  if (!EXPLORE_VISIBLE) return null;
 
   const publish = async () => {
     if (!user) {

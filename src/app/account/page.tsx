@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { AvatarCropper } from "@/components/app/AvatarCropper";
 import { Badge } from "@/components/ui/Badge";
 import { useMaro } from "@/context/store";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { useToast } from "@/components/ui/Toast";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { Switch } from "@/components/ui/Switch";
@@ -164,7 +165,7 @@ function AccountInner() {
                         } catch { toast("Username nuk u ruajt. Provo përsëri."); return false; }
                       }}
                     />
-                    {profile?.username && <a href={`/u/${profile.username}`} className="text-sm text-ink-3 hover:underline">maro.al/u/{profile.username}</a>}
+                    {EXPLORE_VISIBLE && profile?.username && <a href={`/u/${profile.username}`} className="text-sm text-ink-3 hover:underline">maro.al/u/{profile.username}</a>}
                     <EditableField
                       label="Email"
                       value={user?.email ?? ""}

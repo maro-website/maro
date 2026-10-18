@@ -4,6 +4,7 @@
  */
 
 import { getModuleAvailability } from "@/lib/modules/availability";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 
 export type NavGroup = "home" | "discover" | "tools" | "studio" | "community" | "later";
 
@@ -51,7 +52,7 @@ const MODULE_DESTINATIONS: NavDestination[] = [
   { id: "marketing", label: "maroMarketing", route: "/marketing", group: "studio", showInTopBar: true, iconName: "idea" },
 ];
 
-export const TOP_BAR_DESTINATIONS: NavDestination[] = MODULE_DESTINATIONS.map((destination) => {
+export const TOP_BAR_DESTINATIONS: NavDestination[] = MODULE_DESTINATIONS.filter((destination) => EXPLORE_VISIBLE || destination.id !== "explore").map((destination) => {
   const productModule = getModuleAvailability(destination.toolId ?? destination.id);
   return {
     ...destination,

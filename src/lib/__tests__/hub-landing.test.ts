@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { latestHubPresets } from "@/components/hub-landing/model";
 import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
-import { TOP_BAR_DESTINATIONS, HUB_MENU_DESTINATIONS } from "@/lib/nav/destinations";
+import { TOP_BAR_DESTINATIONS, HUB_MENU_DESTINATIONS, navDestinationsByGroup } from "@/lib/nav/destinations";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import type { PromptItem } from "@/lib/prompts/types";
 
 function preset(id: string, day: number, image: string | null = `/test/${id}.webp`): PromptItem {
@@ -25,7 +26,8 @@ describe("Hub catalog presentation", () => {
 
 describe("Short navigation names preserve live product identity", () => {
   it("shortens visible names while retaining every live route and canonical brand name", () => {
-    expect(TOP_BAR_DESTINATIONS.map(item => navigationDisplayLabel(item.label))).toEqual(["Imazh", "Logo", "Presets", "Explore", "Web", "Filma", "Audio", "Marketing"]);
+    expect(TOP_BAR_DESTINATIONS.map(item => navigationDisplayLabel(item.label))).toEqual(["Imazh", "Logo", "Presets", ...(EXPLORE_VISIBLE ? ["Explore"] : []), "Web", "Filma", "Audio", "Marketing"]);
+    expect(navDestinationsByGroup().discover.some(item => item.id === "explore")).toBe(EXPLORE_VISIBLE);
     expect(TOP_BAR_DESTINATIONS.find(item => item.id === "audio")).toMatchObject({ label: "maroAudio", route: "/audio", toolId: "zo" });
     expect(HUB_MENU_DESTINATIONS.find(item => item.id === "brain")).toMatchObject({ label: "maroBrain", route: "/brain" });
     expect(navigationDisplayLabel("maroBrain")).toBe("Brain");

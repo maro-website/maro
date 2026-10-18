@@ -13,6 +13,7 @@ import { Modal, ModalHeader, ModalFooter } from "@/components/ui/Modal";
 import { StorageUsage } from "@/components/workspaces/StorageUsage";
 import { MyPublications } from "@/components/explore/MyPublications";
 import { ExploreFeed } from "@/components/explore/ExploreFeed";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { MoodCollection } from "@/components/moods/MoodCollection";
 import { canUseMoods } from "@/lib/moods/model";
 import { fetchUploadedAssets, fetchAssetMetadata, deleteUploadedAsset, assetFilename, formatAssetBytes, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
@@ -120,8 +121,9 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
   const moodsEligible = !picker && canUseMoods(user?.email);
   const { activeWorkspace, workspaces, setActiveWorkspace } = useWorkspace();
   const { toast } = useToast();
-  const [category, setCategory] = React.useState(initialCategory);
-  React.useEffect(() => { if (!picker) setCategory(initialCategory); }, [initialCategory, picker]);
+  const visibleInitialCategory = !EXPLORE_VISIBLE && initialCategory === "published" ? "made" : initialCategory;
+  const [category, setCategory] = React.useState(visibleInitialCategory);
+  React.useEffect(() => { if (!picker) setCategory(visibleInitialCategory); }, [visibleInitialCategory, picker]);
   const [uploads, setUploads] = React.useState<UploadedLibraryAsset[]>([]);
   const [uploadOwner, setUploadOwner] = React.useState<string | undefined>();
   const [uploadError, setUploadError] = React.useState(false);
@@ -385,7 +387,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         <RailItem active={category === "made"} icon={<LayoutGrid className="h-4 w-4" />} label="Çka ke maru" count={scopedRows.length} onClick={() => chooseCategory("made")} />
         <RailItem active={category === "uploaded"} icon={<Upload className="h-4 w-4" />} label="Çka ke ngarku" count={scopedUploads.length} onClick={() => chooseCategory("uploaded")} />
         <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={picker ? scopedRows.filter(row => row.favourite).length : undefined} onClick={() => chooseCategory("saved")} />
-        {!picker && <RailItem active={category === "published"} icon={<Globe className="h-4 w-4" />} label="Publikimet në Explore" onClick={() => chooseCategory("published")} />}
+        {EXPLORE_VISIBLE && !picker && <RailItem active={category === "published"} icon={<Globe className="h-4 w-4" />} label="Publikimet në Explore" onClick={() => chooseCategory("published")} />}
         {moodsEligible && <RailItem active={category === "moods"} icon={<Moon className="h-4 w-4" />} label="Moods" onClick={() => chooseCategory("moods")} />}
 
         {category !== "uploaded" && category !== "published" && category !== "moods" && toolBuckets.length > 0 && (
@@ -425,7 +427,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 className="maro-search-input w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
               />
             </div>}
-            <AssetFilter className="min-w-0 flex-1 md:hidden" label="Kategoria e aseteve" value={category} onChange={value => { if (value === "made" || value === "uploaded" || value === "saved" || value === "published" || (value === "moods" && moodsEligible)) chooseCategory(value as typeof category); }} options={[{ value: "made", label: "Çka ke maru" }, { value: "uploaded", label: "Çka ke ngarku" }, { value: "saved", label: "Çka ke ruajt" }, ...(!picker ? [{ value: "published", label: "Publikimet në Explore" }] : []), ...(moodsEligible ? [{ value: "moods", label: "Moods" }] : [])]} />
+            <AssetFilter className="min-w-0 flex-1 md:hidden" label="Kategoria e aseteve" value={category} onChange={value => { if (value === "made" || value === "uploaded" || value === "saved" || (EXPLORE_VISIBLE && value === "published") || (value === "moods" && moodsEligible)) chooseCategory(value as typeof category); }} options={[{ value: "made", label: "Çka ke maru" }, { value: "uploaded", label: "Çka ke ngarku" }, { value: "saved", label: "Çka ke ruajt" }, ...(EXPLORE_VISIBLE && !picker ? [{ value: "published", label: "Publikimet në Explore" }] : []), ...(moodsEligible ? [{ value: "moods", label: "Moods" }] : [])]} />
             {/* Mobile filter dropdown */}
             {category !== "published" && category !== "moods" && <AssetFilter align="right" className="min-w-0 flex-1 md:hidden" label="Filtro mjetet" value={filter} onChange={setFilter} options={[{ value: "all", label: "Të gjitha" }, ...toolBuckets.map(tool => ({ value: tool.id, label: tool.name }))]} />}
             {/* Size slider */}
@@ -450,7 +452,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
 
         <div className="px-4 py-6 sm:px-6">
           {!picker && <StorageUsage className="mb-5 md:hidden" />}
-          {!picker && category === "moods" ? <><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 className="text-xl font-bold text-ink">Moods e ruajtura</h1>{moodsEligible && <Button variant="secondary" onClick={() => router.push("/moods")}>Gjej moods</Button>}</div><MoodCollection savedOnly /></> : !picker && category === "published" ? <MyPublications /> : <>
+          {!picker && category === "moods" ? <><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 className="text-xl font-bold text-ink">Moods e ruajtura</h1>{moodsEligible && <Button variant="secondary" onClick={() => router.push("/moods")}>Gjej moods</Button>}</div><MoodCollection savedOnly /></> : EXPLORE_VISIBLE && !picker && category === "published" ? <MyPublications /> : <>
           {libraryError && <div role="alert" className="mb-4 text-sm text-ink-2">Krijimet nga workspace-et nuk u ngarkuan plotësisht. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
           {libraryLoading && <p role="status" className="mb-4 text-sm text-ink-3">Duke ngarkuar krijimet…</p>}
           {category === "uploaded" && uploadError && <div role="alert" className="mb-4 text-sm text-ink-2">Ngarkimet nuk u hapën. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
@@ -481,7 +483,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
             </div>
           )}
           {category === "uploaded" && nextOffset !== null && <Button variant="secondary" className="mt-4" loading={uploadsLoading} onClick={() => void loadMore()}>Shfaq më shumë</Button>}
-          {!picker && category === "saved" && <div className="mt-8"><h2 className="mb-4 text-sm font-semibold text-ink">Të ruajtura nga Explore</h2><ExploreFeed savedOnly hideAuthorFilter /></div>}
+          {EXPLORE_VISIBLE && !picker && category === "saved" && <div className="mt-8"><h2 className="mb-4 text-sm font-semibold text-ink">Të ruajtura nga Explore</h2><ExploreFeed savedOnly hideAuthorFilter /></div>}
           </>}
         </div>
       </div>

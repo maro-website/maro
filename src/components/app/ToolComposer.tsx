@@ -7,6 +7,7 @@ import { AttachmentPicker } from "@/components/app/AttachmentPicker";
 import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attachments";
 import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft, newConversationDraft } from "@/lib/services/composerDraft";
 import { EXPLORE_REMIX_KEY, type ExploreRemix } from "@/lib/explore/remix";
+import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { activeConversationKey, conversationHistory, imageConversationId, type ConversationJob } from "@/lib/creations/conversations";
 import { buildGenerationSelections } from "@/lib/marologo/generation";
 import { fetchConversationHistory } from "@/lib/services/creationsService";
@@ -673,7 +674,7 @@ export function ToolComposer({
   );
 
   React.useEffect(() => {
-    if (!draftReady || !ready || tool.id !== "reklama") return;
+    if (!EXPLORE_VISIBLE || !draftReady || !ready || tool.id !== "reklama") return;
     try {
       const raw = sessionStorage.getItem(EXPLORE_REMIX_KEY);
       if (!raw) return;
