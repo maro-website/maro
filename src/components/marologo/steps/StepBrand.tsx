@@ -30,9 +30,9 @@ export function StepBrand({ step, highestStepReached, wizard, errors, onChange, 
         Dy përgjigje të mira mjaftojnë. Maro e nxjerr pjesën tjetër nga konteksti.
       </p>
 
-      <LogoFields fields={{ "brand.name": <Field label={content["brand.name"].label + (content["brand.name"].required ? " *" : "")} hint={errors.name}>
+      <LogoFields fields={{ "brand.name": <Field label={content["brand.name"].label + (content["brand.name"].required ? " *" : "")} error={errors.name}>
         <Input value={wizard.brand.name} onChange={(e) => onChange({ name: e.target.value })} placeholder={content["brand.name"].placeholder} className="marologo-card h-[56px] border-0 bg-surface" autoFocus />
-      </Field>, "brand.description": <Field label={content["brand.description"].label + (content["brand.description"].required ? " *" : "")} hint={errors.description}>
+      </Field>, "brand.description": <Field label={content["brand.description"].label + (content["brand.description"].required ? " *" : "")} error={errors.description}>
         <Textarea value={wizard.brand.description} onChange={(e) => onChange({ description: e.target.value })} rows={4} placeholder={content["brand.description"].placeholder} className="marologo-card min-h-[132px] border-0 bg-surface" />
       </Field> }} />
 
@@ -46,9 +46,9 @@ export function StepBrand({ step, highestStepReached, wizard, errors, onChange, 
         </button>
 
         {contextOpen && (
-          <LogoFields className="space-y-5 border-t border-line py-5" fields={{ "brand.audience": <Field label={content["brand.audience"].label + (content["brand.audience"].required ? " *" : "")} hint={errors.audience}>
+          <LogoFields className="space-y-5 border-t border-line py-5" fields={{ "brand.audience": <Field label={content["brand.audience"].label + (content["brand.audience"].required ? " *" : "")} error={errors.audience}>
               <Textarea value={wizard.brand.audience} onChange={(e) => onChange({ audience: e.target.value })} rows={2} placeholder={content["brand.audience"].placeholder} className="marologo-card border-0 bg-canvas" />
-            </Field>, "brand.industry": <SearchableSelect label={content["brand.industry"].label} placeholder={content["brand.industry"].placeholder} options={logoOptions(content, "brand.industry").map((o) => o.value)} optionLabels={Object.fromEntries(content["brand.industry"].options.map((o) => [o.value, o.label]))} value={wizard.brand.industry} onChange={(industry) => onChange({ industry })} otherTrigger={INDUSTRY_OTHER} otherValue={wizard.brand.industryOther} onOtherChange={(industryOther) => onChange({ industryOther })} otherLabel={content["brand.industryOther"].label} error={errors.industryOther} />, "brand.slogan": <Field label={content["brand.slogan"].label + (content["brand.slogan"].required ? " *" : "")} hint={errors.slogan}>
+            </Field>, "brand.industry": <SearchableSelect label={content["brand.industry"].label} placeholder={content["brand.industry"].placeholder} options={logoOptions(content, "brand.industry").map((o) => o.value)} optionLabels={Object.fromEntries(content["brand.industry"].options.map((o) => [o.value, o.label]))} value={wizard.brand.industry} onChange={(industry) => onChange({ industry })} otherTrigger={INDUSTRY_OTHER} otherValue={wizard.brand.industryOther} onOtherChange={(industryOther) => onChange({ industryOther })} otherLabel={content["brand.industryOther"].label} error={errors.industryOther} />, "brand.slogan": <Field label={content["brand.slogan"].label + (content["brand.slogan"].required ? " *" : "")} error={errors.slogan}>
               <Input value={wizard.brand.slogan} onChange={(e) => onChange({ slogan: e.target.value })} placeholder={content["brand.slogan"].placeholder} className="marologo-card h-[52px] border-0 bg-canvas" />
             </Field> }} />
         )}

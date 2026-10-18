@@ -6,7 +6,7 @@ import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 import * as React from "react";
 import { readLogoDraft, saveLogoDraft } from "@/lib/marologo/draft";
 import { LogoContentContext } from "./LogoContent";
-import { validateLogoContent, logoInitialState, logoContentAnswerErrors, type LogoContent } from "@/lib/marologo/content";
+import { validateLogoContent, logoInitialState, type LogoContent } from "@/lib/marologo/content";
 import { useRouter } from "next/navigation";
 import { Eraser, Sparkles } from "lucide-react";
 import { useMaro } from "@/context/store";
@@ -18,7 +18,7 @@ import { buildGenerationRequest } from "@/lib/marologo/generation";
 import { V1_IMAGE_ERRORS } from "@/lib/services/imageErrors";
 import { INITIAL_APP_STATE, DEFAULT_WIZARD_STATE } from "@/lib/marologo/defaults";
 import { PRESENTATION_LABELS } from "@/lib/marologo/constants";
-import { validateStep } from "@/lib/marologo/validation";
+import { validateLogoStep } from "@/lib/marologo/validation";
 import type { MaroLogoAppState, MaroLogoWizardState, PresentationMode, UploadedReference, WizardPhase, WizardStep } from "@/lib/marologo/types";
 import { useToast } from "@/components/ui/Toast";
 import { AuthPanel } from "@/components/auth/AuthPanel";
@@ -117,7 +117,10 @@ export function MaroLogoWizard() {
     page.scrollTo({ top: 0, behavior: "instant" });
     page.scrollIntoView({ block: "start", behavior: "instant" });
   }, [state.phase, content]);
-  const [stepErrors, setStepErrors] = React.useState<Record<string, string>>({});
+  const [validationStep, setValidationStep] = React.useState<WizardStep | null>(null);
+  const stepErrors = content && validationStep !== null
+    ? validateLogoStep(validationStep, state.wizard, content).errors
+    : {};
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
   const [resultCreation, setResultCreation] = React.useState<ImageCreation | null>(null);
@@ -147,6 +150,7 @@ export function MaroLogoWizard() {
       const draft = saved ?? (guestKey ? await readLogoDraft(guestKey) : null);
       if (!active) return;
       setGenerationFeedback(null);
+      setValidationStep(null);
       if (draft?.state?.wizard?.brand && draft.state.wizard.look && draft.state.wizard.logo) {
         dispatch({ type: "RESTORE", state: { ...draft.state, phase: draft.state.phase === "generating" ? 3 : draft.state.phase } });
         setPresetAttach(draft.preset);
@@ -176,6 +180,7 @@ export function MaroLogoWizard() {
       sessionStorage.removeItem(PROMPT_ATTACH_KEY);
       if (parsed?.tool !== "logo" || parsed.targetTool !== "logo") return;
       setPresetAttach(parsed);
+      setValidationStep(null);
       const config = parsed.config as LogoPresetConfig;
       dispatch({ type: "APPLY_PRESET", config: { ...config, creativeDirection: content["logo.symbolMeaning"].enabled ? config.creativeDirection : undefined } });
     } catch {
@@ -186,29 +191,31 @@ export function MaroLogoWizard() {
   const goToStep = (step: WizardStep) => {
     if (step > state.highestStepReached) return;
     dispatch({ type: "SET_PHASE", phase: step });
-    setStepErrors({});
+    setValidationStep(null);
   };
 
   const advanceFromStep = (step: 1 | 2) => {
-    const result = validateStep(step, state.wizard);
-    if (content) Object.assign(result.errors, Object.fromEntries(Object.entries(logoContentAnswerErrors(state.wizard, content)).filter(([key]) => step === 1 ? ["audience", "slogan"].includes(key) : !["audience", "slogan"].includes(key))));
-    result.valid = !Object.keys(result.errors).length;
-    setStepErrors(result.errors);
+    if (!content) return;
+    const result = validateLogoStep(step, state.wizard, content);
+    setValidationStep(step);
     if (!result.valid) return;
     const next = (step + 1) as WizardStep;
     dispatch({ type: "SET_HIGHEST", step: next });
     dispatch({ type: "SET_PHASE", phase: next });
-    setStepErrors({});
+    setValidationStep(null);
   };
 
   const runGenerate = React.useCallback(async () => {
     if (generatingRef.current) return;
-    const validation = validateStep(3, state.wizard);
     if (!content) return;
-    Object.assign(validation.errors, logoContentAnswerErrors(state.wizard, content));
-    validation.valid = !Object.keys(validation.errors).length;
-    setStepErrors(validation.errors);
-    if (!validation.valid) { dispatch({ type: "SET_PHASE", phase: validation.errors.audience || validation.errors.slogan ? 1 : 2 }); return; }
+    for (const step of [1, 2, 3] as const) {
+      if (!validateLogoStep(step, state.wizard, content).valid) {
+        setValidationStep(step);
+        dispatch({ type: "SET_PHASE", phase: step });
+        return;
+      }
+    }
+    setValidationStep(null);
     if (!user) { pendingGenerateRef.current = true; setShowAuth(true); return; }
     if (!model) { toast("Konfigurimi i gjenerimit nuk është i disponueshëm.", "error"); return; }
     if (credits < cost) { setShowBuy(true); return; }
@@ -268,7 +275,7 @@ export function MaroLogoWizard() {
     }
   }, [user, loadedDraftKey, draftKey, runGenerate]);
   const onAuthDone = () => setShowAuth(false);
-  const restart = () => { setResultCreation(null); setGenerationFeedback(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
+  const restart = () => { setResultCreation(null); setGenerationFeedback(null); setValidationStep(null); dispatch({ type: "RESET" }); if (content) dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) }); };
   const generationElapsed = generationFeedback?.endedAt !== undefined ? (generationFeedback.endedAt - generationFeedback.startedAt) / 1000 : undefined;
 
   if (!content || loadedDraftKey !== draftKey) return <p className="p-8 text-ink-3">{contentError ? "Konfigurimi nuk është në dispozicion. Rifresko faqen." : "Duke ngarkuar…"}</p>;

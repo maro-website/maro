@@ -22,11 +22,15 @@ export function PresentationModeCards({ value, onChange }: { value: Presentation
         const active = value === item.value;
         return (
           <button key={item.value} type="button" aria-pressed={active} onClick={() => onChange(item.value as PresentationMode)} className={cn("marologo-card relative overflow-hidden p-3 text-left transition-all", active ? "ring-2 ring-brand" : "hover:-translate-y-0.5 hover:bg-surface-hover")}>
-            <span className="marologo-checkbox absolute right-5 top-5 z-10" data-checked={active || undefined}>{active && <Check className="h-4 w-4" strokeWidth={3} />}</span>
             {item.value === content["presentation.mode"].defaultValue && <span className="absolute left-5 top-5 z-10 rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-fg">Rekomanduar</span>}
             <div className="h-[132px]"><Preview mode={item.value as PresentationMode} /></div>
             <div className="px-2 pb-2 pt-4">
-              <span className="block text-[15px] font-semibold text-ink">{item.label}</span>
+              <span className="flex items-start justify-between gap-3">
+                <span className="block text-[15px] font-semibold text-ink">{item.label}</span>
+                <span className="marologo-presentation-status" data-selected={active || undefined}>
+                  {active ? <><Check aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={3} /> E zgjedhur</> : <span aria-hidden="true" className="marologo-checkbox" />}
+                </span>
+              </span>
               <span className="mt-1 block text-[12px] leading-relaxed text-ink-3">{item.description}</span>
             </div>
           </button>

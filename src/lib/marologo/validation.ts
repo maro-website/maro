@@ -1,4 +1,5 @@
 import { INDUSTRY_OTHER } from "./constants";
+import { logoContentAnswerErrors, type LogoContent } from "./content";
 import type { MaroLogoWizardState, WizardStep } from "./types";
 
 export function normalizeHex(input: string): string | null {
@@ -53,6 +54,16 @@ export function validateStep(step: WizardStep, w: MaroLogoWizardState): StepVali
   if (step === 1) return validateStep1(w);
   if (step === 2) return validateStep2(w);
   return validateStep3(w);
+}
+
+/** Keep configurable answers on the step where they can be corrected. */
+export function validateLogoStep(step: WizardStep, w: MaroLogoWizardState, content: LogoContent): StepValidation {
+  const { errors } = validateStep(step, w);
+  for (const [key, message] of Object.entries(logoContentAnswerErrors(w, content))) {
+    const answerStep = key === "audience" || key === "slogan" ? 1 : 2;
+    if (step === answerStep) errors[key] = message;
+  }
+  return { valid: Object.keys(errors).length === 0, errors };
 }
 
 export function resolveIndustry(w: MaroLogoWizardState): string {
