@@ -5,7 +5,6 @@ import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured } from "@/
 import { AccountPolicyError, requireBrainAccess } from "@/lib/workspaces/accountPolicyServer";
 import { readJsonBody } from "@/lib/security/requestLimits";
 import { checkRateLimit } from "@/lib/security/rateLimit";
-import { canFetchBrand } from "./types";
 import { BrandFetchError, normalizeBrandUrl } from "./network";
 import { fetchBrand, fetchBrandLogo } from "./service";
 
@@ -20,7 +19,6 @@ export async function handleBrandFetch(req: Request, kind: "profile" | "logo") {
     const token = req.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1] ?? null;
     const user = await getUserFromToken(token);
     if (!user) return response({ error: "unauthorized" }, 401);
-    if (!canFetchBrand(user.id) || user.email?.toLowerCase() !== "erzen@nice.al") return response({ error: "not_found" }, 404);
     const parsed = await readJsonBody(req, 4096);
     if (!parsed.ok) { Object.entries(headers).forEach(([key, value]) => parsed.response.headers.set(key, value)); return parsed.response; }
     const body = bodySchema.safeParse(parsed.body);

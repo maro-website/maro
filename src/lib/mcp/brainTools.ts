@@ -4,7 +4,6 @@ import { getActiveWorkspaceId, getSupabaseAdmin, getWorkspaceBrainProfile, getWo
 import { requireBrainAccess } from "@/lib/workspaces/accountPolicyServer";
 import { buildBrainBrief, isBrainConfigured } from "@/lib/workspaces/brainProfile";
 import type { MaroMcpActor } from "./auth";
-import { isBrainStudioOwner } from "@/lib/brain-studio/pilot";
 import { loadStudioMemories } from "@/lib/brain-studio/server";
 import { activeMemories, buildMemoryBrief, selectMemories, encodeMemoryCard, memoryFromRow } from "@/lib/brain-studio/memories";
 
@@ -43,17 +42,11 @@ export async function executeBrainTool(name: BrainToolName, actor: MaroMcpActor,
       sources: sources.map(source => ({ name: source.name, keywords: source.keywords })), retention_delete_at: policy.brainDeleteAt };
   }
   if (name === "search_maro_brand_memory") {
-    if (isBrainStudioOwner(actor.userId)) {
-      const memories = activeMemories(await loadStudioMemories(actor.userId, workspaceId));
-      const terms = String(args.query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
-      const found = memories.filter(memory => terms.every(term => `${memory.metadata.title} ${memory.content} ${memory.metadata.subject} ${memory.metadata.keywords}`.toLocaleLowerCase().includes(term))).slice(0, Number(args.limit ?? 10));
-      const profile = await getWorkspaceBrainProfile(actor.userId, workspaceId);
-      return { memories: found.map(memory => ({ key: memory.key, content: memory.content, source: memory.source, revision: memory.revision, created_at: memory.createdAt, metadata: memory.metadata })), brand_brief: [profile ? buildBrainBrief(profile) : "", buildMemoryBrief(selectMemories(memories, String(args.query)))].filter(Boolean).join("\n\n") };
-    }
-    const { data, error } = await admin.rpc("maro_mcp_search_memories", { p_user: actor.userId, p_workspace: workspaceId, p_query: args.query, p_limit: args.limit ?? 10 });
-    if (error) throw new Error("SERVICE_UNAVAILABLE");
+    const memories = activeMemories(await loadStudioMemories(actor.userId, workspaceId));
+    const terms = String(args.query).toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    const found = memories.filter(memory => terms.every(term => `${memory.metadata.title} ${memory.content} ${memory.metadata.subject} ${memory.metadata.keywords}`.toLocaleLowerCase().includes(term))).slice(0, Number(args.limit ?? 10));
     const profile = await getWorkspaceBrainProfile(actor.userId, workspaceId);
-    return { memories: data ?? [], brand_brief: profile ? buildBrainBrief(profile) : "" };
+    return { memories: found.map(memory => ({ key: memory.key, content: memory.content, source: memory.source, revision: memory.revision, created_at: memory.createdAt, metadata: memory.metadata })), brand_brief: [profile ? buildBrainBrief(profile) : "", buildMemoryBrief(selectMemories(memories, String(args.query)))].filter(Boolean).join("\n\n") };
   }
   if (name === "get_maro_brand_history") {
     const memory = typeof args.key === "string";
@@ -67,7 +60,7 @@ export async function executeBrainTool(name: BrainToolName, actor: MaroMcpActor,
     const items = (data ?? []) as unknown as Record<string, unknown>[];
     // Logo object identities are not needed to explain a profile change.
     const history = items.map(item => {
-      if (memory && isBrainStudioOwner(actor.userId)) {
+      if (memory) {
         const card = memoryFromRow(item);
         if (card) return { ...item, content: card.content, metadata: card.metadata };
       }
@@ -80,7 +73,7 @@ export async function executeBrainTool(name: BrainToolName, actor: MaroMcpActor,
     return { history, next_before_revision: history.length === Number(args.limit ?? 10) ? history.at(-1)?.revision : null };
   }
   const params = { p_user: actor.userId, p_workspace: workspaceId, p_expected: args.expected_revision };
-  if (name === "save_maro_brand_memory" && isBrainStudioOwner(actor.userId)) {
+  if (name === "save_maro_brand_memory") {
     const existing = (await loadStudioMemories(actor.userId, workspaceId)).find(memory => memory.key === args.key);
     if (existing) {
       try { args.content = encodeMemoryCard(String(args.content), existing.metadata); }

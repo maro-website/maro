@@ -5,7 +5,6 @@ import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured } from "@/
 import { requireBrainAccess, AccountPolicyError } from "@/lib/workspaces/accountPolicyServer";
 import { readJsonBody } from "@/lib/security/requestLimits";
 import { checkRateLimit } from "@/lib/security/rateLimit";
-import { canUseBrainStudio } from "./pilot";
 import { libraryRequestSchema, clearRequestSchema } from "./operations";
 import { normalizeBrainProfile } from "@/lib/workspaces/brainProfile";
 import type { WorkspaceBrainProfile } from "@/lib/workspaces/brainTypes";
@@ -34,7 +33,6 @@ export async function handleStudioLibrary(req: Request, clear = false) {
     if (!supabaseServerConfigured()) return reply({ error: "unavailable" }, 503);
     const user = await getUserFromToken(req.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1] || null);
     if (!user) return reply({ error: "unauthorized" }, 401);
-    if (!canUseBrainStudio(user)) return reply({ error: "not_found" }, 404);
     let workspaceId: string;
     let input: unknown;
     if (req.method === "GET" && !clear) {
@@ -84,7 +82,7 @@ export async function handleStudioLibrary(req: Request, clear = false) {
         : await admin.rpc("maro_studio_library", { ...common, p_reset: data.resetAt, p_action: data.operation.action, p_payload: data.operation });
       if (result.error) {
         await discardUpload();
-        const code = ["BRAIN_REFRESH_REQUIRED", "BRAND_CONFLICT", "SOURCE_CONFLICT", "BRAIN_PLAN_REQUIRED", "FOLDER_NOT_FOUND", "SOURCE_LIMIT", "INVALID_REQUEST", "PILOT_REQUIRED"].find(code => result.error.message.includes(code));
+        const code = ["BRAIN_REFRESH_REQUIRED", "BRAND_CONFLICT", "SOURCE_CONFLICT", "BRAIN_PLAN_REQUIRED", "FOLDER_NOT_FOUND", "SOURCE_LIMIT", "INVALID_REQUEST"].find(code => result.error.message.includes(code));
         return reply({ error: code?.toLowerCase() || "unavailable" }, code?.includes("CONFLICT") || code === "BRAIN_REFRESH_REQUIRED" ? 409 : code === "BRAIN_PLAN_REQUIRED" ? 403 : code === "INVALID_REQUEST" || code === "SOURCE_LIMIT" ? 422 : 503);
       }
       cleanupPending = await flushStudioFiles(user.id, workspaceId, result.data?.paths);

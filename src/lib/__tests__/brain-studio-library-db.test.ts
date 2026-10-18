@@ -30,13 +30,28 @@ async function setup() {
   await db.exec(`insert into maro_brain_memories(workspace_id,owner_id,memory_key,content,source) values('ws_test','${owner}','fact','Keep memory','Manual');
     insert into storage.objects values('generations','${prefix}logo.png','{"size":100}',null),('generations','${prefix}photo.png','{"size":200}',null),('generations','${prefix}orphan.png','{"size":300}',null),('generations','${owner}/job/generated.png','{"size":400}',null);
     insert into workspace_sources(id,workspace_id,owner_id,name,keywords,file_url) values('source','ws_test','${owner}','Photo','test','storage:generations/${prefix}photo.png');`);
+  await db.exec(readFileSync("supabase/migrations/0073_brain_studio_public_rollout.sql","utf8"));
   return db;
 }
 const library = (db:PGlite,action:string,payload:unknown,reset:string|null=null,workspace="ws_test") => db.query("select maro_studio_library($1,$2,$3,$4,$5)",[owner,workspace,reset,action,payload]);
 const clear = (db:PGlite,section:string,expected:unknown=profile,ids:string[]=["source"]) => db.query("select maro_studio_clear($1,'ws_test',null,$2,$3,$4)",[owner,section,expected,ids]);
 const count = async(db:PGlite,table:string) => Number((await db.query<{n:number}>(`select count(*) n from ${table}`)).rows[0].n);
 
-describe("private Brain library and irreversible category clears", () => {
+describe("Brain library and irreversible category clears", () => {
+  it.each(["standard","pro"])("allows a different %s member to manage only their own Brain after rollout", async plan => {
+    const db=await setup();try {
+      await db.query("insert into memberships values($1,$2,now()-interval '1 day',now()+interval '29 days',false)",[other,plan]);
+      await db.query("select maro_studio_lock($1,'ws_foreign',null)",[other]);
+      await db.query("select maro_studio_library($1,'ws_foreign',null,'create_folder',$2)",[other,{id:"member_folder",name:"My products"}]);
+      await db.query("select maro_studio_remember($1,'ws_foreign',null,'rule','Member-owned rule','Manual',0)",[other]);
+      expect((await db.query("select owner_id,name from maro_brain_folders where id='member_folder'")).rows).toEqual([{owner_id:other,name:"My products"}]);
+      expect((await db.query("select owner_id,content from maro_brain_memories where workspace_id='ws_foreign'")).rows).toEqual([{owner_id:other,content:"Member-owned rule"}]);
+      await expect(db.query("select maro_studio_library($1,'ws_test',null,'create_folder',$2)",[other,{id:"bad",name:"Foreign"}])).rejects.toThrow(/WORKSPACE_NOT_FOUND/i);
+      await db.query("select maro_studio_clear($1,'ws_foreign',null,'target','{}'::jsonb,array[]::text[])",[other]);
+      expect((await db.query("select brain_profile from workspaces where id='ws_test'")).rows).toEqual([{brain_profile:profile}]);
+      expect((await db.query("select content from maro_brain_memories where workspace_id='ws_test'")).rows).toEqual([{content:"Keep memory"}]);
+    }finally{await db.close();}
+  });
   it("adds storage-backed sources and scoped folders, preserving all data during migration", async() => {
     const db=await setup();try {
       expect(await count(db,"workspace_sources")).toBe(1); expect(await count(db,"maro_brain_memories")).toBe(1);
@@ -49,10 +64,10 @@ describe("private Brain library and irreversible category clears", () => {
       expect(await count(db,"storage.objects")).toBe(4);
     } finally{await db.close();}
   });
-  it("denies foreign workspaces, wrong pilot identities, unpaid writes, unsafe refs and cross-workspace folders",async()=>{
+  it("denies foreign workspaces, unpaid writes, unsafe refs and cross-workspace folders",async()=>{
     const db=await setup();try{
       await expect(library(db,"create_folder",{id:"x",name:"No"},null,"ws_foreign")).rejects.toThrow(/workspace_not_found/i);
-      await expect(db.query("select maro_studio_lock($1,'ws_foreign',null)",[other])).rejects.toThrow("PILOT_REQUIRED");
+      await expect(db.query("select maro_studio_lock($1,'ws_foreign',null)",[other])).rejects.toThrow("BRAIN_PLAN_REQUIRED");
       await library(db,"create_folder",{id:"foreign-folder",name:"Other"},null,"ws_second");
       await expect(library(db,"move_sources",{ids:["source"],folderId:"foreign-folder"})).rejects.toThrow("FOLDER_NOT_FOUND");
       for(const ref of [`storage:generations/${other}/workspace-assets/ws_test/file.png`,`storage:generations/${prefix}missing.png`,`storage:generations/${prefix}../job/generated.png`]){

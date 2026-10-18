@@ -39,10 +39,8 @@ import { fetchAccountPolicy } from "@/lib/workspaces/accountPolicyClient";
 import type { AccountPolicy } from "@/lib/workspaces/accountPolicy";
 import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
 import planStyle from "./BrainPlanNotice.module.css";
-import { canFetchBrand } from "@/lib/brain-fetch/types";
-import { FetchBrandPilot } from "./FetchBrandPilot";
+import { FetchBrand } from "./FetchBrand";
 import { BrainStudio, type StudioTab } from "./BrainStudio";
-import { canUseBrainStudio } from "@/lib/brain-studio/pilot";
 import { clearStudio } from "@/lib/brain-studio/libraryClient";
 import type { BrainClearSection } from "@/lib/brain-studio/operations";
 
@@ -159,7 +157,7 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange, studioTab, onStudioTabC
   const { toast } = useToast();
   const workspaceId = activeWorkspace?.id;
   const userId = user?.id;
-  const studio = canUseBrainStudio(user);
+  const studio = Boolean(userId);
 
   const [tab, setTab] = React.useState<BrainTabId>("brand");
   const [profile, setProfileState] = React.useState<WorkspaceBrainProfile>(() =>
@@ -305,7 +303,7 @@ function BrainWorkspaceEditor({ resetAt, onPolicyChange, studioTab, onStudioTabC
     );
   }
 
-  if (canUseBrainStudio(user) && workspaceId) return <BrainStudio
+  if (workspaceId) return <BrainStudio
     profile={profile} setProfile={setProfile} workspaceId={workspaceId} workspaceName={activeWorkspace?.name ?? "Brendi yt"}
     workspaces={workspaces} onWorkspaceChange={id => { void setActiveWorkspace(id).catch(error => toast(workspaceErrorMessage(error, "Workspace nuk u aktivizua."), "error")); }}
     resetAt={resetAt ?? null} sources={sources} loading={loading} loadError={loadError} onRetry={() => setLoadAttempt(value => value + 1)}
@@ -479,7 +477,7 @@ function BrandTab({
 
   return (
     <div className="space-y-8">
-      {showFetch && canFetchBrand(currentUser?.id) && <FetchBrandPilot workspaceId={workspaceId} profile={profile} setProfile={setProfile} />}
+      {showFetch && currentUser?.id && <FetchBrand workspaceId={workspaceId} profile={profile} setProfile={setProfile} />}
       <SectionTitle>Informatat</SectionTitle>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Emri">

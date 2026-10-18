@@ -1,6 +1,6 @@
 import type { WorkspaceBrainProfile } from "@/lib/workspaces/brainTypes";
 
-/** Existing pilot imports predate the explicit marker. Preserve their completed state. */
+/** Existing imports predate the explicit marker. Preserve their completed state. */
 export function hasBrandImport(profile: WorkspaceBrainProfile): boolean {
   const brand = profile.brand;
   return Boolean(brand.fetchBrandImportedAt || (brand.name.trim() && brand.website.trim() && brand.logoStorageRef));

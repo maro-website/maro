@@ -5,7 +5,6 @@ import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured } from "@/
 import { AccountPolicyError, requireBrainAccess } from "@/lib/workspaces/accountPolicyServer";
 import { readJsonBody } from "@/lib/security/requestLimits";
 import { checkRateLimit } from "@/lib/security/rateLimit";
-import { canUseBrainStudio } from "./pilot";
 import { memoryFromRow, memoryMetadataSchema, encodeMemoryCard, type BrainMemory } from "./memories";
 
 const workspaceId = z.string().trim().min(1).max(160);
@@ -30,7 +29,6 @@ export async function handleStudioMemories(req: Request) {
     const token = req.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1] ?? null;
     const user = await getUserFromToken(token);
     if (!user) return response({ error: "unauthorized" }, 401);
-    if (!canUseBrainStudio(user)) return response({ error: "not_found" }, 404);
     let input: z.infer<typeof saveSchema> | null = null;
     let id: string;
     if (req.method === "GET") {
@@ -56,7 +54,7 @@ export async function handleStudioMemories(req: Request) {
       try { content = encodeMemoryCard(input.content, input.metadata); } catch { return response({ error: "memory_too_long" }, 422); }
       const saved = await getSupabaseAdmin().rpc("maro_studio_remember", { p_user: user.id, p_workspace: id, p_reset: input.resetAt, p_key: input.key, p_content: content, p_source: "Shkruar manualisht në maroBrain", p_expected: input.expectedRevision });
       if (saved.error) {
-        const code = ["MEMORY_CONFLICT", "MEMORY_LIMIT", "BRAIN_REFRESH_REQUIRED", "BRAIN_PLAN_REQUIRED", "WORKSPACE_NOT_FOUND", "INVALID_REQUEST", "PILOT_REQUIRED"].find(value => saved.error.message.includes(value));
+        const code = ["MEMORY_CONFLICT", "MEMORY_LIMIT", "BRAIN_REFRESH_REQUIRED", "BRAIN_PLAN_REQUIRED", "WORKSPACE_NOT_FOUND", "INVALID_REQUEST"].find(value => saved.error.message.includes(value));
         return response({ error: code?.toLowerCase() ?? "unavailable" }, code === "MEMORY_CONFLICT" || code === "BRAIN_REFRESH_REQUIRED" ? 409 : code === "BRAIN_PLAN_REQUIRED" ? 403 : code === "MEMORY_LIMIT" ? 422 : 503);
       }
     }

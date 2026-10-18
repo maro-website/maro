@@ -1,9 +1,5 @@
 import type { WorkspaceBrainProfile } from "@/lib/workspaces/brainTypes";
 
-// Private Railway pilot. Public rollout requires an explicit code change.
-export const BRAND_FETCH_PILOT_USER_ID = "fec01baa-8451-4112-84fb-8552f8b31686";
-export const canFetchBrand = (userId?: string | null) => userId === BRAND_FETCH_PILOT_USER_ID;
-
 export type ImportTextKey = "name" | "description" | "website" | "phone" | "location" | "language";
 export interface BrandFact { value: string; source: string }
 export interface BrandLogoCandidate { url: string; source: string; kind: "logo" | "icon" }

@@ -1,16 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
-import { canUseBrainStudio, BRAIN_STUDIO_OWNER } from "@/lib/brain-studio/pilot";
 import { emptyMemoryMetadata, memoryMetadataSchema, memoryFromRow, isMemoryExpired, selectMemories, buildMemoryBrief, encodeMemoryCard, type BrainMemory } from "@/lib/brain-studio/memories";
 import { buildSectionPrompt, parseSectionAnswer, applySectionAnswer, sectionFields } from "@/lib/brain-studio/prompts";
 const memory = (patch: Partial<BrainMemory> = {}): BrainMemory => ({ key: "one", revision: 1, content: "Emrat e produkteve mbeten në origjinal.", source: "Manual", createdAt: "2026-10-16T00:00:00Z", metadata: { ...emptyMemoryMetadata(), title: "Emrat", kind: "rule" }, ...patch });
-describe("private Brain Studio and handoff", () => {
-  it("requires both the exact owner id and account email", () => {
-    expect(canUseBrainStudio({ id: BRAIN_STUDIO_OWNER, email: "erzen@nice.al" })).toBe(true);
-    expect(canUseBrainStudio({ id: "other", email: "erzen@nice.al" })).toBe(false);
-    expect(canUseBrainStudio({ id: BRAIN_STUDIO_OWNER, email: "other@example.test" })).toBe(false);
-    expect(canUseBrainStudio(null)).toBe(false);
-  });
+describe("Brain Studio and handoff", () => {
   it("copies section formats and brand data without private image links", () => {
     const profile = emptyBrainProfile(); profile.brand.name = "Test"; profile.brand.logoUrl = "https://private.example/signed?token=secret"; profile.brand.logoStorageRef = "storage:generations/private";
     for (const section of ["brand", "target", "goal", "market", "content"] as const) {

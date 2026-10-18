@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractBrandPage, publicLink } from "@/lib/brain-fetch/extract";
-import { applyFetchedBrand, canFetchBrand, BRAND_FETCH_PILOT_USER_ID, type FetchedBrand } from "@/lib/brain-fetch/types";
+import { applyFetchedBrand, type FetchedBrand } from "@/lib/brain-fetch/types";
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
 
 describe("Fetch Brand evidence extraction", () => {
@@ -33,9 +33,5 @@ describe("Fetch Brand evidence extraction", () => {
     const merged = applyFetchedBrand(profile, result, ["name", "channels", "colors", "logo"], { url: "signed-url", storageRef: "storage:generations/private/logo.png" });
     expect(merged.brand.channels).toHaveLength(2); expect(merged.brand.name).toBe("Imported"); expect(merged.brand.logoStorageRef).toBe("storage:generations/private/logo.png");
     expect(profile.brand.name).toBe("Existing"); expect(profile.brand.channels).toHaveLength(1);
-  });
-  it("has no public or email-based client override", () => {
-    expect(canFetchBrand(BRAND_FETCH_PILOT_USER_ID)).toBe(true);
-    for (const id of [undefined, null, "", "erzen@nice.al", "another-user"]) expect(canFetchBrand(id)).toBe(false);
   });
 });

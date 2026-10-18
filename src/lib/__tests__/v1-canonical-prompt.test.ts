@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { modelRow, imazhRequest, logoRequest } from "./helpers/v1ImageFixtures";
 import { parseV1ImageRequest, resolveV1ImageRequest } from "@/lib/generation/v1ImageRequest";
 import { buildCanonicalImagePrompt, compileTrustedImageRequest, loadProductionImagePrompt, promptHash, type ProductionImagePrompt } from "@/lib/generation/v1ImagePrompt";
-import { BRAIN_STUDIO_OWNER } from "@/lib/brain-studio/pilot";
 import { emptyMemoryMetadata } from "@/lib/brain-studio/memories";
 
 const mocks = vi.hoisted(() => ({ draft: null as Record<string, unknown> | null, systems: [] as unknown[], layers: [] as unknown[], brain: vi.fn(), brand: vi.fn(), sources: vi.fn(), reference: vi.fn(), memories: vi.fn() }));
@@ -50,24 +49,23 @@ beforeEach(() => {
 });
 
 describe("canonical Imazh", () => {
-  it("includes bounded active pilot memories only with explicit Imazh Brain opt-in", async () => {
+  it("includes bounded active memories for every account only with explicit Imazh Brain opt-in", async () => {
     const input = await trusted({ ...imazhRequest, useWorkspaceBrand: true });
     mocks.brain.mockResolvedValue({ brand: { logoUrl: null } });
     const card = { key: "names", revision: 1, content: "KEEP_PRODUCT_NAMES", source: "Manual", createdAt: "2026-10-16T00:00:00Z", metadata: { ...emptyMemoryMetadata(), title: "Product names", kind: "rule" as const } };
     mocks.memories.mockResolvedValue([card, { ...card, key: "archived", content: "ARCHIVED_MUST_NOT_LEAK", metadata: { ...card.metadata, archived: true } }, { ...card, key: "expired", content: "EXPIRED_MUST_NOT_LEAK", metadata: { ...card.metadata, expiresOn: "2000-01-01" } }]);
-    const pilot = { ...input, snapshot: { ...input.snapshot, userId: BRAIN_STUDIO_OWNER } };
-    const result = await compileTrustedImageRequest(pilot);
+    const active = input;
+    const result = await compileTrustedImageRequest(active);
     expect(result.compilation.prompt).toContain("KEEP_PRODUCT_NAMES"); expect(result.compilation.prompt).not.toContain("MUST_NOT_LEAK");
-    expect(mocks.memories).toHaveBeenCalledWith(BRAIN_STUDIO_OWNER, "owned-workspace");
+    expect(mocks.memories).toHaveBeenCalledWith(input.snapshot.userId, "owned-workspace");
     mocks.memories.mockClear();
-    await compileTrustedImageRequest(input);
-    await compileTrustedImageRequest({ ...pilot, snapshot: { ...pilot.snapshot, useBrain: false } });
+    await compileTrustedImageRequest({ ...active, snapshot: { ...active.snapshot, useBrain: false } });
     mocks.systems = [configuration("maro_logo").system];
     await compileTrustedImageRequest(await trusted({ ...logoRequest() }));
     expect(mocks.memories).not.toHaveBeenCalled();
     mocks.systems = [configuration().system];
     mocks.memories.mockRejectedValueOnce(new Error("private database detail"));
-    await expect(compileTrustedImageRequest(pilot)).rejects.toThrow("brain_memory_unavailable");
+    await expect(compileTrustedImageRequest(active)).rejects.toThrow("brain_memory_unavailable");
   });
   it("keeps all ten user references in the executable image payload and provenance", async () => {
     const attachments = Array.from({ length: 10 }, (_, index) => `storage:generations/owner/project-assets/${index}.png`);

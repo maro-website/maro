@@ -25,7 +25,7 @@ const messages: Record<string, string> = {
   brain_plan_required: "Për Fetch Brand të duhet një plan aktiv me maroBrain.",
   unsupported_logo: "Kjo logo nuk u lexua. Zgjidh një tjetër ose ngarkoje manualisht.",
   unauthorized: "Hyr përsëri në llogari dhe provo sërish.",
-  not_found: "Fetch Brand ende nuk është i disponueshëm për këtë llogari.",
+  not_found: "Workspace-i nuk u gjet. Rifresko faqen dhe provo përsëri.",
 };
 async function requestImport<T>(workspaceId: string, url: string, kind: "profile" | "logo", signal: AbortSignal): Promise<T> {
   const token = await getAccessToken();
@@ -36,7 +36,7 @@ async function requestImport<T>(workspaceId: string, url: string, kind: "profile
   return data as T;
 }
 
-export function FetchBrandPilot({ workspaceId, profile, setProfile, onApplied }: { workspaceId: string; profile: WorkspaceBrainProfile; setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>; onApplied?: () => void }) {
+export function FetchBrand({ workspaceId, profile, setProfile, onApplied }: { workspaceId: string; profile: WorkspaceBrainProfile; setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>; onApplied?: () => void }) {
   const [url, setUrl] = React.useState("");
   const [result, setResult] = React.useState<FetchedBrand | null>(null);
   const [step, setStep] = React.useState(1);
@@ -101,7 +101,7 @@ export function FetchBrandPilot({ workspaceId, profile, setProfile, onApplied }:
     finally { applyingRef.current = false; if (alive.current) setApplying(false); }
   };
   return <section className="mb-8 space-y-3 rounded-maro16 bg-surface-2 p-4 sm:p-5" aria-labelledby="fetch-brand-title">
-    <div className="flex flex-wrap items-center gap-2"><h2 id="fetch-brand-title" className="text-base font-semibold text-ink">Fetch Brand</h2><span className="rounded-full bg-surface px-2 py-1 text-xs text-ink-2">Pilot privat</span></div>
+    <div className="flex flex-wrap items-center gap-2"><h2 id="fetch-brand-title" className="text-base font-semibold text-ink">Fetch Brand</h2></div>
     <p className="text-sm leading-relaxed text-ink-2">Jep website-in e biznesit dhe kontrollo të dhënat para se t’i shtosh në maroBrain.</p>
     <form className="flex flex-col gap-3 sm:flex-row" onSubmit={event => { event.preventDefault(); void run(); }}>
       <label className="min-w-0 flex-1"><span className="sr-only">Website ose profil publik</span><input className="maro-input w-full" placeholder="website.com" value={url} onChange={event => setUrl(event.target.value)} maxLength={2048} disabled={busy} autoComplete="off" inputMode="url" /></label>

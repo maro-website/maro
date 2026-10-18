@@ -6,23 +6,22 @@ vi.mock("@/lib/security/rateLimit",()=>({checkRateLimit:mocks.rate}));
 import { GET, POST } from "@/app/api/brain/library/route";
 import { POST as CLEAR } from "@/app/api/brain/clear/route";
 import { flushStudioFiles } from "@/lib/brain-studio/libraryServer";
-import { BRAIN_STUDIO_OWNER } from "@/lib/brain-studio/pilot";
-const owner=BRAIN_STUDIO_OWNER,workspaceId="ws_test",prefix=`${owner}/workspace-assets/${workspaceId}/`;
+const MEMBER_ID = "11111111-aaaa-4111-8111-111111111111";
+const owner=MEMBER_ID,workspaceId="ws_test",prefix=`${owner}/workspace-assets/${workspaceId}/`;
 const base={workspaceId,resetAt:null,operation:{action:"create_folder",id:"folder",name:"Products"}};
 const req=(input?:unknown)=>new Request(`https://maro.al/api/brain/library?workspaceId=${workspaceId}`,{method:input?"POST":"GET",headers:{Authorization:"Bearer fixture","Content-Type":"application/json"},...(input?{body:JSON.stringify(input)}:{})});
 let workspace:Record<string,ReturnType<typeof vi.fn>>,folders:Record<string,ReturnType<typeof vi.fn>>,queue:Record<string,ReturnType<typeof vi.fn>>;
 beforeEach(()=>{
-  vi.resetAllMocks();mocks.configured.mockReturnValue(true);mocks.user.mockResolvedValue({id:owner,email:"erzen@nice.al"});mocks.policy.mockResolvedValue({brainAccess:true,brainResetAt:null});mocks.rate.mockResolvedValue({allowed:true});mocks.rpc.mockResolvedValue({data:{paths:[]},error:null});
+  vi.resetAllMocks();mocks.configured.mockReturnValue(true);mocks.user.mockResolvedValue({id:owner,email:"member@example.test"});mocks.policy.mockResolvedValue({brainAccess:true,brainResetAt:null});mocks.rate.mockResolvedValue({allowed:true});mocks.rpc.mockResolvedValue({data:{paths:[]},error:null});
   workspace={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:{id:workspaceId},error:null})};
   folders={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),order:vi.fn().mockResolvedValue({data:[{id:"folder",name:"Products"}],error:null})};
   queue={delete:vi.fn().mockReturnThis(),in:vi.fn().mockResolvedValue({error:null})};mocks.from.mockImplementation(table=>table==="workspaces"?workspace:table==="maro_brain_folders"?folders:queue);
   mocks.remove.mockResolvedValue({error:null});mocks.storage.mockReturnValue({remove:mocks.remove});
 });
-describe("private Brain library API",()=>{
-  it.each([GET,POST,CLEAR])("rejects guests and non-pilot identities before data access",async handler=>{
+describe("workspace-owned Brain library API",()=>{
+  it.each([GET,POST,CLEAR])("rejects guests and unavailable setup before data access",async handler=>{
     mocks.user.mockResolvedValueOnce(null);expect((await handler(req(base))).status).toBe(401);
-    mocks.user.mockResolvedValueOnce({id:"other",email:"erzen@nice.al"});expect((await handler(req(base))).status).toBe(404);
-    mocks.user.mockResolvedValueOnce({id:owner,email:"wrong@test.invalid"});expect((await handler(req(base))).status).toBe(404);expect(mocks.from).not.toHaveBeenCalled();
+    mocks.configured.mockReturnValue(false);expect((await handler(req(base))).status).toBe(503);expect(mocks.from).not.toHaveBeenCalled();
   });
   it("returns only scoped folders and no-store responses after checking ownership/plan",async()=>{
     const response=await GET(req());expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("no-store");expect(workspace.eq).toHaveBeenCalledWith("owner_id",owner);expect(folders.eq).toHaveBeenCalledWith("workspace_id",workspaceId);expect(mocks.policy).toHaveBeenCalledWith(owner,workspaceId);

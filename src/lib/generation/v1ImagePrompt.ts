@@ -1,7 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin, getWorkspaceBrainProfile, getWorkspaceBrand, getWorkspaceSources } from "@/lib/supabase/server";
-import { isBrainStudioOwner } from "@/lib/brain-studio/pilot";
 import { loadStudioMemories } from "@/lib/brain-studio/server";
 import { selectMemories, buildMemoryBrief } from "@/lib/brain-studio/memories";
 import { buildBrainBrief, buildMatchedSourcesBrief, matchSourcesByPrompt } from "@/lib/workspaces/brainProfile";
@@ -121,10 +120,8 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
       const orderedSources = [...sources].sort((a, b) => a.createdAt === b.createdAt ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : a.createdAt > b.createdAt ? -1 : 1);
       const matched = matchSourcesByPrompt(request.prompt, orderedSources);
       let memoryText = "";
-      if (isBrainStudioOwner(request.userId)) {
-        try { memoryText = buildMemoryBrief(selectMemories(await loadStudioMemories(request.userId, request.workspaceId), request.prompt)); }
-        catch { throw new ImageRequestValidationError("brain_memory_unavailable", 503); }
-      }
+      try { memoryText = buildMemoryBrief(selectMemories(await loadStudioMemories(request.userId, request.workspaceId), request.prompt)); }
+      catch { throw new ImageRequestValidationError("brain_memory_unavailable", 503); }
       context.brainText = [buildBrainBrief(brain), memoryText, matched.length ? buildMatchedSourcesBrief(matched) : ""].filter(Boolean).join("\n\n");
       urls.push(...matched.map((s) => s.fileUrl).filter(Boolean));
       if (brain.brand.logoUrl) urls.push(brain.brand.logoUrl);

@@ -8,7 +8,7 @@ import { parseAccountPolicy } from "@/lib/workspaces/accountPolicy";
 import { hasBrandImport, compactBrandLocation } from "@/lib/brain-studio/presentation";
 
 describe("private Brain refresh data", () => {
-  it("remembers applied imports across profile reloads while recognizing the existing private pilot imports", () => {
+  it("remembers applied imports across profile reloads while recognizing the existing imports", () => {
     const fresh=emptyBrainProfile(); expect(hasBrandImport(fresh)).toBe(false);
     fresh.brand.website="https://website.example"; expect(hasBrandImport(fresh)).toBe(false);
     const imported=normalizeBrainProfile({...fresh,brand:{...fresh.brand,fetchBrandImportedAt:"2026-10-18T10:00:00Z"}});
