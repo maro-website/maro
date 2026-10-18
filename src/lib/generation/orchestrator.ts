@@ -1,4 +1,5 @@
 import "server-only";
+import { isVerifiedMcpImageRequest } from "@/lib/mcp/internalRequest";
 import { IMAZH_REQUEST_PROMPT_MAX_CHARS } from "./imagePromptValidation";
 import type { ImageProviderObservation } from "@/lib/ai/imageObservation";
 import { generationAvailabilityError } from "@/lib/modules/availability";
@@ -185,7 +186,7 @@ export async function prepareGeneration(input: PrepareGenerationInput): Promise<
     throw new GenerationGuardError(503, "no-supabase", "Supabase required for generation");
   }
 
-  const user = await getUserFromToken(bearer(req));
+  const user = await getUserFromToken(bearer(req), { allowMcp: isVerifiedMcpImageRequest(req) });
   if (!user) {
     throw new GenerationGuardError(401, "unauthorized");
   }
