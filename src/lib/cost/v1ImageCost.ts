@@ -9,7 +9,7 @@ export const V1_IMAGE_RATES_PER_MILLION = { textInput: 5, imageInput: 8, imageOu
 export interface V1ImageCostEstimate {
   usd: number | null;
   source: "usage_calculated" | "unavailable";
-  rateVersion: typeof V1_IMAGE_RATE_VERSION;
+  rateVersion: string;
   assumptions: string[];
 }
 

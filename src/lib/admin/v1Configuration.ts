@@ -4,9 +4,10 @@ import { loadV1ImageModelRows, validateV1ModelSet, publicV1ImageModel, type V1Im
 import { knownKeys, requestObject } from "@/lib/generation/requestValidation";
 
 export function validateModelEdits(value: unknown, module: V1ImageModule, rows: unknown[]) {
-  if (!Array.isArray(value) || value.length !== (module === "maro_logo" ? 1 : 2)) throw new Error("invalid_model_set");
+  if (!Array.isArray(value) || value.length !== rows.length) throw new Error("invalid_model_set");
   const keys = value.map((v) => requestObject(v, "model").key);
   if (!keys.includes("flare") || (module === "maro_imazh" && !keys.includes("sunburst"))) throw new Error("invalid_model_set");
+  if (new Set(keys).size !== keys.length) throw new Error("invalid_model_set");
   const updated = value.map((v) => {
     const edit = requestObject(v, "model");
     knownKeys(edit, ["key", "label", "descriptor", "enabled", "isDefault", "order", "customerCredits"], "model");

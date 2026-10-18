@@ -2,6 +2,8 @@ import { denyUnavailableGeneration } from "@/lib/generation/availability";
 import { resolveProductModule } from "@/lib/modules/availability";
 import { loadV1ImageModelRows, publicV1ImageModel, validateV1ModelSet } from "@/lib/engine/v1ImageModels";
 import { ImageRequestValidationError, v1ImageValidationResponse } from "@/lib/generation/v1ImageRequest";
+import { canUseRecraft } from "@/lib/ai/recraftModels";
+import { getUserFromToken } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,9 @@ export async function GET(req: Request) {
   const productModule = resolveProductModule(toolId) === "logo" ? "maro_logo" : "maro_imazh";
   try {
     const rows = await loadV1ImageModelRows(productModule);
-    const models = validateV1ModelSet(rows, productModule).filter((m) => m.enabled);
+    const header = req.headers.get("authorization");
+    const owner = await getUserFromToken(header?.startsWith("Bearer ") ? header.slice(7) : null);
+    const models = validateV1ModelSet(rows, productModule).filter((m) => m.enabled && (m.provider !== "recraft" || canUseRecraft(owner?.email)));
     return Response.json({ models: models.sort((a, b) => a.order - b.order).map(publicV1ImageModel) }, {
       headers: { "Cache-Control": "no-store" },
     });

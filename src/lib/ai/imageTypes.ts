@@ -1,11 +1,12 @@
 import type { ImageQuality, ImageSize, ToolId } from "@/lib/tools/registry";
 import type { FortPayload } from "@/lib/fort/types";
 import type { MaroLogoWizardState } from "@/lib/marologo/types";
+import type { V1LogicalImageModel } from "@/lib/engine/v1ImageModels";
 
 export interface AiImageRequest {
   toolId: ToolId;
   prompt: string;
-  model?: "flare" | "sunburst";
+  model?: V1LogicalImageModel;
   logoWizard?: MaroLogoWizardState;
   size?: ImageSize;
   quality?: ImageQuality;

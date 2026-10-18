@@ -15,6 +15,7 @@ import { ImageRequestValidationError, knownKeys, requestBoolean, requestChoice, 
 import { IMAZH_REQUEST_PROMPT_MAX_CHARS } from "./imagePromptValidation";
 import { MOOD_ID } from "@/lib/moods/model";
 import { resolveGenerationMood } from "@/lib/moods/server";
+import { isRecraftModel, canUseRecraft } from "@/lib/ai/recraftModels";
 
 export { ImageRequestValidationError } from "./requestValidation";
 export const V1_IMAGE_REQUEST_VERSION = "v1-image-request/1";
@@ -59,7 +60,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   if (raw.model !== undefined && submitted.model !== undefined && raw.model !== submitted.model) {
     throw new ImageRequestValidationError("conflicting_model");
   }
-  if (requestedModel !== undefined && requestedModel !== "flare" && requestedModel !== "sunburst") {
+  if (requestedModel !== undefined && requestedModel !== "flare" && requestedModel !== "sunburst" && !isRecraftModel(requestedModel)) {
     throw new ImageRequestValidationError("unknown_model");
   }
   const logicalModel = requestedModel ?? (logo ? "flare" : undefined);
@@ -160,8 +161,12 @@ const dependencies = {
   resolveReference: resolvePrivateImageReference,
   loadPreset: (...args: Parameters<typeof getPromptTemplate>) => getPromptTemplate(...args),
   loadMood: resolveGenerationMood,
+  authorizeRecraft: async (userId: string) => {
+    const { data, error } = await getSupabaseAdmin().auth.admin.getUserById(userId);
+    if (error || !canUseRecraft(data.user?.email)) throw new ImageRequestValidationError("model_not_allowed", 403);
+  },
 };
-export type V1ImageRequestDependencies = Omit<typeof dependencies, "loadLogoContent" | "loadMood"> & { loadLogoContent?: () => Promise<LogoContent>; loadMood?: typeof resolveGenerationMood };
+export type V1ImageRequestDependencies = Omit<typeof dependencies, "loadLogoContent" | "loadMood" | "authorizeRecraft"> & { loadLogoContent?: () => Promise<LogoContent>; loadMood?: typeof resolveGenerationMood; authorizeRecraft?: typeof dependencies.authorizeRecraft };
 
 export interface TrustedV1ImageRequest extends Omit<ParsedV1ImageRequest, "requestedWorkspaceId" | "referenceIds"> {
   logicalModel: V1LogicalImageModel;
@@ -194,6 +199,7 @@ export async function resolveV1ImageRequest(
   if (!userId) throw new ImageRequestValidationError("unauthorized", 401);
   // Clone caller-owned inputs so freezing this generation never freezes UI/test/source objects.
   const input = structuredClone(parsed);
+  if (isRecraftModel(input.logicalModel)) await (deps.authorizeRecraft ?? dependencies.authorizeRecraft)(userId);
   const mood = input.moodId ? await (deps.loadMood ?? resolveGenerationMood)(userId, input.moodId) : undefined;
   const model = resolveV1ImageModel(await deps.loadModels(input.module), input.module, input.logicalModel);
   if (input.logoWizard && deps.loadLogoContent) {

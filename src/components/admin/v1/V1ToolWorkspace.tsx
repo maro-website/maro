@@ -46,13 +46,13 @@ export function V1ToolWorkspace({ toolId }: { toolId: "maro_imazh" | "maro_logo"
     <Section title="Models & credits">
       {!models.length && <p>Model configuration unavailable.</p>}
       {models.map((m) => <fieldset key={m.key} disabled={busy} className="grid gap-3 rounded-xl border border-line p-4 sm:grid-cols-2 lg:grid-cols-3">
-        <legend className="px-2 font-semibold">{m.key === "flare" ? "Flare" : "Sunburst"} · OpenAI</legend>
+        <legend className="px-2 font-semibold">{m.label} · {m.key.startsWith("recraft") ? "Recraft · Private: erzen@nice.al" : "OpenAI"}</legend>
         <Labeled label="Display name"><input className={inputClass} maxLength={80} value={m.label} onChange={(e) => patchModel(m.key, { label: e.target.value })} /></Labeled>
         <Labeled label="Descriptor"><input className={inputClass} maxLength={240} value={m.descriptor} onChange={(e) => patchModel(m.key, { descriptor: e.target.value })} /></Labeled>
         <Labeled label="Customer credits"><input type="number" min={1} step={1} className={inputClass} value={m.customerCredits} onChange={(e) => patchModel(m.key, { customerCredits: Number(e.target.value) })} /></Labeled>
         <Labeled label="Order"><input type="number" min={0} step={1} className={inputClass} value={m.order} onChange={(e) => patchModel(m.key, { order: Number(e.target.value) })} /></Labeled>
         <label className="flex items-center gap-2"><input type="checkbox" disabled={toolId === "maro_logo"} checked={m.enabled} onChange={(e) => patchModel(m.key, { enabled: e.target.checked })} />Enabled</label>
-        <label className="flex items-center gap-2"><input type="radio" name="default-model" disabled={!m.enabled || toolId === "maro_logo"} checked={m.isDefault} onChange={() => patchModel(m.key, { isDefault: true })} />Default</label>
+        <label className="flex items-center gap-2"><input type="radio" name="default-model" disabled={!m.enabled || toolId === "maro_logo" || m.key.startsWith("recraft")} checked={m.isDefault} onChange={() => patchModel(m.key, { isDefault: true })} />Default</label>
       </fieldset>)}
       <Action disabled={busy || !models.length} onClick={() => void act(async () => { const result = await adminRequest<{ models: Model[] }>(`${base}/models`, "POST", { models }); setModels(result.models); }, "Production model configuration saved. New requests use these prices and defaults.")}>Save production models</Action>
       <p className="text-xs text-ink-3">Exactly one enabled default is required. Provider identities are fixed. Changes apply to new requests; existing jobs keep their saved price.</p>

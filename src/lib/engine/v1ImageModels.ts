@@ -2,9 +2,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { ImageRequestValidationError } from "@/lib/generation/requestValidation";
+import { isRecraftModel, RECRAFT_MODELS, type RecraftModelId } from "@/lib/ai/recraftModels";
 
 export type V1ImageModule = "maro_imazh" | "maro_logo";
-export type V1LogicalImageModel = "flare" | "sunburst";
+export type V1LogicalImageModel = "flare" | "sunburst" | RecraftModelId;
+export const V1_IMAGE_MODEL_IDS: V1LogicalImageModel[] = ["flare", "sunburst", ...RECRAFT_MODELS.map((m) => m.id)];
 
 /** Supported identifiers, not a fallback configuration or a price list. */
 export const V1_IMAGE_PROVIDER_IDS = {
@@ -16,7 +18,7 @@ export interface V1ImageModelConfiguration {
   id: string;
   module: V1ImageModule;
   logicalModel: V1LogicalImageModel;
-  provider: "openai";
+  provider: "openai" | "recraft";
   providerModelId: string;
   enabled: boolean;
   isDefault: boolean;
@@ -42,11 +44,13 @@ function requestObject(value: unknown, field: string): Record<string, unknown> {
 export function readV1ImageModelConfiguration(value: unknown, module: V1ImageModule): V1ImageModelConfiguration {
   const row = requestObject(value, "modelConfiguration");
   const logicalModel = row.model_id;
-  if (row.tool_id !== module || (logicalModel !== "flare" && logicalModel !== "sunburst") ||
+  if (row.tool_id !== module || (logicalModel !== "flare" && logicalModel !== "sunburst" && !isRecraftModel(logicalModel)) ||
       (module === "maro_logo" && logicalModel !== "flare")) invalidConfig("model_id");
   const metadata = requestObject(row.metadata, "metadata");
   const cost = requestObject(row.cost_metadata, "cost_metadata");
-  if (row.provider !== "openai" || metadata.providerModelId !== V1_IMAGE_PROVIDER_IDS[logicalModel]) invalidConfig("providerModelId");
+  const recraft = isRecraftModel(logicalModel);
+  if (row.provider !== (recraft ? "recraft" : "openai") || metadata.providerModelId !== (recraft ? logicalModel : V1_IMAGE_PROVIDER_IDS[logicalModel as "flare" | "sunburst"])) invalidConfig("providerModelId");
+  if (recraft && row.is_default !== false) invalidConfig("default_model");
   if (typeof row.enabled !== "boolean" || typeof row.coming_soon !== "boolean") invalidConfig("enabled");
   if (typeof row.is_default !== "boolean") invalidConfig("is_default");
   if (typeof row.id !== "string" || !row.id || typeof row.updated_at !== "string" || !row.updated_at) invalidConfig("id/updated_at");
@@ -59,7 +63,7 @@ export function readV1ImageModelConfiguration(value: unknown, module: V1ImageMod
   if (cost.pricingStage !== "internal" && cost.pricingStage !== "launch") invalidConfig("pricingStage");
   const config: Omit<V1ImageModelConfiguration, "fingerprint"> = {
     id: row.id, module, logicalModel,
-    provider: "openai" as const, providerModelId: metadata.providerModelId as string,
+    provider: recraft ? "recraft" : "openai", providerModelId: metadata.providerModelId as string,
     enabled: row.enabled && !row.coming_soon, isDefault: row.is_default,
     order: row.sort_order as number, label: row.display_name.trim(), descriptor: metadata.description,
     customerCredits: cost.customerCredits as number, pricingStage: cost.pricingStage,
@@ -72,7 +76,7 @@ export async function loadV1ImageModelRows(module: V1ImageModule): Promise<unkno
   try {
     const { data, error } = await getSupabaseAdmin().from("tool_model_configs")
       .select("id,tool_id,model_id,provider,display_name,enabled,is_default,coming_soon,sort_order,metadata,cost_metadata,updated_at")
-      .eq("tool_id", module).in("model_id", ["flare", "sunburst"]);
+      .eq("tool_id", module).in("model_id", module === "maro_logo" ? ["flare"] : V1_IMAGE_MODEL_IDS);
     if (error || !Array.isArray(data)) throw new Error("model_config_unavailable");
     return data;
   } catch {

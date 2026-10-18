@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { estimateV1ImageCost, type V1ImageCostEstimate } from "@/lib/cost/v1ImageCost";
 
 export interface ImageProviderObservation {
-  provider: "openai";
+  provider: "openai" | "recraft";
   requestedModel: string;
   reportedModel: string | null;
   requestId: string | null;

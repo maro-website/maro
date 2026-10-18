@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(), generate: vi.fn(), edit: vi.fn(), settle: vi.fn(), brain: vi.fn(),
   models: vi.fn(), log: vi.fn(), execution: vi.fn(), compileContext: vi.fn(), shadow: vi.fn(),
   canonical: vi.fn(), trace: vi.fn(), store: vi.fn(), fail: vi.fn(), costs: vi.fn(), telemetry: vi.fn(),
+  recraft: vi.fn(), recraftKey: vi.fn(),
 }));
 vi.mock("@/lib/workspaces/accountPolicyServer", async (original) => ({
   ...await original<typeof import("@/lib/workspaces/accountPolicyServer")>(),
@@ -31,7 +32,7 @@ vi.mock("@/lib/generation/v1ImageRequest", async (original) => {
   }) };
 });
 vi.mock("@/lib/supabase/server", () => ({
-  getSupabaseAdmin: vi.fn(() => { throw new Error("Unexpected database access"); }),
+  getSupabaseAdmin: vi.fn(() => ({ auth: { admin: { getUserById: async () => ({ data: { user: await mocks.auth() }, error: null }) } } })),
   getUserFromToken: mocks.auth, supabaseServerConfigured: () => true,
   getAppSettings: vi.fn(async () => ({ tool_prompts: {}, pricing: { options: { "reklama:format:ig-post": 0 } } })),
   getWorkspaceBrainProfile: mocks.brain, getWorkspaceBrand: mocks.brain, getWorkspaceSources: mocks.brain,
@@ -43,6 +44,7 @@ vi.mock("@/lib/ai/openai", () => ({
   hasOpenAiKey: () => true, generateImages: mocks.generate, editImages: mocks.edit,
   OpenAIImageError: class extends Error {},
 }));
+vi.mock("@/lib/ai/recraft", async (original) => ({ ...await original<typeof import("@/lib/ai/recraft")>(), generateRecraftImage: mocks.recraft, hasRecraftKey: mocks.recraftKey }));
 vi.mock("@/lib/generation/orchestrator", () => ({
   prepareGeneration: mocks.prepare, settlePreparedGeneration: mocks.settle,
   recordCompletedGenerationCosts: mocks.costs,
@@ -74,6 +76,7 @@ beforeEach(() => {
   mocks.preset.mockResolvedValue(null);
   mocks.prepare.mockResolvedValue({ userId: "user", userEmail: "test@example.invalid", job: { id: "job" }, cost: 7, isFort: false });
   mocks.generate.mockResolvedValue(["BASE64"]);
+  mocks.recraft.mockResolvedValue(["BASE64"]); mocks.recraftKey.mockReturnValue(true);
   mocks.edit.mockResolvedValue(["BASE64"]);
   mocks.log.mockResolvedValue("generation");
   mocks.store.mockResolvedValue("storage:generations/user/job/output.png");
@@ -339,5 +342,46 @@ describe("safe public model projection", () => {
   it("does not reopen parked modules", async () => {
     expect((await GET(new Request("http://localhost/api/ai/image/models?toolId=web"))).status).toBe(403);
     expect(mocks.models).not.toHaveBeenCalled();
+  });
+});
+
+describe("private Recraft uses the durable production lifecycle", () => {
+  const body = { ...imazhRequest, model: "recraftv4_1", selections: { model: "recraftv4_1" } };
+  beforeEach(() => {
+    mocks.rows.push({ ...modelRow("sunburst"), model_id: "recraftv4_1", provider: "recraft", metadata: { providerModelId: "recraftv4_1", description: "Recraft" } });
+    mocks.auth.mockResolvedValue({ id: "user", email: "erzen@nice.al" });
+  });
+  it.each([null, "member@example.invalid"])("hides catalog entries and denies generation for %s before reservation", async (email) => {
+    mocks.auth.mockResolvedValue(email ? { id: "user", email } : null);
+    const list = await (await GET(new Request("http://localhost/api/ai/image/models?toolId=reklama", { headers: { Authorization: "Bearer test" } }))).json();
+    expect(list.models.map((m: { key: string }) => m.key)).toEqual(["flare", "sunburst"]);
+    const response = await request(body); expect(response.status).toBe(email ? 403 : 401);
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recraft).not.toHaveBeenCalled();
+  });
+  it("shows Recraft only to the pilot and charges the saved Engine price after durable success", async () => {
+    const list = await (await GET(new Request("http://localhost/api/ai/image/models?toolId=reklama", { headers: { Authorization: "Bearer test" } }))).json();
+    expect(list.models.map((m: { key: string }) => m.key)).toContain("recraftv4_1");
+    const text = await (await request(body)).text();
+    expect(text).toContain('"ok":true'); expect(text).toContain('"creditsSpent":7');
+    expect(mocks.prepare).toHaveBeenCalledWith(expect.objectContaining({ provider: "recraft", model: "recraftv4_1", cost: 7 }));
+    expect(mocks.recraft).toHaveBeenCalledOnce(); expect(mocks.generate).not.toHaveBeenCalled(); expect(mocks.edit).not.toHaveBeenCalled();
+    expect(mocks.store).toHaveBeenCalledOnce(); expect(mocks.log).toHaveBeenCalledOnce(); expect(mocks.settle).toHaveBeenCalledOnce();
+  });
+  it("rejects missing key or an oversized compiled prompt before financial work", async () => {
+    mocks.recraftKey.mockReturnValue(false);
+    expect((await request(body)).status).toBe(503);
+    mocks.recraftKey.mockReturnValue(true);
+    const compile = mocks.canonical.getMockImplementation()!;
+    mocks.canonical.mockImplementation(async (...args) => { const result = await compile(...args); return { ...result, compilation: { ...result.compilation, prompt: "x".repeat(10001) } }; });
+    expect((await request(body)).status).toBe(400);
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recraft).not.toHaveBeenCalled();
+  });
+  it("releases reservation on provider failure and preserves pending settlement after saved output", async () => {
+    mocks.recraft.mockRejectedValueOnce(new Error("recraft failed"));
+    expect(await (await request(body)).text()).toContain('"refunded":true'); expect(mocks.fail).toHaveBeenCalledOnce();
+    expect(mocks.generate).not.toHaveBeenCalled(); expect(mocks.edit).not.toHaveBeenCalled();
+    vi.clearAllMocks(); mocks.settle.mockResolvedValue("settlement_pending");
+    const text = await (await request(body)).text(); expect(text).toContain('"recoverable":true'); expect(text).toContain('"refunded":false');
+    expect(mocks.fail).not.toHaveBeenCalled(); expect(mocks.costs).not.toHaveBeenCalled();
   });
 });

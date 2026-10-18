@@ -25,7 +25,7 @@ export interface GenerationExecutionTelemetry {
   system_prompt_version?: string | null;
   system_prompt_status?: string | null;
   model?: string | null;
-  provider?: "anthropic" | "openai" | null;
+  provider?: "anthropic" | "openai" | "recraft" | null;
   internal_canary: boolean;
   provider_request_count: number;
   total_latency_ms?: number | null;

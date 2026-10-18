@@ -18,6 +18,7 @@ import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
 import { isVerifiedMcpImageRequest } from "@/lib/mcp/internalRequest";
+import { generateRecraftImage, hasRecraftKey, planRecraftImage, type RecraftImagePlan } from "@/lib/ai/recraft";
 
 export async function executeV1ImageApplication(req: Request) {
   const requestId = randomUUID();
@@ -36,6 +37,7 @@ export async function executeV1ImageApplication(req: Request) {
   };
   let trusted: Awaited<ReturnType<typeof resolveV1ImageRequest>>;
   let resolved: Awaited<ReturnType<typeof compileTrustedImageRequest>>;
+  let recraftPlan: RecraftImagePlan | undefined;
   try {
     const input = parseV1ImageRequest(parsed.body);
     validation.model = input.logicalModel;
@@ -52,12 +54,14 @@ export async function executeV1ImageApplication(req: Request) {
     // Validate the exact, immutable provider payload before admission/reservation.
     // No prompt transformations occur between this check and the adapter call.
     validateCompiledImagePrompt(trusted.snapshot.prompt, resolved.compilation.prompt, trusted.snapshot.model.providerModelId);
+    if (trusted.snapshot.model.provider === "recraft") recraftPlan = planRecraftImage({ model: trusted.snapshot.model.providerModelId,
+      prompt: resolved.compilation.prompt, size: resolved.compilation.size, format: trusted.snapshot.selections.format, images: resolved.images });
   } catch (error) {
     if (error instanceof AccountPolicyError) return NextResponse.json({ error: error.message, requestId }, { status: error.status });
     logImageValidation(validation, error);
     return v1ImageValidationResponse(error, requestId);
   }
-  if (!hasOpenAiKey()) return NextResponse.json({ error: "no-key" }, { status: 503 });
+  if (trusted.snapshot.model.provider === "recraft" ? !hasRecraftKey() : !hasOpenAiKey()) return NextResponse.json({ error: "no-key" }, { status: 503 });
   const snapshot = trusted.snapshot;
   const canonical = resolved.compilation;
   const userId = snapshot.userId;
@@ -96,15 +100,16 @@ export async function executeV1ImageApplication(req: Request) {
         // Required private trace before any provider spend. Never put its prompt on an owner-readable job/history row.
         await recordCanonicalImageTrace(prep.job.id, snapshot, canonical);
         await optionalImageWork("execution telemetry", () => stampJobExecutionTelemetry(prep.job.id, { effective_execution: "canonical_v1", compiler: "maro_v1_canonical",
-          provider: "openai", model, module: snapshot.registryToolId, internal_canary: false, provider_request_count: 1,
-          operation: canonical.operation, system_prompt_version: canonical.provenance.system.version,
+          provider: snapshot.model.provider, model, module: snapshot.registryToolId, internal_canary: false, provider_request_count: 1,
+          operation: recraftPlan ? recraftPlan.endpoint === "imageToImage" ? "edit" : "generate" : canonical.operation, system_prompt_version: canonical.provenance.system.version,
           system_prompt_status: "live", brain_used: canonical.provenance.brainUsed, fort_enabled: false }));
         stage = "provider_failed";
         send({ event: "generation_started", jobId: prep.job.id, requestId });
         abortScope.markProviderAttemptStarted();
         const options = { model, prompt: canonical.prompt, size: canonical.size, quality: canonical.quality, n: canonical.n,
           abortSignal: abortScope.abortSignal, onObservation };
-        const b64s = canonical.operation === "edit" ? await editImages({ ...options, images: resolved.images }) : await generateImages(options);
+        const b64s = recraftPlan ? await generateRecraftImage(recraftPlan, { abortSignal: abortScope.abortSignal, onObservation })
+          : canonical.operation === "edit" ? await editImages({ ...options, images: resolved.images }) : await generateImages(options);
         stage = "storage_failed";
         storageRef = await storeV1ImageOutput(userId, prep.job.id, b64s, observation, snapshot.selections.format);
         stage = "history_failed";

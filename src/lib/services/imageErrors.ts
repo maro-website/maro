@@ -1,5 +1,8 @@
 /** Customer-safe descriptions for the durable V1 lifecycle. */
 export const V1_IMAGE_ERRORS: Record<string, string> = {
+  recraft_style_reference_required: "Shto të paktën një imazh si referencë stili për këtë model Recraft.",
+  recraft_references_unsupported: "Recraft Flash nuk përkrah imazhe referencë. Hiqi referencat ose zgjidh një model tjetër.",
+  recraft_reference_limit: "Ky model Recraft përkrah vetëm një imazh për ndryshim. Përdor një referencë ose zgjidh Recraft Styles për referenca stili.",
   brain_plan_required: "maroBrain kërkon një plan maroStandard ose maroPro aktiv.",
   storage_quota_exceeded: "Ke arritur kufirin total të storage të planit tënd. Liro hapësirë ose ndrysho planin.",
   account_policy_unavailable: "Qasja dhe storage nuk u verifikuan. Provo përsëri më vonë.",
