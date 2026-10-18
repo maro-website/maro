@@ -42,3 +42,11 @@
 @media(prefers-reduced-motion:reduce){.signal{animation:none;opacity:.7}}
 .memoryMap{padding-left:64px}.memoryMap>.wires{width:76px;height:100%}.memoryMap .fact[data-fact=content]{margin-left:12px}
 @media(max-width:1000px){.memoryMap{padding-left:0}.memoryMap>.wires{display:none}.memoryMap .fact[data-fact=content]{margin-left:0}}
+.dropZone[data-uploading=true]{border-color:var(--maro-color-border-focus);background:var(--maro-color-accent-subtle)}
+.uploadQueue{min-width:0;padding:16px;border:1px solid var(--maro-color-border-subtle);border-radius:var(--maro-radius-12);background:var(--maro-color-bg-surface-02)}
+.uploadQueue>.row{font-size:14px;align-items:flex-start}.uploadQueue>.row>span{flex:none;font-size:12px;color:var(--maro-color-text-secondary);font-variant-numeric:tabular-nums}.uploadQueue>progress{display:block;width:100%;height:4px;margin:12px 0;accent-color:var(--maro-color-border-focus)}
+.uploadQueue>ul{list-style:none;padding:0;margin:0;max-height:240px;overflow-y:auto}.uploadQueue li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--maro-color-border-subtle);font-size:12px}.uploadQueue li>svg{color:var(--maro-color-text-secondary)}.uploadQueue li[data-state=done]>svg,.uploadQueue li[data-state=done]>.uploadState{color:var(--maro-color-success)}.uploadQueue li[data-state=error]>svg,.uploadQueue li[data-state=error]>.uploadState{color:var(--maro-color-danger)}.uploadQueue li:is([data-state=preparing],[data-state=uploading],[data-state=saving])>svg{color:var(--maro-color-text-brand)}
+.uploadFile{display:grid;gap:4px;min-width:0}.uploadFile>strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.uploadFile>small,.uploadState{font-size:12px;color:var(--maro-color-text-secondary)}.uploadState{white-space:nowrap}.uploadQueue>p{margin-top:12px;font-size:12px;line-height:1.6;color:var(--maro-color-text-secondary)}
+.uploadSpinner{animation:uploadSpin 1s linear infinite}@keyframes uploadSpin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.uploadQueue li{grid-template-columns:20px minmax(0,1fr);gap:8px 12px}.uploadState{grid-column:2;white-space:normal}}
+@media(prefers-reduced-motion:reduce){.uploadSpinner{animation:none}}
