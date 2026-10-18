@@ -23,6 +23,8 @@ export interface BrainBrandSection {
   /** Stable private object identity when the logo is uploaded to Maro storage. */
   logoStorageRef?: string | null;
   logoBackdrop?: "auto" | "light" | "dark";
+  /** Set only after an explicitly applied Fetch Brand import. */
+  fetchBrandImportedAt?: string;
   channels: BrainChannel[];
   /** Optional, user-approved palette imported by the private Fetch Brand pilot. */
   colors?: string[];

@@ -5,8 +5,26 @@ import { buildBrainBrief, normalizeBrainProfile } from "@/lib/workspaces/brainPr
 import { emptyBrainProfile } from "@/lib/workspaces/brainTypes";
 import { parseSectionAnswer, applySectionAnswer, buildSectionPrompt } from "@/lib/brain-studio/prompts";
 import { parseAccountPolicy } from "@/lib/workspaces/accountPolicy";
+import { hasBrandImport, compactBrandLocation } from "@/lib/brain-studio/presentation";
 
 describe("private Brain refresh data", () => {
+  it("remembers applied imports across profile reloads while recognizing the existing private pilot imports", () => {
+    const fresh=emptyBrainProfile(); expect(hasBrandImport(fresh)).toBe(false);
+    fresh.brand.website="https://website.example"; expect(hasBrandImport(fresh)).toBe(false);
+    const imported=normalizeBrainProfile({...fresh,brand:{...fresh.brand,fetchBrandImportedAt:"2026-10-18T10:00:00Z"}});
+    expect(hasBrandImport(imported)).toBe(true);
+    expect(buildSectionPrompt(imported,"target")).not.toContain("fetchBrandImportedAt");
+    const candidates=parseSectionAnswer('{"maroBrain":1,"section":"target","fields":{"audience":"A new audience"},"suggestedFields":[]}',"target",imported);
+    expect(applySectionAnswer(imported,"target",candidates,["audience"]).brand.fetchBrandImportedAt).toBe("2026-10-18T10:00:00Z");
+    expect(hasBrandImport(normalizeBrainProfile({...fresh,brand:{...fresh.brand,name:"OLIPOP",logoStorageRef:"storage:generations/private/logo.png"}}))).toBe(true);
+  });
+  it("uses the short business location in the summary without discarding detailed market context", () => {
+    const profile=emptyBrainProfile();profile.brand.category="Food & Beverage";profile.brand.location="Oakland, California";profile.market.region="Detailed market context ".repeat(40);
+    expect(compactBrandLocation(profile)).toBe("Food & Beverage · Oakland, California");
+    expect(buildBrainBrief(profile)).toContain("Detailed market context");
+    expect(profile.market.region.length).toBeGreaterThan(600);
+    profile.brand.location="";expect(compactBrandLocation(profile)).toContain(profile.market.region);
+  });
   it("accepts a valid admin zero-storage cap without hiding paid Brain text data", () => {
     const policy={brainAccess:true,brainResetAt:null,brainDeleteAt:null,usedBytes:100,limitBytes:0};
     expect(parseAccountPolicy(policy)).toEqual(policy);

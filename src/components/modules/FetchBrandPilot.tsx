@@ -16,7 +16,7 @@ import styles from "./BrainStudio.module.css";
 
 const labels: Record<ImportTextKey, string> = { name: "Emri", description: "Përshkrimi", website: "Website", phone: "Telefoni", location: "Lokacioni", language: "Gjuha" };
 const messages: Record<string, string> = {
-  invalid_url: "Shkruaj një adresë publike website-i, p.sh. biznesi.com.",
+  invalid_url: "Shkruaj një adresë publike website-i, p.sh. website.com.",
   site_blocked: "Faqja nuk lejon leximin automatik. Provo website-in e biznesit në vend të profilit social.",
   unsupported_content: "Ky link nuk ktheu një faqe të lexueshme. Provo faqen kryesore të biznesit.",
   page_too_large: "Logoja është tepër e madhe. Zgjidh një tjetër ose ngarkoje manualisht.",
@@ -36,7 +36,7 @@ async function requestImport<T>(workspaceId: string, url: string, kind: "profile
   return data as T;
 }
 
-export function FetchBrandPilot({ workspaceId, profile, setProfile }: { workspaceId: string; profile: WorkspaceBrainProfile; setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>> }) {
+export function FetchBrandPilot({ workspaceId, profile, setProfile, onApplied }: { workspaceId: string; profile: WorkspaceBrainProfile; setProfile: React.Dispatch<React.SetStateAction<WorkspaceBrainProfile>>; onApplied?: () => void }) {
   const [url, setUrl] = React.useState("");
   const [result, setResult] = React.useState<FetchedBrand | null>(null);
   const [step, setStep] = React.useState(1);
@@ -91,9 +91,11 @@ export function FetchBrandPilot({ workspaceId, profile, setProfile }: { workspac
         if (!uploaded) throw new Error("Logoja nuk u ruajt. Provo përsëri.");
       }
       if (!alive.current) return;
-      setProfile(latest => { const next = applyFetchedBrand(latest, result, selected, uploaded); if (uploaded) next.brand.logoBackdrop = backdrop; return next; });
+      const importedAt = new Date().toISOString();
+      setProfile(latest => { const next = applyFetchedBrand(latest, result, selected, uploaded); if (uploaded) next.brand.logoBackdrop = backdrop; if (selected.length) next.brand.fetchBrandImportedAt = importedAt; return next; });
       setNotice("Të dhënat e zgjedhura u shtuan. Kontrollo gjendjen e ruajtjes së maroBrain.");
       setResult(null); setLogo(null);
+      onApplied?.();
       requestAnimationFrame(() => triggerRef.current?.focus());
     } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : "Të dhënat nuk u shtuan."); }
     finally { applyingRef.current = false; if (alive.current) setApplying(false); }
@@ -102,7 +104,7 @@ export function FetchBrandPilot({ workspaceId, profile, setProfile }: { workspac
     <div className="flex flex-wrap items-center gap-2"><h2 id="fetch-brand-title" className="text-base font-semibold text-ink">Fetch Brand</h2><span className="rounded-full bg-surface px-2 py-1 text-xs text-ink-2">Pilot privat</span></div>
     <p className="text-sm leading-relaxed text-ink-2">Jep website-in e biznesit dhe kontrollo të dhënat para se t’i shtosh në maroBrain.</p>
     <form className="flex flex-col gap-3 sm:flex-row" onSubmit={event => { event.preventDefault(); void run(); }}>
-      <label className="min-w-0 flex-1"><span className="sr-only">Website ose profil publik</span><input className="maro-input w-full" placeholder="biznesi.com" value={url} onChange={event => setUrl(event.target.value)} maxLength={2048} disabled={busy} autoComplete="off" inputMode="url" /></label>
+      <label className="min-w-0 flex-1"><span className="sr-only">Website ose profil publik</span><input className="maro-input w-full" placeholder="website.com" value={url} onChange={event => setUrl(event.target.value)} maxLength={2048} disabled={busy} autoComplete="off" inputMode="url" /></label>
       <Button ref={triggerRef} type="submit" loading={busy} disabled={busy || !url.trim()} icon={<Search size={16} />}>{busy ? "Duke lexuar…" : "Fetch Brand"}</Button>
     </form>
     <p className="text-xs leading-relaxed text-ink-3">Pa AI dhe pa shpenzim kreditesh. Profilet sociale lexohen vetëm kur të dhënat janë publikisht të qasshme.</p>
