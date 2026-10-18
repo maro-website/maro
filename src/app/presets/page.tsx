@@ -10,7 +10,7 @@ import { PreviewFallback } from "@/components/app/PreviewFallback";
 import { StableImage } from "@/components/app/StableImage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import CircularCarousel from "@/components/presets/CircularCarousel";
+import { PresetsHeroCarousel } from "@/components/presets/PresetsHeroCarousel";
 import { PresetCard } from "@/components/presets/PresetCard";
 import { PresetQuickView } from "@/components/presets/PresetQuickView";
 import { ModuleComingSoon } from "@/components/modules/ModuleComingSoon";
@@ -174,7 +174,7 @@ function PresetsPageInner() {
         <header className="presets-hero">
           <div className="presets-hero-copy"><p className="presets-eyebrow"><ToolIcon toolId="presets" className="h-5 w-5" /> maroPresets</p><h1>Mos maro prej <span>zeros.</span></h1><p>Zgjedhe një ide. Jepi stilin tënd. Maroje.</p></div>
           <div className="presets-hero-stage">
-            {catalogLoading ? <div className="presets-hero-loading" aria-label="Duke ngarkuar presetet e fundit">{Array.from({ length: 5 }, (_, index) => <PreviewFallback key={index} state="loading" className="aspect-[3/4] w-full rounded-3xl" />)}</div> : carouselItems.length > 0 ? <CircularCarousel key={tool} items={carouselItems} preset="orbit" intro="rise" cardWidth={200} aspectRatio={0.75} speed={13} captions gap={6} tilt={-7} curve={0} perspective={1540} momentum={0.83} parallax={0.52} depthFade={0.85} innerShade={0.62} cornerRadius={22} fadeColor="var(--maro-color-bg-canvas)" autoplay={heroPaused || Boolean(active) ? "off" : "drift"} onItemClick={(item: { id: string }) => { const preset = catalog.find((entry) => entry.id === item.id); if (preset) setActive(preset); }} /> : <div className="presets-hero-empty"><ToolIcon toolId={tool} className="h-16 w-16" /><p>Idetë e reja po vijnë.</p></div>}
+            {catalogLoading ? <div className="presets-hero-loading" aria-label="Duke ngarkuar presetet e fundit">{Array.from({ length: 5 }, (_, index) => <PreviewFallback key={index} state="loading" className={cn("w-full rounded-3xl", tool === "logo" ? "aspect-square" : "aspect-[3/4]")} />)}</div> : carouselItems.length > 0 ? <PresetsHeroCarousel key={tool} items={carouselItems} tool={tool} paused={heroPaused || Boolean(active)} onSelect={(item) => { const preset = catalog.find((entry) => entry.id === item.id); if (preset) setActive(preset); }} /> : <div className="presets-hero-empty"><ToolIcon toolId={tool} className="h-16 w-16" /><p>Idetë e reja po vijnë.</p></div>}
           </div>
           <div className="presets-hero-footer"><a href="#preset-library" className="presets-browse-link">Gjeje pikënisjen tënde <ArrowDown className="h-4 w-4" /></a>{carouselItems.length > 1 && <Button size="sm" variant="ghost" className="presets-motion-control" onClick={() => setHeroPaused((value) => !value)} aria-pressed={heroPaused}>{heroPaused ? "Lëvizi presetet" : "Ndale lëvizjen"}</Button>}</div>
         </header>
