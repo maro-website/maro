@@ -73,6 +73,9 @@ describe("independent Maro MCP products", () => {
     const body = rpc("tools/list");
     const response = await transport.handleRequest(new Request(request.url, { method: "POST", headers: { "content-type": "application/json", accept: "application/json,text/event-stream" }, body: JSON.stringify(body) }), { parsedBody: body });
     const data = await response.json(); expect(data.result.tools.map((tool: { name: string }) => tool.name)).toEqual(["get_maro_account","generate_maro_image","get_maro_image_status"]);
+    const status = data.result.tools.find((tool: { name: string }) => tool.name === "get_maro_image_status");
+    expect(status._meta.ui.resourceUri).toBe("ui://maro/image-result-v1.html");
+    expect(status._meta["openai/outputTemplate"]).toBe(status._meta.ui.resourceUri);
     for (const tool of data.result.tools) {
       expect(tool.securitySchemes).toEqual([{ type: "oauth2", scopes: ["openid", "profile", "offline_access"] }]);
       expect(tool._meta.securitySchemes).toEqual(tool.securitySchemes);

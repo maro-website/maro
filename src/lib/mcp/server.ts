@@ -177,16 +177,18 @@ export function createMaroMcpServer(input: {
   handlers?: {
     getAccount?: typeof getMaroAccountTool;
     generateImage?: typeof generateMaroImageTool;
+    getImageStatus?: typeof getMaroImageStatusTool;
   };
 }) {
   const getAccount = input.handlers?.getAccount ?? getMaroAccountTool;
   const generateImage = input.handlers?.generateImage ?? generateMaroImageTool;
+  const getImageStatus = input.handlers?.getImageStatus ?? getMaroImageStatusTool;
   const securitySchemes = input.standalone ? [{ type: "oauth2", scopes: [...MARO_MCP_OAUTH_SCOPES] }] : OAUTH_SECURITY_SCHEMES;
   const server = new Server(
     {
       name: input.standalone ? "maro-imazh" : "maro-mcp",
       title: input.standalone ? "maroImazh" : "Maro / maroImazh",
-      version: input.standalone ? "1.0.3" : "1.0.1",
+      version: input.standalone ? "1.0.4" : "1.0.1",
       ...(input.standalone ? { icons: [{ src: "https://maro.al/mcp/maroImazh-icon.svg", mimeType: "image/svg+xml", sizes: ["200x200"] }] } : {}),
       description:
         "Creates images in the connected Maro account. Workspace brand is used only with explicit use_brain opt-in.",
@@ -247,7 +249,7 @@ export function createMaroMcpServer(input: {
         },
         ...(input.standalone ? [{ name: "get_maro_image_status", title: "Get image status", description: "Read a user-owned image generation status and retrieve its completed image without creating or charging another generation.",
           inputSchema: { type: "object", properties: { job_id: { type: "string", format: "uuid" } }, required: ["job_id"], additionalProperties: false },
-          securitySchemes, _meta: { securitySchemes },
+          securitySchemes, _meta: { securitySchemes, ui: { resourceUri: MARO_IMAGE_RESULT_RESOURCE_URI }, "openai/outputTemplate": MARO_IMAGE_RESULT_RESOURCE_URI },
           annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }] : []),
       ],
     } as never;
@@ -293,7 +295,7 @@ export function createMaroMcpServer(input: {
       if (!actorHasPermission(actor, "image:read")) return authFailure(input.auth, true, input.resource);
       const parsed = z.object({ job_id: z.string().uuid() }).strict().safeParse(request.params.arguments ?? {});
       if (!parsed.success) return invalidRequest();
-      try { return outcomeToResult(await getMaroImageStatusTool(actor, parsed.data.job_id)); }
+      try { return outcomeToResult(await getImageStatus(actor, parsed.data.job_id)); }
       catch { return outcomeToResult({ ok: false, code: "SERVICE_UNAVAILABLE", message: "Statusi nuk u lexua. Provo përsëri." }); }
     }
 

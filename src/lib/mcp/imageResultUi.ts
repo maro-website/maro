@@ -78,6 +78,27 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
         var status = document.getElementById("status");
         var meta = document.getElementById("meta");
         var credits = document.getElementById("credits");
+        var initializeId = "maro-image-ui-initialize";
+        var initialized = false;
+
+        function notify(method, params) {
+          window.parent.postMessage({ jsonrpc: "2.0", method: method, params: params }, "*");
+        }
+
+        function notifySize() {
+          if (!initialized) return;
+          notify("ui/notifications/size-changed", {
+            height: Math.ceil(document.body.getBoundingClientRect().height)
+          });
+        }
+
+        function showStatus(text) {
+          image.hidden = true;
+          meta.hidden = true;
+          status.hidden = false;
+          status.textContent = text;
+          notifySize();
+        }
 
         function structuredContent(value) {
           if (!value || typeof value !== "object") return null;
@@ -100,12 +121,15 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
         function render(value) {
           var output = structuredContent(value);
           var assetUrl = safeHttpsUrl(output && output.asset_url);
-          if (!assetUrl) return false;
+          if (!assetUrl) {
+            var pending = output && (output.error === "GENERATION_IN_PROGRESS" ||
+              output.status === "queued" || output.status === "processing" || output.status === "running");
+            showStatus(pending ? "Your Maro image is still being generated." : "No completed image was returned.");
+            return false;
+          }
 
+          showStatus("Loading the Maro image…");
           image.src = assetUrl;
-          image.hidden = false;
-          status.hidden = true;
-          meta.hidden = false;
           credits.textContent = typeof output.credits_spent === "number"
             ? String(output.credits_spent) + " credits used"
             : "Generated image";
@@ -116,21 +140,45 @@ export const MARO_IMAGE_RESULT_HTML = String.raw`<!doctype html>
           if (event.source !== window.parent) return;
           var message = event.data;
           if (!message || message.jsonrpc !== "2.0") return;
+          if (message.id === initializeId && !initialized) {
+            if (message.error || !message.result || message.result.protocolVersion !== "2026-01-26") {
+              showStatus("The Maro image preview could not connect to this host.");
+              return;
+            }
+            initialized = true;
+            notify("ui/notifications/initialized", {});
+            notifySize();
+            return;
+          }
           if (message.method === "ui/notifications/tool-result") {
             render(message.params);
+          }
+          if (message.method === "ui/notifications/tool-cancelled") {
+            showStatus("Image generation was cancelled.");
+          }
+          if (message.method === "ui/resource-teardown") {
+            window.parent.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");
           }
         }, { passive: true });
 
         image.addEventListener("load", function () {
-          if (window.openai && typeof window.openai.notifyIntrinsicHeight === "function") {
-            window.openai.notifyIntrinsicHeight();
-          }
+          image.hidden = false;
+          status.hidden = true;
+          meta.hidden = false;
+          notifySize();
         });
         image.addEventListener("error", function () {
-          image.hidden = true;
-          status.hidden = false;
-          status.textContent = "The generated image could not be loaded.";
+          showStatus("The generated image could not be loaded. Ask Maro to retrieve the image again.");
         });
+        if (typeof ResizeObserver === "function") new ResizeObserver(notifySize).observe(document.body);
+        window.parent.postMessage({
+          jsonrpc: "2.0", id: initializeId, method: "ui/initialize",
+          params: {
+            appInfo: { name: "maroImazh image preview", version: "1.0.1" },
+            appCapabilities: { availableDisplayModes: ["inline"] },
+            protocolVersion: "2026-01-26"
+          }
+        }, "*");
       })();
     </script>
   </body>
