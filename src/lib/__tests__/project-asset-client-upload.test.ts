@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase/client", () => ({
   getSupabaseBrowser,
 }));
 
-import { uploadImageReference } from "@/lib/services/projectAssetService";
+import { uploadImageReference, uploadImageReferenceDataUrl } from "@/lib/services/projectAssetService";
 
 describe("maroImazh signed client upload", () => {
   beforeEach(() => {
@@ -85,5 +85,52 @@ describe("maroImazh signed client upload", () => {
       purpose: "image-reference",
       storageRef,
     });
+  });
+
+  it.each([
+    ["image/png", "png"],
+    ["image/jpeg", "jpg"],
+    ["image/webp", "webp"],
+  ])("uploads a saved %s logo reference when CSP blocks data URL fetches", async (type, extension) => {
+    const bytes = new Uint8Array([0, 127, 128, 255]);
+    const dataUrl = `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
+    const path = `user-1/project-assets/reference.${extension}`;
+    const storageRef = `storage:generations/${path}`;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      // The production connect-src policy permits API requests, but not data:.
+      if (input !== "/api/projects/assets") throw new TypeError("Failed to fetch");
+      const body = JSON.parse(String(init?.body));
+      return Response.json(body.action === "prepare"
+        ? { path, uploadToken: "signed-upload-token", storageRef }
+        : { storageRef, url: "https://supabase.example/signed-preview" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(uploadImageReferenceDataUrl(dataUrl, "logo-reference")).resolves.toEqual({
+      storageRef,
+      url: "https://supabase.example/signed-preview",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const uploaded = uploadToSignedUrl.mock.calls[0]?.[2] as File;
+    expect(uploaded.name).toBe(`logo-reference.${extension}`);
+    expect(uploaded.type).toBe(type);
+    expect(new Uint8Array(await uploaded.arrayBuffer())).toEqual(bytes);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      action: "prepare", purpose: "image-reference", type, size: bytes.length,
+    });
+  });
+
+  it.each([
+    "data:image/svg+xml;base64,PHN2Zz4=",
+    "data:image/png;base64,%%%",
+    "data:image/png;base64,A",
+    "data:image/png;base64,",
+  ])("rejects an invalid saved reference before upload: %s", async dataUrl => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(uploadImageReferenceDataUrl(dataUrl)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(uploadToSignedUrl).not.toHaveBeenCalled();
   });
 });

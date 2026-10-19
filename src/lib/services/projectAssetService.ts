@@ -109,10 +109,19 @@ export async function uploadImageReference(file: File): Promise<UploadedProjectA
 }
 
 export async function uploadImageReferenceDataUrl(dataUrl: string, name = "reference"): Promise<UploadedProjectAsset> {
-  if (!/^data:image\/(?:png|jpe?g|webp);base64,/i.test(dataUrl)) throw new Error("invalid-file-type");
-  const blob = await (await fetch(dataUrl)).blob();
-  const extension = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
-  return uploadImageReference(new File([blob], `${name}.${extension}`, { type: blob.type }));
+  const match = /^data:(image\/(?:png|jpe?g|webp));base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUrl);
+  if (!match) throw new Error("invalid-file-type");
+  // Decode locally: production CSP deliberately excludes data: from connect-src.
+  let binary: string;
+  try { binary = atob(match[2]); }
+  catch { throw new Error("invalid_data_url"); }
+  if (!binary.length) throw new Error("invalid_data_url");
+  if (binary.length > MAX_IMAGE_REFERENCE_FILE_BYTES) throw new Error("file-too-large");
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  const type = match[1].toLowerCase().replace("image/jpg", "image/jpeg");
+  const extension = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+  return uploadImageReference(new File([bytes], `${name}.${extension}`, { type }));
 }
 
 /** Upload a composer preview that has already been read as a data URL. */
