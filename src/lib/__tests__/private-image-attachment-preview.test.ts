@@ -8,9 +8,12 @@ const { uploadImageReference, resolvePrivateAssetRefsStrict } = vi.hoisted(() =>
 vi.mock("@/lib/services/projectAssetService", () => ({
   uploadImageReference,
   resolvePrivateAssetRefsStrict,
+  MAX_IMAGE_REFERENCE_FILE_BYTES: 25 * 1024 * 1024,
 }));
 
 import {
+  createPrivateImageAttachment,
+  IMAGE_REFERENCE_FORMAT_ERROR,
   uploadOrResolvePrivateAttachment,
   type PrivateImageAttachment,
 } from "@/lib/services/privateImageAttachment";
@@ -29,6 +32,28 @@ const localAttachment = (type = "image/png", name = "logo.png"): PrivateImageAtt
 describe("maroImazh private attachment preview state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each(["image/avif", "image/gif", "image/svg+xml", "application/pdf", ""])("keeps a rejected %s selection visible without uploading it", async type => {
+    const sourceFile = new File([new Uint8Array([1, 2, 3])], "product.avif", { type });
+    const rejected = createPrivateImageAttachment(sourceFile, "rejected", true);
+    expect(rejected).toEqual({ id: "rejected", name: "product.avif", previewUrl: "", status: "invalid-file", error: IMAGE_REFERENCE_FORMAT_ERROR });
+    await expect(uploadOrResolvePrivateAttachment(rejected)).rejects.toThrow("invalid-file-type");
+    expect(uploadImageReference).not.toHaveBeenCalled();
+    expect(resolvePrivateAssetRefsStrict).not.toHaveBeenCalled();
+  });
+
+  it("keeps an oversized image blocking without retaining its bytes", () => {
+    const rejected = createPrivateImageAttachment(new File([new Uint8Array(25 * 1024 * 1024 + 1)], "large.png", { type: "image/png" }), "large", false);
+    expect(rejected.status).toBe("invalid-file");
+    expect(rejected.error).toContain("25 MB");
+    expect(rejected.sourceFile).toBeUndefined();
+  });
+
+  it.each(["image/png", "image/jpeg", "image/webp"])("retains a supported %s file for the existing upload flow", type => {
+    const sourceFile = new File([new Uint8Array([1, 2, 3])], "product", { type });
+    expect(createPrivateImageAttachment(sourceFile, "valid", true)).toMatchObject({ sourceFile, status: "uploading" });
+    expect(createPrivateImageAttachment(sourceFile, "valid", false)).toMatchObject({ sourceFile, status: "pending" });
   });
 
   it.each([

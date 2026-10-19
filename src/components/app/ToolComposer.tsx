@@ -59,6 +59,8 @@ import {
   uploadProjectAssetDataUrl,
 } from "@/lib/services/projectAssetService";
 import {
+  createPrivateImageAttachment,
+  IMAGE_REFERENCE_ACCEPT,
   uploadOrResolvePrivateAttachment,
   type PrivateImageAttachment,
 } from "@/lib/services/privateImageAttachment";
@@ -576,38 +578,32 @@ export function ToolComposer({
         toast(`Maksimumi ${MAX_ATTACHMENTS} imazhe.`);
         return;
       }
-      const accepted = files
-        .filter((file) => {
-          if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) {
-            toast("Zgjidh një imazh PNG, JPG ose WebP.");
-            return false;
-          }
-          if (file.size > MAX_IMAGE_REFERENCE_FILE_BYTES) {
-            toast("Imazhi është shumë i madh (max 25MB)." );
-            return false;
-          }
-          return true;
-        })
-        .slice(0, room);
-      const queued = await Promise.all(accepted.map(async (file): Promise<PrivateImageAttachment> => {
-        const localPreviewUrl = await readImageFile(file);
-        return {
-          id: uid("att"),
-          name: file.name,
-          previewUrl: localPreviewUrl,
-          sourceFile: file,
-          status: user ? "uploading" : "pending",
-        };
-      }));
+      const queued = files.slice(0, room).map(file => createPrivateImageAttachment(file, uid("att"), Boolean(user)));
       if (!queued.length) return;
       let admitted: PrivateImageAttachment[] = [];
       setPrivateImageAttachments((current) => {
         admitted = queued.slice(0, Math.max(0, MAX_ATTACHMENTS - current.length));
-        return [...current, ...admitted];
+        const next = [...current, ...admitted];
+        privateImageAttachmentsRef.current = next;
+        return next;
       });
-      if (user) {
-        await Promise.allSettled(admitted.map((attachment) => startPrivateAttachmentUpload(attachment)));
-      }
+      await Promise.allSettled(admitted.filter(attachment => attachment.status !== "invalid-file").map(async attachment => {
+        try {
+          const previewUrl = await readImageFile(attachment.sourceFile!);
+          const next = { ...attachment, previewUrl };
+          let stillAttached = false;
+          setPrivateImageAttachments(current => current.map(item => {
+            if (item.id !== next.id) return item;
+            stillAttached = true;
+            return item.storageRef ? item : { ...item, previewUrl };
+          }));
+          if (user && stillAttached) await startPrivateAttachmentUpload(next);
+        } catch {
+          setPrivateImageAttachments(current => current.map(item => item.id === attachment.id && item.status !== "upload-error"
+            ? { ...item, status: "upload-error", error: "Imazhi nuk u ngarkua. Hiqe dhe provo përsëri." }
+            : item));
+        }
+      }));
     },
     [startPrivateAttachmentUpload, toast, user, setPrivateImageAttachments]
   );
@@ -637,6 +633,10 @@ export function ToolComposer({
       try {
         const res = await fetch(url);
         const blob = await res.blob();
+        if (isImage) {
+          await queuePrivateImageFiles([new File([blob], "reference", { type: blob.type })]);
+          return;
+        }
         if (!blob.type.startsWith("image/")) {
           toast("Format i pavlefshëm.");
           return;
@@ -648,11 +648,6 @@ export function ToolComposer({
         const maxBytes = isWebsite ? MAX_PROJECT_ASSET_FILE_BYTES : MAX_IMAGE_REFERENCE_FILE_BYTES;
         if (blob.size > maxBytes) {
           toast(`Imazhi është shumë i madh (max ${isWebsite ? 5 : 25}MB).`);
-          return;
-        }
-        if (isImage) {
-          const extension = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
-          await queuePrivateImageFiles([new File([blob], `reference.${extension}`, { type: blob.type })]);
           return;
         }
         const reader = new FileReader();
@@ -866,6 +861,7 @@ export function ToolComposer({
     }
     const text = prompt.trim();
     if (!text || promptTooLong) return;
+    if (tool.kind === "image" && privateImageAttachmentsRef.current.some(attachment => attachment.status === "invalid-file")) return;
     try { localStorage.setItem(conversationScope, conversationId); } catch { /* Keep the current conversation in memory. */ }
     if (tool.kind === "image" && !requestedConversation) router.replace(`${tool.route}?chat=${encodeURIComponent(conversationId)}`, { scroll: false });
 
@@ -1020,7 +1016,7 @@ export function ToolComposer({
   }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, selectedMood, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation]);
 
   // Whether the current inputs are enough to generate.
-  const canGenerate = ready && draftReady && !recoveredPending && !historyError && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
+  const canGenerate = ready && draftReady && !recoveredPending && !historyError && (!isImage || !privateImageAttachments.some(attachment => attachment.status === "invalid-file")) && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
     : Boolean(prompt.trim()) && (!isImage || Boolean(selectedImageModel)) && (
         !isImage ||
@@ -1220,7 +1216,11 @@ export function ToolComposer({
                 status: "ready" as const,
               }))).map((attachment, i) => (
                 <div key={attachment.id} className="relative h-16 w-16 overflow-hidden rounded-xl bg-surface-2">
-                  {isImage ? (
+                  {isImage && !attachment.previewUrl ? (
+                    <span className="grid h-full place-items-center text-ink-3" title={attachment.name}>
+                      <ImagePlus className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                  ) : isImage ? (
                     <StableImage
                       src={attachment.previewUrl}
                       alt={attachment.name}
@@ -1262,7 +1262,7 @@ export function ToolComposer({
                       ? setPrivateImageAttachments((current) => current.filter((item) => item.id !== attachment.id))
                       : setAttachments((a) => a.filter((_, j) => j !== i))}
                     className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-scrim text-on-scrim"
-                    aria-label="Hiq"
+                    aria-label={isImage ? `Hiq ${attachment.name}` : "Hiq"}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1272,8 +1272,10 @@ export function ToolComposer({
             {isImage && privateImageAttachments.some((attachment) => attachment.error) && (
               <div className="mt-1.5 space-y-1 text-[11.5px] text-danger" role="alert">
                 {privateImageAttachments.filter((attachment) => attachment.error).map((attachment) => (
-                  <div key={`${attachment.id}-error`}>
-                    {attachment.status === "upload-error"
+                  <div key={`${attachment.id}-error`} className="break-words text-[12px]">
+                    {attachment.status === "invalid-file"
+                      ? `${attachment.name}: ${attachment.error} Hiqe këtë fajll dhe ngarko një imazh të mbështetur për të vazhduar.`
+                      : attachment.status === "upload-error"
                       ? `Ngarkimi dështoi: ${attachment.error}`
                       : attachment.status === "preview-error"
                         ? `Imazhi u ngarkua, por pamja private nuk u hap. Provo përsëri.`
@@ -1374,7 +1376,7 @@ export function ToolComposer({
                   <input
                     ref={fileRef}
                     type="file"
-                    accept={isWebsite ? "image/png,image/jpeg,image/webp" : "image/*"}
+                    accept={IMAGE_REFERENCE_ACCEPT}
                     multiple
                     className="hidden"
                     onChange={(e) => {
