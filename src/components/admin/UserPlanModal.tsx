@@ -1,4 +1,5 @@
 "use client";
+import { useAdminPrivacy } from "./AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -20,6 +21,7 @@ export function UserPlanModal({ user, onClose, onChanged }: {
   onClose: () => void;
   onChanged?: () => void;
 }) {
+  const { hidden } = useAdminPrivacy();
   const [data, setData] = React.useState<AdminUserPlans | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -104,7 +106,7 @@ export function UserPlanModal({ user, onClose, onChanged }: {
 
   return (
     <Modal open onClose={() => { if (!busy.current) onClose(); }} size="lg" aria-label="Menaxho planin">
-      <ModalHeader title="Plani i përdoruesit" description={user.email} />
+      <ModalHeader title="Plani i përdoruesit" description={hidden ? "*****" : user.email} />
       <div className="space-y-5 px-5 pb-5 sm:px-7 sm:pb-7">
         {loading && <div className="flex justify-center py-5"><Spinner className="h-5 w-5" /></div>}
         {error && <p role="alert" className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}

@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -87,10 +88,10 @@ export default function CommerceCreatorsPage() {
           <tbody className="divide-y divide-line bg-surface">
             {rows.map((r) => (
               <tr key={r.id}>
-                <td className="px-3 py-2">{r.email ?? r.creatorId.slice(0, 8)}</td>
+                <td className="px-3 py-2"><AdminPrivateValue>{r.email ?? r.creatorId.slice(0, 8)}</AdminPrivateValue></td>
                 <td className="px-3 py-2 font-semibold">{r.promoCode ?? "—"}</td>
-                <td className="px-3 py-2">€{r.grossAmount.toFixed(2)}</td>
-                <td className="px-3 py-2 font-semibold">€{r.commissionAmount.toFixed(2)}</td>
+                <td className="px-3 py-2"><AdminPrivateValue>€{r.grossAmount.toFixed(2)}</AdminPrivateValue></td>
+                <td className="px-3 py-2 font-semibold"><AdminPrivateValue>€{r.commissionAmount.toFixed(2)}</AdminPrivateValue></td>
                 <td className="px-3 py-2 capitalize">{r.status}</td>
                 <td className="px-3 py-2">
                   {r.status === "pending" && !r.id.startsWith("est-") ? (
@@ -98,7 +99,7 @@ export default function CommerceCreatorsPage() {
                       Mark as Paid
                     </Button>
                   ) : (
-                    <span className="text-ink-3">{r.paidAt ? `Paid ${r.paymentReference ?? ""}` : "—"}</span>
+                    <span className="text-ink-3"><AdminPrivateValue>{r.paidAt ? `Paid ${r.paymentReference ?? ""}` : "—"}</AdminPrivateValue></span>
                   )}
                 </td>
               </tr>

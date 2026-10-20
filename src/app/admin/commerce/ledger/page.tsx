@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -154,11 +155,10 @@ export default function CommerceLedgerPage() {
               <tr key={r.id}>
                 <td className="px-3 py-2 font-semibold">{r.type}</td>
                 <td className={`px-3 py-2 ${r.amount >= 0 ? "text-ink" : "text-danger"}`}>
-                  {r.amount >= 0 ? "+" : ""}
-                  {r.amount}
+                  <AdminPrivateValue>{r.amount >= 0 ? "+" : ""}{r.amount}</AdminPrivateValue>
                 </td>
-                <td className="px-3 py-2">{r.balanceAfter}</td>
-                <td className="px-3 py-2 font-mono text-[11px] text-ink-3">{r.userId.slice(0, 8)}…</td>
+                <td className="px-3 py-2"><AdminPrivateValue>{r.balanceAfter}</AdminPrivateValue></td>
+                <td className="px-3 py-2 font-mono text-[11px] text-ink-3"><AdminPrivateValue>{r.userId.slice(0, 8)}…</AdminPrivateValue></td>
                 <td className="px-3 py-2 text-ink-3">{timeAgo(r.createdAt)}</td>
               </tr>
             ))}

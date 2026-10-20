@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -160,8 +161,8 @@ export function SecurityCostsPanel() {
                     key={s.ip}
                     className="flex items-center justify-between rounded-xl bg-surface px-4 py-2.5 text-[13.5px]"
                   >
-                    <span className="font-mono text-ink">{s.ip}</span>
-                    <Badge tone="brand">{s.count} regjistrime</Badge>
+                    <span className="font-mono text-ink"><AdminPrivateValue>{s.ip}</AdminPrivateValue></span>
+                    <Badge tone="brand"><AdminPrivateValue>{s.count}</AdminPrivateValue> regjistrime</Badge>
                   </li>
                 ))}
               </ul>
@@ -179,9 +180,9 @@ export function SecurityCostsPanel() {
                     className="flex items-center justify-between rounded-xl bg-surface px-4 py-2.5 text-[13px]"
                   >
                     <span>
-                      {j.module} · {j.credits_charged} kr
+                      {j.module} · <AdminPrivateValue>{j.credits_charged}</AdminPrivateValue> kr
                     </span>
-                    <Badge tone="neutral">{j.margin_pct}% margin</Badge>
+                    <Badge tone="neutral"><AdminPrivateValue>{j.margin_pct}</AdminPrivateValue>% margin</Badge>
                   </li>
                 ))}
               </ul>
@@ -209,7 +210,7 @@ export function SecurityCostsPanel() {
                   ) : (
                     data.refundedTx.map((t) => (
                       <li key={t.id} className="flex justify-between rounded-lg bg-surface px-3 py-2">
-                        <span>{t.amount} kr</span>
+                        <span><AdminPrivateValue>{t.amount}</AdminPrivateValue> kr</span>
                         <span className="text-ink-3">{timeAgo(t.created_at)}</span>
                       </li>
                     ))
@@ -247,8 +248,8 @@ function StatCard({
       <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-ink-3">
         <Icon className="h-4 w-4 text-brand" /> {label}
       </div>
-      <div className="mt-2 text-[24px] font-semibold tracking-tight text-ink">{value}</div>
-      <div className="mt-1 text-[12.5px] text-ink-3">{sub}</div>
+      <div className="mt-2 text-[24px] font-semibold tracking-tight text-ink"><AdminPrivateValue>{value}</AdminPrivateValue></div>
+      <div className="mt-1 text-[12.5px] text-ink-3"><AdminPrivateValue>{sub}</AdminPrivateValue></div>
     </div>
   );
 }

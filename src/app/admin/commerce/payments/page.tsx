@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -77,16 +78,16 @@ export default function CommercePaymentsPage() {
               {orders.map((o) => (
                 <React.Fragment key={o.id}>
                   <tr>
-                    <td className="px-3 py-2 text-ink-2">{o.userEmail ?? "—"}</td>
+                    <td className="px-3 py-2 text-ink-2"><AdminPrivateValue>{o.userEmail ?? "—"}</AdminPrivateValue></td>
                     <td className="px-3 py-2 font-mono text-[11px]">{o.orderKind ?? "—"}</td>
                     <td className="px-3 py-2">{o.label}</td>
-                    <td className="px-3 py-2 font-semibold">{o.credits}</td>
+                    <td className="px-3 py-2 font-semibold"><AdminPrivateValue>{o.credits}</AdminPrivateValue></td>
                     <td className="px-3 py-2">
-                      {(o.amountCents / 100).toFixed(2)} {o.currency}
+                      <AdminPrivateValue>{(o.amountCents / 100).toFixed(2)} {o.currency}</AdminPrivateValue>
                     </td>
                     <td className="px-3 py-2">{o.paymentState??o.displayStatus??o.status}{o.fulfillmentState&&<div className="mt-1 text-xs text-ink-3">{o.fulfillmentState}{o.reviewReason?` · ${o.reviewReason}`:""}</div>}</td>
                     <td className="px-3 py-2 font-mono text-[10px] text-ink-3">
-                      {o.providerTransactionId ? o.providerTransactionId.slice(0, 16) + "…" : "—"}
+                      <AdminPrivateValue>{o.providerTransactionId ? o.providerTransactionId.slice(0, 16) + "…" : "—"}</AdminPrivateValue>
                     </td>
                     <td className="px-3 py-2 text-ink-3">{timeAgo(o.createdAt)}</td>
                     <td className="px-3 py-2 text-ink-3">{o.paidAt ? timeAgo(o.paidAt) : "—"}</td>
@@ -104,7 +105,7 @@ export default function CommercePaymentsPage() {
                     <tr>
                       <td colSpan={10} className="bg-surface-2 px-3 py-2">
                         <pre className="max-h-[160px] overflow-auto text-[10px] text-ink-2">
-                          {JSON.stringify({commercialSnapshot:o.commercialSnapshot,providerOrderId:o.providerOrderId,reviewReason:o.reviewReason}, null, 2)}
+                          <AdminPrivateValue>{JSON.stringify({commercialSnapshot:o.commercialSnapshot,providerOrderId:o.providerOrderId,reviewReason:o.reviewReason}, null, 2)}</AdminPrivateValue>
                         </pre>
                       </td>
                     </tr>

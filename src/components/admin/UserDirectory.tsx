@@ -1,4 +1,5 @@
 "use client";
+import { useAdminPrivacy, AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 
@@ -59,7 +60,7 @@ export function UserDirectory() {
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-maro20 border border-line bg-surface p-5">
-      <div className="flex items-center gap-3"><Users className="h-6 w-6 text-ink-3" /><div><p className="text-xl font-bold text-ink">{data?.total ?? "—"} përdorues{search ? " në kërkim" : " gjithsej"}</p><p className="text-sm text-ink-3">Plani, kreditet dhe hapësira në një vend.</p></div></div>
+      <div className="flex items-center gap-3"><Users className="h-6 w-6 text-ink-3" /><div><p className="text-xl font-bold text-ink"><AdminPrivateValue>{data?.total ?? "—"}</AdminPrivateValue> përdorues{search ? " në kërkim" : " gjithsej"}</p><p className="text-sm text-ink-3">Plani, kreditet dhe hapësira në një vend.</p></div></div>
       <Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={() => void load()}>Rifresko</Button>
     </div>
     <form className="flex flex-col gap-3 sm:flex-row" onSubmit={event => { event.preventDefault(); setOffset(0); setSearch(query.trim()); }}>
@@ -75,8 +76,8 @@ export function UserDirectory() {
           const ratio = user.storageLimitBytes == null ? 0 : user.storageLimitBytes === 0 ? (user.storageUsedBytes > 0 ? 100 : 0) : Math.min(100, user.storageUsedBytes / user.storageLimitBytes * 100);
           const overLimit = user.storageLimitBytes != null && user.storageUsedBytes > user.storageLimitBytes;
           return <article key={user.id} className="min-w-0 rounded-maro20 border border-line bg-surface p-5">
-            <div className="mb-5 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-bold text-ink">{user.full_name || "Pa emër"}</h2><p className="break-all text-sm text-ink-3">{user.email}</p></div>{privileged && <ShieldCheck aria-label="Llogari administrative" className="h-5 w-5 shrink-0 text-ink-3" />}</div>
-            <div className="grid grid-cols-2 gap-3 rounded-maro16 bg-surface-2 p-4"><div><p className="text-xs text-ink-3">Plani aktual</p><p className="mt-1 text-lg font-bold text-ink">{planLabel(user.plan)}</p></div><div><p className="text-xs text-ink-3">Bilanci</p><p className="mt-1 text-lg font-bold tabular-nums text-ink">{user.credits.toLocaleString("sq-AL")} <span className="text-xs font-medium text-ink-3">kredite</span></p></div></div>
+            <div className="mb-5 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-bold text-ink"><AdminPrivateValue>{user.full_name || "Pa emër"}</AdminPrivateValue></h2><p className="break-all text-sm text-ink-3"><AdminPrivateValue>{user.email}</AdminPrivateValue></p></div>{privileged && <ShieldCheck aria-label="Llogari administrative" className="h-5 w-5 shrink-0 text-ink-3" />}</div>
+            <div className="grid grid-cols-2 gap-3 rounded-maro16 bg-surface-2 p-4"><div><p className="text-xs text-ink-3">Plani aktual</p><p className="mt-1 text-lg font-bold text-ink">{planLabel(user.plan)}</p></div><div><p className="text-xs text-ink-3">Bilanci</p><p className="mt-1 text-lg font-bold tabular-nums text-ink"><AdminPrivateValue>{user.credits.toLocaleString("sq-AL")}</AdminPrivateValue> <span className="text-xs font-medium text-ink-3">kredite</span></p></div></div>
             <div className="my-4"><div className="flex items-center justify-between gap-2 text-xs text-ink-3"><span className="flex items-center gap-1"><HardDrive className="h-3.5 w-3.5" />Storage</span><span>{storageLabel(user.storageUsedBytes)} / {storageLabel(user.storageLimitBytes)}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={`h-full rounded-full ${overLimit ? "bg-danger" : "bg-brand"}`} style={{ width: `${ratio}%` }} /></div>{overLimit && <p className="mt-1 text-xs text-danger">Mbi limitin · skedarët ekzistues ruhen.</p>}{user.storageOverrideBytes != null && <p className="mt-1 text-xs text-ink-3">Limit manual</p>}</div>
             <div className="mb-4 text-xs text-ink-3"><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" />Workspaces</span><span>{user.workspaceCount ?? "—"} / {user.workspaceLimit ?? "—"}</span></div>{user.workspaceOverride != null && <p className="mt-1">Limit manual</p>}{user.workspaceCount >= user.workspaceLimit && <p className="mt-1">Limiti u arrit · workspace-t ekzistuese ruhen.</p>}</div>
             <div className="mb-4 flex flex-wrap items-center gap-2"><Badge>{user.is_creator ? "Kreator" : "Përdorues"}</Badge><span className="text-xs text-ink-3">{user.planExpiresAt ? `Plani deri ${new Date(user.planExpiresAt).toLocaleDateString("sq-AL")}` : `Regjistruar ${new Date(user.created_at).toLocaleDateString("sq-AL")}`}</span></div>
@@ -91,7 +92,7 @@ export function UserDirectory() {
           </article>;
         })}
       </div>
-      {!!data?.total && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink-3">{offset + 1}–{Math.min(offset + PAGE_SIZE, data.total)} nga {data.total}</p><div className="flex gap-2"><Button variant="secondary" disabled={offset === 0 || loading} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Para</Button><Button variant="secondary" disabled={offset + PAGE_SIZE >= data.total || loading} onClick={() => setOffset(offset + PAGE_SIZE)}>Pas</Button></div></div>}
+      {!!data?.total && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink-3"><AdminPrivateValue>{offset + 1}–{Math.min(offset + PAGE_SIZE, data.total)} nga {data.total}</AdminPrivateValue></p><div className="flex gap-2"><Button variant="secondary" disabled={offset === 0 || loading} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Para</Button><Button variant="secondary" disabled={offset + PAGE_SIZE >= data.total || loading} onClick={() => setOffset(offset + PAGE_SIZE)}>Pas</Button></div></div>}
     </>}
     {planUser && <UserPlanModal user={planUser} onClose={() => setPlanUser(null)} onChanged={() => void load()} />}
     {action && <UserActionModal key={`${action.kind}:${action.user.id}`} {...action} onClose={() => setAction(null)} onChanged={() => { setAction(null); void load(); }} />}
@@ -112,6 +113,7 @@ function UserActionModal({ kind, user, onClose, onChanged }: { kind: Action; use
   const number = Number(amount);
   const isLimit = kind === "storage" || kind === "workspaces";
   const limitPayload = isLimit ? userLimitPayload(kind, user.id, amount, usePlan, reason) : null;
+  const { hidden } = useAdminPrivacy();
   const validAmount = amount.trim() !== "" && Number.isSafeInteger(number) && (mode === "delta" ? number !== 0 && user.credits + number >= 0 : number >= 0);
   const ready = kind === "delete" ? /^\d{6}$/.test(mfaCode) : isLimit ? limitPayload?.success === true : reason.trim().length >= 3 && validAmount;
   async function submit(event: React.FormEvent) {
@@ -127,12 +129,12 @@ function UserActionModal({ kind, user, onClose, onChanged }: { kind: Action; use
     finally { busy.current = false; setSaving(false); }
   }
   return <Modal open onClose={() => { if (!saving) onClose(); }} closeOnBackdrop={!saving} aria-label={kind === "delete" ? "Fshi përdoruesin" : "Menaxho përdoruesin"}>
-    <ModalHeader title={kind === "credits" ? "Menaxho kreditet" : kind === "storage" ? "Limiti i storage" : kind === "workspaces" ? "Limiti i workspace-ve" : "Fshi përdoruesin"} description={user.email} />
+    <ModalHeader title={kind === "credits" ? "Menaxho kreditet" : kind === "storage" ? "Limiti i storage" : kind === "workspaces" ? "Limiti i workspace-ve" : "Fshi përdoruesin"} description={hidden ? "*****" : user.email} />
     <form className="space-y-5 px-6 pb-6" onSubmit={event => void submit(event)}>
       {kind === "delete" ? <><p className="rounded-maro16 border border-danger bg-maro-danger p-4 text-sm text-danger">Fshihen llogaria, krijimet dhe skedarët e këtij përdoruesi. Ky veprim nuk zhbëhet. Historiku i pagesave dhe krediteve ruhet për auditim.</p><Field label="Kodi MFA" hint="Kodi i ri me 6 shifra nga aplikacioni Authenticator."><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mfaCode} onChange={event => setMfaCode(event.target.value.replace(/\D/g, ""))} /></Field></> : <>
         {kind === "credits" ? <Field label="Veprimi"><Select value={mode} onChange={event => { setMode(event.target.value); changed(); }}><option value="delta">Shto / hiq kredite</option><option value="set">Vendos bilancin</option></Select></Field> : <label className="flex min-h-11 items-center gap-3 text-sm text-ink"><input type="checkbox" checked={usePlan} onChange={event => { setUsePlan(event.target.checked); changed(); }} />Përdor limitin e planit aktual</label>}
-        <Field label={kind === "storage" ? "Limiti në GB" : kind === "workspaces" ? "Numri maksimal i workspace-ve" : mode === "set" ? "Bilanci i ri" : "Ndryshimi i krediteve"} hint={kind === "storage" ? "0–1,000 GB. 1 GB = 1,000,000,000 bytes. Ulja e limitit nuk fshin skedarë ekzistues." : kind === "workspaces" ? `${user.workspaceCount ?? 0} workspace aktualisht. Vendos 1–1,000. Ulja e limitit nuk fshin workspace-t ekzistuese.` : `Bilanci aktual: ${user.credits} kredite. ${mode === "delta" ? "Përdor numër negativ për të hequr kredite." : ""}`}><Input type="number" step={kind === "storage" ? "any" : "1"} min={isLimit ? kind === "storage" ? 0 : 1 : undefined} max={kind === "storage" ? MAX_STORAGE_GB : kind === "workspaces" ? MAX_WORKSPACES : undefined} disabled={isLimit && usePlan} value={amount} onChange={event => { setAmount(event.target.value); changed(); }} /></Field>
-        {kind === "credits" && validAmount && <p className="text-sm font-semibold text-ink">Bilanci pas ndryshimit: {mode === "set" ? number : user.credits + number} kredite</p>}
+        <Field label={kind === "storage" ? "Limiti në GB" : kind === "workspaces" ? "Numri maksimal i workspace-ve" : mode === "set" ? "Bilanci i ri" : "Ndryshimi i krediteve"} hint={kind === "storage" ? "0–1,000 GB. 1 GB = 1,000,000,000 bytes. Ulja e limitit nuk fshin skedarë ekzistues." : kind === "workspaces" ? `${user.workspaceCount ?? 0} workspace aktualisht. Vendos 1–1,000. Ulja e limitit nuk fshin workspace-t ekzistuese.` : `Bilanci aktual: ${hidden ? "*****" : user.credits} kredite. ${mode === "delta" ? "Përdor numër negativ për të hequr kredite." : ""}`}><Input type="number" step={kind === "storage" ? "any" : "1"} min={isLimit ? kind === "storage" ? 0 : 1 : undefined} max={kind === "storage" ? MAX_STORAGE_GB : kind === "workspaces" ? MAX_WORKSPACES : undefined} disabled={isLimit && usePlan} value={amount} onChange={event => { setAmount(event.target.value); changed(); }} /></Field>
+        {kind === "credits" && validAmount && <p className="text-sm font-semibold text-ink">Bilanci pas ndryshimit: <AdminPrivateValue>{mode === "set" ? number : user.credits + number}</AdminPrivateValue> kredite</p>}
         <Field label="Arsyeja private" hint="Ruhet në historikun e adminit."><Textarea rows={3} maxLength={1000} value={reason} onChange={event => { setReason(event.target.value); changed(); }} /></Field>
       </>}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}

@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 
 import { useEffect, useState } from "react";
 import { Radio } from "lucide-react";
@@ -27,11 +28,11 @@ export function OnlineNowCard() {
   return <section aria-label="Online tani" className="rounded-maro20 border border-line bg-surface p-5 sm:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><div className="flex items-center gap-2 text-sm font-semibold text-ink"><Radio className="h-4 w-4 text-brand" />Online tani</div>
-        <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-ink" aria-live="polite" aria-atomic="true">{data ? data.total.toLocaleString("sq-AL") : "—"}</p>
+        <p className="mt-2 text-4xl font-bold tabular-nums tracking-tight text-ink" aria-live="polite" aria-atomic="true"><AdminPrivateValue>{data ? data.total.toLocaleString("sq-AL") : "—"}</AdminPrivateValue></p>
       </div>
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-2">
-        <p><strong className="text-ink tabular-nums">{data ? data.signedIn.toLocaleString("sq-AL") : "—"}</strong> të kyçur</p>
-        <p><strong className="text-ink tabular-nums">{data ? data.guests.toLocaleString("sq-AL") : "—"}</strong> vizitorë pa login</p>
+        <p><strong className="text-ink tabular-nums"><AdminPrivateValue>{data ? data.signedIn.toLocaleString("sq-AL") : "—"}</AdminPrivateValue></strong> të kyçur</p>
+        <p><strong className="text-ink tabular-nums"><AdminPrivateValue>{data ? data.guests.toLocaleString("sq-AL") : "—"}</AdminPrivateValue></strong> vizitorë pa login</p>
       </div>
     </div>
     <p className="mt-3 text-xs leading-relaxed text-ink-3">{unavailable ? "Numri live nuk u ngarkua. Po provojmë përsëri." : "Sesione aktive në 2 minutat e fundit · përditësohet çdo 30 sekonda."}</p>

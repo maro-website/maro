@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import * as React from "react";
 import { adminRequest, Action, Section, inputClass } from "./shared";
 import { GenerationResultPreview } from "./GenerationImageReview";
@@ -7,12 +8,12 @@ interface Operations { counts: Record<string, number>; jobs: OperationalJob[]; c
 const labels: Record<string, string> = { maro_imazh: "maroImazh", maro_logo: "maroLogo", flare: "Flare", sunburst: "Sunburst", settlementPending: "Settlement pending", history_failed: "History save failed", storage_failed: "Output storage failed", provider_failed: "Provider failed", provider_output_invalid: "Invalid provider output", execution_trace_unavailable: "Execution record unavailable", execution_interrupted: "Execution interrupted", settlement_pending: "Settlement pending", provider_succeeded: "Provider finished", persisted: "Result saved", other_failure: "Other failure" };
 const label = (value: string) => labels[value] ?? value.replaceAll("_", " ");
 export function OperationalJobRow({ job: j, busy, reconcile, canReviewImages = false }: { job: OperationalJob; busy: boolean; reconcile: () => void; canReviewImages?: boolean }) {
-  return <tr className="border-t border-line align-top"><td className="p-3"><div>{new Date(j.createdAt).toLocaleString()}</div><details className="mt-2 text-xs"><summary>Identifiers</summary><div className="max-w-xs break-all">Job: {j.id}<br />User: {j.userId}<br />Generation: {j.generationId ?? "missing"}<br />Provider model: {j.providerModelId}{j.recoveredFromJobId && <p>Recovered from: {j.recoveredFromJobId}</p>}</div></details></td>
+  return <tr className="border-t border-line align-top"><td className="p-3"><div>{new Date(j.createdAt).toLocaleString()}</div><details className="mt-2 text-xs"><summary>Identifiers</summary><div className="max-w-xs break-all">Job: {j.id}<br />User: <AdminPrivateValue>{j.userId}</AdminPrivateValue><br />Generation: {j.generationId ?? "missing"}<br />Provider model: {j.providerModelId}{j.recoveredFromJobId && <p>Recovered from: {j.recoveredFromJobId}</p>}</div></details></td>
     {canReviewImages && <td className="p-3">{j.output === "stored" && j.generationId ? <GenerationResultPreview jobId={j.id} /> : <span className="text-xs text-ink-3">Pa fotografi të ruajtur në historik</span>}</td>}
     <td className="p-3">{label(j.module)}<br />{label(j.model)} · {j.provider}<br />{j.latencyMs != null ? `${j.latencyMs} ms` : "Latency unavailable"}</td>
     <td className="p-3">{j.status}<br /><span className="text-xs">{j.failure ? label(j.failure) : j.phase && j.phase !== j.status ? label(j.phase) : ""}</span>{j.retainedOrphan && <p className="font-semibold">Retained output without history</p>}{j.recoveredFromJobId && <p>Recovered saved result</p>}</td>
     <td className="p-3">Output: {j.output}<br />History: {j.history}<br />Settlement: {j.settlement}</td>
-    <td className="p-3">Configured: {j.configuredCredits}<br />Charged: {j.charged}<br />Reserved: {j.reserved}</td>
+    <td className="p-3">Configured: <AdminPrivateValue>{j.configuredCredits}</AdminPrivateValue><br />Charged: <AdminPrivateValue>{j.charged}</AdminPrivateValue><br />Reserved: <AdminPrivateValue>{j.reserved}</AdminPrivateValue></td>
     <td className="p-3">{j.eligible ? <Action disabled={busy} onClick={reconcile}>Reconcile</Action> : ["completed", "failed", "cancelled"].includes(j.status) ? "Terminal" : "Active; not yet eligible"}</td></tr>;
 }
 export function V1Operations({ compact = false }: { compact?: boolean }) {
@@ -23,7 +24,7 @@ export function V1Operations({ compact = false }: { compact?: boolean }) {
   return <div className={compact ? "space-y-5" : "space-y-5 p-6"}><Section title="Generations">
     <p className="text-sm text-ink-3">V1 durable jobs. Scheduled reconciliation is configured every ten minutes; deployed delivery remains unverified.</p>
     <p role="status">{message}</p>
-    <div className="flex flex-wrap gap-4 text-sm">{Object.entries(data?.counts ?? {}).map(([key, value]) => <span key={key}>{label(key)}: <strong>{value}</strong></span>)}</div>
+    <div className="flex flex-wrap gap-4 text-sm">{Object.entries(data?.counts ?? {}).map(([key, value]) => <span key={key}>{label(key)}: <strong><AdminPrivateValue>{value}</AdminPrivateValue></strong></span>)}</div>
     <div className="flex gap-3"><select aria-label="Job status" className={inputClass} value={status} onChange={(e) => { setStatus(e.target.value); setBefore(""); }}><option value="">All statuses</option>{["completed", "failed", "pending", "reserved", "processing", "cancelled"].map((s) => <option key={s}>{s}</option>)}</select><Action disabled={busy} onClick={() => void load()}>Refresh</Action></div>
     {data?.canReviewImages && <p className="text-xs text-ink-3">Pamje për kontroll cilësie. Shikimet regjistrohen; origjinali hapet në një faqe të mbrojtur.</p>}
     <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{["Time / identifiers", ...(data?.canReviewImages ? ["Rezultati"] : []), "Module / model", "State", "Persistence / settlement", "Credits", "Action"].map((v) => <th key={v} className="p-3">{v}</th>)}</tr></thead><tbody>{data?.jobs.slice(0, compact ? 5 : 50).map((j) => <OperationalJobRow job={j} key={j.id} busy={busy} canReviewImages={data.canReviewImages} reconcile={() => void reconcile(j.id)} />)}</tbody></table></div>

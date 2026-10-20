@@ -7,8 +7,9 @@ import { ACCESS_ROLE_LABELS, type AccessRole } from "@/lib/admin/permissions";
 import { AdminSidebar } from "./AdminSidebar";
 import { AppTopNav } from "@/components/app/AppTopNav";
 import { NavDrawer } from "@/components/app/NavDrawer";
+import { AdminPrivacyProvider, AdminPrivacyToggle, useAdminPrivacy } from "./AdminPrivacy";
 
-export function AdminShell({
+function AdminShellContent({
   role,
   email,
   children,
@@ -21,6 +22,7 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const { hidden } = useAdminPrivacy();
 
   if (minimal) {
     return (
@@ -45,7 +47,7 @@ export function AdminShell({
 
   return (
     <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-canvas">
-      <AppTopNav onOpenDrawer={() => setDrawerOpen(true)} adminRoleLabel={ACCESS_ROLE_LABELS[role]} />
+      <AppTopNav onOpenDrawer={() => setDrawerOpen(true)} adminRoleLabel={ACCESS_ROLE_LABELS[role]} adminActions={<AdminPrivacyToggle />} hidePrivateValues={hidden} />
       <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:overflow-hidden lg:px-8 lg:py-8">
         <AdminSidebar role={role} />
@@ -55,4 +57,8 @@ export function AdminShell({
       </div>
     </div>
   );
+}
+
+export function AdminShell(props: React.ComponentProps<typeof AdminShellContent>) {
+  return <AdminPrivacyProvider account={props.email}><AdminShellContent {...props} /></AdminPrivacyProvider>;
 }

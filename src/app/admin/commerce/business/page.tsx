@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -97,7 +98,7 @@ export default function CommerceBusinessPage() {
             <div key={lead.id} className="rounded-lg border border-line p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-ink">{lead.email}</p>
+                  <p className="font-semibold text-ink"><AdminPrivateValue>{lead.email}</AdminPrivateValue></p>
                   <p className="text-[12px] text-ink-3">
                     {lead.status} · {timeAgo(lead.created_at)}
                     {lead.user_id ? ` · user ${lead.user_id.slice(0, 8)}…` : ""}

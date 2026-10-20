@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -71,7 +72,7 @@ export function CommandCenterDashboard() {
 
           <div className="rounded-xl border border-line bg-surface p-4">
             <div className="text-[12px] font-semibold text-ink">Attention required</div>
-            <div className="mt-1 text-[24px] font-semibold text-ink">{kpis?.attentionRequired ?? 0}</div>
+            <div className="mt-1 text-[24px] font-semibold text-ink"><AdminPrivateValue>{kpis?.attentionRequired ?? 0}</AdminPrivateValue></div>
             <div className="mt-1 text-[11px] text-ink-3">Open generation reports + shadow compile failures (today)</div>
           </div>
 
@@ -89,7 +90,7 @@ function KpiCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-4">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</div>
-      <div className="mt-1 text-[22px] font-semibold text-ink">{value}</div>
+      <div className="mt-1 text-[22px] font-semibold text-ink"><AdminPrivateValue>{value}</AdminPrivateValue></div>
     </div>
   );
 }

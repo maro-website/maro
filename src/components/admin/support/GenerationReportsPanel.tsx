@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -101,7 +102,7 @@ export function GenerationReportsPanel() {
               {r.message && <div className="mt-1 text-[13px] text-ink-2">{r.message}</div>}
               {r.prompt && <div className="mt-1 line-clamp-2 text-[12px] text-ink-3">{r.prompt}</div>}
               <div className="mt-1 text-[11.5px] text-ink-3">
-                {timeAgo(r.created_at)} · {r.credits_spent ?? 0} credits
+                {timeAgo(r.created_at)} · <AdminPrivateValue>{r.credits_spent ?? 0}</AdminPrivateValue> credits
               </div>
             </div>
             <div className="flex shrink-0 gap-2">

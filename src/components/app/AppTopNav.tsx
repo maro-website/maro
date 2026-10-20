@@ -44,10 +44,14 @@ export function AppTopNav({
   onOpenDrawer,
   className,
   adminRoleLabel,
+  adminActions,
+  hidePrivateValues = false,
 }: {
   onOpenDrawer?: () => void;
   className?: string;
   adminRoleLabel?: string;
+  adminActions?: React.ReactNode;
+  hidePrivateValues?: boolean;
 }) {
   const pathname = usePathname();
   const { user, credits } = useMaro();
@@ -135,14 +139,15 @@ export function AppTopNav({
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">
         {adminRoleLabel && <Badge tone="brand" className="hidden sm:inline-flex">{adminRoleLabel}</Badge>}
+        {adminActions}
         {user && (
           <Link
             href="/pricing"
-            className="inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-3 text-sm font-semibold transition-colors hover:bg-surface-hover sm:px-5 sm:text-[14px]"
-            aria-label={`${credits} kredite`}
+            className={cn("inline-flex h-11 items-center justify-center gap-[10px] rounded-maro16 bg-surface px-3 text-sm font-semibold transition-colors hover:bg-surface-hover sm:px-5 sm:text-[14px]", adminActions && "!hidden sm:!inline-flex")}
+            aria-label={hidePrivateValues ? "Kreditet janë të fshehura" : `${credits} kredite`}
           >
             <MaroIcon name="coins" fallback={Coins} className="h-4 w-4 text-brand" />
-            <span className="tabular-nums text-brand">{formatCredits(credits)}</span>
+            <span className="tabular-nums text-brand">{hidePrivateValues ? "*****" : formatCredits(credits)}</span>
             <span className="hidden text-ink-2 sm:inline">kredite</span>
           </Link>
         )}

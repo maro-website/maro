@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -49,7 +50,7 @@ export default function CommerceOverviewPage() {
             ].map((kpi) => (
               <div key={kpi.label} className="rounded-xl border border-line bg-surface p-4">
                 <p className="text-[11px] font-semibold uppercase text-ink-3">{kpi.label}</p>
-                <p className="mt-2 text-[28px] font-light text-ink">{kpi.creditCount ? formatCredits(kpi.value) : kpi.value.toLocaleString("de-DE")}</p>
+                <p className="mt-2 text-[28px] font-light text-ink"><AdminPrivateValue>{kpi.creditCount ? formatCredits(kpi.value) : kpi.value.toLocaleString("de-DE")}</AdminPrivateValue></p>
               </div>
             ))}
           </div>
@@ -61,10 +62,10 @@ export default function CommerceOverviewPage() {
                 {data.recentPlanPurchases.map((o) => (
                   <li key={o.id} className="flex justify-between gap-2 text-ink-2">
                     <span>
-                      {o.orderKind} · {o.itemId} · {formatCredits(o.credits)} cr
+                      {o.orderKind} · {o.itemId} · <AdminPrivateValue>{formatCredits(o.credits)}</AdminPrivateValue> cr
                     </span>
                     <span className="shrink-0 text-ink-3">
-                      {new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
+                      <AdminPrivateValue>{new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)}</AdminPrivateValue> · {o.paidAt ? timeAgo(o.paidAt) : "—"}
                     </span>
                   </li>
                 ))}
@@ -79,9 +80,9 @@ export default function CommerceOverviewPage() {
               <ul className="mt-3 space-y-2 text-[13px]">
                 {data.recentTopups.map((o) => (
                   <li key={o.id} className="flex justify-between gap-2 text-ink-2">
-                    <span>{formatCredits(o.credits)} credits</span>
+                    <span><AdminPrivateValue>{formatCredits(o.credits)}</AdminPrivateValue> credits</span>
                     <span className="text-ink-3">
-                      {new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)} · {o.paidAt ? timeAgo(o.paidAt) : "—"}
+                      <AdminPrivateValue>{new Intl.NumberFormat("sq-AL", { style: "currency", currency: o.currency }).format(o.amountCents / 100)}</AdminPrivateValue> · {o.paidAt ? timeAgo(o.paidAt) : "—"}
                     </span>
                   </li>
                 ))}

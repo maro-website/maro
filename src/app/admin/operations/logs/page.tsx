@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -52,7 +53,7 @@ export default function OperationsLogsPage() {
               {generations.map((g) => (
                 <tr key={g.id}>
                   <td className="px-3 py-2 font-semibold">{g.tool}</td>
-                  <td className="px-3 py-2">{g.credits}</td>
+                  <td className="px-3 py-2"><AdminPrivateValue>{g.credits}</AdminPrivateValue></td>
                   <td className="px-3 py-2 text-ink-3">{timeAgo(g.createdAt)}</td>
                 </tr>
               ))}

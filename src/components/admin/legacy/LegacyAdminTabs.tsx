@@ -1,4 +1,5 @@
 "use client";
+import { AdminPrivateValue } from "@/components/admin/AdminPrivacy";
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import * as React from "react";
@@ -335,10 +336,10 @@ export function LegacyUsersTab() {
               <tr key={p.id} className="bg-surface">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 font-medium text-ink">
-                    {p.full_name || p.email?.split("@")[0]}
+                    <AdminPrivateValue>{p.full_name || p.email?.split("@")[0]}</AdminPrivateValue>
                     {p.is_admin && <Badge tone="brand" className="text-[10px]">admin</Badge>}
                   </div>
-                  <div className="text-[12px] text-ink-3">{p.email}</div>
+                  <div className="text-[12px] text-ink-3"><AdminPrivateValue>{p.email}</AdminPrivateValue></div>
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -359,9 +360,9 @@ export function LegacyUsersTab() {
                     Menaxho planin
                   </Button>
                 </td>
-                <td className="px-4 py-3 font-bold text-ink">{p.credits}</td>
+                <td className="px-4 py-3 font-bold text-ink"><AdminPrivateValue>{p.credits}</AdminPrivateValue></td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <AdminPrivateValue><div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
                       type="number"
                       value={edits[p.id] ?? String(p.credits)}
@@ -397,7 +398,7 @@ export function LegacyUsersTab() {
                     >
                       Ruaj
                     </Button>
-                  </div>
+                  </div></AdminPrivateValue>
                 </td>
               </tr>
             ))}
@@ -539,7 +540,7 @@ function PromosTab() {
               <option value="">(asnjë)</option>
               {creators.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.email}
+                  <AdminPrivateValue plain>{c.email}</AdminPrivateValue>
                 </option>
               ))}
             </select>
@@ -737,7 +738,7 @@ export function LegacyCreatorsTab() {
                 key={c.id}
                 className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[13px] text-ink"
               >
-                <Star className="h-3.5 w-3.5 fill-ink text-ink" /> {c.email}
+                <Star className="h-3.5 w-3.5 fill-ink text-ink" /> <AdminPrivateValue>{c.email}</AdminPrivateValue>
               </span>
             ))}
           </div>
@@ -761,7 +762,7 @@ export function LegacyCreatorsTab() {
                       {a.status}
                     </Badge>
                   </div>
-                  <div className="text-[12.5px] text-ink-3">{a.email}</div>
+                  <div className="text-[12.5px] text-ink-3"><AdminPrivateValue>{a.email}</AdminPrivateValue></div>
                   <div className="mt-1.5 text-[12.5px] text-ink-2">{socials(a)}</div>
                   <div className="mt-1 text-[11.5px] text-ink-3">{timeAgo(a.created_at)}</div>
                 </div>
@@ -1116,7 +1117,7 @@ function ReportsTab() {
               {r.message && <div className="mt-1 text-[13px] text-ink-2">{r.message}</div>}
               {r.prompt && <div className="mt-1 line-clamp-2 text-[12px] text-ink-3">{r.prompt}</div>}
               <div className="mt-1 text-[11.5px] text-ink-3">
-                {timeAgo(r.created_at)} · {r.credits_spent ?? 0} kredite
+                {timeAgo(r.created_at)} · <AdminPrivateValue>{r.credits_spent ?? 0}</AdminPrivateValue> kredite
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -1486,7 +1487,7 @@ export function PresetAnalyticsTab() {
               <c.icon className="h-4 w-4" /> {c.label}
             </div>
             <div className="mt-2 text-[30px] font-extrabold tracking-[-0.03em] text-ink">
-              {typeof c.value === "number" ? c.value.toLocaleString() : c.value}
+              <AdminPrivateValue>{typeof c.value === "number" ? c.value.toLocaleString() : c.value}</AdminPrivateValue>
             </div>
           </div>
         ))}
@@ -1509,8 +1510,8 @@ export function PresetAnalyticsTab() {
                   <span className="line-clamp-2">{r.prompt}</span>
                 </td>
                 <td className="px-4 py-3 text-ink-2">{r.tool_id ?? ""}</td>
-                <td className="px-4 py-3 font-semibold text-ink">{r.views}</td>
-                <td className="px-4 py-3 font-semibold text-brand">{r.copies}</td>
+                <td className="px-4 py-3 font-semibold text-ink"><AdminPrivateValue>{r.views}</AdminPrivateValue></td>
+                <td className="px-4 py-3 font-semibold text-brand"><AdminPrivateValue>{r.copies}</AdminPrivateValue></td>
               </tr>
             ))}
             {rows.length === 0 && (
@@ -1600,14 +1601,14 @@ function OrdersTab() {
         <tbody className="divide-y divide-line">
           {orders.map((o) => (
             <tr key={o.id} className="bg-surface">
-              <td className="px-4 py-3 text-ink-2">{o.userEmail}</td>
+              <td className="px-4 py-3 text-ink-2"><AdminPrivateValue>{o.userEmail}</AdminPrivateValue></td>
               <td className="px-4 py-3 text-ink-2">
                 {o.label}
                 {o.itemId ? ` · ${o.itemId}` : ""}
               </td>
-              <td className="px-4 py-3 font-semibold text-ink">{o.credits}</td>
+              <td className="px-4 py-3 font-semibold text-ink"><AdminPrivateValue>{o.credits}</AdminPrivateValue></td>
               <td className="px-4 py-3 text-ink-2">
-                {(o.amountCents / 100).toFixed(2)} {o.currency}
+                <AdminPrivateValue>{(o.amountCents / 100).toFixed(2)} {o.currency}</AdminPrivateValue>
               </td>
               <td className="px-4 py-3">
                 <Badge
@@ -1861,7 +1862,7 @@ function LogTab() {
                     <span className="line-clamp-2">{l.prompt}</span>
                   </td>
                   <td className="px-4 py-3 text-ink-2">{l.tool_id || l.website_type}</td>
-                  <td className="px-4 py-3 font-semibold text-brand">{l.credits_spent}</td>
+                  <td className="px-4 py-3 font-semibold text-brand"><AdminPrivateValue>{l.credits_spent}</AdminPrivateValue></td>
                   <td className="px-4 py-3 text-ink-3">{timeAgo(l.created_at)}</td>
                 </tr>
               );
@@ -1884,7 +1885,7 @@ function LogTab() {
               <div>
                 <div className="text-[15px] font-bold text-ink">{detail.user_email}</div>
                 <div className="text-[12px] text-ink-3">
-                  {detail.tool_id || detail.website_type} · {detail.credits_spent} kredite · {timeAgo(detail.created_at)}
+                  {detail.tool_id || detail.website_type} · <AdminPrivateValue>{detail.credits_spent}</AdminPrivateValue> kredite · {timeAgo(detail.created_at)}
                 </div>
               </div>
               <Button size="sm" icon={<Copy className="h-4 w-4" />} onClick={() => void copyPrompt(detail)}>
