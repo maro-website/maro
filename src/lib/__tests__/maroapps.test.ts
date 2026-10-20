@@ -46,4 +46,28 @@ describe("maroApps campaign contracts", () => {
     const metadata = await sharp(await appOutputBytes(bytes, format)).metadata();
     expect([metadata.width, metadata.height, metadata.format]).toEqual([width,height,"png"]);
   });
+  it.each([
+    ["4:5", [[125,40],[898,40],[125,1240],[898,1240]]],
+    ["9:16", [[40,160],[824,160],[40,1376],[824,1376]]],
+    ["1:1", [[202,32],[821,32],[202,992],[821,992]]],
+  ] as const)("keeps all four corners of the original composition in %s, including headline and CTA edges", async (format, points) => {
+    const colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00"];
+    const corners = [[0,0],[928,0],[0,1440],[928,1440]];
+    const patches = await Promise.all(colors.map(background => sharp({create:{width:96,height:96,channels:3,background}}).png().toBuffer()));
+    const bytes = await sharp({create:{width:1024,height:1536,channels:3,background:"#442266"}})
+      .composite(patches.map((input, i) => ({input,left:corners[i][0],top:corners[i][1]}))).png().toBuffer();
+    const output = await appOutputBytes(bytes,format);
+    const pixels = await Promise.all(points.map(([left,top]) => sharp(output).extract({left,top,width:1,height:1}).removeAlpha().raw().toBuffer()));
+    expect(pixels.map(pixel => [...pixel])).toEqual([[255,0,0],[0,255,0],[0,0,255],[255,255,0]]);
+  });
+  it("preserves native square composition exactly and instructs complete framing", async () => {
+    const bytes = await sharp({create:{width:1024,height:1024,channels:3,background:"#775533"}}).png().toBuffer();
+    const actual = await sharp(await appOutputBytes(bytes,"1:1")).raw().toBuffer();
+    expect(actual.equals(await sharp(bytes).raw().toBuffer())).toBe(true);
+    for (const format of ["1:1","4:5","9:16"] as const) {
+      const value = prompt({...mobile,format});
+      expect(value).toContain("without cropping or stretching");
+      expect(value).not.toContain("will be center-cropped");
+    }
+  });
 });
