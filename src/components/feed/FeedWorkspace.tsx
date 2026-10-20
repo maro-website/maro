@@ -2,12 +2,16 @@
 /* eslint-disable @next/next/no-img-element */
 import * as React from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ArrowUpRight, Check, Grid3X3, ImagePlus, LoaderCircle, RefreshCw, Sparkles, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpRight, Check, Grid3X3, ImagePlus, LoaderCircle, RefreshCw, Sparkles, X, History, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { IMAGE_REFERENCE_ACCEPT, createPrivateImageAttachment, uploadOrResolvePrivateAttachment, type PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
 import { canUseFeed, categoryIds, defaults, roles, type FeedBrief, type FeedCategory, type FeedView } from "@/lib/feed/model";
 import { downloadFeed, feedJson, feedMessage, feedStep } from "@/lib/feed/client";
+import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
+import { Logo } from "@/components/ui/Logo";
+import b from "@/components/modules/BrainStudio.module.css";
 import s from "./FeedWorkspace.module.css";
 
 export function FeedWorkspace() {
@@ -21,6 +25,7 @@ type History = { id: string; brand: string; createdAt: string; refunded: boolean
 const initialBrief: FeedBrief = { brand: "", description: "", audience: "", goal: "sales", language: "sq", colors: "", notes: "" };
 function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; workspaceName: string }) {
   const { credits, refreshProfile } = useMaro();
+  const [tab, setTab] = React.useState<"prepare" | "feed" | "history">("prepare");
   const [brief, setBrief] = React.useState(initialBrief); const [brain, setBrain] = React.useState(false);
   const [category, setCategory] = React.useState<FeedCategory>("drinks");
   const [attachment, setAttachment] = React.useState<PrivateImageAttachment | null>(null);
@@ -51,6 +56,7 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
   const remember = React.useCallback((value: FeedView) => {
     if (!alive.current) return;
     currentFeed.current = value;
+    setTab("feed");
     setFeed(value); const url = new URL(window.location.href); url.searchParams.set("feed", value.id); window.history.replaceState(null, "", url);
   }, []);
   React.useEffect(() => {
@@ -130,48 +136,69 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
   const working = busy || Boolean(feed?.active); const active = activeSlot ?? feed?.active?.slot;
   const free = Math.max(0, 3 - (feed?.freeUsed ?? 0));
   const tiles = feed?.tiles ?? roles.map((r, slot) => ({ slot, title: r.title, url: null, version: 0 }));
-  return <div className={s.studio}>
-    <header className={s.header}><div className={s.wordmark}><span className={s.mark}><Grid3X3 size={25} /></span><span>maro<span className={s.feedWord}>Feed</span></span><span className={s.pilot}>PILOT PRIVAT</span></div><span className={s.small}>Një brend. Nëntë momente.</span></header>
-    <div className={s.intro}><div><span className={s.eyebrow}>NGA PRODUKTI, TE FEED-I YT I RADHËS</span><h1>9 postime.<br /><span>Një identitet.</span></h1><p>Ngarko produktin. Jepi pak kontekst.<br />Lëre maroFeed me e lidhë krejt historinë.</p></div><div className={s.stamp}><Sparkles size={20} /><span>CRAFTED AS A FEED<br /><strong>jo thjesht 9 imazhe.</strong></span></div></div>
-    <div className={s.workspace}>
-      <aside className={s.setup}>
-        <div className={s.panelHeading}><span className={s.step}>01</span><h2>Pak prej teje.</h2></div>
-        <button className={s.upload} type="button" onClick={() => fileInput.current?.click()} disabled={working}>
-          {attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : attachment?.status === "uploading" ? <LoaderCircle className={s.spin} size={28} /> : <ImagePlus size={30} />}
-          <strong>{attachment?.name ?? "Ngarko produktin ose brendin"}</strong><span>{attachment?.status === "ready" ? "U ngarkua · kliko për ta ndërruar" : "PNG, JPG ose WebP · deri në 25 MB"}</span>
-        </button>
-        <input ref={fileInput} type="file" accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
-        {attachment && <button type="button" className={s.textButton} disabled={working} onClick={() => { setAttachment(null); setError(""); }}>Hiqe imazhin</button>}
-        <button className={`${s.brainToggle} ${brain ? s.brainOn : ""}`} type="button" role="switch" aria-checked={brain} disabled={working} onClick={() => setBrain(v => !v)}><span><strong>maroBrain</strong><small>{brain ? workspaceName : "Përdore kujtesën e brendit"}</small></span><span className={s.switch}><span /></span></button>
-        {brain ? <div className={s.brainInfo}>Identiteti, audienca, ngjyrat dhe rregullat merren nga maroBrain i këtij workspace. <Link href="/brain">Hape maroBrain <ArrowUpRight size={12} /></Link></div> : <div className={s.fields}>
-          <label>Emri i brendit<input value={brief.brand} maxLength={120} disabled={working} placeholder="p.sh. NOMA" onChange={e => patch("brand", e.target.value)} /></label>
-          <label>Çka shet / ofron?<textarea value={brief.description} maxLength={1800} disabled={working} placeholder="Produkti, çka e bën të veçantë, për kë është…" rows={3} onChange={e => patch("description", e.target.value)} /></label>
-          <label>Audienca <span>opsionale</span><input value={brief.audience} maxLength={300} disabled={working} placeholder="Kush dëshiron me të pa?" onChange={e => patch("audience", e.target.value)} /></label>
-        </div>}
-        <div className={s.fields}><label>Kategoria<select value={category} disabled={working} onChange={e => setCategory(e.target.value as FeedCategory)}>{categoryIds.map(id => <option key={id} value={id}>{defaults[id].label}</option>)}</select></label>
-          <div className={s.fieldPair}><label>Synimi<select value={brief.goal} disabled={working} onChange={e => patch("goal", e.target.value)}><option value="sales">Shitje</option><option value="engagement">Engagement</option><option value="launch">Lansim</option></select></label><label>Gjuha në imazhe<select value={brief.language} disabled={working} onChange={e => patch("language", e.target.value)}><option value="sq">Shqip</option><option value="en">English</option></select></label></div>
-          <details className={s.more}><summary>Pak më shumë drejtim <span>opsionale +</span></summary><label>Ngjyrat<input value={brief.colors} maxLength={100} placeholder="p.sh. #233D2A, krem, portokalli" onChange={e => patch("colors", e.target.value)} disabled={working} /></label><label>Çka duhet me ditë?<textarea value={brief.notes} maxLength={1200} rows={3} placeholder="Fushata, oferta e saktë, stili ose gjërat që duhen shmangur…" onChange={e => patch("notes", e.target.value)} disabled={working} /></label></details>
-        </div>
-        <button type="button" className={s.generate} disabled={working || loading || attachment?.status !== "ready" || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()}><Sparkles size={17} /><span>Ma maro feed-in</span><strong>50 credits</strong></button>
-        <p className={s.priceNote}>9 imazhe · 3 rigjenerime falas<br />Pastaj 5 credits për rigjenerim.</p>
+  return <div className={`${b.studio} ${s.studio}`}>
+    <header className={b.header}>
+      <div className={b.mastheadCopy}>
+        <h1 className={s.wordmark} aria-label="maroFeed"><Logo showWord wordClassName={s.maroWord} /><span>Feed</span></h1>
+        <p>Krijo 9 postime me identitetin e brendit tënd.</p>
+        <div className={b.saveStatus}><span role="status" className={b.hint}><Check size={14} aria-hidden="true" />Pilot privat · 9 imazhe · 50 credits</span></div>
+      </div>
+      <div className={b.mastheadArt} aria-hidden="true">
+        <svg viewBox="0 0 340 180" fill="none"><path d="M14 42H82Q108 42 126 66L170 90M0 130H76Q110 130 132 111L170 90M326 33H265Q239 33 220 60L170 90M340 141H262Q231 141 214 117L170 90" /><circle cx="14" cy="42" r="4" /><circle cx="0" cy="130" r="3" /><circle cx="326" cy="33" r="3" /><circle cx="340" cy="141" r="4" /></svg>
+        <span className={s.headerIcon}><Grid3X3 size={40} strokeWidth={1.5} /></span>
+      </div>
+    </header>
+    <div className={b.layout}>
+      <aside className={b.sidebar}>
+        <div className={b.workspace}><span>Workspace</span><div className={`maro-input ${s.workspaceName}`}>{workspaceName}</div></div>
+        <nav className={b.sectionNav} aria-label="Seksionet e maroFeed">
+          <button type="button" aria-current={tab === "prepare" ? "page" : undefined} onClick={() => setTab("prepare")}><SlidersHorizontal size={18} /><span>Përgatitja</span></button>
+          <button type="button" aria-current={tab === "feed" ? "page" : undefined} onClick={() => setTab("feed")}><Grid3X3 size={18} /><span>Feed-i yt</span><small>{done}/9</small></button>
+          <button type="button" aria-current={tab === "history" ? "page" : undefined} onClick={() => setTab("history")}><History size={18} /><span>Historiku</span><small>{history.length}</small></button>
+        </nav>
+        <div className={b.sidebarProgress}><div className={b.row}><span>Postime të përfunduara</span><strong>{done}/9</strong></div><div className={b.progress}><span style={{ width: `${done / 9 * 100}%` }} /></div><p className={s.sidebarNote}>3 rigjenerime falas për feed.<br />Pastaj 5 credits secili.</p></div>
       </aside>
-      <section className={s.canvas} aria-label="Feed-i me nëntë postime">
-        <div className={s.canvasTop}><div><span className={s.eyebrow}>02 / LET IT COME TOGETHER</span><h2>{feed?.brand ?? "Feed-i yt i ardhshëm."}</h2></div><span className={s.counter}>{done}<span>/09</span></span></div>
-        <div className={s.toolbar}><span className={s.liveDot}>{working ? "Po krijohet, një nga një…" : completeFeed ? "Gati për feed-in tënd." : feed?.refunded ? "Credits u kthyen." : "Nëntë ide. Një drejtim."}</span><span>1:1 · 1024 px</span></div>
-        {working && <div className={s.progress} role="progressbar" aria-label="Postimet e përfunduara" aria-valuenow={done} aria-valuemin={0} aria-valuemax={9}><span style={{ width: `${done / 9 * 100}%` }} /></div>}
-        <div className={s.grid}>{tiles.map(tile => <button type="button" key={tile.slot} className={`${s.tile} ${s[`tone${tile.slot}`]} ${active === tile.slot && working ? s.tileWorking : ""}`} onClick={() => { if (tile.url) { setSelected(tile.slot); setFeedback(""); } }} disabled={!tile.url} aria-label={`${tile.slot + 1}. ${tile.title}${tile.url ? ", hape imazhin" : ", ende pa u krijuar"}`}>
-          {tile.url ? <img src={tile.url} alt={`${feed?.brand} · ${tile.title}`} /> : <><span className={s.tileNumber}>{String(tile.slot + 1).padStart(2, "0")}</span><div className={s.tileArt}><span /><i /></div><span className={s.tileTitle}>{tile.title}</span></>}
-          {active === tile.slot && working ? <span className={s.tileOverlay}><LoaderCircle className={s.spin} size={27} /><strong>Po marohet…</strong></span> : tile.url ? <span className={s.tileBadge}><Check size={12} /> {tile.version > 1 ? `v${tile.version}` : "Gati"}</span> : null}
-        </button>)}</div>
-        <div className={s.canvasBottom}><span><Grid3X3 size={15} />{completeFeed ? `${free} rigjenerime falas të mbetura` : "Kompozime të ndryshme. Stil i përbashkët."}</span>
-          {completeFeed ? <button type="button" className={s.darkButton} disabled={downloading} onClick={() => void download()}><ArrowDownToLine size={15} />{downloading ? "Po përgatitet…" : "Shkarko 9 imazhet · ZIP"}</button> : feed && !feed.refunded ? <button type="button" className={s.darkButton} disabled={working} onClick={() => void run(() => complete(feed))}><Sparkles size={15} />Vazhdo feed-in · pa pagesë shtesë</button> : null}
-        </div>
-        {feed && !done && !working && !feed.refunded && feed.lastError && <button type="button" className={s.textButton} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>("/api/feed/action", { feedId: feed.id, requestId: crypto.randomUUID(), action: "refund" }); remember(data.feed); })}>Anulo feed-in dhe kthe 50 credits</button>}
-        <p className={s.marketingNote}>Kur të vijë <strong>maroMarketing</strong>, mundesh me kriju edhe captions për këto postime. <ArrowUpRight size={13} /></p>
-      </section>
+      <main className={b.main}>
+        <section className={b.hero} aria-label="Përmbledhja e feed-it">
+          <div className={b.brandIdentity}><div className={b.heroLogo}>{attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : <Grid3X3 size={24} />}</div><div><h2>{feed?.brand || brief.brand || workspaceName}</h2><p>{brain ? "Me kontekst nga maroBrain" : "Me informatat e brendit tënd"}</p></div></div>
+          <div className={s.summary}><span>{working ? "Po krijohet, një nga një…" : completeFeed ? "Feed-i është gati." : feed?.refunded ? "Credits u kthyen." : "9 imazhe · format katror"}</span><strong>{done}/9</strong></div>
+        </section>
+        {error && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
+        {tab === "prepare" && <section className={b.editor} aria-label="Përgatitja e feed-it">
+          <div className={b.sectionHeading}><div><h2>Përgatite feed-in</h2><p>Ngarko produktin dhe shto informatat që na duhen për brendin.</p></div></div>
+          <div className={s.form}>
+            <button className={`${b.dropZone} ${s.upload}`} type="button" onClick={() => fileInput.current?.click()} disabled={working}>
+              {attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : attachment?.status === "uploading" ? <LoaderCircle className={s.spin} size={24} /> : <ImagePlus size={28} />}
+              <strong>{attachment?.name ?? "Ngarko produktin ose brendin"}</strong><small>{attachment?.status === "ready" ? "U ngarkua · kliko për ta ndërruar" : "PNG, JPG ose WebP · deri në 25 MB"}</small>
+            </button>
+            <input ref={fileInput} type="file" accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
+            {attachment && <div className={b.actions}><Button variant="ghost" size="sm" disabled={working} onClick={() => { setAttachment(null); setError(""); }}>Hiqe imazhin</Button></div>}
+            <div className={s.contextRow}><div><strong>maroBrain</strong><p>{brain ? workspaceName : "Përdore kujtesën e brendit"}</p></div><Switch checked={brain} onChange={setBrain} disabled={working} aria-label="Përdor maroBrain" /></div>
+            {brain ? <div className={b.hint}>Identiteti, audienca, ngjyrat dhe rregullat merren nga maroBrain i këtij workspace. <Link className={s.inlineLink} href="/brain">Hape maroBrain <ArrowUpRight size={14} /></Link></div> : <>
+              <label className={b.field}><span>Emri i brendit</span><input className="maro-input" value={brief.brand} maxLength={120} disabled={working} placeholder="p.sh. NOMA" onChange={e => patch("brand", e.target.value)} /></label>
+              <label className={b.field}><span>Çka shet / ofron?</span><textarea className="maro-input" value={brief.description} maxLength={1800} disabled={working} placeholder="Produkti, çka e bën të veçantë, për kë është…" rows={3} onChange={e => patch("description", e.target.value)} /></label>
+              <label className={b.field}><span>Audienca <small className={b.hint}>(opsionale)</small></span><input className="maro-input" value={brief.audience} maxLength={300} disabled={working} placeholder="Kujt i drejtohet brendi yt?" onChange={e => patch("audience", e.target.value)} /></label>
+            </>}
+            <div className={s.fieldPair}><label className={b.field}><span>Kategoria</span><select className="maro-input" value={category} disabled={working} onChange={e => setCategory(e.target.value as FeedCategory)}>{categoryIds.map(id => <option key={id} value={id}>{defaults[id].label}</option>)}</select></label><label className={b.field}><span>Synimi</span><select className="maro-input" value={brief.goal} disabled={working} onChange={e => patch("goal", e.target.value)}><option value="sales">Shitje</option><option value="engagement">Engagement</option><option value="launch">Lansim</option></select></label></div>
+            <label className={b.field}><span>Gjuha në imazhe</span><select className="maro-input" value={brief.language} disabled={working} onChange={e => patch("language", e.target.value)}><option value="sq">Shqip</option><option value="en">English</option></select></label>
+            <details className={s.more}><summary className={b.promptSummary}>Më shumë drejtim (opsionale)</summary><div className={s.form}><label className={b.field}><span>Ngjyrat</span><input className="maro-input" value={brief.colors} maxLength={100} placeholder="p.sh. #233D2A, krem, portokalli" onChange={e => patch("colors", e.target.value)} disabled={working} /></label><label className={b.field}><span>Çka duhet me ditë?</span><textarea className="maro-input" value={brief.notes} maxLength={1200} rows={3} placeholder="Fushata, oferta e saktë, stili ose gjërat që duhen shmangur…" onChange={e => patch("notes", e.target.value)} disabled={working} /></label></div></details>
+            <div className={s.formActions}><Button variant="brand" disabled={working || loading || attachment?.status !== "ready" || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()} icon={<Sparkles size={16} />}>Ma maro feed-in · 50 credits</Button><p className={b.hint}>9 imazhe · 3 rigjenerime falas.<br />Pastaj 5 credits për rigjenerim.</p></div>
+          </div>
+        </section>}
+        {tab === "feed" && <section className={b.editor} aria-label="Feed-i me nëntë postime">
+          <div className={b.sectionHeading}><div><h2>Feed-i yt</h2><p>{completeFeed ? `${free} rigjenerime falas të mbetura.` : "Postimet krijohen një nga një dhe ruhen automatikisht."}</p></div><span className={b.hint}>1:1 · 1024 px</span></div>
+          {working && <div className={`${b.progress} ${s.feedProgress}`} role="progressbar" aria-label="Postimet e përfunduara" aria-valuenow={done} aria-valuemin={0} aria-valuemax={9}><span style={{ width: `${done / 9 * 100}%` }} /></div>}
+          <div className={s.grid}>{tiles.map(tile => <button type="button" key={tile.slot} className={`${b.sourceCard} ${s.tile}`} data-working={active === tile.slot && working} onClick={() => { if (tile.url) { setSelected(tile.slot); setFeedback(""); } }} disabled={!tile.url} aria-label={`${tile.slot + 1}. ${tile.title}${tile.url ? ", hape imazhin" : ", ende pa u krijuar"}`}>
+            <span className={s.tileImage}>{tile.url ? <img src={tile.url} alt={`${feed?.brand} · ${tile.title}`} /> : <ImageIcon size={28} strokeWidth={1.5} aria-hidden="true" />}{active === tile.slot && working && <span className={s.tileOverlay}><LoaderCircle className={s.spin} size={24} /><strong>Po marohet…</strong></span>}</span>
+            <span className={s.tileInfo}><strong>{String(tile.slot + 1).padStart(2, "0")} · {tile.title}</strong>{tile.url ? <span><Check size={12} />{tile.version > 1 ? `v${tile.version}` : "Gati"}</span> : null}</span>
+          </button>)}</div>
+          <div className={s.feedActions}>{completeFeed ? <Button variant="primary" disabled={downloading} onClick={() => void download()} icon={<ArrowDownToLine size={16} />}>{downloading ? "Po përgatitet…" : "Shkarko 9 imazhet · ZIP"}</Button> : feed && !feed.refunded ? <Button variant="brand" disabled={working} onClick={() => void run(() => complete(feed))} icon={<Sparkles size={16} />}>Vazhdo feed-in · pa pagesë shtesë</Button> : <Button variant="secondary" onClick={() => setTab("prepare")}>Përgatite feed-in</Button>}</div>
+          {feed && !done && !working && !feed.refunded && feed.lastError && <Button variant="ghost" onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>("/api/feed/action", { feedId: feed.id, requestId: crypto.randomUUID(), action: "refund" }); remember(data.feed); })}>Anulo feed-in dhe kthe 50 credits</Button>}
+        </section>}
+        {tab === "history" && <section className={b.editor} aria-label="Historiku i feed-ave"><div className={b.sectionHeading}><div><h2>Feed-at e tu</h2><p>Progresi ruhet automatikisht.</p></div></div>{history.length ? <div className={s.history}>{history.map(item => <button type="button" key={item.id} disabled={working} aria-pressed={item.id === feed?.id} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`/api/feed?feedId=${item.id}`); remember(data.feed); })}><Grid3X3 size={18} /><strong>{item.brand}</strong><span>{new Intl.DateTimeFormat("sq", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}</span><ArrowUpRight size={16} /></button>)}</div> : <div className={b.empty}><History size={24} /><h3>Ende nuk ke krijuar feed.</h3><p>Feed-at që krijon do t’i gjesh këtu.</p></div>}</section>}
+        <p className={b.footnote}>Kur të vijë <strong>maroMarketing</strong>, mundesh me kriju edhe captions për këto postime.</p>
+      </main>
     </div>
-    {error && <div className={s.error} role="alert">{error}<button type="button" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></button></div>}
-    {history.length > 0 && <section className={s.history}><h2>Feed-at e tu <span>Progresi ruhet automatikisht.</span></h2><div>{history.map(item => <button type="button" key={item.id} disabled={working} aria-pressed={item.id === feed?.id} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`/api/feed?feedId=${item.id}`); remember(data.feed); })}><Grid3X3 size={16} /><strong>{item.brand}</strong><span>{new Intl.DateTimeFormat("sq", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}</span><ArrowUpRight size={14} /></button>)}</div></section>}
-    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><button className={s.modalClose} type="button" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={22} /></button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${roles[selected].title}`} /><div className={s.modalInfo}><span className={s.eyebrow}>POSTIMI {String(selected + 1).padStart(2, "0")} / 09</span><h2>{roles[selected].title}</h2>{error && <p role="alert" className={s.brainInfo}>{error}</p>}<button type="button" className={s.darkButton} disabled={downloading} onClick={() => void download(selected)}><ArrowDownToLine size={16} />Shkarko PNG</button>{completeFeed && <><label className={s.revisionLabel}>Çka dëshiron me ndryshu? <span>opsionale</span><textarea value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Më pak tekst, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><button type="button" className={s.generate} disabled={working || (!free && credits < 5)} onClick={() => void regenerate()}>{working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}Rigjenero <strong>{free ? `Falas · ${free} të mbetura` : "5 credits"}</strong></button><p className={s.priceNote}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
+    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><Button className={s.modalClose} variant="secondary" size="icon" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={20} /></Button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${roles[selected].title}`} /><div className={s.modalInfo}><div><p className={b.hint}>Postimi {selected + 1} / 9</p><h2>{roles[selected].title}</h2></div>{error && <p role="alert" className={b.hint}>{error}</p>}<Button variant="secondary" disabled={downloading} onClick={() => void download(selected)} icon={<ArrowDownToLine size={16} />}>Shkarko PNG</Button>{completeFeed && <><label className={b.field}><span>Çka dëshiron me ndryshu? <small className={b.hint}>(opsionale)</small></span><textarea className="maro-input" value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Më pak tekst, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><Button variant="brand" disabled={working || (!free && credits < 5)} onClick={() => void regenerate()} icon={working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}>Rigjenero · {free ? `Falas · ${free} të mbetura` : "5 credits"}</Button><p className={b.hint}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
   </div>;
 }
