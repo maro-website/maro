@@ -13,6 +13,7 @@ export const PAGE_TITLES: Readonly<Record<string, string>> = {
   "/marketing": "maroMarketing", "/fjale": "maroFjalë", "/brain": "maroBrain", "/presets": "maroPresets",
   "/explore": "Explore", "/krijimet": "Krijimet e mia", "/favourites": "Të preferuarat", "/dashboard": "Paneli im",
   "/moods": "maroMoods", "/admin/engine/moods": "Admin · maroMoods",
+  "/feed": "maroFeed", "/admin/engine/feed": "Admin · maroFeed",
   "/account": "Llogaria ime", "/account/workspaces": "Hapësirat e punës",
   "/pricing": "Planet dhe kreditet", "/bonus": "Merr kredite falas", "/kreator": "maroKreator",
   "/academy": "maroAcademy", "/case-studies": "Rastet e përdorimit", "/contests": "Garat", "/contact": "Kontakt",
@@ -65,7 +66,7 @@ export function metadataForPage(pathname: string): Metadata {
       apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
     },
     manifest: "/manifest.webmanifest",
-    ...(pathname.split(/[?#]/, 1)[0] === "/moods" ? { robots: { index: false, follow: false } } : {}),
+    ...(["/moods", "/feed"].includes(pathname.split(/[?#]/, 1)[0]) ? { robots: { index: false, follow: false } } : {}),
     openGraph: { type: "website", siteName: "maro.al", locale: "sq_AL", title, description: SITE_DESCRIPTION, images: [SOCIAL_SHARE_IMAGE] },
     twitter: { card: "summary_large_image", title, description: SITE_DESCRIPTION, images: [SOCIAL_SHARE_IMAGE.url] },
   };

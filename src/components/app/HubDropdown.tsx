@@ -12,7 +12,9 @@ import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
-import { ChevronDown, Home, Plug } from "lucide-react";
+import { ChevronDown, Home, Plug, Grid3X3 } from "lucide-react";
+import { useMaro } from "@/context/store";
+import { canUseFeed } from "@/lib/feed/model";
 import { useToast } from "@/components/ui/Toast";
 
 function NavIcon({ name, className, hub }: { name: string; className?: string; hub?: boolean }) {
@@ -29,6 +31,7 @@ function NavIcon({ name, className, hub }: { name: string; className?: string; h
 }
 
 export function HubDropdown() {
+  const { user } = useMaro();
   const pathname = usePathname();
   const { toast } = useToast();
   const { workspaces, activeWorkspace, setActiveWorkspace, ready } = useWorkspace();
@@ -161,6 +164,7 @@ export function HubDropdown() {
                   </div>
                 </div>
                 <div className="mt-[30px]">
+                  {canUseFeed(user?.email) && <Link href="/feed" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroFeed</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {HUB_MENU_DESTINATIONS.map((item) => {
                     const active = isNavActive(pathname, item);
                     const isSeparatorBefore = item.id === "brain";

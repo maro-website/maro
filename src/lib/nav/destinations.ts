@@ -88,6 +88,7 @@ export const STUDIO_ROUTES = new Set([
   "/contests",
   "/krijimet",
   "/brain",
+  "/feed",
 ]);
 
 export function isNavActive(pathname: string, dest: NavDestination | HubMenuDestination): boolean {

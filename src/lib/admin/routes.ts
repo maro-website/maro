@@ -96,6 +96,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/engine/tools/maro_imazh", label: "maroImazh", permission: "engine.view", product: "maroImazh" },
       { href: "/admin/engine/tools/maro_logo", label: "maroLogo", permission: "engine.view", icon: Cpu },
       { href: "/admin/engine/brain", label: "maroBrain", permission: "engine.view", product: "maroBrain" },
+      { href: "/admin/engine/feed", label: "maroFeed", permission: "engine.view", icon: Cpu },
       { href: "/admin/engine/generations", label: "Gjenerimet", permission: "operations.view", icon: LayoutDashboard },
       { href: ADMIN_ROUTES.presets, label: "maroPresets", permission: "presets.manage", product: "maroPresets" },
       { href: "/admin/engine/moods", label: "Moods", permission: "presets.manage", icon: Moon },
