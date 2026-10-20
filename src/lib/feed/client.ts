@@ -23,8 +23,8 @@ export async function feedJson<T>(path: string, body?: unknown, method = "POST")
   if (!response.ok || data.error) throw new Error(data.error ?? "feed_unavailable");
   return data as T;
 }
-export async function feedStep(body: unknown): Promise<{ feed?: FeedView; error?: string }> {
-  const response = await feedFetch("/api/feed/action", body);
+export async function feedStep(body: unknown, studio: "feed" | "apps" = "feed"): Promise<{ feed?: FeedView; error?: string }> {
+  const response = await feedFetch(`/api/${studio}/action`, body);
   if (!response.headers.get("content-type")?.includes("text/event-stream")) {
     const data = await response.json(); if (!response.ok || data.error) throw new Error(data.error ?? "feed_unavailable"); return data;
   }
@@ -42,10 +42,11 @@ export async function feedStep(body: unknown): Promise<{ feed?: FeedView; error?
   if (!result) throw new Error("recovery_pending");
   return result;
 }
-export async function downloadFeed(id: string, slot?: number) {
-  const response = await feedFetch(`/api/feed/download?feedId=${encodeURIComponent(id)}${slot === undefined ? "" : `&slot=${slot}`}`);
+export async function downloadFeed(id: string, slot?: number, studio: "feed" | "apps" = "feed") {
+  const response = await feedFetch(`/api/${studio}/download?feedId=${encodeURIComponent(id)}${slot === undefined ? "" : `&slot=${slot}`}`);
   if (!response.ok) { const data = await response.json(); throw new Error(data.error ?? "download_failed"); }
   const url = URL.createObjectURL(await response.blob()); const link = document.createElement("a");
-  link.href = url; link.download = slot === undefined ? (response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "maroFeed-posts.zip") : `maroFeed-${String(slot + 1).padStart(2, "0")}.png`;
+  const name = studio === "apps" ? "maroApps" : "maroFeed";
+  link.href = url; link.download = response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? (slot === undefined ? `${name}-posts.zip` : `${name}-${String(slot + 1).padStart(2, "0")}.png`);
   link.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
 }

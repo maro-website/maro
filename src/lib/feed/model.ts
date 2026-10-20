@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
+import type { AppBrief } from "@/lib/apps/model";
 
 export const FEED_PRICE = 50;
 export const FEED_REGEN_PRICE = 5;
@@ -68,6 +69,7 @@ export const defaultConfig: FeedConfig = {
 };
 export type FeedTile = { slot: number; title: string; url: string | null; version: number };
 export type FeedView = { id: string; brand: string; category: FeedCategory; createdAt: string; freeUsed: number; refunded: boolean;
+  mobile?: AppBrief;
   contentType: FeedContentType; textMode: boolean; referenceCount: number;
   cancelRequested: boolean; cancelled: boolean; refundCredits: number;
   tiles: FeedTile[]; active: { slot: number; startedAt: string } | null; lastError: string | null };

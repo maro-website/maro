@@ -41,6 +41,31 @@ async function upload(db: PGlite, a: { id: string; job_id: string }, finish = tr
   await db.query("insert into storage.objects values('generations',$1,'{\"size\":100}')", [`${owner}/${a.job_id}/output.png`]);
   if (finish) await db.query("select maro_feed_finish($1)", [a.id]);
 }
+
+describe("Apps shared financial lifecycle", () => {
+  it("settles durable app output with correct metadata exactly once and preserves Feed behavior", async () => {
+    const db = await database();
+    try {
+      await db.exec(sql("0077_maroapps_private_pilot.sql"));
+      const acl = (await db.query<{ allowed: boolean }>("select has_table_privilege('authenticated','public.maro_apps_config','SELECT') allowed")).rows[0];
+      expect(acl.allowed).toBe(false);
+      const app = { ...brief, mobile: { format: "9:16", devices: ["iphone-18-pro"] } };
+      const id = (await db.query<{ id: string }>("select maro_feed_create_v2($1,'ws_feed',$2,$3,'tech',$4,'',$5,'mix',true) id", [owner,randomUUID(),[reference],app,defaultConfig])).rows[0].id;
+      const attempt = await claim(db,id,0);
+      await upload(db,attempt,false);
+      // Lost HTTP response: recovery, rather than the original request, finalizes output.
+      await db.query("select maro_feed_recover($1,$2)",[owner,id]);
+      await db.query("select maro_feed_finish($1)",[attempt.id]);
+      const results = (await db.query<{ prompt: string; selections: { source: string; format: string; devices: string[] } }>("select prompt,selections from generations where job_id=$1",[attempt.job_id])).rows;
+      expect(results).toHaveLength(1); expect(results[0].prompt).toBe("maroApps · 1");
+      expect(results[0].selections).toMatchObject({ source:"maroApps",format:"9:16",devices:["iphone-18-pro"] });
+      await cancel(db,id); await cancel(db,id); expect(await credits(db)).toBe(490);
+      await db.exec("update maro_feeds set created_at=now()-interval '2 minutes'");
+      const ordinary = await create(db); const a = await claim(db,ordinary,0); await upload(db,a);
+      expect((await db.query<{ selections: { source: string } }>("select selections from generations where job_id=$1",[a.job_id])).rows[0].selections.source).toBe("maroFeed");
+    } finally { await db.close(); }
+  });
+});
 describe("Feed controls", () => {
   it("accepts up to ten distinct uploads, retains the legacy single-reference request and rejects conflicting or missing references", () => {
     const base = { requestId: randomUUID(), workspaceId: "ws_feed", category: "drinks", useBrain: false, brief };

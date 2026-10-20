@@ -94,6 +94,9 @@ export function EngineToolsList() {
       <Link href="/admin/engine/feed" className="mb-5 flex items-center justify-between rounded-xl border border-line bg-surface px-5 py-4 text-sm text-ink">
         <span><strong>maroFeed</strong><span className="ml-3 text-xs text-ink-3">Drejtimet e kategorive · 9 postime · pilot privat</span></span><span aria-hidden>↗</span>
       </Link>
+      <Link href="/admin/engine/apps" className="mb-5 flex items-center justify-between rounded-xl border border-line bg-surface px-5 py-4 text-sm text-ink">
+        <span><strong>maroApps</strong><span className="ml-3 text-xs text-ink-3">Mobile apps · 9 reklama · pilot privat</span></span><span aria-hidden>↗</span>
+      </Link>
 
       {seedStatus?.seeded ? (
         <div className="mb-4 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-2">
