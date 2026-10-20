@@ -6,7 +6,7 @@ import { ArrowDownToLine, ArrowUpRight, Check, Grid3X3, ImagePlus, LoaderCircle,
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { IMAGE_REFERENCE_ACCEPT, createPrivateImageAttachment, uploadOrResolvePrivateAttachment, type PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
-import { canUseFeed, categoryIds, defaults, roles, type FeedBrief, type FeedCategory, type FeedView } from "@/lib/feed/model";
+import { canUseFeed, categoryIds, defaults, roles, contentTypes, contentLabels, feedRole, FEED_MAX_REFERENCES, type FeedContentType, type FeedBrief, type FeedCategory, type FeedView } from "@/lib/feed/model";
 import { downloadFeed, feedJson, feedMessage, feedStep } from "@/lib/feed/client";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
@@ -28,7 +28,14 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
   const [tab, setTab] = React.useState<"prepare" | "feed" | "history">("prepare");
   const [brief, setBrief] = React.useState(initialBrief); const [brain, setBrain] = React.useState(false);
   const [category, setCategory] = React.useState<FeedCategory>("drinks");
-  const [attachment, setAttachment] = React.useState<PrivateImageAttachment | null>(null);
+  const [attachments, setAttachments] = React.useState<PrivateImageAttachment[]>([]);
+  const attachmentRef = React.useRef<PrivateImageAttachment[]>([]);
+  const [uploadBusy, setUploadBusy] = React.useState(false);
+  const [contentType, setContentType] = React.useState<FeedContentType>("mix");
+  const [textMode, setTextMode] = React.useState(true);
+  const [cancelling, setCancelling] = React.useState(false);
+  const stopFeed = React.useRef<string | null>(null);
+  const attachment = attachments[0];
   const [feed, setFeed] = React.useState<FeedView | null>(null); const [history, setHistory] = React.useState<History[]>([]);
   const [loading, setLoading] = React.useState(true); const [busy, setBusy] = React.useState(false); const [error, setError] = React.useState("");
   const [selected, setSelected] = React.useState<number | null>(null); const [feedback, setFeedback] = React.useState(""); const [downloading, setDownloading] = React.useState(false);
@@ -77,21 +84,30 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
     const timer = setInterval(() => { void feedJson<{ feed: FeedView }>(`/api/feed?feedId=${feed.id}`).then(data => { if (alive.current) remember(data.feed); }).catch(() => undefined); }, 6000);
     return () => clearInterval(timer);
   }, [feed?.id, feed?.active, busy, remember]);
-  async function upload(file?: File) {
-    if (!file || busy) return; setError("");
-    const next = createPrivateImageAttachment(file, crypto.randomUUID(), true); setAttachment(next);
-    if (next.error) { setError(next.error); return; }
-    try { const ready = await uploadOrResolvePrivateAttachment(next); if (alive.current) setAttachment(ready); }
-    catch { if (alive.current) { setAttachment({ ...next, status: "upload-error" }); setError("Ngarkimi nuk u përfundua. Provo përsëri."); } }
+  function updateAttachments(value: PrivateImageAttachment[]) { attachmentRef.current = value; setAttachments(value); }
+  async function upload(files: File[]) {
+    if (!files.length || busy || uploadBusy) return;
+    if (attachmentRef.current.length + files.length > FEED_MAX_REFERENCES) { setError(feedMessage("too_many_references")); return; }
+    setError(""); setUploadBusy(true);
+    const items = files.map(file => createPrivateImageAttachment(file, crypto.randomUUID(), true));
+    updateAttachments([...attachmentRef.current, ...items]);
+    for (const item of items) {
+      if (item.error) continue;
+      let ready: PrivateImageAttachment;
+      try { ready = await uploadOrResolvePrivateAttachment(item); }
+      catch { ready = { ...item, status: "upload-error", error: "Ngarkimi nuk u përfundua. Hiqe dhe provo përsëri." }; }
+      if (alive.current) updateAttachments(attachmentRef.current.map(current => current.id === ready.id ? ready : current));
+    }
+    if (alive.current) setUploadBusy(false);
   }
   async function complete(value: FeedView) {
     let current = value;
-    while (alive.current && !current.refunded && current.tiles.some(t => !t.url)) {
+    while (alive.current && !current.refunded && !current.cancelRequested && !current.cancelled && stopFeed.current !== current.id && current.tiles.some(t => !t.url)) {
       if (current.active) { remember(current); return; }
       const slot = current.tiles.find(t => !t.url)!.slot; setActiveSlot(slot);
       const result = await feedStep({ feedId: current.id, requestId: crypto.randomUUID(), action: "next" });
       if (result.feed) { current = result.feed; remember(current); }
-      if (result.error) throw new Error(result.error);
+      if (result.error && !current.cancelRequested && !current.cancelled && stopFeed.current !== current.id) throw new Error(result.error);
       if (!result.feed) throw new Error("recovery_pending");
     }
   }
@@ -112,14 +128,24 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
   }
   async function start() {
     await run(async () => {
-      if (!attachment?.storageRef || attachment.status !== "ready") throw new Error("brief_incomplete");
+      if (!attachments.length || attachments.some(item => !item.storageRef || item.status !== "ready")) throw new Error("brief_incomplete");
+      stopFeed.current = null;
       createId.current ||= crypto.randomUUID();
-      const data = await feedJson<{ feed: FeedView }>("/api/feed", { requestId: createId.current, workspaceId, reference: attachment.storageRef, category, useBrain: brain,
+      const data = await feedJson<{ feed: FeedView }>("/api/feed", { requestId: createId.current, workspaceId, references: attachments.map(item => item.storageRef!), contentType, textMode, category, useBrain: brain,
         brief: brain ? { goal: brief.goal, language: brief.language, notes: brief.notes, ...(brief.colors ? { colors: brief.colors } : {}) } : brief });
       remember(data.feed); createId.current = "";
       setHistory(rows => [{ id: data.feed.id, brand: data.feed.brand, createdAt: data.feed.createdAt, refunded: false }, ...rows.filter(f => f.id !== data.feed.id)]);
       void refreshProfile(); await complete(data.feed);
     });
+  }
+  async function cancelFeed() {
+    if (!feed || cancelling) return;
+    stopFeed.current = feed.id; setCancelling(true); setError("");
+    try {
+      const data = await feedJson<{ feed: FeedView }>("/api/feed/action", { feedId: feed.id, requestId: crypto.randomUUID(), action: "cancel" });
+      remember(data.feed); void refreshProfile();
+    } catch (err) { setError(feedMessage((err as Error).message)); }
+    finally { if (alive.current) setCancelling(false); }
   }
   async function regenerate() {
     if (!feed || selected === null) return;
@@ -135,18 +161,12 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
   const done = feed?.tiles.filter(t => t.url).length ?? 0; const completeFeed = done === 9;
   const working = busy || Boolean(feed?.active); const active = activeSlot ?? feed?.active?.slot;
   const free = Math.max(0, 3 - (feed?.freeUsed ?? 0));
-  const tiles = feed?.tiles ?? roles.map((r, slot) => ({ slot, title: r.title, url: null, version: 0 }));
+  const stopped = Boolean(feed?.cancelled || feed?.cancelRequested || feed?.refunded);
+  const tiles = feed?.tiles ?? roles.map((_, slot) => ({ slot, title: feedRole(slot, contentType).title, url: null, version: 0 }));
   return <div className={`${b.studio} ${s.studio}`}>
-    <header className={b.header}>
-      <div className={b.mastheadCopy}>
-        <h1 className={s.wordmark} aria-label="maroFeed"><Logo showWord wordClassName={s.maroWord} /><span>Feed</span></h1>
-        <p>Krijo 9 postime me identitetin e brendit tënd.</p>
-        <div className={b.saveStatus}><span role="status" className={b.hint}><Check size={14} aria-hidden="true" />Pilot privat · 9 imazhe · 50 credits</span></div>
-      </div>
-      <div className={b.mastheadArt} aria-hidden="true">
-        <svg viewBox="0 0 340 180" fill="none"><path d="M14 42H82Q108 42 126 66L170 90M0 130H76Q110 130 132 111L170 90M326 33H265Q239 33 220 60L170 90M340 141H262Q231 141 214 117L170 90" /><circle cx="14" cy="42" r="4" /><circle cx="0" cy="130" r="3" /><circle cx="326" cy="33" r="3" /><circle cx="340" cy="141" r="4" /></svg>
-        <span className={s.headerIcon}><Grid3X3 size={40} strokeWidth={1.5} /></span>
-      </div>
+    <header className={s.lead}>
+      <div><h1 className={s.wordmark} aria-label="maroFeed"><Logo showWord wordClassName={s.maroWord} /><span>Feed</span></h1><h2>Nga referencat, te feed-i yt.</h2><p>Ti zgjedh drejtimin. Maro i lidh 9 postimet me brendin tënd.</p></div>
+      <div className={s.leadSteps} aria-label="Si funksionon maroFeed"><span><ImagePlus size={20} /><small>01</small><strong>Ngarko</strong></span><span><SlidersHorizontal size={20} /><small>02</small><strong>Zgjedh</strong></span><span><Grid3X3 size={20} /><small>03</small><strong>Maro</strong></span></div>
     </header>
     <div className={b.layout}>
       <aside className={b.sidebar}>
@@ -161,18 +181,22 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
       <main className={b.main}>
         <section className={b.hero} aria-label="Përmbledhja e feed-it">
           <div className={b.brandIdentity}><div className={b.heroLogo}>{attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : <Grid3X3 size={24} />}</div><div><h2>{feed?.brand || brief.brand || workspaceName}</h2><p>{brain ? "Me kontekst nga maroBrain" : "Me informatat e brendit tënd"}</p></div></div>
-          <div className={s.summary}><span>{working ? "Po krijohet, një nga një…" : completeFeed ? "Feed-i është gati." : feed?.refunded ? "Credits u kthyen." : "9 imazhe · format katror"}</span><strong>{done}/9</strong></div>
+          <div className={s.summary}><span>{feed?.cancelled ? `U ndal · ${done} imazhe` : feed?.cancelRequested ? "Po ndalet pas imazhit aktual…" : working ? "Po krijohet, një nga një…" : completeFeed ? "Feed-i është gati." : feed?.refunded ? "Credits u kthyen." : "9 imazhe · format katror"}</span><strong>{done}/9</strong></div>
         </section>
         {error && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
         {tab === "prepare" && <section className={b.editor} aria-label="Përgatitja e feed-it">
           <div className={b.sectionHeading}><div><h2>Përgatite feed-in</h2><p>Ngarko produktin dhe shto informatat që na duhen për brendin.</p></div></div>
           <div className={s.form}>
-            <button className={`${b.dropZone} ${s.upload}`} type="button" onClick={() => fileInput.current?.click()} disabled={working}>
-              {attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : attachment?.status === "uploading" ? <LoaderCircle className={s.spin} size={24} /> : <ImagePlus size={28} />}
-              <strong>{attachment?.name ?? "Ngarko produktin ose brendin"}</strong><small>{attachment?.status === "ready" ? "U ngarkua · kliko për ta ndërruar" : "PNG, JPG ose WebP · deri në 25 MB"}</small>
+            <button className={`${b.dropZone} ${s.upload}`} type="button" onClick={() => fileInput.current?.click()} disabled={working || uploadBusy || attachments.length >= FEED_MAX_REFERENCES} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void upload(Array.from(event.dataTransfer.files)); }}>
+              {uploadBusy ? <LoaderCircle className={s.spin} size={24} /> : <ImagePlus size={28} />}
+              <strong>{uploadBusy ? "Duke ngarkuar referencat…" : "Ngarko referencat"}</strong><small>PNG, JPG ose WebP · deri në 25 MB secila · {attachments.length}/{FEED_MAX_REFERENCES}</small>
             </button>
-            <input ref={fileInput} type="file" accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
-            {attachment && <div className={b.actions}><Button variant="ghost" size="sm" disabled={working} onClick={() => { setAttachment(null); setError(""); }}>Hiqe imazhin</Button></div>}
+            <input ref={fileInput} type="file" multiple accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            {attachments.length > 0 && <div className={s.references}>{attachments.map((item, index) => <article key={item.id} className={b.sourceCard}>
+              <button type="button" className={s.referencePreview} aria-label={`Bëje ${item.name} referencë kryesore`} aria-pressed={index === 0} disabled={working || uploadBusy || item.status !== "ready"} onClick={() => updateAttachments([item, ...attachmentRef.current.filter(current => current.id !== item.id)])}>{item.previewUrl ? <img src={item.previewUrl} alt={item.name} /> : item.status === "uploading" ? <LoaderCircle size={20} className={s.spin} /> : <ImageIcon size={20} />}</button>
+              <div className={s.referenceInfo}><strong title={item.name}>{item.name}</strong><small>{item.error || (item.status === "ready" ? index === 0 ? "Referenca kryesore" : `Referenca ${index + 1}` : "Duke ngarkuar…")}</small><Button size="sm" variant="ghost" disabled={working || uploadBusy} aria-label={`Hiq ${item.name}`} onClick={() => updateAttachments(attachmentRef.current.filter(current => current.id !== item.id))}>Hiqe</Button></div>
+            </article>)}</div>}
+            <p className={b.hint}>E para është referenca kryesore. Kliko një tjetër për ta bërë kryesore.</p>
             <div className={s.contextRow}><div><strong>maroBrain</strong><p>{brain ? workspaceName : "Përdore kujtesën e brendit"}</p></div><Switch checked={brain} onChange={setBrain} disabled={working} aria-label="Përdor maroBrain" /></div>
             {brain ? <div className={b.hint}>Identiteti, audienca, ngjyrat dhe rregullat merren nga maroBrain i këtij workspace. <Link className={s.inlineLink} href="/brain">Hape maroBrain <ArrowUpRight size={14} /></Link></div> : <>
               <label className={b.field}><span>Emri i brendit</span><input className="maro-input" value={brief.brand} maxLength={120} disabled={working} placeholder="p.sh. NOMA" onChange={e => patch("brand", e.target.value)} /></label>
@@ -180,25 +204,30 @@ function FeedStudio({ workspaceId, workspaceName }: { workspaceId: string; works
               <label className={b.field}><span>Audienca <small className={b.hint}>(opsionale)</small></span><input className="maro-input" value={brief.audience} maxLength={300} disabled={working} placeholder="Kujt i drejtohet brendi yt?" onChange={e => patch("audience", e.target.value)} /></label>
             </>}
             <div className={s.fieldPair}><label className={b.field}><span>Kategoria</span><select className="maro-input" value={category} disabled={working} onChange={e => setCategory(e.target.value as FeedCategory)}>{categoryIds.map(id => <option key={id} value={id}>{defaults[id].label}</option>)}</select></label><label className={b.field}><span>Synimi</span><select className="maro-input" value={brief.goal} disabled={working} onChange={e => patch("goal", e.target.value)}><option value="sales">Shitje</option><option value="engagement">Engagement</option><option value="launch">Lansim</option></select></label></div>
-            <label className={b.field}><span>Gjuha në imazhe</span><select className="maro-input" value={brief.language} disabled={working} onChange={e => patch("language", e.target.value)}><option value="sq">Shqip</option><option value="en">English</option></select></label>
+            <label className={b.field}><span>Lloji i postimeve</span><select className="maro-input" value={contentType} disabled={working} onChange={e => setContentType(e.target.value as FeedContentType)}>{contentTypes.map(type => <option key={type} value={type}>{contentLabels[type]}</option>)}</select><small className={b.hint}>{contentType === "mix" ? "Një miks me 9 role të ndryshme, si një fushatë e vetme." : `9 postime të llojit “${contentLabels[contentType]}”, me kompozime të ndryshme.`}</small></label>
+            <div className={s.contextRow}><div><strong>Tekst në imazhe</strong><p>{textMode ? "Me tituj dhe tekst të shkurtër sipas postimit." : "Pa tekst të shtuar. Etiketat dhe logoja e produktit ruhen."}</p></div><Switch checked={textMode} onChange={setTextMode} disabled={working} aria-label="Tekst në imazhe" /></div>
+            <label className={b.field}><span>Gjuha në imazhe</span><select className="maro-input" value={brief.language} disabled={working || !textMode} onChange={e => patch("language", e.target.value)}><option value="sq">Shqip</option><option value="en">English</option></select></label>
             <details className={s.more}><summary className={b.promptSummary}>Më shumë drejtim (opsionale)</summary><div className={s.form}><label className={b.field}><span>Ngjyrat</span><input className="maro-input" value={brief.colors} maxLength={100} placeholder="p.sh. #233D2A, krem, portokalli" onChange={e => patch("colors", e.target.value)} disabled={working} /></label><label className={b.field}><span>Çka duhet me ditë?</span><textarea className="maro-input" value={brief.notes} maxLength={1200} rows={3} placeholder="Fushata, oferta e saktë, stili ose gjërat që duhen shmangur…" onChange={e => patch("notes", e.target.value)} disabled={working} /></label></div></details>
-            <div className={s.formActions}><Button variant="brand" disabled={working || loading || attachment?.status !== "ready" || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()} icon={<Sparkles size={16} />}>Ma maro feed-in · 50 credits</Button><p className={b.hint}>9 imazhe · 3 rigjenerime falas.<br />Pastaj 5 credits për rigjenerim.</p></div>
+            <div className={s.formActions}><Button variant="brand" disabled={working || uploadBusy || loading || !attachments.length || attachments.some(item => item.status !== "ready") || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()} icon={<Sparkles size={16} />}>Ma maro feed-in · 50 credits</Button><p className={b.hint}>9 imazhe · 3 rigjenerime falas.<br />Pastaj 5 credits për rigjenerim.</p></div>
+            <p className={b.hint}>50 credits paguhen në nisje: 5 për përgatitjen + 5 për secilin imazh. Nëse e ndal në mes, pjesa e papërdorur kthehet automatikisht.</p>
           </div>
         </section>}
         {tab === "feed" && <section className={b.editor} aria-label="Feed-i me nëntë postime">
-          <div className={b.sectionHeading}><div><h2>Feed-i yt</h2><p>{completeFeed ? `${free} rigjenerime falas të mbetura.` : "Postimet krijohen një nga një dhe ruhen automatikisht."}</p></div><span className={b.hint}>1:1 · 1024 px</span></div>
+          <div className={b.sectionHeading}><div><h2>Feed-i yt</h2><p>{feed?.cancelled ? `U mbajtën ${50 - feed.refundCredits} credits (5 + ${done} × 5). U kthyen ${feed.refundCredits} credits.` : feed?.cancelRequested ? "Po përfundon imazhi aktual; pastaj kthehen credits e papërdorura." : completeFeed ? `${free} rigjenerime falas të mbetura.` : "Postimet krijohen një nga një dhe ruhen automatikisht."}</p></div><span className={b.hint}>1:1 · 1024 px</span></div>
           {working && <div className={`${b.progress} ${s.feedProgress}`} role="progressbar" aria-label="Postimet e përfunduara" aria-valuenow={done} aria-valuemin={0} aria-valuemax={9}><span style={{ width: `${done / 9 * 100}%` }} /></div>}
           <div className={s.grid}>{tiles.map(tile => <button type="button" key={tile.slot} className={`${b.sourceCard} ${s.tile}`} data-working={active === tile.slot && working} onClick={() => { if (tile.url) { setSelected(tile.slot); setFeedback(""); } }} disabled={!tile.url} aria-label={`${tile.slot + 1}. ${tile.title}${tile.url ? ", hape imazhin" : ", ende pa u krijuar"}`}>
             <span className={s.tileImage}>{tile.url ? <img src={tile.url} alt={`${feed?.brand} · ${tile.title}`} /> : <ImageIcon size={28} strokeWidth={1.5} aria-hidden="true" />}{active === tile.slot && working && <span className={s.tileOverlay}><LoaderCircle className={s.spin} size={24} /><strong>Po marohet…</strong></span>}</span>
             <span className={s.tileInfo}><strong>{String(tile.slot + 1).padStart(2, "0")} · {tile.title}</strong>{tile.url ? <span><Check size={12} />{tile.version > 1 ? `v${tile.version}` : "Gati"}</span> : null}</span>
           </button>)}</div>
-          <div className={s.feedActions}>{completeFeed ? <Button variant="primary" disabled={downloading} onClick={() => void download()} icon={<ArrowDownToLine size={16} />}>{downloading ? "Po përgatitet…" : "Shkarko 9 imazhet · ZIP"}</Button> : feed && !feed.refunded ? <Button variant="brand" disabled={working} onClick={() => void run(() => complete(feed))} icon={<Sparkles size={16} />}>Vazhdo feed-in · pa pagesë shtesë</Button> : <Button variant="secondary" onClick={() => setTab("prepare")}>Përgatite feed-in</Button>}</div>
-          {feed && !done && !working && !feed.refunded && feed.lastError && <Button variant="ghost" onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>("/api/feed/action", { feedId: feed.id, requestId: crypto.randomUUID(), action: "refund" }); remember(data.feed); })}>Anulo feed-in dhe kthe 50 credits</Button>}
+          <div className={s.feedActions}>{completeFeed || (feed?.cancelled && done > 0) ? <Button variant="primary" disabled={downloading} onClick={() => void download()} icon={<ArrowDownToLine size={16} />}>{downloading ? "Po përgatitet…" : `Shkarko ${done} imazhet · ZIP`}</Button> : feed && !stopped ? <Button variant="brand" disabled={working} onClick={() => { stopFeed.current = null; void run(() => complete(feed)); }} icon={<Sparkles size={16} />}>Vazhdo feed-in · pa pagesë shtesë</Button> : <Button variant="secondary" onClick={() => setTab("prepare")}>Përgatite feed-in</Button>}</div>
+          {feed && !completeFeed && !stopped && <div className={s.cancelRow}><p className={b.hint}>Në ndalim paguan 5 credits për nisjen + 5 për çdo imazh të përfunduar.</p><Button variant="secondary" disabled={cancelling} loading={cancelling} onClick={() => void cancelFeed()}>{working ? "Ndalo pas imazhit aktual" : "Ndalo feed-in"}</Button></div>}
+          {feed?.cancelRequested && !feed.cancelled && <p role="status" className={b.footnote}>Ndalimi u kërkua. Rezultati aktual ruhet; postimet e radhës nuk nisen.</p>}
+
         </section>}
         {tab === "history" && <section className={b.editor} aria-label="Historiku i feed-ave"><div className={b.sectionHeading}><div><h2>Feed-at e tu</h2><p>Progresi ruhet automatikisht.</p></div></div>{history.length ? <div className={s.history}>{history.map(item => <button type="button" key={item.id} disabled={working} aria-pressed={item.id === feed?.id} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`/api/feed?feedId=${item.id}`); remember(data.feed); })}><Grid3X3 size={18} /><strong>{item.brand}</strong><span>{new Intl.DateTimeFormat("sq", { day: "numeric", month: "short" }).format(new Date(item.createdAt))}</span><ArrowUpRight size={16} /></button>)}</div> : <div className={b.empty}><History size={24} /><h3>Ende nuk ke krijuar feed.</h3><p>Feed-at që krijon do t’i gjesh këtu.</p></div>}</section>}
         <p className={b.footnote}>Kur të vijë <strong>maroMarketing</strong>, mundesh me kriju edhe captions për këto postime.</p>
       </main>
     </div>
-    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><Button className={s.modalClose} variant="secondary" size="icon" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={20} /></Button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${roles[selected].title}`} /><div className={s.modalInfo}><div><p className={b.hint}>Postimi {selected + 1} / 9</p><h2>{roles[selected].title}</h2></div>{error && <p role="alert" className={b.hint}>{error}</p>}<Button variant="secondary" disabled={downloading} onClick={() => void download(selected)} icon={<ArrowDownToLine size={16} />}>Shkarko PNG</Button>{completeFeed && <><label className={b.field}><span>Çka dëshiron me ndryshu? <small className={b.hint}>(opsionale)</small></span><textarea className="maro-input" value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Më pak tekst, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><Button variant="brand" disabled={working || (!free && credits < 5)} onClick={() => void regenerate()} icon={working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}>Rigjenero · {free ? `Falas · ${free} të mbetura` : "5 credits"}</Button><p className={b.hint}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
+    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><Button className={s.modalClose} variant="secondary" size="icon" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={20} /></Button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${feed.tiles[selected].title}`} /><div className={s.modalInfo}><div><p className={b.hint}>Postimi {selected + 1} / 9</p><h2>{feed.tiles[selected].title}</h2></div>{error && <p role="alert" className={b.hint}>{error}</p>}<Button variant="secondary" disabled={downloading} onClick={() => void download(selected)} icon={<ArrowDownToLine size={16} />}>Shkarko PNG</Button>{completeFeed && !stopped && <><label className={b.field}><span>Çka dëshiron me ndryshu? <small className={b.hint}>(opsionale)</small></span><textarea className="maro-input" value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Më pak tekst, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><Button variant="brand" disabled={working || (!free && credits < 5)} onClick={() => void regenerate()} icon={working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}>Rigjenero · {free ? `Falas · ${free} të mbetura` : "5 credits"}</Button><p className={b.hint}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
   </div>;
 }

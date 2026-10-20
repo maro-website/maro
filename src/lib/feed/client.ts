@@ -1,6 +1,8 @@
 import { getAccessToken } from "@/lib/supabase/client";
 import type { FeedView } from "./model";
 export const feedMessages: Record<string, string> = {
+  feed_cancelled: "Feed-i është ndalur. Mund t’i shkarkosh imazhet e përfunduara.",
+  too_many_references: "Mund të ngarkosh deri në 10 referenca.",
   insufficient_credits: "Nuk ke mjaft credits për këtë veprim.", brief_incomplete: "Shkruaje emrin e brendit dhe një përshkrim me së paku 8 shkronja.",
   brain_incomplete: "Plotëso emrin dhe përshkrimin e brendit në maroBrain, ose përdore mini-formularin.", brain_empty: "Ky workspace ende nuk ka të dhëna në maroBrain.",
   brain_plan_required: "maroBrain kërkon plan aktiv. Mundesh me vazhdu me mini-formularin.", feed_busy: "Një postim po gjenerohet. Prit derisa të përfundojë.",
@@ -44,6 +46,6 @@ export async function downloadFeed(id: string, slot?: number) {
   const response = await feedFetch(`/api/feed/download?feedId=${encodeURIComponent(id)}${slot === undefined ? "" : `&slot=${slot}`}`);
   if (!response.ok) { const data = await response.json(); throw new Error(data.error ?? "download_failed"); }
   const url = URL.createObjectURL(await response.blob()); const link = document.createElement("a");
-  link.href = url; link.download = slot === undefined ? "maroFeed-9-posts.zip" : `maroFeed-${String(slot + 1).padStart(2, "0")}.png`;
+  link.href = url; link.download = slot === undefined ? (response.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "maroFeed-posts.zip") : `maroFeed-${String(slot + 1).padStart(2, "0")}.png`;
   link.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
 }

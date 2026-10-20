@@ -18,12 +18,12 @@ import { loadStudioMemories } from "@/lib/brain-studio/server";
 import { buildMemoryBrief, selectMemories } from "@/lib/brain-studio/memories";
 import { optionalImageWork } from "@/lib/generation/v1ImagePersistence";
 import { recordCompletedGenerationCosts } from "@/lib/generation/orchestrator";
-import { actionFeedSchema, briefSchema, buildFeedPrompt, canUseFeed, configSchema, createFeedSchema, defaultConfig, roles, type FeedBrief, type FeedCategory, type FeedConfig, type FeedView } from "./model";
+import { actionFeedSchema, briefSchema, buildFeedPrompt, canUseFeed, configSchema, createFeedSchema, defaultConfig, feedRole, roles, type FeedContentType, type FeedBrief, type FeedCategory, type FeedConfig, type FeedView } from "./model";
 
 const headers = { "Cache-Control": "no-store", Vary: "Authorization", "X-Content-Type-Options": "nosniff" };
 export const feedResponse = (value: unknown, status = 200) => NextResponse.json(value, { status, headers });
 class FeedError extends Error { constructor(public code: string, public status = 400) { super(code); } }
-const knownErrors = ["feed_not_found", "workspace_not_found", "feed_not_available", "feed_busy", "feed_not_complete", "slot_complete", "retry_limit", "insufficient_credits", "generation_paused", "rate_limited", "feed_refunded", "refund_unavailable", "platform_busy", "concurrency_limit", "ai_paused", "module_paused", "hourly_spend_limit", "daily_spend_limit", "user_hourly_spend_limit", "user_daily_spend_limit"];
+const knownErrors = ["feed_cancelled", "feed_not_found", "workspace_not_found", "feed_not_available", "feed_busy", "feed_not_complete", "slot_complete", "retry_limit", "insufficient_credits", "generation_paused", "rate_limited", "feed_refunded", "refund_unavailable", "platform_busy", "concurrency_limit", "ai_paused", "module_paused", "hourly_spend_limit", "daily_spend_limit", "user_hourly_spend_limit", "user_daily_spend_limit"];
 export function feedError(error: unknown) {
   if (error instanceof FeedError) return feedResponse({ error: error.code }, error.status);
   if (error instanceof AccountPolicyError) return feedResponse({ error: error.message }, error.status);
@@ -48,7 +48,7 @@ export async function loadFeedConfig(): Promise<{ config: FeedConfig; revision: 
   if (error) throw new FeedError("feed_unavailable", 503);
   return { config: data ? configSchema.parse(data.config) : defaultConfig, revision: data?.revision ?? 0 };
 }
-type FeedRow = { id: string; owner_id: string; workspace_id: string; reference: string; brief: FeedBrief; brain_context: string; config: FeedConfig; category: FeedCategory; free_used: number; refunded: boolean; created_at: string };
+type FeedRow = { id: string; owner_id: string; workspace_id: string; reference: string; references_list: string[]; content_type: FeedContentType; text_mode: boolean; cancel_requested: boolean; cancelled_at: string | null; refund_credits: number; brief: FeedBrief; brain_context: string; config: FeedConfig; category: FeedCategory; free_used: number; refunded: boolean; created_at: string };
 type Attempt = { id: string; feed_id: string; slot: number; job_id: string; status: string; feedback: string; regenerate: boolean; free_regen: boolean; generation_id: string | null; created_at: string; error: string | null };
 export async function ownedFeed(userId: string, id: string): Promise<FeedRow> {
   const { data, error } = await getSupabaseAdmin().from("maro_feeds").select("*").eq("id", id).eq("owner_id", userId).maybeSingle();
@@ -66,7 +66,7 @@ export async function feedView(userId: string, id: string): Promise<FeedView> {
   await rpc("maro_feed_recover", { p_user: userId, p_feed: id });
   const db = getSupabaseAdmin();
   const [state, attempts] = await Promise.all([
-    db.from("maro_feeds").select("free_used,refunded").eq("id", id).eq("owner_id", userId).single(),
+    db.from("maro_feeds").select("free_used,refunded,cancel_requested,cancelled_at,refund_credits").eq("id", id).eq("owner_id", userId).single(),
     db.from("maro_feed_attempts").select("id,feed_id,slot,job_id,status,feedback,regenerate,free_regen,generation_id,created_at,error").eq("feed_id", id).eq("owner_id", userId).order("created_at", { ascending: false }).limit(500),
   ]);
   if (state.error || attempts.error) throw new FeedError("feed_unavailable", 503);
@@ -77,7 +77,9 @@ export async function feedView(userId: string, id: string): Promise<FeedView> {
   let cursor = 0;
   const active = rows.find(a => a.status === "running");
   return { id, brand: f.brief.brand, category: f.category, createdAt: f.created_at, freeUsed: state.data.free_used, refunded: state.data.refunded,
-    tiles: roles.map((r, slot) => ({ slot, title: r.title, url: refs[slot] ? signed[cursor++] || null : null, version: rows.filter(a => a.slot === slot && a.status === "completed").length })),
+    contentType: f.content_type ?? "mix", textMode: f.text_mode !== false, referenceCount: f.references_list?.length || 1,
+    cancelRequested: state.data.cancel_requested, cancelled: Boolean(state.data.cancelled_at), refundCredits: state.data.refund_credits,
+    tiles: roles.map((r, slot) => ({ slot, title: feedRole(slot, f.content_type ?? "mix").title, url: refs[slot] ? signed[cursor++] || null : null, version: rows.filter(a => a.slot === slot && a.status === "completed").length })),
     active: active ? { slot: active.slot, startedAt: active.created_at } : null, lastError: rows[0]?.status === "failed" ? rows[0].error : null };
 }
 async function generationReady(userId: string) {
@@ -106,12 +108,13 @@ export async function handleFeedGet(req: Request) {
 export async function handleFeedCreate(req: Request) {
   try {
     const user = await feedUser(req);
-    const body = await readJsonBody(req, 16000); if (!body.ok) return body.response;
+    const body = await readJsonBody(req, 24000); if (!body.ok) return body.response;
     const parsed = createFeedSchema.safeParse(body.body); if (!parsed.success) throw new FeedError("invalid_request");
     const input = parsed.data;
     await ownedWorkspace(user.id, input.workspaceId);
     // Resolve before any charge: never silently generate without the uploaded product.
-    await resolvePrivateImageReference(input.reference, user.id);
+    const references = input.references ?? [input.reference!];
+    for (const ref of references) await resolvePrivateImageReference(ref, user.id);
     await generationReady(user.id);
     const { config } = await loadFeedConfig();
     resolveV1ImageModel(await loadV1ImageModelRows("maro_imazh"), "maro_imazh", config.model);
@@ -127,7 +130,7 @@ export async function handleFeedCreate(req: Request) {
     }
     const resolved = briefSchema.safeParse({ audience: "", goal: "sales", language: "sq", colors: "", notes: "", ...brief });
     if (!resolved.success) throw new FeedError(input.useBrain ? "brain_incomplete" : "brief_incomplete");
-    const id = await rpc<string>("maro_feed_create", { p_user: user.id, p_workspace: input.workspaceId, p_request: input.requestId, p_reference: input.reference, p_category: input.category, p_brief: resolved.data, p_context: brain, p_config: config });
+    const id = await rpc<string>("maro_feed_create_v2", { p_user: user.id, p_workspace: input.workspaceId, p_request: input.requestId, p_references: references, p_content_type: input.contentType, p_text_mode: input.textMode, p_category: input.category, p_brief: resolved.data, p_context: brain, p_config: config });
     return feedResponse({ feed: await feedView(user.id, id) });
   } catch (error) { return feedError(error); }
 }
@@ -140,16 +143,20 @@ export async function handleFeedAction(req: Request) {
     const input = parsed.data;
     const f = await ownedFeed(user.id, input.feedId);
     const current = await feedView(user.id, f.id);
-    if (input.action === "refund") {
-      await rpc("maro_feed_refund", { p_user: user.id, p_feed: f.id });
+    if (input.action === "cancel" || input.action === "refund") {
+      await rpc("maro_feed_cancel", { p_user: user.id, p_feed: f.id });
       return feedResponse({ feed: await feedView(user.id, f.id) });
     }
+    if (current.cancelRequested || current.cancelled || current.refunded) throw new FeedError("feed_cancelled", 409);
     await generationReady(user.id);
     const slot = input.action === "next" ? current.tiles.find(t => !t.url)?.slot : input.slot;
     if (slot === undefined) return feedResponse({ feed: current });
     const model = resolveV1ImageModel(await loadV1ImageModelRows("maro_imazh"), "maro_imazh", f.config.model);
-    const product = await resolvePrivateImageReference(f.reference, user.id);
-    const images = [product.dataUrl];
+    const references = f.references_list?.length ? f.references_list : [f.reference];
+    const products: Awaited<ReturnType<typeof resolvePrivateImageReference>>[] = [];
+    for (const ref of references) products.push(await resolvePrivateImageReference(ref, user.id));
+    const product = products[0];
+    const images = products.map(item => item.dataUrl);
     // The first finished post becomes a visual style anchor; never a replacement product reference.
     if ((slot !== 0 || input.action === "regenerate") && current.tiles[0].url) {
       const { data, error } = await getSupabaseAdmin().from("maro_feed_attempts").select("job_id").eq("feed_id", f.id).eq("owner_id", user.id).eq("slot", 0).eq("status", "completed").order("created_at", { ascending: false }).limit(1).single();
@@ -157,7 +164,7 @@ export async function handleFeedAction(req: Request) {
       images.push((await resolvePrivateImageReference(`storage:generations/${user.id}/${data.job_id}/output.png`, user.id)).dataUrl);
     }
     const prompt = buildFeedPrompt({ config: f.config, brief: f.brief, category: f.category, slot, brain: f.brain_context, feedback: input.feedback,
-      variant: current.tiles[slot].version + 1, hasStyleReference: images.length > 1 });
+      variant: current.tiles[slot].version + 1, hasStyleReference: images.length > products.length, referenceCount: products.length, contentType: f.content_type ?? "mix", textMode: f.text_mode !== false });
     const claimed = await rpc<{ claimed: boolean; attempt: Attempt }>("maro_feed_claim", { p_user: user.id, p_feed: f.id, p_request: input.requestId, p_slot: slot, p_regenerate: input.action === "regenerate", p_feedback: input.feedback ?? "", p_model: model.providerModelId });
     if (!claimed.claimed) return feedResponse({ feed: await feedView(user.id, f.id) });
     const a = claimed.attempt;
@@ -171,7 +178,7 @@ export async function handleFeedAction(req: Request) {
       try {
         send({ started: true, slot });
         const db = getSupabaseAdmin();
-        const trace = await db.from("pricing_snapshots").insert({ job_id: a.job_id, user_id: user.id, kind: "generation", snapshot: { record_type: "maro_feed_execution", feedId: f.id, slot, prompt, promptHash: createHash("sha256").update(prompt).digest("hex"), model, productDigest: product.digest, referenceCount: images.length } });
+        const trace = await db.from("pricing_snapshots").insert({ job_id: a.job_id, user_id: user.id, kind: "generation", snapshot: { record_type: "maro_feed_execution", feedId: f.id, slot, prompt, promptHash: createHash("sha256").update(prompt).digest("hex"), model, productDigest: product.digest, productDigests: products.map(item => item.digest), referenceCount: images.length } });
         if (trace.error) throw new Error("trace_unavailable");
         const outputs = await editImages({ model: model.providerModelId, prompt, images, size: "1024x1024", quality: "high", n: 1,
           onObservation: async value => { observation = value; } });
