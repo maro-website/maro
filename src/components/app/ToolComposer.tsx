@@ -8,6 +8,8 @@ import { MAX_COMPOSER_ATTACHMENTS as MAX_ATTACHMENTS } from "@/lib/config/attach
 import { composerDraftKey, currentComposerDraft, loadComposerDraft, saveComposerDraft, emptyComposerDraft, newConversationDraft } from "@/lib/services/composerDraft";
 import { EXPLORE_REMIX_KEY, type ExploreRemix } from "@/lib/explore/remix";
 import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
+import { canUseMaroChat, CHAT_HANDOFF_KEY } from "@/lib/maro-chat/model";
+import { parseChatHandoff } from "@/lib/maro-chat/handoff";
 import { activeConversationKey, conversationHistory, imageConversationId, type ConversationJob } from "@/lib/creations/conversations";
 import { buildGenerationSelections } from "@/lib/marologo/generation";
 import { fetchConversationHistory } from "@/lib/services/creationsService";
@@ -277,6 +279,7 @@ export function ToolComposer({
   const [serverPromptLimit, setServerPromptLimit] = React.useState<number | null>(null);
   const promptCountId = React.useId();
   const [expanded, setExpanded] = React.useState(false);
+  const [chatSetupNotice, setChatSetupNotice] = React.useState<string | null>(null);
   const [confirmOpt, setConfirmOpt] = React.useState<{ settingId: string; optionId: string; message: string } | null>(null);
   const [lightbox, setLightbox] = React.useState<ImageCreation | null>(null);
   // maro Prompts: a curated prompt attached from /prompts (hidden template).
@@ -501,6 +504,31 @@ export function ToolComposer({
   }, [tool, openId, setPromptAttach, setPrompt, setPrivateImageAttachments, draftReady, ready]);
 
   const restoredPreferences = React.useRef("");
+  const chatSetupApplied = React.useRef("");
+  React.useEffect(() => {
+    if (tool.id !== "reklama" || !draftReady || !ready || !user || !canUseMaroChat(user.email) || brainState === "loading") return;
+    if (searchParams.get("from") !== "marochat" || !requestedConversation || conversationId !== requestedConversation || chatSetupApplied.current === draftKey) return;
+    let raw: string | null = null;
+    try { raw = sessionStorage.getItem(CHAT_HANDOFF_KEY); } catch { return; }
+    if (!raw) return;
+    try {
+      const setup = parseChatHandoff(raw, user.id, workspaceId, conversationId);
+      chatSetupApplied.current = draftKey;
+      const image = setup.image;
+      setPromptAttach(null);
+      setPrompt(image.prompt);
+      setSelectedMood(null);
+      setSelections(current => ({ ...current, format: image.format === "landscape" ? "yt-thumb" : image.format, text: image.text ? "on" : "off" }));
+      setUseWorkspaceBrand(image.useBrain && brainReady);
+      setPrivateImageAttachments(image.storageRef ? [{ id: uid("att"), name: image.assetName || image.title, storageRef: image.storageRef, previewUrl: "", status: "pending" }] : []);
+      setAttachments([]);
+      setChatSetupNotice(`${image.title}. ${image.storageRef ? "Referenca private u shtua." : "Ngarkoje foton e produktit para se me kliku Maro."}${image.useBrain && !brainReady ? " Brain është i paplotë; plotësoje ose vazhdo pa Brain." : ""} Kontrollo setup-in dhe çmimin, pastaj kliko Maro.`);
+      sessionStorage.removeItem(CHAT_HANDOFF_KEY);
+    } catch {
+      sessionStorage.removeItem(CHAT_HANDOFF_KEY);
+      toast("Setup-i i maroChat ka skaduar ose i përket një workspace-i tjetër. Hape përsëri nga chat-i.", "error");
+    }
+  }, [tool.id, draftReady, ready, user, brainState, brainReady, searchParams, requestedConversation, conversationId, draftKey, workspaceId, setPromptAttach, setPrompt, setSelectedMood, setPrivateImageAttachments, setAttachments, toast]);
   React.useEffect(() => {
     if (!draftReady || !conversationId || !history.length) return;
     const key = `${conversationScope}:${conversationId}`;
@@ -1169,6 +1197,7 @@ export function ToolComposer({
           )}
         >
           {showLandingHeader && headerSlot}
+          {chatSetupNotice && chatSetupApplied.current === draftKey && <div role="status" className="maro-panel mb-4 p-4 text-sm text-ink"><p className="font-semibold">Gati nga maroChat</p><p className="mt-2 text-ink-2">{chatSetupNotice}</p></div>}
           {historyError && <p role="alert" className="mb-4 text-sm text-ink-2">Biseda nuk u ngarkua. <button type="button" className="underline" onClick={() => setHistoryRefresh(value => value + 1)}>Provo përsëri</button></p>}
           {(requestedConversation || history.length > 0 || recoveredJobs.length > 0) && <div className="mb-4 flex items-center justify-between gap-3"><span className="text-sm text-ink-3">Biseda · {history.length} gjenerime</span><Button size="sm" variant="secondary" disabled={loading || recoveredPending} onClick={() => {
             const id = crypto.randomUUID();

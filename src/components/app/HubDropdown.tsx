@@ -12,7 +12,8 @@ import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import { iconSrc } from "@/lib/tools/iconMap";
 import { cn } from "@/lib/utils/cn";
 import { useMenuKeyboard } from "@/components/ui/useMenuKeyboard";
-import { ChevronDown, Home, Plug, Grid3X3, Smartphone } from "lucide-react";
+import { ChevronDown, Home, Plug, Grid3X3, Smartphone, MessageCircle } from "lucide-react";
+import { canUseMaroChat } from "@/lib/maro-chat/model";
 import { useMaro } from "@/context/store";
 import { canUseApps } from "@/lib/apps/model";
 import { canUseFeed } from "@/lib/feed/model";
@@ -167,6 +168,7 @@ export function HubDropdown() {
                 <div className="mt-[30px]">
                   {canUseFeed(user?.email) && <Link href="/feed" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroFeed</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {canUseApps(user?.email) && <Link href="/apps" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Smartphone className="h-5 w-5" /><span className="flex-1">maroApps</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
+                  {canUseMaroChat(user?.email) && <Link href="/chat" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><MessageCircle className="h-5 w-5" /><span className="flex-1">maroChat</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {HUB_MENU_DESTINATIONS.map((item) => {
                     const active = isNavActive(pathname, item);
                     const isSeparatorBefore = item.id === "brain";
