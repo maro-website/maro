@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { PAGE_PATH_HEADER } from "@/lib/siteMetadata";
 import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { createServerClient } from "@supabase/ssr";
+import { maintenanceResponse } from "@/lib/maintenance";
 import { resolveAccessRole, hasPermission, ADMIN_ENTRY_PERMISSION } from "@/lib/admin/permissions";
 import {
   isComingSoonMode,
@@ -118,6 +119,9 @@ function launchRequestHeaders(req: NextRequest, nonce?: string, policy?: string)
 }
 
 async function routeMiddleware(req: NextRequest, nonce?: string, policy?: string) {
+  const maintenance = maintenanceResponse(req);
+  if (maintenance) return maintenance;
+
   const path = req.nextUrl.pathname;
 
   if (!EXPLORE_VISIBLE && /^\/(?:explore|c|u)(?:\/|$)/.test(path)) {
@@ -211,6 +215,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/:path*",
     "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|brand/|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
   ],
 };
