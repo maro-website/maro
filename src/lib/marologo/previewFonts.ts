@@ -1,15 +1,24 @@
-import localFont from "next/font/local";
+import {
+  Inter,
+  Sora,
+  Source_Sans_3,
+  Libre_Baskerville,
+  Cormorant_Garamond,
+  Bebas_Neue,
+  Caveat,
+  Syne,
+  Manrope,
+} from "next/font/google";
 
-// Keep preview builds independent of Google Fonts responses and network access.
-export const previewFontInter = localFont({ src: "./fonts/inter-latin.woff2", weight: "500 600", display: "swap" });
-export const previewFontSora = localFont({ src: "./fonts/sora-latin.woff2", weight: "500 600", display: "swap" });
-export const previewFontSourceSans = localFont({ src: "./fonts/sourcesans3-latin.woff2", weight: "500 600", display: "swap" });
-export const previewFontLibre = localFont({ src: "./fonts/librebaskerville-latin.woff2", weight: "700", display: "swap" });
-export const previewFontCormorant = localFont({ src: "./fonts/cormorantgaramond-latin.woff2", weight: "600", display: "swap" });
-export const previewFontBebas = localFont({ src: "./fonts/bebasneue-latin.woff2", weight: "400", display: "swap" });
-export const previewFontCaveat = localFont({ src: "./fonts/caveat-latin.woff2", weight: "600", display: "swap" });
-export const previewFontSyne = localFont({ src: "./fonts/syne-latin.woff2", weight: "700", display: "swap" });
-export const previewFontManrope = localFont({ src: "./fonts/manrope-latin.woff2", weight: "600", display: "swap" });
+export const previewFontInter = Inter({ subsets: ["latin"], weight: ["500", "600"], display: "swap" });
+export const previewFontSora = Sora({ subsets: ["latin"], weight: ["500", "600"], display: "swap" });
+export const previewFontSourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["500", "600"], display: "swap" });
+export const previewFontLibre = Libre_Baskerville({ subsets: ["latin"], weight: ["700"], display: "swap" });
+export const previewFontCormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["600"], display: "swap" });
+export const previewFontBebas = Bebas_Neue({ subsets: ["latin"], weight: ["400"], display: "swap" });
+export const previewFontCaveat = Caveat({ subsets: ["latin"], weight: ["600"], display: "swap" });
+export const previewFontSyne = Syne({ subsets: ["latin"], weight: ["700"], display: "swap" });
+export const previewFontManrope = Manrope({ subsets: ["latin"], weight: ["600"], display: "swap" });
 
 export const PREVIEW_FONT_CLASS: Record<string, string> = {
   Inter: previewFontInter.className,

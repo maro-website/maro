@@ -3,5 +3,5 @@ builder = "RAILPACK"
 
 [deploy]
 startCommand = "pnpm start"
-healthcheckPath = "/api/health"
+healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
