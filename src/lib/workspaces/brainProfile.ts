@@ -138,6 +138,12 @@ export function isBrainConfigured(profile: WorkspaceBrainProfile, sourceCount = 
   return brainProgress(profile, sourceCount) >= 15 || Boolean(profile.brand.name?.trim());
 }
 
+/** Keep key brand constraints within the generation budget, including long imported Brains. */
+export function buildCompactBrainBrief(profile: WorkspaceBrainProfile): string {
+  const keyFacts = { brand: profile.brand.name.slice(0, 120), description: profile.brand.description.slice(0, 1800), offering: profile.brand.offering?.slice(0, 1200), audience: profile.target.audience.slice(0, 800), tone: profile.content.tone.slice(0, 400), voice: profile.content.voice.slice(0, 500), avoid: profile.content.avoid.slice(0, 1800), positioning: profile.market.positioning.slice(0, 600), differentiators: profile.market.differentiators.slice(0, 600), evidence: profile.market.proof?.slice(0, 800), cta: profile.content.cta?.slice(0, 300) };
+  return "CORE BRAND FACTS AND CONSTRAINTS\n" + JSON.stringify(keyFacts) + "\n\n" + buildBrainBrief(profile).slice(0, 6000);
+}
+
 export function buildMatchedSourcesBrief(sources: WorkspaceSource[]): string {
   if (!sources.length) return "";
   return (

@@ -1,6 +1,15 @@
 import { getAccessToken } from "@/lib/supabase/client";
 import type { FeedView } from "./model";
 export const feedMessages: Record<string, string> = {
+  unauthorized: "Hyr përsëri në llogari për t’i krijuar imazhet.",
+  marketing_unavailable: "Imazhi u ruajt, por nuk u shtua në plan. Provo përsëri; progresi ruhet.",
+  campaign_conflict: "Plani ndryshoi në një tab tjetër. Rifreskoje faqen; imazhet ruhen.",
+  invalid_asset: "Një foto nuk u hap. Ngarkoje përsëri dhe provo me foton e re.",
+  brain_too_large: "Brain-i nuk u përgatit për gjenerim. Rifreskoje faqen dhe provo përsëri.",
+  invalid_request: "Të dhënat e imazheve nuk u pranuan. Kontrollo fotot e zgjedhura dhe provo përsëri.",
+  feed_unavailable: "Shërbimi i imazheve nuk u hap. Rifreskoje faqen dhe provo përsëri.",
+  campaign_not_ready: "Prit derisa plani të përfundojë para se t’i krijosh imazhet.",
+  campaign_not_found: "Kjo fushatë nuk i përket Brain-it aktiv. Zgjedhe fushatën e duhur.",
   feed_cancelled: "Feed-i është ndalur. Mund t’i shkarkosh imazhet e përfunduara.",
   too_many_references: "Mund të ngarkosh deri në 10 referenca.",
   insufficient_credits: "Nuk ke mjaft credits për këtë veprim.", brief_incomplete: "Shkruaje emrin e brendit dhe një përshkrim me së paku 8 shkronja.",

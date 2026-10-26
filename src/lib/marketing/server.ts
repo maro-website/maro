@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin, getUserFromToken, supabaseServerConfigured, resolveAssetListForClient } from "@/lib/supabase/server";
 import { getAccountPolicy, AccountPolicyError } from "@/lib/workspaces/accountPolicyServer";
-import { normalizeBrainProfile, buildBrainBrief } from "@/lib/workspaces/brainProfile";
+import { normalizeBrainProfile, buildCompactBrainBrief } from "@/lib/workspaces/brainProfile";
 import { loadStudioMemories } from "@/lib/brain-studio/server";
 import { buildMemoryBrief, selectMemories } from "@/lib/brain-studio/memories";
 import { checkRateLimit } from "@/lib/security/rateLimit";
@@ -122,8 +122,7 @@ export async function handleMarketingCreate(req: Request) {
     if (!profile.brand.name || profile.brand.description.length < 8) throw new MarketingError("brain_incomplete");
     const memories = await loadStudioMemories(user.id, args.workspaceId);
     // Keep voice, exclusions, offering and evidence even when a very long description fills the context budget.
-    const priority = JSON.stringify({ brand: profile.brand.name.slice(0, 120), offering: profile.brand.offering?.slice(0, 1200), audience: profile.target.audience.slice(0, 800), tone: profile.content.tone.slice(0, 400), voice: profile.content.voice.slice(0, 500), avoid: profile.content.avoid.slice(0, 1800), positioning: profile.market.positioning.slice(0, 600), differentiators: profile.market.differentiators.slice(0, 600), evidence: profile.market.proof?.slice(0, 800), cta: profile.content.cta?.slice(0, 300) });
-    const context = ["CORE BRAND FACTS AND CONSTRAINTS\n" + priority, buildBrainBrief(profile).slice(0, 6000), buildMemoryBrief(selectMemories(memories, args.brief.focus)).slice(0, 3000)].filter(Boolean).join("\n\n");
+    const context = [buildCompactBrainBrief(profile), buildMemoryBrief(selectMemories(memories, args.brief.focus)).slice(0, 3000)].filter(Boolean).join("\n\n");
     const fingerprint = createHash("sha256").update(JSON.stringify({ workspaceId: args.workspaceId, brief: args.brief })).digest("hex");
     const reserved = await getSupabaseAdmin().rpc("maro_marketing_reserve", { p_user: user.id, p_workspace: args.workspaceId, p_id: args.requestId, p_fingerprint: fingerprint, p_brand: profile.brand.name, p_brief: args.brief, p_model: MARKETING_MODEL });
     if (reserved.error) { const code = ["REQUEST_CONFLICT", "MARKETING_BUSY", "MARKETING_DAILY_LIMIT", "MARKETING_MONTHLY_LIMIT"].find(c => reserved.error!.message.includes(c)); throw new MarketingError(code?.toLowerCase() ?? "marketing_unavailable", code?.includes("LIMIT") ? 429 : code ? 409 : 503); }
@@ -177,7 +176,8 @@ export async function handleMarketingAction(req: Request) {
       const attempts = await db.from("maro_feed_attempts").select("slot,job_id,created_at").eq("feed_id", args.feedId).eq("owner_id", user.id).eq("status", "completed").order("created_at", { ascending: false }).limit(500);
       if (attempts.error || attempts.data?.length === 500) throw new MarketingError("marketing_unavailable", 503);
       if (!attempts.data?.length) throw new MarketingError("images_not_ready", 409);
-      posts = posts.map(p => { const a = attempts.data.find(a => a.slot === p.slot); return a ? { ...p, assetRef: `storage:generations/${user.id}/${a.job_id}/output.png`, feedId: args.feedId, studio: args.studio, status: "draft" as const } : p; });
+      posts = posts.map(p => { const a = attempts.data.find(a => a.slot === p.slot); const ref = a ? `storage:generations/${user.id}/${a.job_id}/output.png` : null; return ref && ref !== p.assetRef ? { ...p, assetRef: ref, feedId: args.feedId, studio: args.studio, status: "draft" as const } : p; });
+      if (posts.every((p, i) => p === campaign.plan!.posts[i])) return marketingResponse({ campaign: await campaignView(campaign, user.id) });
     }
     // Approval always refers to the exact saved copy + image. Imported/replaced images require review again.
     const result = await getSupabaseAdmin().from("maro_marketing_campaigns").update({ plan: { ...campaign.plan, posts }, revision: campaign.revision + 1 }).eq("id", campaign.id).eq("owner_id", user.id).eq("workspace_id", args.workspaceId).eq("revision", args.revision).select("id").maybeSingle();
