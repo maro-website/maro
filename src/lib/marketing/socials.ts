@@ -77,7 +77,8 @@ async function updatePublication(userId: string, id: string, value: Record<strin
 }
 function providerResult(post: ProviderPost, platform: string, accountId: string) {
   const entry = post.platforms?.find(p => p.platform === platform && (typeof p.accountId === "string" ? p.accountId : p.accountId?._id) === accountId);
-  const status = entry?.status || post.status;
+  // A scheduled post has a pending platform entry until its send time. Keep the schedule actionable.
+  const status = ["scheduled", "draft", "pending_approval"].includes(post.status) ? post.status : entry?.status || post.status;
   const known = ["draft", "scheduled", "pending", "publishing", "published", "failed", "partial", "cancelled", "pending_approval"];
   return { provider_id: objectId.parse(post._id), status: platform === "tiktok" && ["published", "draft"].includes(status) ? "awaiting_tiktok" : known.includes(status) ? status : "unknown", url: safeLink(entry?.platformPostUrl), error_code: entry?.error ? "platform_rejected" : null };
 }
