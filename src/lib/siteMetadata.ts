@@ -67,7 +67,7 @@ export function metadataForPage(pathname: string): Metadata {
       apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
     },
     manifest: "/manifest.webmanifest",
-    ...(["/moods", "/feed", "/apps", "/chat"].includes(pathname.split(/[?#]/, 1)[0]) ? { robots: { index: false, follow: false } } : {}),
+    ...(["/moods", "/feed", "/apps", "/chat", "/marketing"].includes(pathname.split(/[?#]/, 1)[0]) ? { robots: { index: false, follow: false } } : {}),
     openGraph: { type: "website", siteName: "maro.al", locale: "sq_AL", title, description: SITE_DESCRIPTION, images: [SOCIAL_SHARE_IMAGE] },
     twitter: { card: "summary_large_image", title, description: SITE_DESCRIPTION, images: [SOCIAL_SHARE_IMAGE.url] },
   };

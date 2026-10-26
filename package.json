@@ -32,10 +32,10 @@
     "framer-motion": "^12.42.2",
     "htmlparser2": "12.0.0",
     "lucide-react": "^0.469.0",
-    "next": "15.5.27",
+    "next": "15.5.28",
     "openai": "^6.47.0",
     "pdfkit": "0.17.2",
-    "puppeteer-core": "^25.8.0",
+    "puppeteer-core": "^25.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^6.20.0",
@@ -43,7 +43,7 @@
     "sharp": "0.35.5",
     "standardwebhooks": "^1.0.0",
     "tailwind-merge": "^2.6.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -53,7 +53,7 @@
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
-    "eslint-config-next": "15.5.27",
+    "eslint-config-next": "15.5.28",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",

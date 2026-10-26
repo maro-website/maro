@@ -23,6 +23,7 @@ import { Compass, Home, X, Moon, Grid3X3, Smartphone, MessageCircle } from "luci
 import { canUseMaroChat } from "@/lib/maro-chat/model";
 import { canUseApps } from "@/lib/apps/model";
 import { canUseFeed } from "@/lib/feed/model";
+import { canUseMarketing } from "@/lib/marketing/model";
 import { canUseMoods } from "@/lib/moods/model";
 import { navigationDisplayLabel } from "@/lib/nav/displayLabel";
 import type { NavGroup } from "@/lib/nav/destinations";
@@ -109,6 +110,7 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
               </div>
 
               {canUseMoods(user?.email) && <Link href="/moods" onClick={onClose} aria-current={pathname === "/moods" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Moon className="h-5 w-5 text-brand" />Moods</Link>}
+              {canUseMarketing(user?.email) && <Link href="/marketing" onClick={onClose} aria-current={pathname === "/marketing" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroMarketing</span><span className="text-xs font-medium text-ink-3">Pilot</span></Link>}
               {canUseFeed(user?.email) && <Link href="/feed" onClick={onClose} aria-current={pathname === "/feed" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroFeed</span><span className="text-xs font-medium text-ink-3">Pilot</span></Link>}
               {canUseApps(user?.email) && <Link href="/apps" onClick={onClose} aria-current={pathname === "/apps" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><Smartphone className="h-5 w-5" /><span className="flex-1">maroApps</span><span className="text-xs font-medium text-ink-3">Pilot</span></Link>}
               {canUseMaroChat(user?.email) && <Link href="/chat" onClick={onClose} aria-current={pathname === "/chat" ? "page" : undefined} className="mb-5 flex min-h-[52px] items-center gap-3 rounded-maro16 bg-surface px-4 py-3 text-[16px] font-semibold text-ink"><MessageCircle className="h-5 w-5" /><span className="flex-1">maroChat</span><span className="text-xs font-medium text-ink-3">Pilot</span></Link>}

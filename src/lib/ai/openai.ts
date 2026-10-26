@@ -148,6 +148,8 @@ async function dataUrlToFile(dataUrl: string, index: number) {
 // Generate images using one or more reference images as extra context
 // (gpt-image edit endpoint). References are data URLs.
 export async function editImages(opts: {
+  /** Dedicated project key for an explicitly linked product; never falls back when supplied. */
+  apiKey?: string;
   model: string;
   prompt: string;
   images: string[];
@@ -172,7 +174,7 @@ export async function editImages(opts: {
   } as unknown as OpenAI.ImageEditParams;
 
   return observedImages(opts, "edit", files.length, async () => withOpenAITimeout(
-    async (signal) => await client().images.edit(params, { signal }) as unknown as ImageResponse,
+    async (signal) => await (opts.apiKey ? new OpenAI({ apiKey: opts.apiKey, maxRetries: 0 }) : client()).images.edit(params, { signal }) as unknown as ImageResponse,
     opts.timeoutMs, opts.abortSignal
   ));
 }

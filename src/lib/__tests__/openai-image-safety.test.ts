@@ -48,6 +48,15 @@ describe("OpenAI image provider safety", () => {
   async function loadOpenAI() {
     return import("@/lib/ai/openai");
   }
+  it("uses the dedicated marketing image key without a general key and excludes it from observations", async () => {
+    process.env.OPENAI_API_KEY = "";
+    mockEdit.mockResolvedValue({ data: [{ b64_json: "synthetic-image" }] });
+    const { editImages } = await loadOpenAI(); const observed: unknown[] = [];
+    await editImages({ apiKey: "dedicated-marketing-project-key", model: "gpt-image-2.5-flare", prompt: "Product photograph", images: ["data:image/png;base64,YWJj"], onObservation: value => { observed.push(value); } });
+    const SDK = (await import("openai")).default;
+    expect(SDK).toHaveBeenCalledWith({ apiKey: "dedicated-marketing-project-key", maxRetries: 0 });
+    expect(mockEdit).toHaveBeenCalledOnce(); expect(JSON.stringify(observed)).not.toContain("dedicated-marketing-project-key");
+  });
 
   it("A: generateImages succeeds with one provider call", async () => {
     mockGenerate.mockResolvedValue({ data: [{ b64_json: "abc123" }] });

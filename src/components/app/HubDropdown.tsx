@@ -17,6 +17,7 @@ import { canUseMaroChat } from "@/lib/maro-chat/model";
 import { useMaro } from "@/context/store";
 import { canUseApps } from "@/lib/apps/model";
 import { canUseFeed } from "@/lib/feed/model";
+import { canUseMarketing } from "@/lib/marketing/model";
 import { useToast } from "@/components/ui/Toast";
 
 function NavIcon({ name, className, hub }: { name: string; className?: string; hub?: boolean }) {
@@ -166,6 +167,7 @@ export function HubDropdown() {
                   </div>
                 </div>
                 <div className="mt-[30px]">
+                  {canUseMarketing(user?.email) && <Link href="/marketing" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroMarketing</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {canUseFeed(user?.email) && <Link href="/feed" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Grid3X3 className="h-5 w-5" /><span className="flex-1">maroFeed</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {canUseApps(user?.email) && <Link href="/apps" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><Smartphone className="h-5 w-5" /><span className="flex-1">maroApps</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}
                   {canUseMaroChat(user?.email) && <Link href="/chat" onClick={() => setOpen(false)} role="menuitem" className="maro-menu__item text-ink hover:bg-surface-2"><MessageCircle className="h-5 w-5" /><span className="flex-1">maroChat</span><span className="text-[11px] font-medium text-ink-3">Pilot</span></Link>}

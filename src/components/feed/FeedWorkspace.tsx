@@ -15,17 +15,19 @@ import b from "@/components/modules/BrainStudio.module.css";
 import s from "./FeedWorkspace.module.css";
 import { AppsPreparation, appDraftPayload, initialAppDraft } from "@/components/apps/AppsPreparation";
 import { appRole, appFormats, canUseApps } from "@/lib/apps/model";
+import { marketingJson, marketingMessage } from "@/lib/marketing/client";
+import type { MarketingCampaign } from "@/lib/marketing/model";
 
-export function FeedWorkspace({ studio = "feed" }: { studio?: "feed" | "apps" }) {
+export function FeedWorkspace({ studio = "feed", marketingCampaignId, onMarketingImport }: { studio?: "feed" | "apps"; marketingCampaignId?: string; onMarketingImport?: (feedId: string, studio: "feed" | "apps") => Promise<void> }) {
   const { user, ready } = useMaro(); const { activeWorkspace } = useWorkspace();
   if (!ready) return <div className={s.notice}>Duke hapur studion…</div>;
   if (!(studio === "apps" ? canUseApps : canUseFeed)(user?.email)) return <div className={s.notice}><Grid3X3 size={32} /><h1>{studio === "apps" ? "maroApps" : "maroFeed"}</h1><p>Në pilot privat. Diçka e mirë po përgatitet.</p><Link href="/">Kthehu në maro</Link></div>;
   if (!activeWorkspace) return <div className={s.notice}>Duke hapur workspace…</div>;
-  return <FeedStudio key={`${studio}:${user!.id}:${activeWorkspace.id}`} workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} studio={studio} />;
+  return <FeedStudio key={`${studio}:${user!.id}:${activeWorkspace.id}:${marketingCampaignId ?? "standalone"}`} workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} studio={studio} marketingCampaignId={marketingCampaignId} onMarketingImport={onMarketingImport} />;
 }
 type History = { id: string; brand: string; createdAt: string; refunded: boolean };
 const initialBrief: FeedBrief = { brand: "", description: "", audience: "", goal: "sales", language: "sq", colors: "", notes: "" };
-function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: string; workspaceName: string; studio: "feed" | "apps" }) {
+function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, onMarketingImport }: { workspaceId: string; workspaceName: string; studio: "feed" | "apps"; marketingCampaignId?: string; onMarketingImport?: (feedId: string, studio: "feed" | "apps") => Promise<void> }) {
   const apps = studio === "apps", api = `/api/${studio}`;
   const [appDraft, setAppDraft] = React.useState(initialAppDraft);
   const { credits, refreshProfile } = useMaro();
@@ -42,6 +44,8 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
   const attachment = attachments[0];
   const [feed, setFeed] = React.useState<FeedView | null>(null); const [history, setHistory] = React.useState<History[]>([]);
   const [loading, setLoading] = React.useState(true); const [busy, setBusy] = React.useState(false); const [error, setError] = React.useState("");
+  const [marketingReady, setMarketingReady] = React.useState(!marketingCampaignId);
+  const [marketingImportBusy, setMarketingImportBusy] = React.useState(false);
   const [selected, setSelected] = React.useState<number | null>(null); const [feedback, setFeedback] = React.useState(""); const [downloading, setDownloading] = React.useState(false);
   const [activeSlot, setActiveSlot] = React.useState<number | null>(null);
   const alive = React.useRef(true), lock = React.useRef(false), createId = React.useRef("");
@@ -68,13 +72,23 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
     if (!alive.current) return;
     currentFeed.current = value;
     setTab("feed");
-    setFeed(value); const url = new URL(window.location.href); url.searchParams.set("feed", value.id); window.history.replaceState(null, "", url);
-  }, []);
+    setFeed(value); if (!marketingCampaignId) { const url = new URL(window.location.href); url.searchParams.set("feed", value.id); window.history.replaceState(null, "", url); }
+  }, [marketingCampaignId]);
+  React.useEffect(() => {
+    if (!marketingCampaignId) return;
+    let live = true;
+    void marketingJson<{ campaign: MarketingCampaign }>(`/api/marketing?workspaceId=${encodeURIComponent(workspaceId)}&campaignId=${marketingCampaignId}`).then(({ campaign }) => {
+      if (!live || !campaign.plan) return;
+      const next: FeedBrief = { ...initialBrief, brand: campaign.brand, description: campaign.brief.focus, goal: campaign.brief.goal === "launch" ? "launch" : campaign.brief.goal === "engagement" ? "engagement" : "sales", language: campaign.brief.language, notes: campaign.brief.offer };
+      setBrief(next); setBrain(true); setAppDraft(d => ({ ...d, brief: next, useBrain: true })); setMarketingReady(true);
+    }).catch(e => { if (live) setError(marketingMessage(e.message)); });
+    return () => { live = false; };
+  }, [marketingCampaignId, workspaceId]);
   React.useEffect(() => {
     let live = true;
     void (async () => {
       try {
-        const data = await feedJson<{ feeds: History[] }>(`${api}?workspaceId=${encodeURIComponent(workspaceId)}`);
+        const data = await feedJson<{ feeds: History[] }>(`${api}?workspaceId=${encodeURIComponent(workspaceId)}${marketingCampaignId ? `&marketingCampaignId=${marketingCampaignId}` : ""}`);
         if (!live) return; setHistory(data.feeds);
         const requested = new URL(window.location.href).searchParams.get("feed");
         const id = data.feeds.find(f => f.id === requested)?.id ?? data.feeds.find(f => !f.refunded)?.id;
@@ -82,7 +96,7 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
       } catch (err) { if (live) setError(feedMessage((err as Error).message)); }
       finally { if (live) setLoading(false); }
     })(); return () => { live = false; };
-  }, [workspaceId, remember, api]);
+  }, [workspaceId, remember, api, marketingCampaignId]);
   React.useEffect(() => {
     if (!feed?.active || busy) return;
     const timer = setInterval(() => { void feedJson<{ feed: FeedView }>(`${api}?feedId=${feed.id}`).then(data => { if (alive.current) remember(data.feed); }).catch(() => undefined); }, 6000);
@@ -131,11 +145,12 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
     finally { lock.current = false; if (alive.current) { setBusy(false); setActiveSlot(null); void refreshProfile(); } }
   }
   async function start() {
+    if (!marketingReady) return;
     await run(async () => {
       if (!apps && (!attachments.length || attachments.some(item => !item.storageRef || item.status !== "ready"))) throw new Error("brief_incomplete");
       stopFeed.current = null;
       createId.current ||= crypto.randomUUID();
-      const data = await feedJson<{ feed: FeedView }>(api, { requestId: createId.current, workspaceId, references: attachments.map(item => item.storageRef!), contentType, textMode, category, useBrain: brain,
+      const data = await feedJson<{ feed: FeedView }>(api, { requestId: createId.current, workspaceId, ...(marketingCampaignId ? { marketingCampaignId } : {}), references: attachments.map(item => item.storageRef!), contentType, textMode, category, useBrain: brain,
         ...(apps ? appDraftPayload(appDraft) : {}), brief: apps ? appDraft.brief : brain ? { goal: brief.goal, language: brief.language, notes: brief.notes, ...(brief.colors ? { colors: brief.colors } : {}) } : brief });
       remember(data.feed); createId.current = "";
       setHistory(rows => [{ id: data.feed.id, brand: data.feed.brand, createdAt: data.feed.createdAt, refunded: false }, ...rows.filter(f => f.id !== data.feed.id)]);
@@ -163,7 +178,7 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
     try { await downloadFeed(feed.id, slot, studio); } catch (err) { setError(feedMessage((err as Error).message)); } finally { setDownloading(false); }
   }
   const done = feed?.tiles.filter(t => t.url).length ?? 0; const completeFeed = done === 9;
-  const working = busy || Boolean(feed?.active); const active = activeSlot ?? feed?.active?.slot;
+  const working = busy || Boolean(feed?.active) || !marketingReady; const active = activeSlot ?? feed?.active?.slot;
   const free = Math.max(0, 3 - (feed?.freeUsed ?? 0));
   const stopped = Boolean(feed?.cancelled || feed?.cancelRequested || feed?.refunded);
   const tiles = feed?.tiles ?? roles.map((_, slot) => ({ slot, title: (apps ? appRole(slot, appDraft.contentType) : feedRole(slot, contentType)).title, url: null, version: 0 }));
@@ -172,6 +187,7 @@ function FeedStudio({ workspaceId, workspaceName, studio }: { workspaceId: strin
       <div><h1 className={s.wordmark} aria-label={apps ? "maroApps" : "maroFeed"}><Logo showWord wordClassName={s.maroWord} /><span>{apps ? "Apps" : "Feed"}</span></h1><h2>{apps ? "App-i yt. Reklama që e tregojnë." : "Nga referencat, te feed-i yt."}</h2><p>{apps ? "Screenshot-et e tua, pajisjet e fundit dhe drejtimi yt kreativ. Maro i lidh në një fushatë." : "Ti zgjedh drejtimin. Maro i lidh 9 postimet me brendin tënd."}</p></div>
       <div className={s.leadSteps} aria-label={apps ? "Si funksionon maroApps" : "Si funksionon maroFeed"}><span><ImagePlus size={20} /><small>01</small><strong>Ngarko</strong></span><span><SlidersHorizontal size={20} /><small>02</small><strong>Zgjedh</strong></span><span><Grid3X3 size={20} /><small>03</small><strong>Maro</strong></span></div>
     </header>
+    {marketingCampaignId && <div className={b.assistBar}><Sparkles size={20} /><div><strong>Imazhet e fushatës maroMarketing</strong><p>Çdo imazh ndjek postimin përkatës të planit. Ngarko produktin ose screenshot-et reale; pastaj ktheji imazhet te postimet për rishikim.</p></div>{done > 0 && onMarketingImport && <Button variant="brand" loading={marketingImportBusy} disabled={working} onClick={async () => { if (!feed) return; setMarketingImportBusy(true); try { await onMarketingImport(feed.id, studio); } catch (e) { setError(marketingMessage((e as Error).message)); } finally { if (alive.current) setMarketingImportBusy(false); } }}>Shto {done} imazhe te plani</Button>}</div>}
     <div className={b.layout}>
       <aside className={b.sidebar}>
         <div className={b.workspace}><span>Workspace</span><div className={`maro-input ${s.workspaceName}`}>{workspaceName}</div></div>

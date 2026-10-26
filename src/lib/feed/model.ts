@@ -21,6 +21,7 @@ export const briefSchema = z.object({
 export type FeedBrief = z.infer<typeof briefSchema>;
 export const createFeedSchema = z.object({
   requestId: z.uuid(), workspaceId: z.string().trim().min(1).max(160),
+  marketingCampaignId: z.uuid().optional(),
   reference: z.string().startsWith("storage:generations/").max(1024).optional(),
   references: z.array(z.string().startsWith("storage:generations/").max(1024)).min(1).max(FEED_MAX_REFERENCES).refine(refs => new Set(refs).size === refs.length).optional(),
   contentType: z.enum(contentTypes).default("mix"), textMode: z.boolean().default(true),
