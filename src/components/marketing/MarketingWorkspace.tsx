@@ -64,7 +64,7 @@ function MarketingStudio({ workspaceId }: { workspaceId: string }) {
   async function create() {
     await run(async () => {
       const id = requestId.current ||= crypto.randomUUID();
-      const submitted = { ...brief, title: brief.title.trim() || brief.focus.trim().split("\n")[0].slice(0, 100) };
+      const submitted = { ...brief, title: brief.title.trim() || brief.focus.trim().slice(0, 100) };
       try { const result = await marketingJson<{ campaign: MarketingCampaign }>("/api/marketing", { workspaceId, requestId: id, brief: submitted }); if (alive.current) { current.current = result.campaign; setCampaign(result.campaign); setCreating(false); } requestId.current = ""; await open(result.campaign.id); }
       catch (e) { try { await open(id); requestId.current = ""; } catch { /* Retain the same id for a lost response. */ } throw e; }
       finally { await overview(); }

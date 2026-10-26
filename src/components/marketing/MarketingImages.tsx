@@ -60,7 +60,7 @@ export function MarketingImages({ workspaceId, campaignId, count, onImport, onBu
     catch (e) { if (alive.current) setError(marketingMessage((e as Error).message)); }
   }
   async function upload(files: File[]) {
-    if (!files.length || busy || uploading || !preparation) return;
+    if (!files.length || busy || createId.current || uploading || !preparation) return;
     if (chosen.length + files.length > FEED_MAX_REFERENCES) { setError(feedMessage("too_many_references")); return; }
     setUploading(true); setError("");
     try {
@@ -99,6 +99,7 @@ export function MarketingImages({ workspaceId, campaignId, count, onImport, onBu
         if (!result.feed) throw new Error("recovery_pending");
       }
     } catch (e) {
+      if (!current && ["invalid_request", "brain_incomplete", "brief_incomplete", "insufficient_credits", "brain_plan_required", "campaign_not_ready", "campaign_not_found"].includes((e as Error).message)) createId.current = "";
       if (alive.current) setError(feedMessage((e as Error).message));
       if (current && alive.current) {
         try { const { feed } = await feedJson<{ feed: FeedView }>(`/api/${current.studio}?feedId=${current.feed.id}`); await remember({ ...current, feed }); } catch { /* The saved feed is restored on reload. */ }
@@ -113,6 +114,7 @@ export function MarketingImages({ workspaceId, campaignId, count, onImport, onBu
   }
   const ready = session?.feed.tiles.filter(t => t.url).length ?? count;
   const complete = ready === 9, cancelled = session?.feed.cancelled || session?.feed.refunded || session?.feed.cancelRequested;
+  const frozen = busy || Boolean(createId.current);
   const changeSelection = (ref: string) => { setChosen(v => v.includes(ref) ? v.filter(r => r !== ref) : v.length < (studio === "apps" ? 6 : FEED_MAX_REFERENCES) ? [...v, ref] : v); createId.current = ""; };
   return <div className={s.imageAction}>
     <Button variant={complete ? "secondary" : "brand"} disabled={loading} onClick={() => void show()}><ImagePlus size={18} />{busy ? `Po gjenerohet ${Math.min(ready + 1, 9)}/9…` : complete ? "Imazhet janë gati" : session ? "Vazhdo imazhet" : "Gjenero imazhet"}</Button>
@@ -127,9 +129,9 @@ export function MarketingImages({ workspaceId, campaignId, count, onImport, onBu
         {cancelled && <p className={s.muted}>Gjenerimi u ndal. {session.feed.refundCredits} credits u kthyen; imazhet e përfunduara ruhen.</p>}
         <div className={s.actions}>{!complete && !cancelled && <Button variant="brand" loading={busy} disabled={Boolean(session.feed.active) && !busy} onClick={() => void generate()}>Vazhdo gjenerimin</Button>}{ready > 0 && <Button variant="secondary" onClick={() => void downloadFeed(session.feed.id, undefined, session.studio).catch(e => setError(feedMessage(e.message)))}><Download size={16} />Shkarko imazhet</Button>}{!complete && !cancelled && <Button variant="ghost" onClick={() => void cancel()}>Ndalo & kthe credits e papërdorura</Button>}</div>
       </> : preparation ? <>
-        <div className={s.referenceGrid}>{preparation.references.map(r => <button className={s.reference} type="button" key={r.ref} aria-pressed={chosen.includes(r.ref)} disabled={busy || uploading} onClick={() => changeSelection(r.ref)}>{r.url && <img src={r.url} alt={r.name} />}<span>{r.name}</span>{chosen.includes(r.ref) && <Check size={18} />}</button>)}<Button className={s.uploadButton} variant="secondary" disabled={busy || uploading} onClick={() => fileInput.current?.click()}><ImagePlus size={22} />{uploading ? "Po ngarkohet…" : "Ngarko foto"}</Button></div>
+        <div className={s.referenceGrid}>{preparation.references.map(r => <button className={s.reference} type="button" key={r.ref} aria-pressed={chosen.includes(r.ref)} disabled={frozen || uploading} onClick={() => changeSelection(r.ref)}>{r.url && <img src={r.url} alt={r.name} />}<span>{r.name}</span>{chosen.includes(r.ref) && <Check size={18} />}</button>)}<Button className={s.uploadButton} variant="secondary" disabled={frozen || uploading} onClick={() => fileInput.current?.click()}><ImagePlus size={22} />{uploading ? "Po ngarkohet…" : "Ngarko foto"}</Button></div>
         <input ref={fileInput} type="file" multiple accept={IMAGE_REFERENCE_ACCEPT} hidden onChange={e => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
-        <details className={s.details}><summary>Po promovon një app?</summary><div className={s.form}><Field label="Lloji"><Select value={studio} disabled={busy} onChange={e => { setStudio(e.target.value as Studio); setChosen([]); createId.current = ""; }}><option value="feed">Produkt ose shërbim · maroFeed</option><option value="apps">App me screenshots · maroApps</option></Select></Field>{studio === "apps" && <><Field label="Screenshots janë nga"><Select value={platform} disabled={busy} onChange={e => { setPlatform(e.target.value as typeof platform); createId.current = ""; }}><option value="ios">iOS · iPhone</option><option value="android">Android · Samsung</option></Select></Field><Field label="Çka bën app-i?" hint="Një veçori ose përfitim real që shihet në screenshots."><Input value={benefit} minLength={8} maxLength={400} disabled={busy} onChange={e => { setBenefit(e.target.value); createId.current = ""; }} /></Field></>}</div></details>
+        <details className={s.details}><summary>Po promovon një app?</summary><div className={s.form}><Field label="Lloji"><Select value={studio} disabled={frozen} onChange={e => { setStudio(e.target.value as Studio); setChosen([]); createId.current = ""; }}><option value="feed">Produkt ose shërbim · maroFeed</option><option value="apps">App me screenshots · maroApps</option></Select></Field>{studio === "apps" && <><Field label="Screenshots janë nga"><Select value={platform} disabled={frozen} onChange={e => { setPlatform(e.target.value as typeof platform); createId.current = ""; }}><option value="ios">iOS · iPhone</option><option value="android">Android · Samsung</option></Select></Field><Field label="Çka bën app-i?" hint="Një veçori ose përfitim real që shihet në screenshots."><Input value={benefit} minLength={8} maxLength={400} disabled={frozen} onChange={e => { setBenefit(e.target.value); createId.current = ""; }} /></Field></>}</div></details>
         <p className={s.muted}>9 imazhe · 50 credits gjithsej. Imazhet shtohen vetë në plan.</p>
         <div className={s.actions}><Button variant="brand" loading={busy} disabled={!chosen.length || uploading || (studio === "apps" && (benefit.trim().length < 8 || !preparation.brief.audience))} onClick={() => void generate()}>Gjenero 9 imazhe · 50 credits</Button><Button variant="ghost" disabled={busy} onClick={() => setOpen(false)}><X size={16} />Mbyll</Button></div>
       </> : <><p className={s.muted} role="status">Po hapen fotot e Brain-it…</p>{error && <Button variant="secondary" onClick={() => void show()}>Provo përsëri</Button>}</>}
