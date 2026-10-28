@@ -34,7 +34,7 @@ export async function resolveGenerationMood(userId: string, moodId: string) {
   return { prompt: data.prompt as string, title: data.title as string, hash: createHash("sha256").update(data.prompt).digest("hex") };
 }
 
-/** Intentionally excludes the compiled prompt, even for the review panel. */
+/** Shared views exclude the compiled prompt; only the authorized admin GET adds it. */
 export const STYLE_COLUMNS = "id,title,description,cover_url,sort_order,created_by,publisher_name,source,visibility,status,input_text,rejection_reason,updated_at,active,created_at";
 export const styleResponse = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: MOOD_HEADERS });
 export class StyleError extends Error { constructor(message: string, public status = 400) { super(message); } }

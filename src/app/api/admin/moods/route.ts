@@ -11,11 +11,15 @@ export async function GET(req: Request) {
     if (!auth.ok) return auth.response;
     const params = new URL(req.url).searchParams, status = params.get("status") ?? "pending", page = Number(params.get("page") ?? 0);
     if (!["all", "pending", "approved", "rejected", "failed", "processing"].includes(status) || !Number.isSafeInteger(page) || page < 0 || page > 1000) throw new StyleError("invalid_style");
-    let query = getSupabaseAdmin().from("maro_moods").select(STYLE_COLUMNS);
+    let query = getSupabaseAdmin().from("maro_moods").select(`${STYLE_COLUMNS},prompt`);
     if (status !== "all") query = query.eq("status", status);
     const result = await query.order("updated_at", { ascending: false }).order("id").range(page * 60, page * 60 + 60);
     if (result.error) throw new StyleError("styles_unavailable", 503);
-    return styleResponse({ items: await Promise.all((result.data ?? []).slice(0, 60).map(row => styleView(row, auth.user.id, true))), hasMore: (result.data?.length ?? 0) > 60 });
+    return styleResponse({ items: await Promise.all((result.data ?? []).slice(0, 60).map(async row => ({
+      ...await styleView(row, auth.user.id, true),
+      // Edits retain the old compiled value while processing or failed. Never pair it with the new brief.
+      generated_prompt: ["pending", "approved", "rejected"].includes(row.status) && typeof row.prompt === "string" && row.prompt.trim() ? row.prompt : null,
+    }))), hasMore: (result.data?.length ?? 0) > 60 });
   } catch (error) { return styleFailure(error); }
 }
 export const POST = (req: Request) => writeStyle(req, false, true);

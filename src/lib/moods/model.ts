@@ -28,6 +28,8 @@ export type Mood = {
 export type AdminMood = Omit<Mood, "saved"> & {
   active: boolean;
   updated_at: string;
+  /** Read-only; returned only by the authorized admin listing. */
+  generated_prompt?: string | null;
 };
 
 export function canUseMood(mood: Pick<Mood, "created_by" | "visibility" | "status"> & { active?: boolean }, userId: string) {

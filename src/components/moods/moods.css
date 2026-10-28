@@ -74,6 +74,7 @@
 .style-review { display: flex; align-items: flex-start; gap: 24px; padding: 24px; border-radius: var(--maro-radius-20); border: 1px solid var(--maro-color-border-subtle); background: var(--maro-color-bg-surface); }
 .style-review .style-review-cover { flex: 0 0 180px; width: 180px; height: 180px; object-fit: contain; border-radius: var(--maro-radius-16); }
 .styles-admin .styles-tabs { margin-top: 0; }
+.style-review-prompts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
 .style-original { margin-top: 16px; padding: 16px; border-radius: var(--maro-radius-16); background: var(--maro-color-bg-surface-02); }
 .style-original h3 { font-size: 13px; font-weight: 700; }
 .style-original p { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; color: var(--maro-color-text-secondary); }

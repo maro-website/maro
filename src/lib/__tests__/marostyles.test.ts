@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { canUseMood } from "@/lib/moods/model";
 import { styleCoverPath, styleView, resolveGenerationMood } from "@/lib/moods/server";
 import { POST, PUT, GET } from "@/app/api/moods/route";
-import { PATCH } from "@/app/api/admin/moods/route";
+import { GET as adminGet, PATCH } from "@/app/api/admin/moods/route";
 import { POST as save } from "@/app/api/moods/save/route";
 import { styleDraftSchema } from "@/lib/moods/mutations";
 const owner = "11111111-1111-4111-8111-111111111111", other = "22222222-2222-4222-8222-222222222222", id = "33333333-3333-4333-8333-333333333333";
@@ -62,7 +62,7 @@ describe("style privacy and state boundaries", () => {
     expect(canUseMood(row({ visibility: "private" }) as Parameters<typeof canUseMood>[0], other)).toBe(false);
     expect(canUseMood(row({ active: false }) as Parameters<typeof canUseMood>[0], owner)).toBe(false);
   });
-  it("never serializes compiled prompts, including in admin views", async () => {
+  it("never serializes compiled prompts through shared views, including admin mutation views", async () => {
     for (const admin of [false, true]) {
       const view = await styleView(row(), owner, admin);
       expect(view.input_text).toBe(brief.input_text); expect(JSON.stringify(view)).not.toContain("PRIVATE EXPANDED"); expect(view).not.toHaveProperty("prompt");
@@ -82,6 +82,60 @@ describe("style privacy and state boundaries", () => {
   });
   it.each([`storage:generations/_moods/${other}/${id}.webp`, `storage:generations/_moods/${owner}/../${id}.webp`, "https://external.test/a.png"])("rejects foreign or malformed cover %s", value => expect(styleCoverPath(value, owner)).toBeNull());
 });
+describe("admin prompt inspection", () => {
+  const adminRequest = () => request(undefined, "https://maro.al/api/admin/moods?status=all");
+  it.each(["pending", "approved", "rejected"])("pairs the exact original input with the generated prompt for %s submissions", async status => {
+    const prompt = "  PRIVATE EXPANDED INSTRUCTIONS\nPreserve product details.  ";
+    mocks.rows = [row({ created_by: other, visibility: "private", status, prompt })];
+    const response = await adminGet(adminRequest());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Vary")).toBe("Authorization");
+    expect((await response.json()).items[0]).toMatchObject({ input_text: brief.input_text, generated_prompt: prompt });
+    expect(mocks.permission).toHaveBeenCalledWith(expect.any(Request), "presets.manage");
+  });
+  it.each(["processing", "failed"])("withholds retained old prompts for %s revisions", async status => {
+    mocks.rows = [row({ status, input_text: "A newly edited request", prompt: "PRIVATE OLD PROMPT" })];
+    const payload = await (await adminGet(adminRequest())).json();
+    expect(payload.items[0]).toMatchObject({ input_text: "A newly edited request", generated_prompt: null });
+    expect(JSON.stringify(payload)).not.toContain("PRIVATE OLD PROMPT");
+  });
+  it.each([null, "", "   "])("handles a missing generated prompt (%s)", async prompt => {
+    mocks.rows = [row({ prompt })];
+    expect((await (await adminGet(adminRequest())).json()).items[0].generated_prompt).toBeNull();
+  });
+  it("denies guests, other accounts and missing admin/MFA authorization before reading prompts", async () => {
+    mocks.rows = [row()];
+    mocks.token.mockResolvedValue(null);
+    expect((await adminGet(adminRequest())).status).toBe(401);
+    mocks.token.mockResolvedValue({ id: other, email: "other@example.test" });
+    expect((await adminGet(adminRequest())).status).toBe(403);
+    expect(mocks.permission).not.toHaveBeenCalled();
+    mocks.token.mockResolvedValue({ id: owner, email: "erzen@nice.al" });
+    for (const error of ["forbidden", "mfa_required"]) {
+      mocks.permission.mockResolvedValue({ ok: false, status: 403, error });
+      const response = await adminGet(adminRequest());
+      expect(response.status).toBe(403); expect(await response.text()).not.toContain("PRIVATE EXPANDED");
+    }
+    expect(mocks.sign).not.toHaveBeenCalled();
+  });
+  it("does not expose prompts on user listings or admin review responses", async () => {
+    mocks.rows = [row()];
+    for (const response of [await GET(request()), await PATCH(request({ id, updated_at: timestamp, decision: "rejected", reason: "Ndrysho thumbnail-in." }))]) {
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).not.toContain("PRIVATE EXPANDED"); expect(body).not.toContain("generated_prompt");
+    }
+    expect(styleDraftSchema.safeParse({ ...brief, generated_prompt: "INJECT" }).success).toBe(false);
+  });
+  it("returns a sanitized private error when prompt lookup fails", async () => {
+    mocks.rows = [row()]; mocks.fail = true;
+    const response = await adminGet(adminRequest());
+    expect(response.status).toBe(503); expect(await response.json()).toEqual({ error: "styles_unavailable" });
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+});
+
 describe("creation and review", () => {
   it("keeps the exact original input and stores generated instructions only on the server", async () => {
     const response = await POST(request(brief)); const text = await response.text();
