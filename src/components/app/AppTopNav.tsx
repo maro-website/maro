@@ -134,7 +134,7 @@ export function AppTopNav({
             </React.Fragment>
           );
         })}
-        {canUseMoods(user?.email) && <Link href="/moods" className="maro-nav__link" data-active={pathname === "/moods" || undefined} aria-current={pathname === "/moods" ? "page" : undefined}><Moon className="h-5 w-5 shrink-0" /><span className="maro-nav__label">Moods</span></Link>}
+        {canUseMoods(user?.email) && <Link href="/moods" className="maro-nav__link" data-active={pathname === "/moods" || undefined} aria-current={pathname === "/moods" ? "page" : undefined}><Moon className="h-5 w-5 shrink-0" /><span className="maro-nav__label">Styles</span></Link>}
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-[10px]">

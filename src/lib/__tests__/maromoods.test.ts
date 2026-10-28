@@ -14,7 +14,7 @@ import { ImageRequestValidationError } from "@/lib/generation/requestValidation"
 const moodId = "c7130000-0000-4000-8000-000000000001";
 const privatePrompt = "Make the scenery look like Halloween. PRIVATE MOOD INSTRUCTIONS";
 const digest = (text: string) => createHash("sha256").update(text).digest("hex");
-const mocks = vi.hoisted(() => ({ tokenUser: vi.fn(), account: vi.fn(), permission: vi.fn(), from: vi.fn(), mood: { id: "", title: "Halloween", prompt: "", active: true }, saved: [] as { mood_id: string }[], dbError: null as null | { code: string } }));
+const mocks = vi.hoisted(() => ({ tokenUser: vi.fn(), account: vi.fn(), permission: vi.fn(), from: vi.fn(), mood: { id: "", title: "Halloween", prompt: "", active: true, status: "approved", visibility: "public", created_by: "owner" }, saved: [] as { mood_id: string }[], dbError: null as null | { code: string } }));
 vi.mock("@/lib/supabase/server", () => ({
   getUserFromToken: mocks.tokenUser,
   getSupabaseAdmin: () => ({ auth: { admin: { getUserById: mocks.account } }, from: mocks.from }),
@@ -26,10 +26,10 @@ beforeEach(() => {
   mocks.tokenUser.mockResolvedValue({ id: "owner", email: "erzen@nice.al" });
   mocks.account.mockResolvedValue({ data: { user: { email: "erzen@nice.al" } }, error: null });
   mocks.permission.mockResolvedValue({ ok: true, admin: { userId: "owner" }, requestId: "test" });
-  mocks.mood = { id: moodId, title: "Halloween", prompt: privatePrompt, active: true }; mocks.saved = []; mocks.dbError = null;
+  mocks.mood = { id: moodId, title: "Halloween", prompt: privatePrompt, active: true, status: "approved", visibility: "public", created_by: "owner" }; mocks.saved = []; mocks.dbError = null;
   mocks.from.mockImplementation((table: string) => {
     let columns = "";
-    const query = { select: (value: string) => { columns = value; return query; }, eq: () => query, order: () => query,
+    const query = { select: (value: string) => { columns = value; return query; }, eq: () => query, order: () => query, or: () => query, range: () => query, limit: () => query,
       maybeSingle: async () => ({ data: mocks.mood.active ? mocks.mood : null, error: mocks.dbError }),
       then: (resolve: (result: unknown) => void) => resolve({ data: table === "maro_mood_saves" ? mocks.saved : [Object.fromEntries(Object.entries(mocks.mood).filter(([key]) => columns.split(",").includes(key)))], error: mocks.dbError }),
     };

@@ -137,7 +137,7 @@ const IMG_ERRORS: Record<string, string> = {
   file_too_large: "Imazhi është tepër i madh. Përdor PNG, JPG ose WebP deri në 25 MB.",
   unsupported_mime: "Formati nuk mbështetet. Përdor PNG, JPG ose WebP.",
   ...V1_IMAGE_ERRORS,
-  moods_unavailable: "maroMood nuk është i disponueshëm për këtë llogari.",
+  moods_unavailable: "maroStyles nuk është i disponueshëm për këtë llogari.",
   mood_unavailable: "Ky mood nuk është më aktiv. Hiqe ose zgjedh një tjetër.",
   mood_configuration_unavailable: "Mood-i nuk u ngarkua. Provo përsëri.",
 };
@@ -256,7 +256,7 @@ export function ToolComposer({
     try { id ??= sessionStorage.getItem(`maro:mood:${draftKey}`); } catch { /* In-memory selection still works. */ }
     if (!id || !MOOD_ID.test(id)) { setMoodState({ key: draftKey, mood: null }); return; }
     const controller = new AbortController();
-    void moodRequest<{ items: Mood[] }>("/api/moods", { signal: controller.signal }).then(data => {
+    void moodRequest<{ items: Mood[] }>(`/api/moods?id=${encodeURIComponent(id)}`, { signal: controller.signal }).then(data => {
       if (controller.signal.aborted) return;
       const mood = data.items.find(item => item.id === id) ?? null;
       setSelectedMood(mood);

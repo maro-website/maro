@@ -1,61 +1,42 @@
-import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { writeAuditEvent } from "@/lib/admin/audit";
-import { requireMoodAdmin, MOOD_HEADERS } from "@/lib/moods/server";
-import { MOOD_ID } from "@/lib/moods/model";
-
+import { requireMoodAdmin, STYLE_COLUMNS, styleResponse, styleFailure, styleView, StyleError } from "@/lib/moods/server";
+import { writeStyle, deleteStyle } from "@/lib/moods/mutations";
 export const dynamic = "force-dynamic";
-const COLUMNS = "id,title,description,cover_url,prompt,active,sort_order,updated_at";
-const response = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: MOOD_HEADERS });
-
 export async function GET(req: Request) {
-  const auth = await requireMoodAdmin(req);
-  if (!auth.ok) return auth.response;
-  const { data, error } = await getSupabaseAdmin().from("maro_moods").select(COLUMNS).order("sort_order").order("created_at").order("id");
-  return error ? response({ error: "moods_unavailable" }, 503) : response({ items: data ?? [] });
-}
-
-async function write(req: Request, editing: boolean) {
-  const auth = await requireMoodAdmin(req);
-  if (!auth.ok) return auth.response;
-  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
-  if (!parsed.ok) return parsed.response;
-  const body = parsed.body as Record<string, unknown> | null;
-  if (!body || Array.isArray(body) || typeof body.title !== "string" || !body.title.trim() || body.title.length > 140 || typeof body.prompt !== "string" || !body.prompt.trim() || body.prompt.length > 6000 || typeof body.description !== "string" || body.description.length > 1000 || typeof body.active !== "boolean" || !Number.isSafeInteger(body.sort_order) || Number(body.sort_order) < 0 || Number(body.sort_order) > 100000) return response({ error: "invalid-fields" }, 400);
-  if (editing && (typeof body.id !== "string" || !MOOD_ID.test(body.id) || typeof body.updated_at !== "string")) return response({ error: "invalid-id" }, 400);
-  const cover = body.cover_url;
-  if (cover !== null && cover !== "" && (typeof cover !== "string" || cover.length > 2048 || !validCover(cover))) return response({ error: "invalid-cover" }, 400);
-  const record = { title: body.title.trim(), description: body.description.trim(), prompt: body.prompt.trim(), active: body.active, cover_url: cover || null, sort_order: body.sort_order, updated_at: new Date().toISOString() };
-  const db = getSupabaseAdmin();
-  const result = editing
-    ? await db.from("maro_moods").update(record).eq("id", body.id).eq("updated_at", body.updated_at).select(COLUMNS).maybeSingle()
-    : await db.from("maro_moods").insert({ ...record, created_by: auth.user.id }).select(COLUMNS).single();
-  if (result.error) return response({ error: "save-failed" }, 503);
-  if (!result.data) return response({ error: "mood_changed", message: "Mood-i është ndryshuar. Rifresko dhe provo përsëri." }, 409);
-  await writeAuditEvent({ actorId: auth.user.id, action: editing ? "moods.update" : "moods.create", targetType: "maro_moods", targetId: result.data.id, requestId: auth.requestId });
-  return response({ item: result.data });
-}
-function validCover(value: string) {
-  if (/^\/images\/moods\/[a-z0-9-]+\.svg$/.test(value)) return true;
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.origin === new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").origin && url.pathname.startsWith("/storage/v1/object/public/maro-public/public/moods/") && !url.search && !url.hash;
-  } catch { return false; }
+    const auth = await requireMoodAdmin(req);
+    if (!auth.ok) return auth.response;
+    const params = new URL(req.url).searchParams, status = params.get("status") ?? "pending", page = Number(params.get("page") ?? 0);
+    if (!["all", "pending", "approved", "rejected", "failed", "processing"].includes(status) || !Number.isSafeInteger(page) || page < 0 || page > 1000) throw new StyleError("invalid_style");
+    let query = getSupabaseAdmin().from("maro_moods").select(STYLE_COLUMNS);
+    if (status !== "all") query = query.eq("status", status);
+    const result = await query.order("updated_at", { ascending: false }).order("id").range(page * 60, page * 60 + 60);
+    if (result.error) throw new StyleError("styles_unavailable", 503);
+    return styleResponse({ items: await Promise.all((result.data ?? []).slice(0, 60).map(row => styleView(row, auth.user.id, true))), hasMore: (result.data?.length ?? 0) > 60 });
+  } catch (error) { return styleFailure(error); }
 }
-export const POST = (req: Request) => write(req, false);
-export const PUT = (req: Request) => write(req, true);
-
-export async function DELETE(req: Request) {
-  const auth = await requireMoodAdmin(req);
-  if (!auth.ok) return auth.response;
-  const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
-  if (!parsed.ok) return parsed.response;
-  const body = parsed.body as { id?: unknown; updated_at?: unknown } | null;
-  if (!body || typeof body.id !== "string" || !MOOD_ID.test(body.id) || typeof body.updated_at !== "string") return response({ error: "invalid-id" }, 400);
-  const { data, error } = await getSupabaseAdmin().from("maro_moods").delete().eq("id", body.id).eq("updated_at", body.updated_at).select("id").maybeSingle();
-  if (error) return response({ error: "delete-failed" }, 503);
-  if (!data) return response({ error: "mood_changed" }, 409);
-  await writeAuditEvent({ actorId: auth.user.id, action: "moods.delete", targetType: "maro_moods", targetId: body.id, requestId: auth.requestId });
-  return response({ deleted: true });
+export const POST = (req: Request) => writeStyle(req, false, true);
+export const PUT = (req: Request) => writeStyle(req, true, true);
+export const DELETE = (req: Request) => deleteStyle(req, true);
+export async function PATCH(req: Request) {
+  try {
+    const auth = await requireMoodAdmin(req);
+    if (!auth.ok) return auth.response;
+    const parsed = await readJsonBody(req, REQUEST_LIMITS.jsonDefault);
+    if (!parsed.ok) return parsed.response;
+    const body = z.object({ id: z.uuid(), updated_at: z.iso.datetime({ offset: true }), decision: z.enum(["approved", "rejected"]), reason: z.string().trim().max(500).optional() }).strict().safeParse(parsed.body);
+    if (!body.success || (body.data.decision === "rejected" && !body.data.reason)) throw new StyleError("invalid_style_review");
+    const { id, updated_at, decision, reason } = body.data;
+    const now = new Date().toISOString();
+    const result = await getSupabaseAdmin().from("maro_moods").update({ status: decision, active: decision === "approved", rejection_reason: decision === "rejected" ? reason : null,
+      reviewed_by: auth.user.id, reviewed_at: now, updated_at: now }).eq("id", id).eq("updated_at", updated_at)
+      .in("status", ["pending", "approved", "rejected"]).select(STYLE_COLUMNS).maybeSingle();
+    if (result.error) throw new StyleError("styles_unavailable", 503);
+    if (!result.data) throw new StyleError("mood_changed", 409);
+    await writeAuditEvent({ actorId: auth.user.id, action: `styles.${decision}`, targetType: "maro_moods", targetId: id, requestId: auth.requestId });
+    return styleResponse({ item: await styleView(result.data, auth.user.id, true) });
+  } catch (error) { return styleFailure(error); }
 }

@@ -388,7 +388,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
         <RailItem active={category === "uploaded"} icon={<Upload className="h-4 w-4" />} label="Çka ke ngarku" count={scopedUploads.length} onClick={() => chooseCategory("uploaded")} />
         <RailItem active={category === "saved"} icon={<Heart className="h-4 w-4" />} label="Çka ke ruajt" count={picker ? scopedRows.filter(row => row.favourite).length : undefined} onClick={() => chooseCategory("saved")} />
         {EXPLORE_VISIBLE && !picker && <RailItem active={category === "published"} icon={<Globe className="h-4 w-4" />} label="Publikimet në Explore" onClick={() => chooseCategory("published")} />}
-        {moodsEligible && <RailItem active={category === "moods"} icon={<Moon className="h-4 w-4" />} label="Moods" onClick={() => chooseCategory("moods")} />}
+        {moodsEligible && <RailItem active={category === "moods"} icon={<Moon className="h-4 w-4" />} label="Styles" onClick={() => chooseCategory("moods")} />}
 
         {category !== "uploaded" && category !== "published" && category !== "moods" && toolBuckets.length > 0 && (
           <>
@@ -427,7 +427,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
                 className="maro-search-input w-full bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-3"
               />
             </div>}
-            <AssetFilter className="min-w-0 flex-1 md:hidden" label="Kategoria e aseteve" value={category} onChange={value => { if (value === "made" || value === "uploaded" || value === "saved" || (EXPLORE_VISIBLE && value === "published") || (value === "moods" && moodsEligible)) chooseCategory(value as typeof category); }} options={[{ value: "made", label: "Çka ke maru" }, { value: "uploaded", label: "Çka ke ngarku" }, { value: "saved", label: "Çka ke ruajt" }, ...(EXPLORE_VISIBLE && !picker ? [{ value: "published", label: "Publikimet në Explore" }] : []), ...(moodsEligible ? [{ value: "moods", label: "Moods" }] : [])]} />
+            <AssetFilter className="min-w-0 flex-1 md:hidden" label="Kategoria e aseteve" value={category} onChange={value => { if (value === "made" || value === "uploaded" || value === "saved" || (EXPLORE_VISIBLE && value === "published") || (value === "moods" && moodsEligible)) chooseCategory(value as typeof category); }} options={[{ value: "made", label: "Çka ke maru" }, { value: "uploaded", label: "Çka ke ngarku" }, { value: "saved", label: "Çka ke ruajt" }, ...(EXPLORE_VISIBLE && !picker ? [{ value: "published", label: "Publikimet në Explore" }] : []), ...(moodsEligible ? [{ value: "moods", label: "Styles" }] : [])]} />
             {/* Mobile filter dropdown */}
             {category !== "published" && category !== "moods" && <AssetFilter align="right" className="min-w-0 flex-1 md:hidden" label="Filtro mjetet" value={filter} onChange={setFilter} options={[{ value: "all", label: "Të gjitha" }, ...toolBuckets.map(tool => ({ value: tool.id, label: tool.name }))]} />}
             {/* Size slider */}
@@ -452,7 +452,7 @@ export function AssetsLibrary({ picker, initialCategory = "made" }: { picker?: {
 
         <div className="px-4 py-6 sm:px-6">
           {!picker && <StorageUsage className="mb-5 md:hidden" />}
-          {!picker && category === "moods" ? <><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 className="text-xl font-bold text-ink">Moods e ruajtura</h1>{moodsEligible && <Button variant="secondary" onClick={() => router.push("/moods")}>Gjej moods</Button>}</div><MoodCollection savedOnly /></> : EXPLORE_VISIBLE && !picker && category === "published" ? <MyPublications /> : <>
+          {!picker && category === "moods" ? <><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h1 className="text-xl font-bold text-ink">Stilet e ruajtura</h1>{moodsEligible && <Button variant="secondary" onClick={() => router.push("/moods")}>Gjej stile</Button>}</div><MoodCollection savedOnly /></> : EXPLORE_VISIBLE && !picker && category === "published" ? <MyPublications /> : <>
           {libraryError && <div role="alert" className="mb-4 text-sm text-ink-2">Krijimet nga workspace-et nuk u ngarkuan plotësisht. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}
           {libraryLoading && <p role="status" className="mb-4 text-sm text-ink-3">Duke ngarkuar krijimet…</p>}
           {category === "uploaded" && uploadError && <div role="alert" className="mb-4 text-sm text-ink-2">Ngarkimet nuk u hapën. <button type="button" className="underline" onClick={() => setRefresh(value => value + 1)}>Provo përsëri</button></div>}

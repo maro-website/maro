@@ -1,83 +1,51 @@
 "use client";
 import * as React from "react";
-import { Moon, Pencil, Plus, Trash2, UploadCloud } from "lucide-react";
+import { Check, Pencil, Plus, X } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/Button";
-import { Field, Input, Textarea } from "@/components/ui/Input";
+import { Field, Textarea } from "@/components/ui/Input";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { Switch } from "@/components/ui/Switch";
 import { useToast } from "@/components/ui/Toast";
 import { useMaro } from "@/context/store";
-import { MoodCover } from "@/components/moods/MoodCollection";
-import { canUseMoods, type AdminMood } from "@/lib/moods/model";
+import { MoodCover } from "@/components/moods/MoodCover";
+import { StyleForm } from "@/components/moods/StyleForm";
+import { STYLE_STATUS_LABELS, canUseMoods, type AdminMood } from "@/lib/moods/model";
 import { moodRequest, notifyMoodsChanged } from "@/lib/moods/client";
-
-const empty = () => ({ title: "", description: "", prompt: "", cover_url: null as string | null, active: false, sort_order: 0 });
+import "@/components/moods/moods.css";
 export default function AdminMoodsPage() {
-  const { user, ready } = useMaro();
-  const { toast } = useToast();
-  const eligible = canUseMoods(user?.email);
-  const [items, setItems] = React.useState<AdminMood[]>([]);
-  const [draft, setDraft] = React.useState(empty);
-  const [editing, setEditing] = React.useState<AdminMood | null>(null);
-  const [open, setOpen] = React.useState(false);
-  const [pendingDelete, setPendingDelete] = React.useState<AdminMood | null>(null);
-  const [saving, setSaving] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [loading, setLoading] = React.useState(true);
-  const load = React.useCallback(async () => {
-    setLoading(true); setError("");
-    try { const data = await moodRequest<{ items: AdminMood[] }>("/api/admin/moods"); setItems(data.items); }
-    catch (err) { setError((err as Error).message); }
-    finally { setLoading(false); }
-  }, []);
-  React.useEffect(() => { if (eligible) void load(); else setItems([]); }, [eligible, user?.id, load]);
-  function edit(mood?: AdminMood) { setEditing(mood ?? null); setDraft(mood ? { title: mood.title, description: mood.description, prompt: mood.prompt, cover_url: mood.cover_url, active: mood.active, sort_order: mood.sort_order } : empty()); setOpen(true); }
-  async function submit(event: React.FormEvent) {
-    event.preventDefault(); setSaving(true);
+  const { user, ready } = useMaro(), { toast } = useToast();
+  const [result, setResult] = React.useState<{ owner: string; items: AdminMood[]; hasMore: boolean }>({ owner: "", items: [], hasMore: false });
+  const [status, setStatus] = React.useState("pending"), [page, setPage] = React.useState(0), [refresh, setRefresh] = React.useState(0);
+  const [loading, setLoading] = React.useState(true), [error, setError] = React.useState("");
+  const [editor, setEditor] = React.useState<AdminMood | "new" | null>(null), [rejecting, setRejecting] = React.useState<AdminMood | null>(null);
+  const [reason, setReason] = React.useState(""), [busy, setBusy] = React.useState(false), pending = React.useRef(false);
+  const eligible = canUseMoods(user?.email), userId = user?.id;
+  React.useEffect(() => { setEditor(null); setRejecting(null); setPage(0); }, [userId]);
+  React.useEffect(() => {
+    if (!eligible || !userId) return;
+    const controller = new AbortController(); setLoading(true); setError("");
+    void Promise.all(Array.from({ length: page + 1 }, (_, index) => moodRequest<{ items: AdminMood[]; hasMore: boolean }>(`/api/admin/moods?status=${status}&page=${index}`, { signal: controller.signal }))).then(pages => {
+      if (!controller.signal.aborted) setResult({ owner: userId, items: pages.flatMap(p => p.items), hasMore: pages.at(-1)?.hasMore ?? false });
+    }).catch(err => { if (!controller.signal.aborted) setError((err as Error).message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [eligible, userId, status, page, refresh]);
+  const items = result.owner === userId ? result.items : [];
+  async function review(item: AdminMood, decision: "approved" | "rejected") {
+    if (pending.current) return; pending.current = true; setBusy(true);
     try {
-      await moodRequest("/api/admin/moods", { method: editing ? "PUT" : "POST", body: { ...draft, ...(editing ? { id: editing.id, updated_at: editing.updated_at } : {}) } });
-      toast("Mood-i u ruajt."); setOpen(false); notifyMoodsChanged(); await load();
+      await moodRequest("/api/admin/moods", { method: "PATCH", body: { id: item.id, updated_at: item.updated_at, decision, ...(decision === "rejected" ? { reason } : {}) } });
+      setRejecting(null); setReason(""); notifyMoodsChanged(); setRefresh(n => n + 1); toast(decision === "approved" ? "Stili u aprovua." : "Stili u refuzua.");
     } catch (err) { toast((err as Error).message, "error"); }
-    finally { setSaving(false); }
-  }
-  async function remove() {
-    if (!pendingDelete) return;
-    setSaving(true);
-    try { await moodRequest("/api/admin/moods", { method: "DELETE", body: { id: pendingDelete.id, updated_at: pendingDelete.updated_at } }); setPendingDelete(null); toast("Mood-i u fshi."); notifyMoodsChanged(); await load(); }
-    catch (err) { toast((err as Error).message, "error"); }
-    finally { setSaving(false); }
-  }
-  async function upload(file: File) {
-    setUploading(true);
-    try {
-      if (file.size > 8 * 1024 * 1024) throw new Error("Përdor një imazh deri në 8 MB.");
-      const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
-      const { url } = await moodRequest<{ url: string }>("/api/admin/moods/upload", { method: "POST", body: { dataUrl } });
-      setDraft(current => ({ ...current, cover_url: url }));
-    } catch (err) { toast((err as Error).message, "error"); }
-    finally { setUploading(false); }
+    finally { pending.current = false; setBusy(false); }
   }
   if (!ready) return <p className="py-12 text-center text-ink-3">Duke ngarkuar…</p>;
-  if (!eligible) return <p className="py-12 text-center text-ink-2">maroMood nuk është i disponueshëm për këtë llogari.</p>;
-  return <div>
-    <AdminPageHeader title="maroMoods" description="Krijo tema që i shtohen idesë së përdoruesit. Beta private për erzen@nice.al." />
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink-3">{items.length} moods · {items.filter(item => item.active).length} aktive</p><Button icon={<Plus className="h-4 w-4" />} onClick={() => edit()}>Shto mood</Button></div>
-    {error ? <div role="alert" className="rounded-maro16 bg-surface p-6 text-ink-2"><p>{error}</p><Button variant="secondary" className="mt-3" onClick={() => void load()}>Rifresko</Button></div> : loading ? <p role="status" className="py-12 text-center text-ink-3">Duke ngarkuar moods…</p> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map(mood => <article key={mood.id} className="overflow-hidden rounded-maro20 border border-line bg-surface"><MoodCover mood={mood} /><div className="p-4"><div className="flex justify-between gap-3"><h2 className="font-bold text-ink">{mood.title}</h2><span className={mood.active ? "text-xs text-brand" : "text-xs text-ink-3"}>{mood.active ? "Aktiv" : "Draft"}</span></div><p className="mt-2 text-sm text-ink-3">{mood.description}</p><p className="mt-2 text-xs text-ink-3">Renditja: {mood.sort_order}</p><div className="mt-4 flex gap-2"><Button size="sm" variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => edit(mood)}>Edito</Button><Button size="sm" variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPendingDelete(mood)}>Fshi</Button></div></div></article>)}</div>}
-    {!loading && !error && !items.length && <p className="rounded-maro16 bg-surface p-8 text-center text-ink-3">Krijoje mood-in e parë.</p>}
-    <Modal open={open} onClose={() => { if (!saving && !uploading) setOpen(false); }} size="lg" closeOnBackdrop={!saving && !uploading}>
-      <ModalHeader title={editing ? "Edito mood" : "Shto mood"} icon={<Moon className="h-5 w-5" />} />
-      <form onSubmit={event => void submit(event)} className="space-y-4 px-5 pb-6 sm:px-6">
-        <Field label="Emri"><Input required maxLength={140} value={draft.title} onChange={event => setDraft(current => ({ ...current, title: event.target.value }))} placeholder="Halloween Mood" /></Field>
-        <Field label="Përshkrimi"><Textarea maxLength={1000} rows={2} value={draft.description} onChange={event => setDraft(current => ({ ...current, description: event.target.value }))} /></Field>
-        <div className="flex items-center gap-4"><MoodCover mood={draft} className="h-24 w-24 shrink-0 rounded-maro16" /><div><label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-maro12 bg-surface-2 px-4 text-sm font-semibold text-ink"><UploadCloud className="h-4 w-4" />{uploading ? "Duke ngarkuar…" : "Ngarko cover"}<input aria-label="Ngarko cover të mood-it" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading || saving} className="sr-only" onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} /></label><p className="mt-2 text-xs text-ink-3">PNG, JPG ose WebP. Rekomandohet 1:1.</p>{draft.cover_url && <button type="button" className="mt-2 text-xs text-ink-2 underline" disabled={uploading || saving} onClick={() => setDraft(current => ({ ...current, cover_url: null }))}>Hiq cover-in</button>}</div></div>
-        <Field label="Prompti i mood-it"><Textarea required maxLength={6000} rows={6} value={draft.prompt} onChange={event => setDraft(current => ({ ...current, prompt: event.target.value }))} placeholder="Make the scenery look like Halloween…" /></Field>
-        <p className="text-xs leading-relaxed text-ink-3">Maro e shton këtë prompt pas kërkesës së plotë. Udhëzimi për ruajtjen e produktit, brendit dhe etiketës shtohet automatikisht.</p>
-        <div className="flex flex-wrap items-center gap-5"><Field label="Renditja"><Input type="number" min={0} max={100000} required value={draft.sort_order} onChange={event => setDraft(current => ({ ...current, sort_order: Number(event.target.value) }))} /></Field><div className="flex min-h-11 items-center gap-3 text-sm text-ink"><Switch checked={draft.active} onChange={active => setDraft(current => ({ ...current, active }))} aria-label="Mood aktiv" />Aktiv</div></div>
-        <div className="flex justify-end gap-3"><Button variant="secondary" type="button" disabled={saving || uploading} onClick={() => setOpen(false)}>Anulo</Button><Button type="submit" loading={saving} disabled={uploading}>Ruaj mood</Button></div>
-      </form>
-    </Modal>
-    <Modal open={Boolean(pendingDelete)} onClose={() => { if (!saving) setPendingDelete(null); }} size="sm"><ModalHeader title="Fshi mood-in" description={`Do të fshihet ${pendingDelete?.title ?? ""} edhe nga moods e ruajtura.`} /><div className="flex justify-end gap-3 px-6 pb-6"><Button variant="secondary" disabled={saving} onClick={() => setPendingDelete(null)}>Anulo</Button><Button variant="danger" loading={saving} onClick={() => void remove()}>Fshi</Button></div></Modal>
+  if (!eligible) return <p className="py-12 text-center text-ink-2">maroStyles është në pilot privat.</p>;
+  return <div className="styles-admin">
+    <AdminPageHeader title="maroStyles" description="Kontrollo thumbnail-in dhe kërkesën e krijuesit. Aprovo ose ktheje me një arsye të qartë." />
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4"><div className="styles-tabs" role="group" aria-label="Statusi i stileve">{[{ id: "pending", label: "Për aprovim" }, { id: "approved", label: "Të aprovuara" }, { id: "rejected", label: "Të refuzuara" }, { id: "all", label: "Të gjitha" }].map(t => <button type="button" key={t.id} aria-pressed={status === t.id} onClick={() => { setStatus(t.id); setPage(0); setResult({ owner: "", items: [], hasMore: false }); }}>{t.label}</button>)}</div><Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditor("new")}>Krijo stil nga Maro</Button></div>
+    {error ? <div role="alert" className="moods-empty"><p>{error}</p><Button variant="secondary" onClick={() => setRefresh(n => n + 1)}>Provo përsëri</Button></div> : loading ? <p role="status" className="py-10 text-ink-3">Duke ngarkuar…</p> : !items.length ? <div className="moods-empty"><Check className="h-8 w-8" /><h2>{status === "pending" ? "Nuk ka kërkesa në pritje." : "Nuk ka stile në këtë kategori."}</h2></div> : <div className="space-y-4">{items.map(item => <article key={item.id} className="style-review"><MoodCover mood={item} className="style-review-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-bold text-ink">{item.title}</h2><span className="style-source">{item.source === "platform" ? "Maro" : "Komuniteti"}</span><span className="text-xs text-ink-3">{item.visibility === "private" ? "Privat" : "Publik"}</span></div><p className="mt-2 text-sm text-ink-3">Nga {item.publisher_name} · {item.status && STYLE_STATUS_LABELS[item.status]}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{item.input_text || item.description}</p>{item.rejection_reason && <p className="mt-3 text-sm text-ink-2">Arsyeja: {item.rejection_reason}</p>}<div className="mt-4 flex flex-wrap gap-2">{["pending", "approved", "rejected"].includes(item.status ?? "") && <>{item.status !== "approved" && <Button size="sm" disabled={busy} icon={<Check className="h-4 w-4" />} onClick={() => void review(item, "approved")}>Aprovo</Button>}{item.status !== "rejected" && <Button variant="secondary" size="sm" disabled={busy} icon={<X className="h-4 w-4" />} onClick={() => { setRejecting(item); setReason(""); }}>Refuzo</Button>}</>}{item.created_by === userId && <Button size="sm" variant="secondary" disabled={busy || (item.status === "processing" && Date.parse(item.updated_at) > Date.now() - 120_000)} icon={<Pencil className="h-4 w-4" />} onClick={() => setEditor(item)}>Ndrysho</Button>}</div></div></article>)}</div>}
+    {result.hasMore && <div className="mt-6 text-center"><Button variant="secondary" disabled={loading} onClick={() => setPage(n => n + 1)}>Shfaq më shumë</Button></div>}
+    {editor && <StyleForm platform item={editor === "new" ? undefined : { ...editor, saved: false }} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); setRefresh(n => n + 1); }} />}
+    <Modal open={Boolean(rejecting)} onClose={() => { if (!busy) setRejecting(null); }} size="sm"><ModalHeader title="Refuzo stilin" description={rejecting?.title} /><form className="space-y-4 px-6 pb-6" onSubmit={event => { event.preventDefault(); if (rejecting) void review(rejecting, "rejected"); }}><Field label="Arsyeja për krijuesin"><Textarea required maxLength={500} value={reason} onChange={event => setReason(event.target.value)} rows={4} placeholder="Çfarë duhet të ndryshojë krijuesi?" disabled={busy} /></Field><div className="flex justify-end gap-3"><Button type="button" variant="secondary" disabled={busy} onClick={() => setRejecting(null)}>Anulo</Button><Button type="submit" variant="danger" loading={busy} disabled={!reason.trim()}>Refuzo</Button></div></form></Modal>
   </div>;
 }
