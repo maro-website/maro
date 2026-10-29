@@ -51,7 +51,7 @@ describe("generation review authorization", () => {
     mock.role = role;
     const response = await listOperations(new Request("https://maro.test/api/admin/v1/operations?canReviewImages=true", { headers: { Authorization: "Bearer unit-test-only" } }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ counts: {}, jobs: [], recentReconciliation: [], canReviewImages: role === "super_admin" });
+    expect(await response.json()).toEqual({ counts: {}, jobs: [], recentReconciliation: [], canReviewImages: role === "super_admin", canResearch: role === "super_admin", researchUnavailable: false });
     expect(mock.storage).not.toHaveBeenCalled(); expect(mock.from).not.toHaveBeenCalled();
   });
   it.each(["administrator", "developer", "editor"] as AccessRole[])("keeps private image review out of %s", async role => {

@@ -4,6 +4,7 @@ import { writeAuditEvent } from "@/lib/admin/audit";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { reconcileV1AdminJob } from "@/lib/admin/v1Operations";
 import { hasPermission } from "@/lib/admin/permissions";
+import { generationResearchSummaries } from "@/lib/admin/generationResearch";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const auth = await requirePermission(req, "operations.view"); if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
@@ -12,7 +13,14 @@ export async function GET(req: Request) {
   if ((before && !Number.isFinite(Date.parse(before))) || (status && !["pending", "reserved", "processing", "completed", "failed", "cancelled"].includes(status))) return Response.json({ error: "invalid_filter" }, { status: 400 });
   const { data, error } = await getSupabaseAdmin().rpc("admin_v1_operations", { p_before: before, p_status: status });
   if (error) return Response.json({ error: "operations_unavailable" }, { status: 503 });
-  return Response.json({ ...data, canReviewImages: hasPermission(auth.admin.role, "generations.review") }, { headers: { "Cache-Control": "no-store" } });
+  const canResearch = hasPermission(auth.admin.role, "generations.review") && hasPermission(auth.admin.role, "users.view");
+  let jobs = data?.jobs ?? [];
+  let researchUnavailable = false;
+  if (canResearch && jobs.length) {
+    try { jobs = await generationResearchSummaries(jobs, { actorId: auth.admin.userId, requestId: auth.requestId }); }
+    catch { researchUnavailable = true; }
+  }
+  return Response.json({ ...data, jobs, canReviewImages: hasPermission(auth.admin.role, "generations.review"), canResearch, researchUnavailable }, { headers: { "Cache-Control": "private, no-store", Vary: "Authorization" } });
 }
 export async function POST(req: Request) {
   const auth = await requirePermission(req, "security.manage"); if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
