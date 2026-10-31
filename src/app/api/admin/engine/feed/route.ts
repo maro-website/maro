@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const settings = await loadFeedConfig(studio);
     const { data, error } = await getSupabaseAdmin().from("maro_feeds").select("id,category,brief,free_used,refunded,created_at,content_type,text_mode,references_list,cancelled_at,refund_credits").filter("brief->mobile", studio === "apps" ? "not.is" : "is", "null").order("created_at", { ascending: false }).limit(30);
     if (error) throw new Error("unavailable");
-    return feedResponse({ ...settings, feeds: (data ?? []).map(f => ({ id: f.id, brand: f.brief.brand, mobile: f.brief.mobile, category: f.category, freeUsed: f.free_used, refunded: f.refunded, createdAt: f.created_at, contentType: f.content_type, textMode: f.text_mode, referenceCount: f.references_list?.length || 1, cancelled: Boolean(f.cancelled_at), refundCredits: f.refund_credits })) });
+    return feedResponse({ ...settings, feeds: (data ?? []).map(f => ({ id: f.id, brand: f.brief.brand, design: f.brief.design, mobile: f.brief.mobile, category: f.category, freeUsed: f.free_used, refunded: f.refunded, createdAt: f.created_at, contentType: f.content_type, textMode: f.text_mode, referenceCount: f.references_list?.length || 1, cancelled: Boolean(f.cancelled_at), refundCredits: f.refund_credits })) });
   } catch (error) { return feedError(error); }
 }
 export async function PUT(req: Request) {

@@ -27,4 +27,9 @@ describe("maroFeed authenticated boundaries", () => {
   it("requires the existing MFA-protected admin permission for direction changes", async () => {
     const result = await config(req("/api/admin/engine/feed", {})); expect(result.status).toBe(403); expect(mocks.db).not.toHaveBeenCalled();
   });
+  it("requires explicit typography and format choices before any new Feed storage or financial work", async () => {
+    mocks.user.mockResolvedValue({ id: "synthetic", email: "erzen@nice.al", email_confirmed_at: "2026-10-31" });
+    const result = await handleFeedCreate(req("/api/feed", { requestId: crypto.randomUUID(), workspaceId: "ws", category: "drinks", useBrain: false, references: ["storage:generations/synthetic/ref.png"], brief: {} }));
+    expect(result.status).toBe(400); expect(await result.json()).toEqual({ error: "design_incomplete" }); expect(mocks.db).not.toHaveBeenCalled();
+  });
 });

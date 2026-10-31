@@ -2,10 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
-const m = vi.hoisted(() => ({ db: vi.fn(), brain: vi.fn() }));
+import sharp from "sharp";
+import { legacyFeedDesign } from "@/lib/feed/campaign";
+const m = vi.hoisted(() => ({ db: vi.fn(), brain: vi.fn(), image: "" }));
 vi.mock("@/lib/supabase/server", () => ({ supabaseServerConfigured: () => true, getUserFromToken: async () => ({ id: "11111111-1111-4111-8111-111111111111", email: "erzen@nice.al", email_confirmed_at: "2026-10-26" }), getSupabaseAdmin: m.db, getWorkspaceBrainProfile: m.brain, resolveAssetListForClient: async () => [] }));
 vi.mock("@/lib/ai/openai", () => ({ hasOpenAiKey: () => true, editImages: vi.fn() }));
-vi.mock("@/lib/ai/imageReferences", () => ({ resolvePrivateImageReference: async () => ({ dataUrl: "data:image/png;base64,synthetic", digest: "synthetic" }) }));
+vi.mock("@/lib/ai/imageReferences", () => ({ resolvePrivateImageReference: async () => ({ dataUrl: m.image, digest: "synthetic" }) }));
 vi.mock("@/lib/engine/v1ImageModels", () => ({ loadV1ImageModelRows: async () => [], resolveV1ImageModel: () => ({ providerModelId: "gpt-image-2.5-flare" }) }));
 vi.mock("@/lib/security/circuitBreaker", () => ({ assertCircuitAllows: async () => ({ ok: true }) }));
 vi.mock("@/lib/operations/budgetGuards", () => ({ assertBudgetGuards: async () => ({ ok: true }) }));
@@ -22,6 +24,7 @@ describe("Marketing image regression with a long imported Brain", () => {
     const profile = normalizeBrainProfile({ brand: { name: "Real Soda", description: "A real soda with original packaging", category: "Drinks" }, target: { audience: "Audience context. ".repeat(47) }, market: { positioning: "Imported brand details. ".repeat(1300) }, content: { avoid: "LATE_EXCLUSION: never invent medical benefits", voice: "A human voice" } } as never);
     expect(buildBrainBrief(profile).length).toBeGreaterThan(24000); expect(profile.target.audience.length).toBeGreaterThan(300);
     m.brain.mockResolvedValue(profile); process.env.MARO_MARKETING_OPENAI_API_KEY = "synthetic-dedicated-key";
+    m.image = "data:image/png;base64," + (await sharp({ create: { width: 8, height: 8, channels: 4, background: "#225599" } }).png().toBuffer()).toString("base64");
     const db = new PGlite({ extensions: { pg_trgm } });
     try {
       await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create role supabase_admin;create role supabase_auth_admin;
@@ -53,7 +56,7 @@ describe("Marketing image regression with a long imported Brain", () => {
         const q = { select: () => q, eq: (key: string, value: string) => { if (key === "id") id = value; return q; }, order: () => q, limit: () => q, maybeSingle: async () => ({ data: await row(), error: null }), single: async () => ({ data: await row(), error: null }), then: (done: (v: unknown) => void) => Promise.resolve({ data: [], error: null }).then(done) };
         return q;
       } });
-      const body = { requestId, workspaceId: "ws", marketingCampaignId: campaignId, references: [`storage:generations/${owner}/refs/product.png`], category: "drinks", useBrain: true, brief: { language: "en", notes: "Halloween Sale 20% Off" } };
+      const body = { requestId, workspaceId: "ws", marketingCampaignId: campaignId, references: [`storage:generations/${owner}/refs/product.png`], design: legacyFeedDesign(1), category: "drinks", useBrain: true, brief: { language: "en", notes: "Halloween Sale 20% Off" } };
       const request = () => new Request("https://maro.al/api/feed", { method: "POST", headers: { authorization: "Bearer synthetic", "content-type": "application/json" }, body: JSON.stringify(body) });
       const response = await handleFeedCreate(request()); expect(await response.clone().json()).not.toHaveProperty("error"); expect(response.status).toBe(200);
       const replay = await handleFeedCreate(request()); expect(replay.status).toBe(200);

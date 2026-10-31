@@ -48,7 +48,7 @@ describe("maroFeed campaign contract", () => {
     const prompts = roles.map((_, slot) => buildFeedPrompt({ config: defaultConfig, brief, category, slot, brain: "", variant: 1, hasStyleReference: slot > 0 }));
     expect(new Set(prompts).size).toBe(9);
     for (const prompt of prompts) { expect(prompt).toContain(defaultConfig.directions[category]); expect(prompt).toContain("exact identity"); expect(prompt).toContain("No captions."); expect(prompt).not.toContain("undefined"); }
-    expect(prompts[1]).toContain("Do NOT copy");
+    expect(prompts[1]).toContain("Never derive a post from another generated post");
   });
   it("writes valid ZIP directory offsets, file size and CRC32 without altering PNG bytes", () => {
     const zip = Buffer.from(imageZip([{ name: "maroFeed-01.png", bytes: Buffer.from("123456789") }]));

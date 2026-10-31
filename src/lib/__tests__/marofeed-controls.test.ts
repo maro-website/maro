@@ -79,7 +79,7 @@ describe("Feed controls", () => {
     const prompts = Array.from({length:9},(_,slot)=>buildFeedPrompt({ config:defaultConfig,brief,category:"drinks",slot,brain:"",variant:1,hasStyleReference:true,referenceCount:10,contentType,textMode:false,feedback:"Add a large headline" }));
     expect(new Set(prompts).size).toBe(9);
     for (const prompt of prompts) {
-      expect(prompt).toContain("TEXT MODE: OFF"); expect(prompt).toContain("Images 2 through 10"); expect(prompt).toContain("Image 11 is the first completed");
+      expect(prompt).toContain("TEXT MODE: OFF"); expect(prompt).toContain("Produkti 10"); expect(prompt).not.toContain("first completed");
       expect(prompt.indexOf("TEXT MODE: OFF")).toBeGreaterThan(prompt.indexOf("Add a large headline"));
     }
     if(contentType!=="mix") expect(Array.from({length:9},(_,i)=>feedRole(i,contentType as FeedContentType).title).every(title=>title===feedRole(0,contentType).title)).toBe(true);
