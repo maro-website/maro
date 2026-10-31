@@ -151,7 +151,7 @@ export async function handleFeedCreate(req: Request) {
       design = { ...design, headlines };
       if (input.textMode) {
         try { for (const headline of headlines) await feedTextImage(headline, design); }
-        catch (error) { throw new FeedError(error instanceof Error && error.message === "headline_too_long" ? "headline_too_long" : "feed_unavailable"); }
+        catch (error) { throw new FeedError(error instanceof Error && ["headline_too_long", "headline_unsupported"].includes(error.message) ? error.message : "feed_unavailable"); }
       }
     }
     const id = await rpc<string>("maro_feed_create_v2", { p_user: user.id, p_workspace: input.workspaceId, p_request: input.requestId, p_references: references, p_content_type: input.contentType, p_text_mode: input.textMode, p_category: input.category, p_brief: { ...resolved.data, ...(design ? { design } : {}), ...("mobile" in input ? { mobile: input.mobile } : {}), ...(campaign ? { marketing: { campaignId: campaign.id } } : {}) }, p_context: brain, p_config: config });

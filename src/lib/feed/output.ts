@@ -1,17 +1,52 @@
 import "server-only";
 import sharp from "sharp";
 import path from "node:path";
+import { readFileSync } from "node:fs";
+import { create, type Font } from "fontkit";
 import { appOutputBytes } from "@/lib/apps/output";
 import { feedFonts, feedFontPixels, feedLogoBox, feedTextBox, type FeedDesign } from "./campaign";
 
 const fontFiles = { inter: "@fontsource/inter/files/inter-latin-700-normal.woff", manrope: "@fontsource/manrope/files/manrope-latin-700-normal.woff", playfair: "@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff" } as const;
-const escapeMarkup = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-/** Actual font rasterization, not a model's approximation of a requested family. */
+const fonts = new Map<FeedDesign["font"], Font>();
+/** Rasterize the bundled glyph outlines directly; system font availability cannot change the face. */
 export async function feedTextImage(text: string, design: FeedDesign, color = "#ffffff") {
   const box = feedTextBox(design), size = Math.round(feedFontPixels(design.typeScale) * (design.format === "9:16" ? 864 / 1024 : 1));
-  const image = await sharp({ text: { text: `<span foreground="${color}">${escapeMarkup(text)}</span>`, font: `${feedFonts[design.font]} Bold ${size}`, fontfile: path.join(process.cwd(), "node_modules", fontFiles[design.font]), rgba: true, width: box.width, wrap: "word-char", dpi: 72 } }).png().toBuffer({ resolveWithObject: true });
-  if (image.info.height > box.height) throw new Error("headline_too_long");
-  return image;
+  let font = fonts.get(design.font);
+  if (!font) {
+    font = create(readFileSync(path.join(process.cwd(), "node_modules", fontFiles[design.font])));
+    if (font.familyName !== feedFonts[design.font]) throw new Error("feed_font_unavailable");
+    fonts.set(design.font, font);
+  }
+  const normalized = text.normalize("NFC").replace(/\s+/gu, " ").trim();
+  if (!normalized || [...normalized].some(c => !font.hasGlyphForCodePoint(c.codePointAt(0)!))) throw new Error("headline_unsupported");
+  if (!/^#[a-f\d]{6}$/i.test(color)) throw new Error("invalid_text_color");
+  const scale = size / font.unitsPerEm;
+  const width = (value: string) => font.layout(value).positions.reduce((n, p) => n + p.xAdvance * scale, 0);
+  const lines: string[] = []; let current = "";
+  for (const word of normalized.split(" ")) {
+    if (current && width(current + " " + word) <= box.width) { current += " " + word; continue; }
+    if (current) { lines.push(current); current = ""; }
+    for (const character of word) {
+      if (current && width(current + character) > box.width) { lines.push(current); current = ""; }
+      current += character;
+    }
+  }
+  if (current) lines.push(current);
+  const lineHeight = Math.ceil((font.ascent - font.descent + font.lineGap) * scale);
+  const height = lines.length * lineHeight;
+  if (height > box.height) throw new Error("headline_too_long");
+  const paths: string[] = [];
+  lines.forEach((line, lineIndex) => {
+    const run = font.layout(line); let cursor = 0;
+    run.glyphs.forEach((glyph, index) => {
+      const position = run.positions[index], x = cursor + position.xOffset * scale;
+      const y = font!.ascent * scale + lineIndex * lineHeight - position.yOffset * scale;
+      paths.push(`<path d="${glyph.path.toSVG()}" transform="translate(${x} ${y}) scale(${scale} ${-scale})"/>`);
+      cursor += position.xAdvance * scale;
+    });
+  });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box.width}" height="${height}" viewBox="0 0 ${box.width} ${height}"><g fill="${color}">${paths.join("")}</g></svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer({ resolveWithObject: true });
 }
 
 export async function feedPalette(images: string[]) {

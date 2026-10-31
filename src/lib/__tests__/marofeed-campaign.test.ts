@@ -69,6 +69,8 @@ describe("Feed output typography and original logo", () => {
     expect(feedHeadline(d, 0, "Mr. Clean", "sq")).toBe("<b>Literal & safe</b>");
     expect(feedHeadline(design, 8, "Mr. Clean", "en")).toBe("Discover Mr. Clean.");
     await expect(feedTextImage("W".repeat(60), { ...design, format: "1:1", typeScale: "large" })).rejects.toThrow("headline_too_long");
+    await expect(feedTextImage("Unsupported 🦄", design)).rejects.toThrow("headline_unsupported");
+    expect((await feedTextImage("e\u0308 c\u0327", design)).data.equals((await feedTextImage("ë ç", design)).data)).toBe(true);
     expect((await feedTextImage("<b>Literal & safe</b>", design)).info.width).toBeGreaterThan(0);
   });
   it("keeps exact output dimensions and the original logo's position, color and scale for every format and corner", async () => {
