@@ -32,6 +32,7 @@ describe("masterprompt contracts", () => {
     expect(() => estimateOptimizerUsd({ input_tokens: 300000, output_tokens: 3 })).toThrow();
   });
   it("requires explicit opt-in for the exact model family and authenticated pilot user", () => {
+    vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "allowlist");
     vi.stubEnv("OPENAI_API_KEY", "different-key");
     vi.stubEnv("MARO_OPTIMIZER_ENABLED", "true");
     vi.stubEnv("MARO_OPTIMIZER_USER_IDS", "owner");
@@ -43,5 +44,21 @@ describe("masterprompt contracts", () => {
     expect(optimizerEnabled("owner", "recraftv4")).toBe(false);
     vi.stubEnv("MARO_OPTIMIZER_ENABLED", "false");
     expect(optimizerEnabled("owner", "gpt-image-2")).toBe(false);
+  });
+  it("enables current and future authenticated users in the all-user audience, retaining model and pause gates", () => {
+    vi.stubEnv("MARO_OPTIMIZER_ENABLED", "true");
+    vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "all");
+    vi.stubEnv("MARO_OPTIMIZER_USER_IDS", "owner");
+    for (const id of ["owner", "another-user", "new-account"]) expect(optimizerEnabled(id, "gpt-image-2")).toBe(true);
+    expect(optimizerEnabled("", "gpt-image-2")).toBe(false);
+    expect(optimizerEnabled("   ", "gpt-image-2")).toBe(false);
+    expect(optimizerEnabled("another-user", "recraftv4")).toBe(false);
+    vi.stubEnv("MARO_OPTIMIZER_ENABLED", "false");
+    expect(optimizerEnabled("another-user", "gpt-image-2")).toBe(false);
+  });
+  it.each(["", "ALL", "unexpected"])("retains allowlist admission for an unset/unknown audience: %s", audience => {
+    vi.stubEnv("MARO_OPTIMIZER_ENABLED", "true"); vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", audience); vi.stubEnv("MARO_OPTIMIZER_USER_IDS", "owner");
+    expect(optimizerEnabled("owner", "gpt-image-2")).toBe(true);
+    expect(optimizerEnabled("another-user", "gpt-image-2")).toBe(false);
   });
 });

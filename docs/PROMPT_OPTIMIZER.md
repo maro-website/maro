@@ -1,4 +1,4 @@
-# Masterprompt optimizer pilot
+# Masterprompt optimizer
 
 Production base: `220748985145a281583ea013b0a07813c3060dad` in `maro-website/maro`, branch `codex/raiaccept-payment-20261008`. Deployment target: Railway project `cb4c8dcc-712d-459d-b01c-96ae9ad29814`, production `46f492bd-a88b-4b68-aa5a-455a2707ca10`, WEB `4f5a55b0-dc24-4d6e-8d20-669b8d6ecf3d`. Domains: maro.al and www.maro.al. Preserve unrelated local branches and the reconciliation service.
 
@@ -11,10 +11,11 @@ Set these server-only Railway WEB variables, preserving all existing keys:
 ```
 MARO_OPTIMIZER_OPENAI_API_KEY=<dedicated OpenAI key>
 MARO_OPTIMIZER_ENABLED=true
+MARO_OPTIMIZER_AUDIENCE=all
 MARO_OPTIMIZER_USER_IDS=<comma-separated authenticated pilot user IDs>
 ```
 
-The pilot is explicitly limited to the owner's account. The allowlist accepts individual IDs only. No wildcard or fallback to OPENAI_API_KEY is supported. Removing the enabled flag stops optimizer use immediately on the next service restart/deploy. Keep the private cost ledger for accounting when disabling or reverting code.
+The all-user rollout is explicitly authorized. `MARO_OPTIMIZER_AUDIENCE=all` includes every authenticated user, including future accounts. Set it to `allowlist` (or remove it) to return to the preserved individual user IDs in `MARO_OPTIMIZER_USER_IDS`. Unknown audience values also use the allowlist; empty identities never qualify. No wildcard user ID or fallback to OPENAI_API_KEY is supported. Authentication, workspace ownership, Brain access, isolated cache/cost attribution and the existing per-user/platform budgets still apply. Removing the enabled flag stops optimizer use on the next service restart/deploy. Keep the private cost ledger for accounting when disabling or reverting code.
 
 ## Execution
 
@@ -34,6 +35,6 @@ Super Admin → Siguria & Kostot shows totals by user: API attempts, accepted/re
 
 Pricing is a versioned estimate from returned API token usage, separate from the OpenAI invoice. Standard short-context GPT-6.1 Sol rates on 31 October 2026 are $2/MTok ordinary input, $0.10 cached reads, $2.50 30-minute cache writes and $10 output (including reasoning). Cache reads/writes are subsets of total input and are not double-counted. The request explicitly selects Standard and 30-minute caching. Unknown model/tier/usage or failed receipt persistence blocks the result and retains unconfirmed exposure. No web/search/tool calls are enabled.
 
-Evaluate the owner's first real generations for fidelity and latency using the existing original/provider prompt and image research. Reduced characters alone do not establish image quality or profitability. Compare optimizer spend plus final image spend against successful usable results and plan revenue before extending the allowlist. No historical cost is reconstructed.
+Evaluate real generations for fidelity and latency using the existing original/provider prompt and image research. Reduced characters alone do not establish image quality or profitability. Compare optimizer spend plus final image spend against successful usable results and plan revenue. No historical cost is reconstructed. The all-user rollout keeps the initial $2/user/day, $20/user/month and $20/$200 platform caps unchanged.
 
 Official references: [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [prompt caching and billing](https://developers.openai.com/api/docs/guides/prompt-caching), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).

@@ -88,6 +88,7 @@ export async function optimizerUsageSummary() {
   const result = await getSupabaseAdmin().rpc("maro_optimizer_usage_summary");
   if (result.error) throw new Error("optimizer_usage_unavailable");
   return { model: OPTIMIZER_MODEL, keyAlias: OPTIMIZER_KEY_ALIAS, priceVersion: OPTIMIZER_PRICE_VERSION,
+    audience: process.env.MARO_OPTIMIZER_AUDIENCE === "all" ? "all" : "allowlist",
     enabled: process.env.MARO_OPTIMIZER_ENABLED === "true", configured: Boolean(process.env.MARO_OPTIMIZER_OPENAI_API_KEY),
     users: result.data ?? [] };
 }

@@ -19,6 +19,7 @@ async function fixture() {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("MARO_OPTIMIZER_ENABLED", "true"); vi.stubEnv("MARO_OPTIMIZER_OPENAI_API_KEY", "dedicated-test-key"); vi.stubEnv("MARO_OPTIMIZER_USER_IDS", "owner");
+  vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "allowlist");
   mocks.circuit.mockResolvedValue({ ok: true });
   mocks.rpc.mockResolvedValue({ data: { action: "run", id: "attempt" }, error: null });
   const chain = { eq: vi.fn(), select: vi.fn(), single: mocks.finished }; chain.eq.mockReturnValue(chain); chain.select.mockReturnValue(chain);
@@ -78,5 +79,20 @@ describe("background context optimization accounting", () => {
     const f = await fixture(); vi.stubEnv("MARO_OPTIMIZER_OPENAI_API_KEY", ""); vi.stubEnv("OPENAI_API_KEY", "ordinary-image-key");
     await expect(optimizeImageCompilation(f.request, f.compilation)).rejects.toThrow("optimizer_unavailable");
     expect(mocks.rpc).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it("attributes an all-audience user's provider call and cache fingerprint to that user's own workspace", async () => {
+    const f = await fixture(); vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "all");
+    await optimizeImageCompilation(f.request, f.compilation, "owner-request");
+    const ownerFingerprint = mocks.rpc.mock.calls[0][1].p_fingerprint;
+    const request = { ...f.request, userId: "another-user", workspaceId: "workspace-b" };
+    await optimizeImageCompilation(request, f.compilation, "other-request");
+    expect(mocks.rpc).toHaveBeenLastCalledWith("maro_optimizer_reserve", expect.objectContaining({ p_user: "another-user", p_workspace: "workspace-b", p_request_key: "other-request" }));
+    expect(mocks.rpc.mock.calls[1][1].p_fingerprint).not.toBe(ownerFingerprint);
+    expect(mocks.create).toHaveBeenCalledTimes(2);
+  });
+  it("keeps budget denial ahead of provider spend for users outside the original pilot", async () => {
+    const f = await fixture(); vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "all"); mocks.rpc.mockResolvedValue({ data: { action: "budget" } });
+    await expect(optimizeImageCompilation({ ...f.request, userId: "another-user", workspaceId: "workspace-b" }, f.compilation)).rejects.toThrow("optimizer_budget_limit");
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 });

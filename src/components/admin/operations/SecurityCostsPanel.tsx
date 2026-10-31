@@ -39,7 +39,7 @@ interface SecurityData {
 }
 
 interface OptimizerUsage {
-  configured: boolean; enabled: boolean; model: string;
+  configured: boolean; enabled: boolean; model: string; audience: "all" | "allowlist";
   users: Array<{ user_id: string; email: string | null; attempts: number; completed: number; rejected: number;
     unconfirmed: number; cache_hits: number; input_tokens: number; cached_tokens: number; cache_write_tokens: number; output_tokens: number;
     estimated_usd: number; month_estimated_usd: number; unconfirmed_reserved_usd: number;
@@ -121,11 +121,11 @@ export function SecurityCostsPanel() {
         <div className="grid min-w-0 gap-6">
           <Section title="Optimizimi i masterprompt-it · kosto sipas userit">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[13px] text-ink-2">GPT-6.1 Sol · key i veçantë · pilot · maksimum 30,000 karaktere</p>
+              <p className="text-[13px] text-ink-2">GPT-6.1 Sol · key i veçantë · maksimum 30,000 karaktere</p>
               <Button size="sm" variant="ghost" onClick={() => void load()} disabled={loading}>Rifresko</Button>
             </div>
             {optimizerError ? <p role="status" className="mt-3 text-[13px] text-ink-2">Matjet e optimizimit nuk janë të disponueshme.</p> : optimizer && <>
-              <p className="mt-2 text-[13px] text-ink-3">{optimizer.enabled && optimizer.configured ? "Pilot i konfiguruar" : "Pilot joaktiv ose pa key"}. USD e vlerësuar nga tokenat e API-së dhe tarifa Standard; krahasohet me faturën OpenAI. Kostot e gjenerimit final maten veçmas.</p>
+              <p className="mt-2 text-[13px] text-ink-3">{optimizer.enabled && optimizer.configured ? optimizer.audience === "all" ? "Aktiv për të gjithë userat" : "Aktiv për userat e përzgjedhur" : "Optimizimi joaktiv ose pa key"}. USD e vlerësuar nga tokenat e API-së dhe tarifa Standard; krahasohet me faturën OpenAI. Kostot e gjenerimit final maten veçmas.</p>
               {!optimizer.users.length ? <p className="mt-4 text-[13px] text-ink-2">Ende pa thirrje të regjistruara në key-n e optimizimit.</p> : <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-[13px]">
                   <caption className="sr-only">Kostoja e optimizimit për secilin përdorues që nga aktivizimi</caption>
