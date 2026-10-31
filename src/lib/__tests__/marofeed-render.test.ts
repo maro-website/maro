@@ -45,10 +45,10 @@ describe("Feed real render orchestration with synthetic provider and storage", (
     const response = await handleFeedAction(new Request("https://maro.al/api/feed/action", { method: "POST", headers: { authorization: "Bearer synthetic", "content-type": "application/json" }, body: JSON.stringify({ feedId: id, requestId: randomUUID(), action: regenerate ? "regenerate" : "next", ...(regenerate ? { slot: 1 } : {}) }) }));
     expect(response.status).toBe(200); const events = await response.text(); expect(events).not.toContain('"error"');
     expect(m.provider).toHaveBeenCalledTimes(1);
-    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(1);
+    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(2);
     expect(call.images[0]).toBe(`data:image/png;base64,${sources[1].toString("base64")}`); expect(call.prompt).toContain("THIS POST MUST SHOW: Floor"); expect(call.prompt).not.toContain("first completed");
-    expect(m.resolve.mock.calls.every(([ref]) => refs.includes(ref))).toBe(true);
-    expect(traces[0]).toMatchObject({ snapshot: { assignedProductIndices: [1], providerReferenceIndices: [1], logoComposited: true } });
+    expect(m.resolve.mock.calls.map(([ref]) => ref).sort()).toEqual([refs[1], refs[3]].sort());
+    expect(traces[0]).toMatchObject({ snapshot: { resolvedReferenceIndices: [1, 3], assignedProductIndices: [1], providerReferenceIndices: [1], fontSpecimenIncluded: true, logoComposited: true } });
     const info = await sharp(output!).metadata(); expect([info.width, info.height]).toEqual([1024, 1280]);
     expect(rpc.mock.calls.filter(([name]) => name === "maro_feed_finish")).toHaveLength(1);
   });

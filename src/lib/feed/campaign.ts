@@ -3,14 +3,14 @@ import { MAX_COMPOSER_ATTACHMENTS } from "@/lib/config/attachments";
 
 export const feedFonts = { inter: "Inter", manrope: "Manrope", playfair: "Playfair Display" } as const;
 export const feedFormats = { "1:1": "1:1 · 1024 × 1024", "4:5": "4:5 · 1024 × 1280", "9:16": "9:16 · 864 × 1536" } as const;
-export const feedTypeScales = { small: "E vogël · 48 px", medium: "Mesatare · 64 px", large: "E madhe · 80 px" } as const;
 export const feedLogoPositions = { "top-left": "Lart majtas", "top-right": "Lart djathtas", "bottom-left": "Poshtë majtas", "bottom-right": "Poshtë djathtas" } as const;
 export type FeedAsset = { index: number; role: "product" | "logo" | "style"; label: string };
 export const feedDesignSchema = z.object({
   version: z.literal(1), font: z.enum(["inter", "manrope", "playfair"]),
   name: z.string().trim().max(100).optional(),
   headlines: z.array(z.string().trim().max(60)).length(9).optional(),
-  format: z.enum(["1:1", "4:5", "9:16"]), typeScale: z.enum(["small", "medium", "large"]),
+  textRendering: z.literal("native").optional(),
+  format: z.enum(["1:1", "4:5", "9:16"]), typeScale: z.enum(["small", "medium", "large"]).default("medium"),
   logoPosition: z.enum(["top-left", "top-right", "bottom-left", "bottom-right"]),
   assets: z.array(z.object({ index: z.number().int().min(0).max(MAX_COMPOSER_ATTACHMENTS - 1), role: z.enum(["product", "logo", "style"]), label: z.string().trim().min(1).max(100) }).strict()).min(1).max(MAX_COMPOSER_ATTACHMENTS),
   assignments: z.array(z.array(z.number().int().min(0).max(MAX_COMPOSER_ATTACHMENTS - 1)).min(1).max(MAX_COMPOSER_ATTACHMENTS)).length(9),
@@ -47,15 +47,12 @@ export function feedDimensions(format: FeedDesign["format"]) {
   return { width: format === "9:16" ? 864 : 1024, height: format === "9:16" ? 1536 : format === "4:5" ? 1280 : 1024 };
 }
 export const feedFontPixels = (scale: FeedDesign["typeScale"]) => ({ small: 48, medium: 64, large: 80 })[scale];
-export function feedHeadline(design: FeedDesign, slot: number, brand: string, language: "sq" | "en", type = "mix") {
+export function feedHeadline(design: FeedDesign, slot: number, brand: string) {
   const custom = design.headlines?.[slot]?.trim();
-  if (custom) return custom;
-  const titles = language === "sq"
-    ? [brand, "Pjesë e ditës tënde.", "Detajet bëjnë dallimin.", "Zgjedhja jote e radhës.", brand, "Në ritmin tënd.", "Një ndjesi tjetër.", "Cilin zgjedh ti?", `Zbulo ${brand}.`]
-    : [brand, "Part of your everyday.", "It's in the details.", "Your next discovery.", brand, "Find your rhythm.", "A different feeling.", "Which one is yours?", `Discover ${brand}.`];
-  const index = type === "mix" ? slot : ["hero", "lifestyle", "detail", "benefit", "signature", "ritual", "mood", "engagement", "conversion"].indexOf(type);
-  const value = titles[Math.max(0, index)].trim();
-  return value.length <= 60 ? value : language === "sq" ? "Zbulo diçka të re." : "Discover something new.";
+  if (!custom) return "";
+  // Old feeds stored automatic filler as if it were user copy. Do not carry it into new renders.
+  if (!design.textRendering && [brand, `Zbulo ${brand}.`, `Discover ${brand}.`, "Pjesë e ditës tënde.", "Detajet bëjnë dallimin.", "Zgjedhja jote e radhës.", "Në ritmin tënd.", "Një ndjesi tjetër.", "Cilin zgjedh ti?", "Zbulo diçka të re.", "Part of your everyday.", "It's in the details.", "Your next discovery.", "Find your rhythm.", "A different feeling.", "Which one is yours?", "Discover something new."].includes(custom)) return "";
+  return custom;
 }
 export function feedTextBox(design: Pick<FeedDesign, "format" | "logoPosition">) {
   const { width, height } = feedDimensions(design.format);

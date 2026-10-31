@@ -3,8 +3,7 @@ import sharp from "sharp";
 import path from "node:path";
 import { readFileSync } from "node:fs";
 import { create, type Font } from "fontkit";
-import { appOutputBytes } from "@/lib/apps/output";
-import { feedFonts, feedFontPixels, feedLogoBox, feedTextBox, type FeedDesign } from "./campaign";
+import { feedFonts, feedFontPixels, feedLogoBox, feedTextBox, feedDimensions, type FeedDesign } from "./campaign";
 
 const fontFiles = { inter: "@fontsource/inter/files/inter-latin-700-normal.woff", manrope: "@fontsource/manrope/files/manrope-latin-700-normal.woff", playfair: "@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff" } as const;
 const fonts = new Map<FeedDesign["font"], Font>();
@@ -60,17 +59,22 @@ export async function feedPalette(images: string[]) {
   return [...colors, "#f5f3ee", "#202522"].slice(0, 5);
 }
 
-/** Preserve the full render, then compose exact typography and the unmodified original logo. */
-export async function feedOutputBytes(bytes: Buffer, design: FeedDesign, logo?: string, headline?: string) {
-  let framed = await appOutputBytes(bytes, design.format);
-  if (headline) {
-    const box = feedTextBox(design);
-    const { dominant } = await sharp(framed).extract(box).resize(8, 8).stats();
-    const light = .2126 * dominant.r + .7152 * dominant.g + .0722 * dominant.b > 150;
-    const text = await feedTextImage(headline, design, light ? "#161b18" : "#ffffff");
-    const plate = await sharp({ create: { width: box.width + 24, height: text.info.height + 24, channels: 4, background: light ? { r: 255, g: 255, b: 255, alpha: .88 } : { r: 20, g: 25, b: 22, alpha: .88 } } }).png().toBuffer();
-    framed = await sharp(framed).composite([{ input: plate, left: box.left - 12, top: box.top - 12 }, { input: text.data, left: box.left, top: box.top }]).png().toBuffer();
-  }
+const specimens = new Map<FeedDesign["font"], Promise<string>>();
+/** A small original-font guide for image-native typography. It is never pasted onto the output. */
+export function feedFontReference(design: FeedDesign) {
+  if (!specimens.has(design.font)) specimens.set(design.font, (async () => {
+    const text = await feedTextImage("Aa Bb Ee Ëë Çç 0123", { ...design, format: "1:1", typeScale: "medium" }, "#202522");
+    const specimen = await sharp({ create: { width: 900, height: text.info.height + 48, channels: 4, background: "#ffffff" } }).composite([{ input: text.data, left: 20, top: 24 }]).png().toBuffer();
+    const png = await sharp(specimen).resize({ width: 512 }).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
+  })().catch(error => { specimens.delete(design.font); throw error; }));
+  return specimens.get(design.font)!;
+}
+
+/** The provider composes the complete artwork. Only the selected original logo is stamped afterward. */
+export async function feedOutputBytes(bytes: Buffer, design: FeedDesign, logo?: string) {
+  const { width, height } = feedDimensions(design.format);
+  const framed = await sharp(bytes, { limitInputPixels: 40_000_000 }).rotate().resize(width, height, { fit: "cover", position: "centre" }).png().toBuffer();
   if (!logo) return framed;
   const box = feedLogoBox(design);
   const overlay = await sharp(Buffer.from(logo.split(",")[1], "base64"), { limitInputPixels: 40_000_000 }).rotate().resize(box.width, box.height, { fit: "contain", background: "#00000000" }).png().toBuffer();

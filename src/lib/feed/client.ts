@@ -3,7 +3,7 @@ import type { FeedView } from "./model";
 export const feedMessages: Record<string, string> = {
   headline_unsupported: "Një titull ka simbole që fonti i zgjedhur nuk i përmban. Ndryshoje titullin në plan; credits ende nuk janë marrë.",
   headline_too_long: "Një titull nuk nxë në madhësinë e zgjedhur. Shkurtoje në plan ose zgjedhe shkrimin më të vogël; credits ende nuk janë marrë.",
-  design_incomplete: "Zgjedhe fontin, madhësinë e shkrimit dhe formatin. Cakto së paku një produkt në plan.",
+  design_incomplete: "Zgjedhe fontin dhe formatin e imazheve. Cakto së paku një produkt në plan.",
   unauthorized: "Hyr përsëri në llogari për t’i krijuar imazhet.",
   marketing_unavailable: "Imazhi u ruajt, por nuk u shtua në plan. Provo përsëri; progresi ruhet.",
   campaign_conflict: "Plani ndryshoi në një tab tjetër. Rifreskoje faqen; imazhet ruhen.",
