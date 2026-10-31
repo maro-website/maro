@@ -8,6 +8,7 @@ import { styleDraftSchema } from "@/lib/moods/mutations";
 const owner = "11111111-1111-4111-8111-111111111111", other = "22222222-2222-4222-8222-222222222222", id = "33333333-3333-4333-8333-333333333333";
 const ref = `storage:generations/_moods/${owner}/${id}.webp`;
 const timestamp = "2026-10-28T10:00:00.000Z";
+const description = "Dritë e ngrohtë, tone të arta dhe hije të buta krijojnë një atmosferë të qetë me frymë verore.";
 const mocks = vi.hoisted(() => ({ token: vi.fn(), permission: vi.fn(), account: vi.fn(), expand: vi.fn(), rate: vi.fn(), sign: vi.fn(), download: vi.fn(), rows: [] as Record<string, unknown>[], writes: [] as Record<string, unknown>[], fail: false }));
 vi.mock("@/lib/admin/audit", () => ({ writeAuditEvent: vi.fn() }));
 vi.mock("@/lib/admin/auth", () => ({ requirePermission: mocks.permission }));
@@ -53,7 +54,7 @@ beforeEach(() => {
   mocks.rate.mockResolvedValue({ allowed: true });
   mocks.sign.mockResolvedValue({ data: { signedUrl: "https://example.test/short-lived-cover" }, error: null });
   mocks.download.mockResolvedValue({ data: new Blob(["synthetic"]), error: null });
-  mocks.expand.mockResolvedValue({ prompt: "PRIVATE EXPANDED INSTRUCTIONS", ai_model: "test", input_tokens: 20, output_tokens: 30 });
+  mocks.expand.mockResolvedValue({ prompt: "PRIVATE EXPANDED INSTRUCTIONS", description, ai_model: "test", input_tokens: 20, output_tokens: 30 });
 });
 describe("style privacy and state boundaries", () => {
   it.each(["pending", "processing", "failed", "rejected"])("prevents use of %s styles even by the owner", status => expect(canUseMood(row({ status }) as Parameters<typeof canUseMood>[0], owner)).toBe(false));
@@ -82,6 +83,21 @@ describe("style privacy and state boundaries", () => {
   });
   it.each([`storage:generations/_moods/${other}/${id}.webp`, `storage:generations/_moods/${owner}/../${id}.webp`, "https://external.test/a.png"])("rejects foreign or malformed cover %s", value => expect(styleCoverPath(value, owner)).toBeNull());
 });
+describe("public editorial descriptions", () => {
+  it("withholds legacy verbatim request excerpts while retaining owner/admin originals", async () => {
+    const original = "Dua që ta vendosësh produktin tim këtu dhe ta ndryshosh sipas kërkesës sime.";
+    for (const privateView of [false, true]) {
+      const item = await styleView(row({ description: original, input_text: original }), privateView ? owner : other, privateView);
+      expect(item.description).not.toContain(original);
+      if (privateView) expect(item.input_text).toBe(original); else expect(item).not.toHaveProperty("input_text");
+    }
+  });
+  it("returns the editorial summary without revealing the original request or private prompt", async () => {
+    const item = await styleView(row({ description }), other);
+    expect(item.description).toBe(description); expect(item).not.toHaveProperty("input_text"); expect(item).not.toHaveProperty("prompt");
+  });
+});
+
 describe("admin prompt inspection", () => {
   const adminRequest = () => request(undefined, "https://maro.al/api/admin/moods?status=all");
   it.each(["pending", "approved", "rejected"])("pairs the exact original input with the generated prompt for %s submissions", async status => {
@@ -142,6 +158,9 @@ describe("creation and review", () => {
     expect(response.status).toBe(200); expect(text).not.toContain("PRIVATE EXPANDED");
     expect(mocks.rows[0]).toMatchObject({ input_text: brief.input_text, prompt: "PRIVATE EXPANDED INSTRUCTIONS", status: "pending", active: false, created_by: owner, source: "community" });
     expect(mocks.expand).toHaveBeenCalledWith(brief.title, brief.input_text);
+    expect(mocks.rows[0].description).toBe(description);
+    expect(mocks.writes[0].description).toBe("");
+    expect(JSON.parse(text).item.description).toBe(description);
   });
   it("does not repeat OpenAI work after a lost response with the same request ID", async () => {
     await POST(request(brief)); await POST(request(brief)); expect(mocks.expand).toHaveBeenCalledTimes(1); expect(mocks.rows).toHaveLength(1);
@@ -164,7 +183,7 @@ describe("creation and review", () => {
     mocks.rate.mockResolvedValue({ allowed: false }); expect((await POST(request(brief))).status).toBe(429); expect(mocks.expand).not.toHaveBeenCalled(); expect(mocks.rows).toHaveLength(0);
   });
   it("rejects client-supplied instructions, approval, source, identity and long titles", () => {
-    for (const extra of [{ prompt: "INJECT" }, { active: true }, { status: "approved" }, { source: "platform" }, { created_by: other }, { title: "x".repeat(41) }]) expect(styleDraftSchema.safeParse({ ...brief, ...extra }).success).toBe(false);
+    for (const extra of [{ description: "client supplied blurb" }, { prompt: "INJECT" }, { active: true }, { status: "approved" }, { source: "platform" }, { created_by: other }, { title: "x".repeat(41) }]) expect(styleDraftSchema.safeParse({ ...brief, ...extra }).success).toBe(false);
   });
   it("requires a reason for rejection and refuses stale reviews", async () => {
     mocks.rows = [row({ status: "pending", active: false })];

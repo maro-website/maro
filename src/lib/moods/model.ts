@@ -6,6 +6,7 @@ export function canUseMoods(email?: string | null): boolean {
 export const MOOD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const STYLE_TITLE_LIMIT = 40;
 export const STYLE_INPUT_LIMIT = 1600;
+export const STYLE_DESCRIPTION_LIMIT = 180;
 export type MoodStatus = "processing" | "pending" | "approved" | "rejected" | "failed";
 export type MoodVisibility = "public" | "private";
 export type Mood = {

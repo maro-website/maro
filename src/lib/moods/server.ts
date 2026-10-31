@@ -48,6 +48,11 @@ export function styleCoverPath(ref: unknown, ownerId?: string): string | null {
 }
 export async function styleView(row: Record<string, unknown>, userId: string, admin = false): Promise<Mood & { active: boolean }> {
   const owner = row.created_by === userId;
+  const description = typeof row.description === "string" ? row.description.trim() : "";
+  const original = typeof row.input_text === "string" ? row.input_text.trim() : "";
+  // Legacy rows used the brief itself as the catalog description. Never display that copy.
+  const publicDescription = description && (!original || description !== original.slice(0, 180))
+    ? description : "Atmosferë vizuale me dritë, ngjyra dhe detaje të harmonizuara.";
   const ref = row.cover_url as string | null;
   let cover = ref;
   const path = styleCoverPath(ref);
@@ -57,7 +62,7 @@ export async function styleView(row: Record<string, unknown>, userId: string, ad
     cover = signed.data?.signedUrl ?? null;
   } else if (ref?.startsWith("storage:")) cover = null;
   return {
-    id: row.id as string, title: row.title as string, description: row.description as string,
+    id: row.id as string, title: row.title as string, description: publicDescription,
     cover_url: cover, sort_order: Number(row.sort_order), saved: false,
     created_by: row.created_by as string | null, publisher_name: row.publisher_name as string,
     source: row.source as Mood["source"], visibility: row.visibility as Mood["visibility"],

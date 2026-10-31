@@ -53,7 +53,7 @@ export async function writeStyle(req: Request, editing: boolean, platform = fals
     }
     await styleRateLimit(auth.user.id, "prepare", 10);
     const now = new Date().toISOString();
-    const data = { title: body.title, input_text: body.input_text, description: body.input_text.trim().slice(0, 180),
+    const data = { title: body.title, input_text: body.input_text, description: "",
       cover_url: body.cover_ref, visibility: body.visibility, status: "processing", active: false,
       rejection_reason: null, reviewed_by: null, reviewed_at: null, updated_at: now };
     const publisher = String(auth.user.user_metadata?.display_name || auth.user.user_metadata?.full_name || (auth.user.email?.toLowerCase() === "erzen@nice.al" ? "Erzen" : "Krijues")).trim().slice(0, 80) || "Krijues";
