@@ -1,8 +1,12 @@
 import { getAccessToken } from "@/lib/supabase/client";
 import type { FeedView } from "./model";
 export const feedMessages: Record<string, string> = {
+  optimizer_unavailable: "Plani i feed-it nuk u përgatit. Provo përsëri; gjenerimi i ri ende nuk është paguar.",
+  optimizer_busy: "Plani i feed-it po përgatitet. Prit pak para se të provosh përsëri.",
+  optimizer_budget_limit: "Përgatitja e feed-it ka arritur kufirin për këtë periudhë. Provo më vonë.",
+  optimizer_input_too_long: "Konteksti është tepër i madh për planifikim. Shkurto drejtimin e fushatës ose kontekstin e zgjedhur.",
   headline_unsupported: "Një titull ka simbole që fonti i zgjedhur nuk i përmban. Ndryshoje titullin në plan; credits ende nuk janë marrë.",
-  headline_too_long: "Një titull nuk nxë në madhësinë e zgjedhur. Shkurtoje në plan ose zgjedhe shkrimin më të vogël; credits ende nuk janë marrë.",
+  headline_too_long: "Teksti është tepër i gjatë për këtë kompozim. Shkurtoje dhe provo përsëri.",
   design_incomplete: "Zgjedhe fontin dhe formatin e imazheve. Cakto së paku një produkt në plan.",
   unauthorized: "Hyr përsëri në llogari për t’i krijuar imazhet.",
   marketing_unavailable: "Imazhi u ruajt, por nuk u shtua në plan. Provo përsëri; progresi ruhet.",
