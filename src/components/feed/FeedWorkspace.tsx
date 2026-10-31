@@ -20,6 +20,8 @@ import type { MarketingCampaign } from "@/lib/marketing/model";
 import { feedFormats } from "@/lib/feed/campaign";
 import { FeedBrandSettings, draftFeedDesign, initialFeedDesign, readyFeedDesign } from "./FeedBrandSettings";
 import { FeedHero } from "./FeedHero";
+import { FeedBrainPicker } from "./FeedBrainPicker";
+import { mergeFeedBrainAssets, type FeedBrainSelection } from "@/lib/feed/brainAssets";
 
 export function FeedWorkspace({ studio = "feed", marketingCampaignId, onMarketingImport }: { studio?: "feed" | "apps"; marketingCampaignId?: string; onMarketingImport?: (feedId: string, studio: "feed" | "apps") => Promise<void> }) {
   const { user, ready } = useMaro(); const { activeWorkspace } = useWorkspace();
@@ -33,7 +35,7 @@ const initialBrief: FeedBrief = { brand: "", description: "", audience: "", goal
 function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, onMarketingImport }: { workspaceId: string; workspaceName: string; studio: "feed" | "apps"; marketingCampaignId?: string; onMarketingImport?: (feedId: string, studio: "feed" | "apps") => Promise<void> }) {
   const apps = studio === "apps", api = `/api/${studio}`;
   const [appDraft, setAppDraft] = React.useState(initialAppDraft);
-  const { credits, refreshProfile } = useMaro();
+  const { user, credits, refreshProfile } = useMaro();
   const [tab, setTab] = React.useState<"prepare" | "feed" | "history">("prepare");
   const [brief, setBrief] = React.useState(initialBrief); const [brain, setBrain] = React.useState(false);
   const [category, setCategory] = React.useState<FeedCategory>("drinks");
@@ -109,6 +111,12 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     return () => clearInterval(timer);
   }, [feed?.id, feed?.active, busy, remember, api]);
   function updateAttachments(value: PrivateImageAttachment[]) { attachmentRef.current = value; setAttachments(value); }
+  function addBrainReferences(selection: FeedBrainSelection[]) {
+    if (working || uploadBusy) return;
+    const { attachments: merged, additions } = mergeFeedBrainAssets(attachmentRef.current, selection);
+    updateAttachments(merged);
+    setDesignDraft(draft => ({ ...draft, assignments: undefined, assets: { ...draft.assets, ...Object.fromEntries(additions.map(({ attachment, role }) => [attachment.id, { role, label: attachment.name.slice(0, 100) }])) } }));
+  }
   async function upload(files: File[]) {
     if (!files.length || busy || uploadBusy) return;
     if (attachmentRef.current.length + files.length > FEED_MAX_REFERENCES) { setError(feedMessage("too_many_references")); return; }
@@ -215,10 +223,13 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
         {tab === "prepare" && <section className={b.editor} aria-label="Përgatitja e feed-it">
           <div className={b.sectionHeading}><div><h2>{apps ? "Përgatite fushatën e app-it" : "Përgatite feed-in"}</h2><p>{apps ? "Prej ndërfaqes reale, te reklama jote e ardhshme." : "Ngarko produktin dhe shto informatat që na duhen për brendin."}</p></div></div>
           {apps ? <AppsPreparation draft={appDraft} setDraft={setAppDraft} working={working} loading={loading} credits={credits} start={() => void start()} onUploadBusy={setUploadBusy} /> : <div className={s.form}>
+            <div className={s.referenceSources}>
+            <FeedBrainPicker userId={user?.id ?? ""} workspaceId={workspaceId} workspaceName={workspaceName} disabled={working || uploadBusy} existingRefs={attachments.map(item => item.storageRef).filter((ref): ref is string => Boolean(ref))} attachmentCount={attachments.length} hasLogo={draftDesign.assets.some(asset => asset.role === "logo")} onAdd={addBrainReferences} />
             <button className={`${b.dropZone} ${s.upload}`} type="button" onClick={() => fileInput.current?.click()} disabled={working || uploadBusy || attachments.length >= FEED_MAX_REFERENCES} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void upload(Array.from(event.dataTransfer.files)); }}>
               {uploadBusy ? <LoaderCircle className={s.spin} size={24} /> : <ImagePlus size={28} />}
-              <strong>{uploadBusy ? "Duke ngarkuar referencat…" : "Ngarko referencat"}</strong><small>PNG, JPG ose WebP · deri në 25 MB secila · {attachments.length}/{FEED_MAX_REFERENCES}</small>
+              <strong>{uploadBusy ? "Duke ngarkuar referencat…" : "Ngarko të reja"}</strong><small>PNG, JPG ose WebP · deri në 25 MB secila · {attachments.length}/{FEED_MAX_REFERENCES}</small>
             </button>
+            </div>
             <input ref={fileInput} type="file" multiple accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
             <FeedBrandSettings draft={designDraft} setDraft={setDesignDraft} attachments={attachments} remove={id => { updateAttachments(attachmentRef.current.filter(item => item.id !== id)); setDesignDraft(draft => ({ ...draft, assignments: undefined })); }} disabled={working || uploadBusy} contentType={contentType} textMode={textMode} brand={brief.brand || (brain ? workspaceName : "")} language={brief.language} />
             <div className={s.contextRow}><div><strong>maroBrain</strong><p>{brain ? workspaceName : "Përdore kujtesën e brendit"}</p></div><Switch checked={brain} onChange={setBrain} disabled={working} aria-label="Përdor maroBrain" /></div>
