@@ -38,10 +38,21 @@ interface SecurityData {
   refundedTx: Array<{ id: string; user_id: string; amount: number; created_at: string }>;
 }
 
+interface OptimizerUsage {
+  configured: boolean; enabled: boolean; model: string;
+  users: Array<{ user_id: string; email: string | null; attempts: number; completed: number; rejected: number;
+    unconfirmed: number; cache_hits: number; input_tokens: number; cached_tokens: number; cache_write_tokens: number; output_tokens: number;
+    estimated_usd: number; month_estimated_usd: number; unconfirmed_reserved_usd: number;
+    avg_saved_chars: number | null; avg_duration_ms: number | null }>;
+}
+const usd = (value: number) => `$${Number(value).toFixed(6)}`;
+
 export function SecurityCostsPanel() {
   const [data, setData] = React.useState<SecurityData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
+  const [optimizer, setOptimizer] = React.useState<OptimizerUsage | null>(null);
+  const [optimizerError, setOptimizerError] = React.useState(false);
 
   const load = React.useCallback(async () => {
     const { data: sess } = await getSupabaseBrowser().auth.getSession();
@@ -49,6 +60,9 @@ export function SecurityCostsPanel() {
     if (!token) return;
     setLoading(true);
     try {
+      const usage = await fetch("/api/admin/optimizer-usage", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).catch(() => null);
+      setOptimizerError(!usage?.ok);
+      setOptimizer(usage?.ok ? await usage.json() as OptimizerUsage : null);
       const res = await fetch("/api/admin/security", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -82,7 +96,7 @@ export function SecurityCostsPanel() {
   const c = data?.circuit;
 
   return (
-    <div>
+    <div className="min-w-0">
       <AdminPageHeader
         title="Siguria & Kostot"
         description="Monitorim shpenzimesh AI, kufizimesh emergjente dhe sinjale abuzimi."
@@ -104,7 +118,32 @@ export function SecurityCostsPanel() {
           <Spinner />
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
+          <Section title="Optimizimi i masterprompt-it · kosto sipas userit">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] text-ink-2">GPT-6.1 Sol · key i veçantë · pilot · maksimum 30,000 karaktere</p>
+              <Button size="sm" variant="ghost" onClick={() => void load()} disabled={loading}>Rifresko</Button>
+            </div>
+            {optimizerError ? <p role="status" className="mt-3 text-[13px] text-ink-2">Matjet e optimizimit nuk janë të disponueshme.</p> : optimizer && <>
+              <p className="mt-2 text-[13px] text-ink-3">{optimizer.enabled && optimizer.configured ? "Pilot i konfiguruar" : "Pilot joaktiv ose pa key"}. USD e vlerësuar nga tokenat e API-së dhe tarifa Standard; krahasohet me faturën OpenAI. Kostot e gjenerimit final maten veçmas.</p>
+              {!optimizer.users.length ? <p className="mt-4 text-[13px] text-ink-2">Ende pa thirrje të regjistruara në key-n e optimizimit.</p> : <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <caption className="sr-only">Kostoja e optimizimit për secilin përdorues që nga aktivizimi</caption>
+                  <thead className="text-ink-3"><tr>{["Useri", "Thirrje / suksese", "Cache", "USD gjithsej / këtë muaj", "Pa konfirmim", "Tokena hyrje / cache / shkrim / dalje", "Mesatarja"].map(label => <th key={label} className="whitespace-nowrap px-3 py-2 font-semibold">{label}</th>)}</tr></thead>
+                  <tbody>{optimizer.users.map(user => <tr key={user.user_id} className="border-t border-line">
+                    <td className="px-3 py-3"><AdminPrivateValue>{user.email || user.user_id}</AdminPrivateValue></td>
+                    <td className="px-3 py-3"><AdminPrivateValue>{user.attempts} / {user.completed}</AdminPrivateValue><span className="block text-ink-3">{user.rejected} përgjigje të refuzuara</span></td>
+                    <td className="px-3 py-3">{user.cache_hits}</td>
+                    <td className="whitespace-nowrap px-3 py-3"><AdminPrivateValue>{usd(user.estimated_usd)} / {usd(user.month_estimated_usd)}</AdminPrivateValue></td>
+                    <td className="px-3 py-3">{user.unconfirmed}<span className="block whitespace-nowrap text-ink-3">Rezervë: <AdminPrivateValue>{usd(user.unconfirmed_reserved_usd)}</AdminPrivateValue></span></td>
+                    <td className="whitespace-nowrap px-3 py-3"><AdminPrivateValue>{user.input_tokens} / {user.cached_tokens} / {user.cache_write_tokens} / {user.output_tokens}</AdminPrivateValue></td>
+                    <td className="whitespace-nowrap px-3 py-3">{Math.round(Number(user.avg_saved_chars ?? 0))} karaktere më pak<span className="block text-ink-3">{(Number(user.avg_duration_ms ?? 0) / 1000).toFixed(1)} s</span></td>
+                  </tr>)}</tbody>
+                </table>
+              </div>}
+              <p className="mt-3 text-[12px] text-ink-3">Përfshin edhe thirrjet e paguara që nuk kaluan validimin. Timeout-et dhe proceset pa faturim të konfirmuar mbeten si rezervë, pa u numëruar si $0. Cache ripërdor vetëm të njëjtin kontekst për të njëjtin user dhe workspace. Muaji dhe kufijtë llogariten në UTC.</p>
+            </>}
+          </Section>
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard
               icon={Coins}
@@ -256,7 +295,7 @@ function StatCard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="min-w-0 rounded-xl border border-line bg-surface p-4">
       <h2 className="mb-4 text-[15px] font-semibold text-ink">{title}</h2>
       {children}
     </section>

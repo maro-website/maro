@@ -11,6 +11,7 @@ import { resolveWorkspaceImageReference, type ResolvedImageReference } from "@/l
 import type { TrustedV1ImageRequest, resolveV1ImageRequest } from "./v1ImageRequest";
 import { ImageRequestValidationError } from "./requestValidation";
 import { moodPromptSection } from "@/lib/moods/model";
+import type { OptimizationSource, OptimizerProvenance } from "@/lib/prompt-optimizer/model";
 
 export const CANONICAL_IMAGE_VERSION = "maro-v1-canonical/1";
 export const promptHash = (value: string) => createHash("sha256").update(value.replace(/\r\n?/g, "\n")).digest("hex");
@@ -28,6 +29,8 @@ export interface CanonicalImageContext {
   presetPrompt?: string;
   moodPrompt?: string;
   brainText?: string;
+  protectedBrainText?: string;
+  optimizerBrainText?: string;
   references: Array<{ id: string; digest: string; source: "user" | "brain" }>;
 }
 
@@ -80,6 +83,12 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
   ];
   if (mood) parts.push(contextPart(moodPromptSection(mood)));
   const { prompt, adaptation } = adaptRecraftImagePrompt(request.model.providerModelId, parts);
+  const optimizationSource: OptimizationSource = {
+    engine: [config.system.content, ...section("direction"), ...section("reference"), ...section("output")].filter(Boolean).join("\n\n"),
+    context: [preset ? `PRESET VISUAL RECOMMENDATION:\n${preset}` : "", brainAllowed ? context.optimizerBrainText ?? brainText : "", mood ? moodPromptSection(mood) : ""].filter(Boolean).join("\n\n"),
+    facts: brainAllowed ? context.protectedBrainText ?? "" : "",
+    request: brief,
+  };
   const provenance = {
     version: CANONICAL_IMAGE_VERSION,
     system: { id: config.system.id, version: config.system.version_label, hash: promptHash(config.system.content) },
@@ -91,11 +100,13 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
     references, promptHash: promptHash(prompt),
   };
   const { idempotencyKey: _transportKey, ...normalizedInputs } = request;
-  return Object.freeze({ prompt, provenance, configurationHash: configurationHash({ request: normalizedInputs, provenance }), excludedLayers: excluded.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  return Object.freeze({ prompt, provenance, optimizationSource, configurationHash: configurationHash({ request: normalizedInputs, provenance }), excludedLayers: excluded.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     model: request.model.providerModelId, size: request.size, quality: request.quality, n: request.imageCount,
     operation: references.length ? "edit" as const : "generate" as const });
 }
-export type CanonicalImageCompilation = ReturnType<typeof buildCanonicalImagePrompt>;
+export type CanonicalImageCompilation = Omit<ReturnType<typeof buildCanonicalImagePrompt>, "provenance"> & {
+  provenance: ReturnType<typeof buildCanonicalImagePrompt>["provenance"] & { optimizer?: OptimizerProvenance };
+};
 
 /** Resolve permitted existing workspace context once. Both preview and execution call this service. */
 export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typeof resolveV1ImageRequest>>, previewDraftId?: string) {
@@ -128,10 +139,21 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
       try { memoryText = buildMemoryBrief(selectMemories(await loadStudioMemories(request.userId, request.workspaceId), request.prompt)); }
       catch { throw new ImageRequestValidationError("brain_memory_unavailable", 503); }
       context.brainText = [buildBrainBrief(brain), memoryText, matched.length ? buildMatchedSourcesBrief(matched) : ""].filter(Boolean).join("\n\n");
+      // Give the optimizer all saved text fields, including fields the legacy brief bounds individually.
+      // Image bytes/URLs remain on the existing image-reference path, outside the text model.
+      const { logoUrl: _logoUrl, logoStorageRef: _logoStorageRef, ...textBrand } = brain.brand;
+      context.optimizerBrainText = [JSON.stringify({ ...brain, brand: textBrand }), memoryText, matched.length ? buildMatchedSourcesBrief(matched) : ""].filter(Boolean).join("\n\n");
+      // These facts never pass through a lossy model rewrite. Full originals remain stored in Brain.
+      context.protectedBrainText = "EXACT BRAND FACTS AND CONSTRAINTS (context; current user instructions take precedence):\n" + JSON.stringify({
+        name: brain.brand.name, language: brain.brand.language, colors: brain.brand.colors,
+        website: brain.brand.website, phoneCountry: brain.brand.phoneCountry, phone: brain.brand.phone,
+        avoid: brain.content?.avoid, evidence: brain.market?.proof,
+      });
       urls.push(...matched.map((s) => s.fileUrl).filter(Boolean));
       if (brain.brand.logoUrl) urls.push(brain.brand.logoUrl);
     } else if (brand) {
       context.brainText = buildWorkspaceBrandBrief(brand);
+      context.protectedBrainText = context.brainText;
       if (brand.logoUrl) urls.push(brand.logoUrl);
     }
     for (const url of urls) {
@@ -139,7 +161,7 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
       catch { /* Preserve existing behavior: inaccessible optional Brain assets are excluded. */ }
     }
   }
-  return { compilation: buildCanonicalImagePrompt(request, config, context), images: bytes, config };
+  return { compilation: buildCanonicalImagePrompt(request, config, context) as CanonicalImageCompilation, images: bytes, config };
 }
 
 /** Existing admin-only pricing snapshot storage also owns the full execution configuration. */

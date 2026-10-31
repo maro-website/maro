@@ -1,5 +1,10 @@
 /** Customer-safe descriptions for the durable V1 lifecycle. */
 export const V1_IMAGE_ERRORS: Record<string, string> = {
+  context_too_long: "Konteksti dhe udhëzimet e kërkesës e kalojnë hapësirën e disponueshme. Provo një preset ose kërkesë më të shkurtër.",
+  optimizer_input_too_long: "Konteksti i zgjedhur është tepër i madh për përgatitje. Përdor më pak kontekst për këtë kërkesë.",
+  optimizer_unavailable: "Përgatitja e kërkesës nuk përfundoi. Kreditet e gjenerimit nuk janë rezervuar. Provo përsëri më vonë.",
+  optimizer_budget_limit: "Është arritur kufiri i përgatitjes së kërkesave për këtë periudhë. Provo më vonë.",
+  optimizer_busy: "E njëjta kërkesë është duke u përgatitur. Prit pak para se të provosh përsëri.",
   recraft_style_reference_required: "Shto të paktën një imazh si referencë stili për këtë model Recraft.",
   recraft_references_unsupported: "Recraft Flash nuk përkrah imazhe referencë. Hiqi referencat ose zgjidh një model tjetër.",
   recraft_reference_limit: "Ky model Recraft përkrah vetëm një imazh për ndryshim. Përdor një referencë ose zgjidh Recraft Styles për referenca stili.",

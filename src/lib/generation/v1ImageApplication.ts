@@ -19,6 +19,7 @@ import { readJsonBody, REQUEST_LIMITS } from "@/lib/security/requestLimits";
 import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/lib/workspaces/accountPolicyServer";
 import { isVerifiedMcpImageRequest } from "@/lib/mcp/internalRequest";
 import { generateRecraftImage, hasRecraftKey, planRecraftImage, type RecraftImagePlan } from "@/lib/ai/recraft";
+import { optimizeImageCompilation } from "@/lib/prompt-optimizer/server";
 
 export async function executeV1ImageApplication(req: Request) {
   const requestId = randomUUID();
@@ -49,6 +50,7 @@ export async function executeV1ImageApplication(req: Request) {
     if (trusted.snapshot.useBrain) await requireBrainAccess(owner.id, trusted.snapshot.workspaceId ?? undefined);
     validation.model = trusted.snapshot.model.providerModelId;
     resolved = await compileTrustedImageRequest(trusted);
+    resolved.compilation = await optimizeImageCompilation(trusted.snapshot, resolved.compilation, getIdempotencyKey(req, trusted.snapshot.idempotencyKey));
     validation.compiledPromptLength = resolved.compilation.prompt.length;
     validation.hasReferences = resolved.images.length > 0;
     // Validate the exact, immutable provider payload before admission/reservation.
@@ -75,7 +77,8 @@ export async function executeV1ImageApplication(req: Request) {
       metadata: { request_id: requestId, v1_durable: true, v1_request: snapshot, canonical_prompt: { version: canonical.provenance.version, hash: canonical.provenance.promptHash,
         configurationHash: canonical.configurationHash, system: canonical.provenance.system,
         layers: canonical.provenance.layers.map(({ id, key, version, hash }) => ({ id, key, version, hash })),
-        preset: canonical.provenance.preset, ...(canonical.provenance.mood ? { mood: canonical.provenance.mood } : {}), brainUsed: canonical.provenance.brainUsed } },
+        preset: canonical.provenance.preset, ...(canonical.provenance.mood ? { mood: canonical.provenance.mood } : {}),
+        ...(canonical.provenance.optimizer ? { optimizer: canonical.provenance.optimizer } : {}), brainUsed: canonical.provenance.brainUsed } },
     });
   } catch (error) { return guardErrorResponse(error); }
   logImageValidation({ ...validation, jobId: prep.job.id });
