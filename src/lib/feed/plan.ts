@@ -69,7 +69,20 @@ export function validateFeedPlan(value: unknown, design: FeedDesign, brief: Feed
       selected.add(identity);
       const names = coverage.get(subject.reference) ?? new Set<string>(); names.add(subject.product); coverage.set(subject.reference, names);
     }
-    if (design.assignments[slot].some(index => !post.subjects.some(subject => subject.reference === index))) throw new Error("feed_plan_subjects");
+    // Complete omissions from the user's assigned originals using only the inspected catalog.
+    // Foreign references, invented variants and repeated units still fail the checks above.
+    for (const reference of design.assignments[slot]) {
+      if (post.subjects.some(subject => subject.reference === reference)) continue;
+      const source = plan.sources.find(item => item.index === reference)!;
+      const names = coverage.get(reference) ?? new Set<string>();
+      const product = source.products.find(item => !names.has(item.name)) ?? source.products[slot % source.products.length];
+      post.subjects.push({ reference, product: product.name });
+      names.add(product.name); coverage.set(reference, names);
+    }
+    if (post.subjects.length > 16) {
+      const required = design.assignments[slot].map(reference => post.subjects.find(subject => subject.reference === reference)!);
+      post.subjects = [...required, ...post.subjects.filter(subject => !required.includes(subject)).slice(0, 16 - required.length)];
+    }
     post.evidence = post.evidence.filter(quote => facts.includes(normalize(quote)));
     const supplied = feedHeadline(design, slot, brief.brand);
     post.headline = !textMode ? "" : supplied || post.headline;

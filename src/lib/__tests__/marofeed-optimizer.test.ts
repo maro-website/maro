@@ -3,9 +3,9 @@ import sharp from "sharp";
 import { legacyFeedDesign } from "@/lib/feed/campaign";
 import { defaultConfig } from "@/lib/feed/model";
 import { feedPlanFixture } from "./helpers/feedPlanFixture";
-const m = vi.hoisted(() => ({ rpc: vi.fn(), update: vi.fn(), saved: vi.fn(), create: vi.fn(), client: vi.fn(), circuit: vi.fn() }));
+const m = vi.hoisted(() => ({ rpc: vi.fn(), update: vi.fn(), saved: vi.fn(), create: vi.fn(), client: vi.fn(), circuit: vi.fn(), select: vi.fn(), rejected: vi.fn(), readEq: vi.fn() }));
 vi.mock("openai", () => ({ default: class { responses = { create: m.create }; constructor(options: unknown) { m.client(options); } } }));
-vi.mock("@/lib/supabase/server", () => ({ getSupabaseAdmin: () => ({ rpc: m.rpc, from: () => ({ update: m.update }) }) }));
+vi.mock("@/lib/supabase/server", () => ({ getSupabaseAdmin: () => ({ rpc: m.rpc, from: () => ({ update: m.update, select: m.select }) }) }));
 vi.mock("@/lib/security/circuitBreaker", () => ({ assertCircuitAllows: m.circuit }));
 import { planFeedCampaign, type FeedPlannerInput } from "@/lib/prompt-optimizer/feed";
 async function fixture(): Promise<FeedPlannerInput> {
@@ -21,11 +21,30 @@ beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("MARO_OPTIMIZER_ENABLED", "true"); vi.stubEnv("MARO_OPTIMIZER_OPENAI_API_KEY", "dedicated-optimizer-test-key");
   vi.stubEnv("MARO_OPTIMIZER_AUDIENCE", "allowlist"); vi.stubEnv("MARO_OPTIMIZER_USER_IDS", "owner");
   m.circuit.mockResolvedValue({ ok: true }); m.rpc.mockResolvedValue({ data: { action: "run", id: "attempt" }, error: null });
-  const q = { eq: vi.fn(), select: vi.fn(), single: m.saved }; q.eq.mockReturnValue(q); q.select.mockReturnValue(q); m.update.mockReturnValue(q);
+  const read = { eq: m.readEq, gte: vi.fn(), order: vi.fn(), limit: vi.fn(), maybeSingle: m.rejected }; read.eq.mockReturnValue(read); read.gte.mockReturnValue(read); read.order.mockReturnValue(read); read.limit.mockReturnValue(read); m.select.mockReturnValue(read); m.rejected.mockResolvedValue({ data: null, error: null });
+  const q = { eq: vi.fn(), select: vi.fn(), single: m.saved, maybeSingle: m.saved }; q.eq.mockReturnValue(q); q.select.mockReturnValue(q); m.update.mockReturnValue(q);
   m.saved.mockResolvedValue({ data: { id: "attempt" }, error: null });
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("maroFeed uses the existing dedicated optimizer and durable budget", () => {
+  it("reuses an accounted, same-input rejected plan after completing omitted assigned products, without another provider call", async () => {
+    const input = await fixture(), value = generated(input); value.posts[8].subjects = [value.posts[8].subjects[0]];
+    m.rejected.mockResolvedValue({ data: { id: "repaired", final_prompt: JSON.stringify(value), estimated_usd: ".036246", finished_at: new Date().toISOString() }, error: null });
+    m.rpc.mockImplementation(async () => ({ data: { action: "cache", id: "repaired", final_prompt: m.update.mock.calls[0][0].final_prompt }, error: null }));
+    const plan = await planFeedCampaign(input);
+    expect(plan.optimizer.attemptId).toBe("repaired"); expect(plan.posts[8].subjects.map(subject => subject.reference)).toEqual(input.design.assignments[8]);
+    expect(m.create).not.toHaveBeenCalled();
+    expect(m.readEq).toHaveBeenCalledWith("user_id", input.userId); expect(m.readEq).toHaveBeenCalledWith("workspace_id", input.workspaceId);
+    expect(m.readEq).toHaveBeenCalledWith("fingerprint", expect.stringMatching(/^[a-f0-9]{64}$/)); expect(m.readEq).toHaveBeenCalledWith("status", "rejected");
+    const update = m.update.mock.calls[0][0]; expect(update.status).toBe("completed");
+    for (const field of ["estimated_usd", "reserved_usd", "input_tokens", "output_tokens", "provider_response_id", "finished_at"]) expect(update).not.toHaveProperty(field);
+  });
+  it.each(["unaccounted", "unsafe"])("never promotes an %s rejected candidate", async kind => {
+    const input = await fixture(), value = generated(input); value.posts[0].subjects[0].reference = 1;
+    m.rejected.mockResolvedValue({ data: { id: "rejected", final_prompt: JSON.stringify(value), estimated_usd: kind === "unaccounted" ? null : ".036246", finished_at: new Date().toISOString() }, error: null });
+    m.rpc.mockResolvedValue({ data: { action: "budget" }, error: null });
+    await expect(planFeedCampaign(input)).rejects.toThrow("optimizer_budget_limit"); expect(m.update).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
+  });
   it("plans nine images in one vision call, accounts actual usage before returning and uses no ordinary image key", async () => {
     const input = await fixture();
     m.create.mockResolvedValue({ id: "response", model: "gpt-6.1-sol", status: "completed", service_tier: "default", output_text: JSON.stringify(generated(input)), usage: { input_tokens: 8000, output_tokens: 2000, input_tokens_details: { cached_tokens: 4000 } } });

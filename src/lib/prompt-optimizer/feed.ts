@@ -9,6 +9,7 @@ import { feedHeadline, type FeedDesign } from "@/lib/feed/campaign";
 import { feedRole, type FeedBrief, type FeedCategory, type FeedConfig, type FeedContentType } from "@/lib/feed/model";
 import { FEED_PLAN_VERSION, generatedFeedPlanSchema, validateFeedPlan, feedPostLayout, type FeedCampaignPlan } from "@/lib/feed/plan";
 import { feedPlannedText } from "@/lib/feed/output";
+import { repairAccountedFeedPlan } from "./repairFeed";
 import { OPTIMIZER_MODEL, OPTIMIZER_PRICE_VERSION, OPTIMIZER_MAX_INPUT_CHARS, optimizerEnabled, optimizerHash, optimizerReservationUsd, estimateOptimizerUsd } from "./model";
 
 export const FEED_PLAN_INSTRUCTIONS = `You are maroFeed's campaign art director. Plan all nine posts TOGETHER before any artwork is generated. Return only the requested structured plan; no captions, hashtags, tools or images.
@@ -49,6 +50,7 @@ export async function planFeedCampaign(input: FeedPlannerInput): Promise<FeedCam
   // 512px vision thumbnails are bounded separately from text; reserve conservatively at 12K tokens/image.
   const reservation = optimizerReservationUsd(source + FEED_PLAN_INSTRUCTIONS + " ".repeat(4096 + input.references.length * 12_000));
   if (reservation > 1) throw new ImageRequestValidationError("optimizer_input_too_long", 400);
+  await repairAccountedFeedPlan(input, fingerprint);
   const claimed = await db.rpc("maro_optimizer_reserve", { p_user: input.userId, p_workspace: input.workspaceId,
     p_request_key: input.requestKey, p_fingerprint: fingerprint, p_module: "reklama", p_source_chars: source.length, p_reserved_usd: reservation });
   if (claimed.error || !claimed.data) throw new ImageRequestValidationError("optimizer_unavailable", 503);
@@ -89,7 +91,7 @@ export async function planFeedCampaign(input: FeedPlannerInput): Promise<FeedCam
       const reason = error instanceof Error && /^(?:feed_plan_(?:sources|layout|repeated|subjects|claim|coverage|too_large|incomplete)|headline_(?:unsupported|too_long)|feed_font_unavailable)$/.test(error.message) ? error.message : error instanceof Error && error.name === "ZodError" ? "feed_plan_schema" : "optimizer_output_invalid";
       metrics.error_code = knownUsage ? reason : "optimizer_cost_uncertain";
     }
-    // Rejected candidates are private diagnostics, never cache hits or generation-ready plans.
+    // Rejected candidates stay private; only full, same-input revalidation can promote an accounted plan.
     const diagnostic = rawPlan && typeof rawPlan === "object" ? JSON.stringify(rawPlan) : null;
     const serialized = plan ? JSON.stringify(plan) : diagnostic && diagnostic.length <= 30_000 ? diagnostic : null;
     const saved = await db.from("maro_optimizer_attempts").update({ ...metrics, version: FEED_PLAN_VERSION,

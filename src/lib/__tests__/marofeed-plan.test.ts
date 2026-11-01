@@ -32,6 +32,25 @@ describe("one shared Feed art direction", () => {
     expect(plan.posts[0].subjects[0].product).toBe(design.assets[0].label); expect(plan.posts[2].layout).toBe("macro");
     expect(new Set(plan.posts.map(post => post.camera)).size).toBeGreaterThanOrEqual(4);
   });
+  it("completes missing collection subjects from every assigned original without inventing or substituting references", () => {
+    const value = generated(); value.posts[8].subjects = [value.posts[8].subjects[0]];
+    const repaired = validateFeedPlan(value, design, brief, "", "mix", true);
+    expect(repaired.posts[8].subjects.map(subject => subject.reference)).toEqual(design.assignments[8]);
+    for (const subject of repaired.posts[8].subjects) expect(repaired.sources.find(source => source.index === subject.reference)?.products.some(product => product.name === subject.product)).toBe(true);
+    const foreign = generated(); foreign.posts[0].subjects[0].reference = 2;
+    expect(() => validateFeedPlan(foreign, design, brief, "", "mix", true)).toThrow("feed_plan_subjects");
+    const duplicate = generated(); duplicate.posts[8].subjects.push({ ...duplicate.posts[8].subjects[0] });
+    expect(() => validateFeedPlan(duplicate, design, brief, "", "mix", true)).toThrow("feed_plan_subjects");
+  });
+  it("keeps repaired multi-collection posts within the durable schema while retaining every assigned original", () => {
+    const value = generated();
+    for (const [index, count] of [[0, 12], [1, 4]]) for (let i = 1; i < count; i++) value.sources[index].products.push({ name: `Visible variant ${index}-${i}`, identity: "A distinct original package visibly present in this source" });
+    value.posts[8].subjects = value.sources.slice(0, 2).flatMap(source => source.products.map(product => ({ reference: source.index, product: product.name })));
+    const repaired = validateFeedPlan(value, design, brief, "", "mix", true);
+    expect(repaired.posts[8].subjects).toHaveLength(16);
+    expect(design.assignments[8].every(reference => repaired.posts[8].subjects.some(subject => subject.reference === reference))).toBe(true);
+    expect(feedCampaignPlanSchema.safeParse({ ...repaired, version: "maro-feed-plan/1", optimizer: feedPlanFixture(design).optimizer }).success).toBe(true);
+  });
   it("recognizes a multi-product source as a collection and requires variant coverage across its slots", () => {
     const d = legacyFeedDesign(1), value = generated(d), source = value.sources[0];
     source.kind = "collection"; source.products.push({ name: "Other visible variant", identity: "Original blue package with exact printed label" });

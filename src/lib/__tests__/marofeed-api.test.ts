@@ -39,7 +39,7 @@ describe("maroFeed preparation and ownership", () => {
     expect(downloadObject.mock.calls).toEqual([["owner/first/output.png"], ["owner/fourth/output.png"]]);
   });
   it.each(["running", "rejected", "uncertain", "completed"])("recovers an owned %s preparation without provider work or exposing prompts", async status => {
-    const owner = "owner", requestId = crypto.randomUUID(), created_at = "2026-11-01T12:00:00Z";
+    const owner = "owner", requestId = crypto.randomUUID(), created_at = new Date().toISOString();
     mocks.user.mockResolvedValue({ id: owner, email: "erzen@nice.al", email_confirmed_at: created_at });
     mocks.db.mockReturnValue(readOnlyDatabase({ workspaces: [{ id: "ws", owner_id: owner }], maro_optimizer_attempts: [{ user_id: owner, workspace_id: "ws", request_key: `feed-plan:${requestId}`, version: "maro-context/1", status, created_at, final_prompt: "private candidate" }] }) as never);
     const response = await handleFeedGet(req(`/api/feed?workspaceId=ws&requestId=${requestId}`));
