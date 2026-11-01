@@ -1,6 +1,7 @@
 import { getAccessToken } from "@/lib/supabase/client";
 import type { FeedView } from "./model";
 export const feedMessages: Record<string, string> = {
+  feed_plan_invalid: "Plani i feed-it nuk u pranua. Nuk ka nisë asnjë imazh dhe 50 credits nuk janë marrë. Mundesh me provu përsëri.",
   optimizer_unavailable: "Plani i feed-it nuk u përgatit. Provo përsëri; gjenerimi i ri ende nuk është paguar.",
   optimizer_busy: "Plani i feed-it po përgatitet. Prit pak para se të provosh përsëri.",
   optimizer_budget_limit: "Përgatitja e feed-it ka arritur kufirin për këtë periudhë. Provo më vonë.",

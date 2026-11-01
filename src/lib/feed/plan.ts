@@ -36,30 +36,41 @@ const normalize = (value: string) => value.normalize("NFD").replace(/\p{M}/gu, "
 /** Provider output is untrusted. Keep the user's asset assignments and reject fabricated claim support. */
 export function validateFeedPlan(value: unknown, design: FeedDesign, brief: FeedBrief, brain: string, type: FeedContentType, textMode: boolean) {
   const plan = generatedFeedPlanSchema.parse(value);
+  if (new Set(plan.posts.map(post => post.slot)).size === 9) plan.posts.sort((a, b) => a.slot - b.slot);
   const products = design.assets.filter(asset => asset.role === "product");
   if (plan.sources.length !== products.length || new Set(plan.sources.map(source => source.index)).size !== products.length ||
     products.some(asset => !plan.sources.some(source => source.index === asset.index))) throw new Error("feed_plan_sources");
   for (const source of plan.sources) {
-    if (new Set(source.products.map(product => normalize(product.name))).size !== source.products.length ||
-      (source.kind === "collection" ? source.products.length < 2 : source.products.length !== 1)) throw new Error("feed_plan_sources");
+    if (new Set(source.products.map(product => normalize(product.name))).size !== source.products.length) throw new Error("feed_plan_sources");
+    if (source.kind !== "service") source.kind = source.products.length > 1 ? "collection" : "single";
   }
   const facts = normalize([brief.brand, brief.description, brief.notes, brain].join("\n"));
   const coverage = new Map<number, Set<string>>();
   const concepts = new Set<string>(), scenes = new Set<string>(), headlines = new Set<string>();
   plan.posts.forEach((post, slot) => {
-    if (post.slot !== slot || post.layout !== feedPostLayout(slot, type)) throw new Error("feed_plan_layout");
+    if (post.slot !== slot) throw new Error("feed_plan_layout");
+    post.layout = feedPostLayout(slot, type);
     if (concepts.has(normalize(post.concept)) || scenes.has(normalize(post.scene))) throw new Error("feed_plan_repeated");
     concepts.add(normalize(post.concept)); scenes.add(normalize(post.scene));
     const selected = new Set<string>();
     for (const subject of post.subjects) {
       const source = plan.sources.find(item => item.index === subject.reference);
+      if (source) {
+        const key = (name: string) => normalize(name).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+        const exact = source.products.filter(product => key(product.name) === key(subject.product));
+        const words = (name: string) => key(name).split(" ").filter(word => word.length > 2 && ![...key(brief.brand).split(" "), "soda", "drink", "product", "produkti", "can"].includes(word));
+        const requested = words(subject.product);
+        const aliases = source.products.filter(product => { const catalog = words(product.name); return requested.length > 0 && catalog.length > 0 && (requested.every(word => catalog.includes(word)) || catalog.every(word => requested.includes(word))); });
+        const match = exact.length === 1 ? exact[0] : source.products.length === 1 ? source.products[0] : aliases.length === 1 ? aliases[0] : undefined;
+        if (match) subject.product = match.name;
+      }
       const identity = `${subject.reference}:${subject.product}`;
       if (!design.assignments[slot].includes(subject.reference) || !source?.products.some(product => product.name === subject.product) || selected.has(identity)) throw new Error("feed_plan_subjects");
       selected.add(identity);
       const names = coverage.get(subject.reference) ?? new Set<string>(); names.add(subject.product); coverage.set(subject.reference, names);
     }
     if (design.assignments[slot].some(index => !post.subjects.some(subject => subject.reference === index))) throw new Error("feed_plan_subjects");
-    if (post.evidence.some(quote => !facts.includes(normalize(quote)))) throw new Error("feed_plan_claim");
+    post.evidence = post.evidence.filter(quote => facts.includes(normalize(quote)));
     const supplied = feedHeadline(design, slot, brief.brand);
     post.headline = !textMode ? "" : supplied || post.headline;
     if (!supplied && post.headline) {
@@ -68,16 +79,24 @@ export function validateFeedPlan(value: unknown, design: FeedDesign, brief: Feed
       // "More festive moments" is creative copy; "more fiber" is a supported-comparison requirement.
       if (risky.length) risky.push(...(normalize(post.headline).match(/\b(?:me shume|me pak|more|less|pa sheqer)\b/g) ?? []));
       const evidence = normalize(post.evidence.join(" "));
-      if (risky.some(term => !evidence.includes(term.trim()))) throw new Error("feed_plan_claim");
-      if (headlines.has(normalize(post.headline))) throw new Error("feed_plan_repeated");
-      headlines.add(normalize(post.headline));
+      if (risky.some(term => !evidence.includes(term.trim())) || headlines.has(normalize(post.headline))) { post.headline = ""; post.evidence = []; }
+      else headlines.add(normalize(post.headline));
     }
   });
   for (const source of plan.sources) {
     const uses = design.assignments.filter(row => row.includes(source.index)).length;
-    if ((coverage.get(source.index)?.size ?? 0) < Math.min(source.products.length, uses)) throw new Error("feed_plan_coverage");
+    const selected = plan.posts.flatMap(post => post.subjects.filter(subject => subject.reference === source.index));
+    const counts = new Map<string, number>(); for (const subject of selected) counts.set(subject.product, (counts.get(subject.product) ?? 0) + 1);
+    const target = Math.min(source.products.length, uses);
+    for (const product of source.products) {
+      if (counts.size >= target) break;
+      if (counts.has(product.name)) continue;
+      const replace = selected.find(subject => (counts.get(subject.product) ?? 0) > 1);
+      if (!replace) throw new Error("feed_plan_coverage");
+      counts.set(replace.product, counts.get(replace.product)! - 1); replace.product = product.name; counts.set(product.name, 1);
+    }
   }
-  if (new Set(plan.posts.map(post => post.camera)).size < 4) throw new Error("feed_plan_repeated");
+  if (new Set(plan.posts.map(post => post.camera)).size < 4) plan.posts.forEach((post, slot) => { post.camera = ([post.layout === "macro" ? "macro" : "front", "side", "diagonal", "backlit"] as const)[slot % 4]; });
   if (JSON.stringify(plan).length > 28_000) throw new Error("feed_plan_too_large");
   return plan;
 }

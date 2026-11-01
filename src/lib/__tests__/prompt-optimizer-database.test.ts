@@ -1,5 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 let db: PGlite;
 const owner = "11111111-1111-4111-8111-111111111111", other = "22222222-2222-4222-8222-222222222222";
@@ -18,6 +18,9 @@ beforeAll(async () => {
     create table app_settings(id integer primary key,ai_paused boolean,platform_limits jsonb); insert into app_settings values(1,false,'{}');
     grant usage on schema auth,public to service_role; grant select on workspaces,app_settings,profiles to service_role;`);
   await db.exec(migration);
+  const retryMigration = readdirSync("supabase/migrations").find(name => name.endsWith("_feed_optimizer_rejected_retry.sql"));
+  if (!retryMigration) throw new Error("retry_migration_missing");
+  await db.exec(readFileSync(`supabase/migrations/${retryMigration}`, "utf8"));
 });
 afterAll(async () => { await db?.close(); });
 describe("durable optimizer admission and private cost ledger", () => {
@@ -40,10 +43,17 @@ describe("durable optimizer admission and private cost ledger", () => {
     await db.exec("update app_settings set platform_limits='{}'");
   });
   it("runs once, blocks duplicates, rejects a changed idempotent payload and returns scoped cache", async () => {
-    const claim = await reserve(); expect(claim.action).toBe("run");
+    let claim = await reserve(); expect(claim.action).toBe("run");
     expect(await reserve()).toEqual({ action: "busy" });
     expect(await reserve(owner, "second-request")).toEqual({ action: "busy" });
     expect(await reserve(owner, "request", "b".repeat(64))).toEqual({ action: "conflict" });
+    await db.query("update maro_optimizer_attempts set status='uncertain' where id=$1", [claim.id]);
+    expect(await reserve(owner, "uncertain-retry")).toEqual({ action: "busy" });
+    await db.query("update maro_optimizer_attempts set status='rejected' where id=$1", [claim.id]);
+    expect(await reserve(owner, "unaccounted-rejection-retry")).toEqual({ action: "busy" });
+    await db.query("update maro_optimizer_attempts set status='rejected',estimated_usd=0.02,finished_at=now() where id=$1", [claim.id]);
+    expect(await reserve()).toEqual({ action: "failed" });
+    claim = await reserve(owner, "explicit-fresh-retry"); expect(claim.action).toBe("run");
     await db.query("update maro_optimizer_attempts set status='completed',final_prompt='PRIVATE OPTIMIZED',final_chars=17,estimated_usd=0.01,input_tokens=100,cached_tokens=10,output_tokens=20 where id=$1", [claim.id]);
     expect(await reserve(owner, "third-request")).toMatchObject({ action: "cache", id: claim.id, final_prompt: "PRIVATE OPTIMIZED" });
     expect(await reserve(other, "other-request", fingerprint, 0.2, "workspace-b")).toMatchObject({ action: "run" });
@@ -52,7 +62,7 @@ describe("durable optimizer admission and private cost ledger", () => {
     const row = (await db.query<{ s: Array<Record<string, unknown>> }>("select maro_optimizer_usage_summary() as s")).rows[0].s;
     const own = row.find(r => r.user_id === owner)!;
     const second = row.find(r => r.user_id === other)!;
-    expect(Number(own.estimated_usd)).toBe(0.01); expect(Number(own.cache_hits)).toBe(1);
+    expect(Number(own.estimated_usd)).toBe(0.03); expect(Number(own.cache_hits)).toBe(1);
     expect(Number(second.estimated_usd)).toBe(0); expect(Number(second.unconfirmed_reserved_usd)).toBe(0.2);
     expect(Number(second.unconfirmed)).toBe(1);
     expect(JSON.stringify(row)).not.toContain("PRIVATE OPTIMIZED");
@@ -66,7 +76,7 @@ describe("durable optimizer admission and private cost ledger", () => {
     }
     expect(await reserve(owner,"over-budget","c".repeat(64),0.8)).toEqual({ action: "budget" });
     expect(await reserve(other,"other-over-budget","d".repeat(64),0.8,"workspace-b")).toMatchObject({ action:"run" });
-    expect(await reserve(owner,"request")).toMatchObject({ action:"cache" });
+    expect(await reserve(owner,"explicit-fresh-retry")).toMatchObject({ action:"cache" });
   });
   it("keeps incurred user costs when a workspace is deleted and works under service-role privileges", async () => {
     const before = (await db.query<{ total: string }>("select sum(coalesce(estimated_usd,reserved_usd)) as total from maro_optimizer_attempts where user_id=$1", [other])).rows[0].total;

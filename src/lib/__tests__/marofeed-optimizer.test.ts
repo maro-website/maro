@@ -55,15 +55,22 @@ describe("maroFeed uses the existing dedicated optimizer and durable budget", ()
     await expect(planFeedCampaign(input)).rejects.toThrow("optimizer_unavailable");
     expect(m.rpc).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
   });
-  it("accounts rejected invented claims and retains uncertainty after a timeout without leaking provider errors", async () => {
-    const input = await fixture(), value = generated(input); value.posts[3].headline = "Më shumë fibra.";
+  it("records a specific private rejection and candidate, keeping timeout uncertainty without leaking provider errors", async () => {
+    const input = await fixture(), value = generated(input); value.posts[1].concept = value.posts[0].concept;
     m.create.mockResolvedValueOnce({ model: "gpt-6.1-sol", status: "completed", output_text: JSON.stringify(value), usage: { input_tokens: 1000, output_tokens: 1000 } });
-    await expect(planFeedCampaign(input)).rejects.toThrow("optimizer_unavailable");
-    expect(m.update).toHaveBeenLastCalledWith(expect.objectContaining({ status: "rejected", final_prompt: null, estimated_usd: .012 }));
+    await expect(planFeedCampaign(input)).rejects.toThrow("feed_plan_invalid");
+    expect(m.update).toHaveBeenLastCalledWith(expect.objectContaining({ status: "rejected", error_code: "feed_plan_repeated", final_prompt: JSON.stringify(value), estimated_usd: .012 }));
     m.create.mockRejectedValueOnce(new Error("PRIVATE API KEY OR BRAND INPUT"));
     await expect(planFeedCampaign(input)).rejects.toThrow("optimizer_unavailable");
     expect(m.update).toHaveBeenLastCalledWith(expect.objectContaining({ status: "uncertain", error_code: "optimizer_cost_uncertain" }));
     expect(JSON.stringify(m.update.mock.calls)).not.toContain("PRIVATE API KEY");
+  });
+  it("retains a valid visual plan while removing unsupported copy and repairing catalog aliases in one call", async () => {
+    const input = await fixture(), value = generated(input); value.posts[3].headline = "Më shumë fibra."; value.posts[0].subjects[0].product = "Wrong alias for the single original";
+    m.create.mockResolvedValueOnce({ model: "gpt-6.1-sol", status: "completed", output_text: JSON.stringify(value), usage: { input_tokens: 1000, output_tokens: 1000 } });
+    const result = await planFeedCampaign(input);
+    expect(result.posts[3].headline).toBe(""); expect(result.posts[0].subjects[0].product).toBe(input.design.assets[0].label);
+    expect(m.create).toHaveBeenCalledTimes(1); expect(m.update).toHaveBeenCalledWith(expect.objectContaining({ status: "completed" }));
   });
   it("never accepts an unaccounted plan or an invalid cached plan", async () => {
     const input = await fixture();

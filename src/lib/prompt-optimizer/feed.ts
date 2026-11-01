@@ -19,6 +19,7 @@ The nine layout contracts are binding: studio = minimal iconic hero on an art-di
 Write a shared look and concrete production-ready scene for each post in English. Each scene must specify subject arrangement, setting, light and the visual mechanism that makes this concept different. Do not tell the image renderer to draw added typography: a real-font renderer handles copy separately in its planned quiet area. The scene must work as a finished design with that area. Keep physical product labels untouched.
 Headlines are optional, natural, concise copy in the requested language, maximum 60 characters. When textMode is false ALL headlines are empty. When it is true use visual breathing room: macro and atmosphere normally have no added copy unless the user supplies exact wording. Honor exact supplied copy literally. Avoid repetitive 'shije/festa' or 'discover' filler in every headline. No caption. Factual benefit, nutritional, comparative, size or offer copy must have evidence containing exact supporting quotations from the supplied TEXTUAL brand facts, never from image guesses. If unsupported, choose a non-factual invitation or no headline. Do not add generic health, fiber, mini-size, discount, urgency, endorsement or sustainability claims. Evidence quotes must be verbatim. Empty evidence is correct for a purely creative/non-factual headline.
 Use letters, digits and ordinary punctuation in headlines; no emoji or pictograms, because copy is rendered with the actual selected brand font.
+In subjects.product copy the corresponding sources.products.name EXACTLY, including spelling. The server owns slot layouts and product coverage; refer only to visible catalog products.
 Before returning, compare the entire grid: distinct role, scene, camera, balance and visual density; a coherent campaign identity; accurate source-to-product mapping; no invented variants or claims; no repeated headline. Do not solve consistency by making nine near-duplicates.`;
 
 export type FeedPlannerInput = {
@@ -59,7 +60,7 @@ export async function planFeedCampaign(input: FeedPlannerInput): Promise<FeedCam
     try { plan = validateFeedPlan(JSON.parse(claim.final_prompt ?? ""), input.design, input.brief, input.brain, input.contentType, input.textMode); }
     catch { throw new ImageRequestValidationError("optimizer_unavailable", 503); }
   } else {
-    const started = Date.now(); let knownUsage = false; let metrics: Record<string, unknown> = {};
+    const started = Date.now(); let knownUsage = false; let metrics: Record<string, unknown> = {}; let rawPlan: unknown;
     try {
       const content: OpenAI.Responses.ResponseInputContent[] = [{ type: "input_text", text: source }];
       for (const asset of input.design.assets) {
@@ -78,17 +79,24 @@ export async function planFeedCampaign(input: FeedPlannerInput): Promise<FeedCam
         knownUsage = /^gpt-6\.1-sol(?:-\d{4}-\d{2}-\d{2})?$/.test(response.model) && [null, undefined, "default"].includes(response.service_tier);
         metrics = { ...metrics, input_tokens: usage.input, cached_tokens: usage.cached, cache_write_tokens: usage.writes, output_tokens: usage.output, ...(knownUsage ? { estimated_usd: usage.usd } : {}) };
       }
-      if (!knownUsage || response.status !== "completed") throw new Error("feed_plan_invalid");
-      const candidate = validateFeedPlan(JSON.parse(response.output_text), input.design, input.brief, input.brain, input.contentType, input.textMode);
+      if (!knownUsage || response.status !== "completed") throw new Error("feed_plan_incomplete");
+      rawPlan = JSON.parse(response.output_text);
+      const candidate = validateFeedPlan(rawPlan, input.design, input.brief, input.brain, input.contentType, input.textMode);
       for (const post of candidate.posts) if (post.headline) await feedPlannedText(post.headline, input.design, post);
       plan = candidate;
-    } catch { metrics.error_code = knownUsage ? "optimizer_output_invalid" : "optimizer_cost_uncertain"; }
-    const serialized = plan ? JSON.stringify(plan) : null;
+    } catch (error) {
+      const reason = error instanceof Error && /^(?:feed_plan_(?:sources|layout|repeated|subjects|claim|coverage|too_large|incomplete)|headline_(?:unsupported|too_long)|feed_font_unavailable)$/.test(error.message) ? error.message : error instanceof Error && error.name === "ZodError" ? "feed_plan_schema" : "optimizer_output_invalid";
+      metrics.error_code = knownUsage ? reason : "optimizer_cost_uncertain";
+    }
+    // Rejected candidates are private diagnostics, never cache hits or generation-ready plans.
+    const diagnostic = rawPlan && typeof rawPlan === "object" ? JSON.stringify(rawPlan) : null;
+    const serialized = plan ? JSON.stringify(plan) : diagnostic && diagnostic.length <= 30_000 ? diagnostic : null;
     const saved = await db.from("maro_optimizer_attempts").update({ ...metrics, version: FEED_PLAN_VERSION,
       status: plan ? "completed" : knownUsage ? "rejected" : "uncertain", final_prompt: serialized,
       final_chars: serialized?.length ?? null, duration_ms: Date.now() - started, finished_at: new Date().toISOString(),
     }).eq("id", claim.id).eq("user_id", input.userId).eq("status", "running").select("id").single();
-    if (saved.error || !saved.data?.id || !plan) throw new ImageRequestValidationError("optimizer_unavailable", 503);
+    if (saved.error || !saved.data?.id) throw new ImageRequestValidationError("optimizer_unavailable", 503);
+    if (!plan) throw new ImageRequestValidationError(knownUsage ? "feed_plan_invalid" : "optimizer_unavailable", 503);
   }
   return { ...plan!, version: FEED_PLAN_VERSION, optimizer: { attemptId: claim.id, model: OPTIMIZER_MODEL, sourceHash } };
 }

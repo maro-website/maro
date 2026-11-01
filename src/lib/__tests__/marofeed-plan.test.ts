@@ -19,34 +19,39 @@ describe("one shared Feed art direction", () => {
       expect(validateFeedPlan(value, design, brief, "", type, true).posts).toHaveLength(9);
     }
   });
-  it("rejects repeated compositions, wrong roles, substituted originals and invented catalog products", () => {
+  it("rejects repeated compositions and substituted original references", () => {
     for (const alter of [
       (plan: ReturnType<typeof generated>) => { plan.posts[1].concept = plan.posts[0].concept; },
-      (plan: ReturnType<typeof generated>) => { plan.posts[2].layout = "lifestyle"; },
       (plan: ReturnType<typeof generated>) => { plan.posts[0].subjects[0].reference = 2; },
-      (plan: ReturnType<typeof generated>) => { plan.posts[0].subjects[0].product = "Invented mini flavor"; },
-      (plan: ReturnType<typeof generated>) => { plan.posts.forEach(post => { post.camera = "front"; }); },
     ]) { const plan = generated(); alter(plan); expect(() => validateFeedPlan(plan, design, brief, "", "mix", true)).toThrow(); }
+  });
+  it("normalizes server-owned layouts, single-product aliases and camera variety without another paid call", () => {
+    const value = generated(); value.posts.reverse(); value.posts.forEach(post => { post.camera = "front"; post.layout = "lifestyle"; });
+    value.posts.find(post => post.slot === 0)!.subjects[0].product = "Mistyped product alias";
+    const plan = validateFeedPlan(value, design, brief, "", "mix", true);
+    expect(plan.posts[0].subjects[0].product).toBe(design.assets[0].label); expect(plan.posts[2].layout).toBe("macro");
+    expect(new Set(plan.posts.map(post => post.camera)).size).toBeGreaterThanOrEqual(4);
   });
   it("recognizes a multi-product source as a collection and requires variant coverage across its slots", () => {
     const d = legacyFeedDesign(1), value = generated(d), source = value.sources[0];
     source.kind = "collection"; source.products.push({ name: "Other visible variant", identity: "Original blue package with exact printed label" });
-    expect(() => validateFeedPlan(value, d, brief, "", "mix", true)).toThrow("feed_plan_coverage");
+    const balanced = validateFeedPlan(value, d, brief, "", "mix", true);
+    expect(new Set(balanced.posts.flatMap(post => post.subjects.map(subject => subject.product))).size).toBe(2);
     value.posts[1].subjects[0].product = "Other visible variant";
     expect(validateFeedPlan(value, d, brief, "", "mix", true).sources[0].kind).toBe("collection");
   });
-  it("rejects unsupported mini/fiber/numerical claims and fabricated evidence, but keeps verified or explicit copy", () => {
+  it("removes unsupported mini/fiber/numerical copy instead of discarding nine valid visuals, preserving verified and explicit copy", () => {
     for (const headline of ["Më shumë fibra.", "Në format mini.", "50% më lirë."]) {
       const value = generated(); value.posts[3].headline = headline;
-      expect(() => validateFeedPlan(value, design, brief, "", "mix", true)).toThrow("feed_plan_claim");
+      expect(validateFeedPlan(value, design, brief, "", "mix", true).posts[3].headline).toBe("");
     }
     const value = generated(); value.posts[3].headline = "Më shumë fibra."; value.posts[3].evidence = ["Më shumë fibra se formula e kaluar."];
-    expect(() => validateFeedPlan(value, design, brief, "", "mix", true)).toThrow("feed_plan_claim");
+    expect(validateFeedPlan(value, design, brief, "", "mix", true).posts[3].headline).toBe("");
     expect(validateFeedPlan(value, design, { ...brief, description: "Më shumë fibra se formula e kaluar." }, "", "mix", true).posts[3].headline).toBe("Më shumë fibra.");
     const creative = generated(); creative.posts[3].headline = "More festive moments.";
     expect(validateFeedPlan(creative, design, brief, "", "mix", true).posts[3].headline).toBe("More festive moments.");
     value.posts[3].evidence = ["Produkti përmban fibra."];
-    expect(() => validateFeedPlan(value, design, { ...brief, description: "Produkti përmban fibra." }, "", "mix", true)).toThrow("feed_plan_claim");
+    expect(validateFeedPlan(value, design, { ...brief, description: "Produkti përmban fibra." }, "", "mix", true).posts[3].headline).toBe("");
     const custom: FeedDesign = { ...design, textRendering: "native", headlines: ["Teksti im i saktë.", ...Array(8).fill("")] };
     expect(validateFeedPlan(generated(), custom, brief, "", "mix", true).posts[0].headline).toBe("Teksti im i saktë.");
   });

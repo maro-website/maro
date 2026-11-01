@@ -149,7 +149,7 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     if (lock.current) return; lock.current = true; setBusy(true); setError("");
     try { await work(); }
     catch (err) {
-      if (err instanceof Error && ["optimizer_unavailable", "optimizer_input_too_long", "optimizer_budget_limit"].includes(err.message)) createId.current = "";
+      if (err instanceof Error && ["feed_plan_invalid", "optimizer_unavailable", "optimizer_input_too_long", "optimizer_budget_limit"].includes(err.message)) createId.current = "";
       if (alive.current) {
         setError(feedMessage((err as Error).message));
         // A lost response can still have completed server work. Refresh before offering another paid action.
@@ -222,7 +222,7 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
           <div className={b.brandIdentity}><div className={b.heroLogo}>{attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : <Grid3X3 size={24} />}</div><div><h2>{feed?.brand || (apps ? appDraft.brief.brand : brief.brand) || workspaceName}</h2><p>{apps ? "Fushatë për mobile app" : brain ? "Me kontekst nga maroBrain" : "Me informatat e brendit tënd"}</p></div></div>
           <div className={s.summary}><span>{feed?.cancelled ? `U ndal · ${done} imazhe` : feed?.cancelRequested ? "Po ndalet pas imazhit aktual…" : working ? "Po krijohet, një nga një…" : completeFeed ? (apps ? "Reklamat janë gati." : "Feed-i është gati.") : feed?.refunded ? "Credits u kthyen." : (apps ? `9 reklama · ${feed?.mobile?.format ?? appDraft.mobile.format}` : `9 imazhe · ${feed?.design?.format ?? "1:1"}`)}</span><strong>{done}/9</strong></div>
         </section>}
-        {error && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
+        {error && (apps || tab !== "prepare") && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
         {tab === "prepare" && <section className={b.editor} aria-label="Përgatitja e feed-it">
           <div className={b.sectionHeading}><div><h2>{apps ? "Përgatite fushatën e app-it" : "Përgatite feed-in"}</h2><p>{apps ? "Prej ndërfaqes reale, te reklama jote e ardhshme." : "Ngarko produktin dhe shto informatat që na duhen për brendin."}</p></div></div>
           {apps ? <AppsPreparation draft={appDraft} setDraft={setAppDraft} working={working} loading={loading} credits={credits} start={() => void start()} onUploadBusy={setUploadBusy} /> : <div className={s.form}>
@@ -248,6 +248,7 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
             <label className={b.field}><span>Drejtimi i fushatës</span><textarea className="maro-input" value={brief.notes} maxLength={1200} rows={3} placeholder="p.sh. Christmas themed: atmosferë festive, drita të ngrohta dhe skena dimërore…" onChange={e => patch("notes", e.target.value)} disabled={working} /><small className={b.hint}>Tema, oferta e saktë dhe kërkesat që duhet me u ndjekë në të gjitha postimet.</small></label>
             <details className={s.more}><summary className={b.promptSummary}>Ngjyrat (opsionale)</summary><div className={s.form}><label className={b.field}><span>Ngjyrat</span><input className="maro-input" value={brief.colors} maxLength={100} placeholder="p.sh. #233D2A, krem, portokalli" onChange={e => patch("colors", e.target.value)} disabled={working} /></label></div></details>
             <div className={s.formActions}><Button variant="brand" disabled={working || uploadBusy || loading || !designReady || !attachments.length || attachments.some(item => item.status !== "ready") || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()} icon={planning ? <LoaderCircle size={16} className={s.spin} /> : <Sparkles size={16} />}>{planning ? "Po përgatitet plani i feed-it…" : "Ma maro feed-in · 50 credits"}</Button><p className={b.hint} aria-live="polite">{planning ? "Po lidhen 9 koncepte, produktet dhe stili i përbashkët." : <>9 imazhe · 3 rigjenerime falas.<br />Pastaj 5 credits për rigjenerim.</>}</p></div>
+            {error && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
             <p className={b.hint}>50 credits paguhen në nisje: 5 për përgatitjen + 5 për secilin imazh. Nëse e ndal në mes, pjesa e papërdorur kthehet automatikisht.</p>
           </div>}
         </section>}
