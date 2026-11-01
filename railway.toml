@@ -2,6 +2,7 @@
 builder = "RAILPACK"
 
 [deploy]
+drainingSeconds = 180
 startCommand = "pnpm start"
 healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"

@@ -1,6 +1,8 @@
 import { getAccessToken } from "@/lib/supabase/client";
-import type { FeedView } from "./model";
+import type { FeedView, FeedRequestLookup } from "./model";
 export const feedMessages: Record<string, string> = {
+  feed_preparation_interrupted: "Përgatitja u ndërpre para krijimit të feed-it. Mundesh me riprovu të njëjtën kërkesë; pagesa e feed-it kryhet vetëm një herë.",
+  feed_check_timeout: "Kontrolli po merr shumë kohë. Kërkesa është ruajtur; kontrolloje ose riprovoje përsëri.",
   feed_plan_invalid: "Plani i feed-it nuk u pranua. Nuk ka nisë asnjë imazh dhe 50 credits nuk janë marrë. Mundesh me provu përsëri.",
   optimizer_unavailable: "Plani i feed-it nuk u përgatit. Provo përsëri; gjenerimi i ri ende nuk është paguar.",
   optimizer_busy: "Plani i feed-it po përgatitet. Prit pak para se të provosh përsëri.",
@@ -29,16 +31,28 @@ export const feedMessages: Record<string, string> = {
   feed_not_available: "maroFeed është në pilot privat.", rate_limited: "Prit pak para veprimit tjetër.", config_conflict: "Konfigurimi u ndryshua në një tab tjetër. Rifreskoje faqen.",
 };
 export const feedMessage = (code: string) => feedMessages[code] ?? "Veprimi nuk u përfundua. Provo përsëri pas pak.";
-export async function feedFetch(path: string, body?: unknown, method = "POST") {
+export async function feedFetch(path: string, body?: unknown, method = "POST", signal?: AbortSignal) {
   const token = await getAccessToken();
   if (!token) throw new Error("unauthorized");
   return fetch(path, { method: body === undefined ? "GET" : method, headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }), cache: "no-store" });
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }), cache: "no-store", signal });
 }
-export async function feedJson<T>(path: string, body?: unknown, method = "POST"): Promise<T> {
-  const response = await feedFetch(path, body, method); const data = await response.json();
+export async function feedJson<T>(path: string, body?: unknown, method = "POST", signal?: AbortSignal): Promise<T> {
+  const response = await feedFetch(path, body, method, signal); const data = await response.json().catch(() => { throw new Error("feed_unavailable"); });
   if (!response.ok || data.error) throw new Error(data.error ?? "feed_unavailable");
   return data as T;
+}
+/** Bound the whole check, including token refresh and a stalled response body. */
+export async function checkFeedRequest(path: string, signal: AbortSignal, timeoutMs = 12_000): Promise<FeedRequestLookup> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([feedJson<FeedRequestLookup>(path, undefined, "POST", controller.signal), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => { reject(new Error("feed_check_timeout")); controller.abort(); }, timeoutMs);
+    })]);
+  } finally { clearTimeout(timer); signal.removeEventListener("abort", abort); }
 }
 export async function feedStep(body: unknown, studio: "feed" | "apps" = "feed"): Promise<{ feed?: FeedView; error?: string }> {
   const response = await feedFetch(`/api/${studio}/action`, body);

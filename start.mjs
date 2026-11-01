@@ -19,7 +19,9 @@ const stop = (code) => {
   requestedExitCode = code;
   payments?.kill();
   child.kill();
-  const timer = setTimeout(() => process.exit(code), 5000);
+  // Next closes its listener on SIGTERM and waits for in-flight requests to settle.
+  // Normal shutdown gets Railway's drain window; fatal starts still fail quickly.
+  const timer = setTimeout(() => process.exit(code), code === 0 ? 185000 : 5000);
   timer.unref();
   child.once("exit", () => process.exit(code));
 };

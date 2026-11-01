@@ -13,11 +13,17 @@ type Row = Record<string, unknown>;
 function readOnlyDatabase(tables: Record<string, Row[]>) {
   return { from(table: string) {
     let rows = tables[table] ?? [];
-    const q = { select: () => q, eq: (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return q; }, in: (key: string, values: unknown[]) => { rows = rows.filter(row => values.includes(row[key])); return q; }, filter: () => q, order: () => q, limit: () => q, maybeSingle: async () => ({ data: rows[0] ?? null, error: null }), then: (resolve: (value: unknown) => void) => Promise.resolve({ data: rows, error: null }).then(resolve) };
+    const q = { select: () => q, eq: (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return q; }, like: (key: string, value: string) => { rows = rows.filter(row => String(row[key]).startsWith(value.replace(/%$/, ""))); return q; }, in: (key: string, values: unknown[]) => { rows = rows.filter(row => values.includes(row[key])); return q; }, filter: () => q, order: () => q, limit: () => q, maybeSingle: async () => ({ data: rows[0] ?? null, error: null }), then: (resolve: (value: unknown) => void) => Promise.resolve({ data: rows, error: null }).then(resolve) };
     return q;
   } };
 }
 describe("maroFeed preparation and ownership", () => {
+  it("reports the killed deployment's stale reservation as interrupted rather than busy forever", async () => {
+    const requestId = crypto.randomUUID(); mocks.user.mockResolvedValue({ id: "owner", email: "erzen@nice.al", email_confirmed_at: "2026-11-01" });
+    mocks.db.mockReturnValue(readOnlyDatabase({ workspaces: [{ id: "ws", owner_id: "owner" }], maro_optimizer_attempts: [{ id: crypto.randomUUID(), user_id: "owner", workspace_id: "ws", request_key: `feed-plan:${requestId}`, status: "running", created_at: new Date(Date.now() - 180_000).toISOString() }] }) as never);
+    const response = await handleFeedGet(req(`/api/feed?workspaceId=ws&requestId=${requestId}`));
+    expect(response.status).toBe(200); expect((await response.json()).preparation).toMatchObject({ state: "interrupted", error: "feed_preparation_interrupted" });
+  });
   it("downloads completed images as a partial ZIP while excluding unfinished and foreign jobs", async () => {
     const feedId = crypto.randomUUID(); mocks.user.mockResolvedValue({ id: "owner", email: "erzen@nice.al", email_confirmed_at: "2026-11-01" });
     const downloadObject = vi.fn(async () => ({ data: new Blob([new Uint8Array([137, 80, 78, 71])]), error: null }));
@@ -38,7 +44,7 @@ describe("maroFeed preparation and ownership", () => {
     mocks.db.mockReturnValue(readOnlyDatabase({ workspaces: [{ id: "ws", owner_id: owner }], maro_optimizer_attempts: [{ user_id: owner, workspace_id: "ws", request_key: `feed-plan:${requestId}`, version: "maro-context/1", status, created_at, final_prompt: "private candidate" }] }) as never);
     const response = await handleFeedGet(req(`/api/feed?workspaceId=ws&requestId=${requestId}`));
     expect(response.status).toBe(200); const body = await response.json();
-    expect(body.preparation.state).toBe(status === "running" ? "running" : status === "completed" ? "prepared" : "failed");
+    expect(body.preparation.state).toBe(["running", "uncertain"].includes(status) ? "running" : status === "completed" ? "prepared" : "failed");
     expect(JSON.stringify(body)).not.toMatch(/private candidate|final_prompt|version/);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });

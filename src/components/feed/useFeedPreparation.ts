@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { draftAttachments, feedDraftKey, loadFeedDraft, saveFeedDraft, type FeedDraft, type PendingFeedRequest } from "@/lib/feed/draft";
-import { feedJson, feedMessage } from "@/lib/feed/client";
-import type { FeedRequestLookup, FeedView } from "@/lib/feed/model";
+import { checkFeedRequest, feedMessage } from "@/lib/feed/client";
+import type { FeedView } from "@/lib/feed/model";
 import { uploadOrResolvePrivateAttachment, type PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
 
 export type FeedPreparationState = Omit<FeedDraft, "version" | "updatedAt" | "attachments" | "pending"> & { attachments: PrivateImageAttachment[] };
@@ -59,22 +59,24 @@ export function useFeedPreparation(options: Options) {
   useEffect(() => {
     if (!enabled || !ready || !pending || !needsCheck) return;
     let active = true, timer: ReturnType<typeof setTimeout> | undefined;
+    const controller = new AbortController();
     const check = async () => {
       setChecking(true);
       try {
-        const result = await feedJson<FeedRequestLookup>(`/api/feed?workspaceId=${encodeURIComponent(workspaceId)}&requestId=${pending.requestId}`);
+        const result = await checkFeedRequest(`/api/feed?workspaceId=${encodeURIComponent(workspaceId)}&requestId=${pending.requestId}`, controller.signal);
         if (!active) return;
         if (result.feed) { changePending(null); setNeedsCheck(false); persist(latest.current.state, null); latest.current.recovered(result.feed); setChecking(false); return; }
         if (result.preparation.state === "running" && Date.now() - pending.startedAt < 180_000) { timer = setTimeout(() => void check(), 6000); return; }
         if (result.preparation.state === "failed") { changePending(null); persist(latest.current.state, null); latest.current.error(feedMessage(result.preparation.error ?? "feed_plan_invalid")); }
+        if (result.preparation.state === "interrupted") latest.current.error(feedMessage("feed_preparation_interrupted"));
         // Missing/prepared/uncertain responses may be retried explicitly with the SAME ID, never a new charge.
         setNeedsCheck(false); setChecking(false);
       } catch { if (active) { setChecking(false); setNeedsCheck(false); latest.current.error("Nuk u verifikua kërkesa e fundit. Mundesh me e kontrollu ose me e riprovu; ruhet e njëjta kërkesë."); } }
     };
-    void check(); return () => { active = false; if (timer) clearTimeout(timer); };
+    void check(); return () => { active = false; controller.abort(); if (timer) clearTimeout(timer); };
   }, [enabled, ready, pending, needsCheck, workspaceId, changePending, persist]);
   const begin = useCallback((state: FeedPreparationState) => {
-    const value = pendingRef.current ?? { requestId: crypto.randomUUID(), startedAt: Date.now() };
+    const value = { requestId: pendingRef.current?.requestId ?? crypto.randomUUID(), startedAt: Date.now() };
     changePending(value); setNeedsCheck(false); persist(state, value); return value.requestId;
   }, [changePending, persist]);
   const finish = useCallback(() => { changePending(null); setNeedsCheck(false); setChecking(false); persist(latest.current.state, null); }, [changePending, persist]);

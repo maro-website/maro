@@ -54,9 +54,9 @@ describe("Feed plan admission through the real create API and existing financial
         } catch (error) { return { data: null, error: { message: (error as Error).message } }; }
       });
       m.db.mockReturnValue({ rpc, from: (table: string) => {
-        let id = "", key = "";
-        const row = async () => table === "workspaces" ? { id: "ws" } : table === "maro_feed_config" ? { config: defaultConfig, revision: 0 } : table === "maro_optimizer_attempts" ? { final_prompt: JSON.stringify({ look: plan.look, sources: plan.sources, posts: plan.posts }) } : table === "maro_feeds" ? (await db.query(`select * from maro_feeds where ${key ? "request_id" : "id"}=$1 and owner_id=$2`, [key || id, owner])).rows[0] : null;
-        const q = { select: () => q, eq: (column: string, value: string) => { if (column === "id") id = value; if (column === "request_id") key = value; return q; }, order: () => q, limit: () => q, maybeSingle: async () => ({ data: await row(), error: null }), single: async () => ({ data: await row(), error: null }), then: (done: (value: unknown) => void) => Promise.resolve({ data: [], error: null }).then(done) };
+        let id = "", key = "", lookup = false;
+        const row = async () => table === "workspaces" ? { id: "ws" } : table === "maro_feed_config" ? { config: defaultConfig, revision: 0 } : table === "maro_optimizer_attempts" ? lookup ? { id: "571e0169-27fc-4a15-82ff-b29a58dfa493", request_key: `feed-plan:${requestId}`, status: "running", created_at: new Date(Date.now() - 180_000).toISOString() } : { final_prompt: JSON.stringify({ look: plan.look, sources: plan.sources, posts: plan.posts }) } : table === "maro_feeds" ? (await db.query(`select * from maro_feeds where ${key ? "request_id" : "id"}=$1 and owner_id=$2`, [key || id, owner])).rows[0] : null;
+        const q = { select: () => q, eq: (column: string, value: string) => { if (column === "id") id = value; if (column === "request_id") key = value; return q; }, like: () => { lookup = true; return q; }, order: () => q, limit: () => q, maybeSingle: async () => ({ data: await row(), error: null }), single: async () => ({ data: await row(), error: null }), then: (done: (value: unknown) => void) => Promise.resolve({ data: [], error: null }).then(done) };
         return q;
       } });
       const body = { requestId, workspaceId: "ws", references: [`storage:generations/${owner}/refs/product.png`], design, category: "drinks", useBrain: false, brief: { brand: "Original Brand", description: "A real original product collection", notes: "Chrismas Themed", language: "sq" } };
@@ -67,6 +67,7 @@ describe("Feed plan admission through the real create API and existing financial
       m.plan.mockResolvedValue(plan);
       const response = await handleFeedCreate(request()); expect(await response.clone().json()).not.toHaveProperty("error"); expect(response.status).toBe(200);
       const beforeReplay = m.plan.mock.calls.length;
+      expect(m.plan.mock.calls.at(-1)?.[0].requestKey).toBe(`feed-plan:${requestId}:retry:571e0169-27fc-4a15-82ff-b29a58dfa493`);
       expect((await handleFeedCreate(request())).status).toBe(200);
       expect(m.plan).toHaveBeenCalledTimes(beforeReplay);
       const rows = (await db.query<{ brief: { campaignPlan: object }; bytes: number }>("select brief,pg_column_size(brief) bytes from maro_feeds")).rows;

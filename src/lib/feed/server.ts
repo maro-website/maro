@@ -23,6 +23,7 @@ import { optionalImageWork } from "@/lib/generation/v1ImagePersistence";
 import { recordCompletedGenerationCosts } from "@/lib/generation/orchestrator";
 import { ImageRequestValidationError } from "@/lib/generation/requestValidation";
 import { planFeedCampaign } from "@/lib/prompt-optimizer/feed";
+import { latestFeedPreparation, feedPreparationStatus, feedPreparationKey } from "./preparation";
 import { actionFeedSchema, briefSchema, buildFeedPrompt, canUseFeed, configSchema, createFeedSchema, defaultConfig, feedRole, roles, type FeedContentType, type FeedBrief, type FeedCategory, type FeedConfig, type FeedView } from "./model";
 import { feedDesignSchema, feedPostReferences, feedHeadline, legacyFeedDesign, type FeedDesign } from "./campaign";
 import { feedFontReference, feedOutputBytes, feedPalette, feedPlannedText } from "./output";
@@ -160,10 +161,7 @@ export async function handleFeedGet(req: Request) {
         if (existing.data.workspace_id !== workspaceId || existing.data.brief?.mobile) throw new FeedError("feed_not_found", 404);
         return feedResponse({ feed: await feedView(user.id, existing.data.id), preparation: { state: "ready" } });
       }
-      const attempt = await db.from("maro_optimizer_attempts").select("status,created_at").eq("user_id", user.id).eq("workspace_id", workspaceId).eq("request_key", `feed-plan:${requestId}`).maybeSingle();
-      if (attempt.error) throw new FeedError("feed_unavailable", 503);
-      const row = attempt.data;
-      return feedResponse({ preparation: !row ? { state: "missing" } : row.status === "completed" ? { state: "prepared", createdAt: row.created_at } : row.status === "running" ? { state: "running", createdAt: row.created_at } : { state: "failed", error: row.status === "rejected" ? "feed_plan_invalid" : "optimizer_unavailable", createdAt: row.created_at } });
+      return feedResponse({ preparation: feedPreparationStatus(await latestFeedPreparation(user.id, workspaceId, requestId)) });
     }
     const campaignId = url.searchParams.get("marketingCampaignId");
     if (campaignId) await ownedMarketingCampaign(user.id, workspaceId, campaignId);
@@ -226,7 +224,7 @@ export async function handleFeedCreate(req: Request) {
       if (copy) try { await feedPlannedText(copy, design, { layout: feedPostLayout(slot, input.contentType) }); }
       catch (error) { throw new FeedError(error instanceof Error ? error.message : "headline_unsupported"); }
     }
-    const campaignPlan = design && !campaign ? await planFeedCampaign({ userId: user.id, workspaceId: input.workspaceId, requestKey: `feed-plan:${input.requestId}`,
+    const campaignPlan = design && !campaign ? await planFeedCampaign({ userId: user.id, workspaceId: input.workspaceId, requestKey: feedPreparationKey(input.requestId, await latestFeedPreparation(user.id, input.workspaceId, input.requestId)),
       imageModel: model.providerModelId, design, brief: resolved.data, brain, category: input.category, config,
       contentType: input.contentType, textMode: input.textMode, references: resolvedReferences }) : undefined;
     if (campaignPlan && design) await preflightFeedPlan(campaignPlan, design);
