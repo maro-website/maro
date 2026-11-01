@@ -105,15 +105,18 @@ export function validateFeedPlan(value: unknown, design: FeedDesign, brief: Feed
 export function feedTypographyBox(design: FeedDesign, layout: FeedLayout) {
   const { width, height } = feedDimensions(design.format), margin = Math.round(width * .08);
   const positions: Record<FeedLayout, [number, number, number, number]> = {
-    studio: [.08, .08, .72, .24], lifestyle: [.08, .70, .64, .22], macro: [.30, .72, .62, .20],
-    graphic: [.08, .24, .46, .50], sculpture: [.30, .08, .62, .24], process: [.08, .08, .72, .22],
-    atmosphere: [.08, .70, .64, .22], interactive: [.08, .08, .84, .34], conversion: [.08, .64, .74, .28],
+    studio: [.08, .08, .84, .28], lifestyle: [.08, .68, .60, .22], macro: [.30, .70, .62, .20],
+    graphic: [.08, .20, .48, .56], sculpture: [.30, .08, .62, .28], process: [.08, .08, .54, .30],
+    atmosphere: [.08, .68, .64, .22], interactive: [.08, .08, .84, .36], conversion: [.08, .62, .84, .28],
   };
   const [x, y, w, h] = positions[layout];
   const box = { left: Math.round(x * width), top: Math.round(y * height), width: Math.round(w * width), height: Math.round(h * height) };
   const logo = feedLogoBox(design);
   const overlaps = () => box.left < logo.left + logo.width + 12 && box.left + box.width + 12 > logo.left && box.top < logo.top + logo.height + 12 && box.top + box.height + 12 > logo.top;
-  if (design.assets.some(asset => asset.role === "logo") && overlaps()) box.top = height - box.top - box.height;
+  if (design.assets.some(asset => asset.role === "logo") && overlaps()) {
+    const gap = Math.round(width * .03);
+    box.top = design.logoPosition.startsWith("bottom") ? logo.top - gap - box.height : logo.top + logo.height + gap;
+  }
   box.left = Math.max(margin, Math.min(box.left, width - margin - box.width));
   box.top = Math.max(margin, Math.min(box.top, height - margin - box.height));
   return box;

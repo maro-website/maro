@@ -62,7 +62,7 @@ export function FeedBrainPicker({ userId, workspaceId, workspaceName, disabled, 
     finally { importLock.current = false; if (alive.current) setAdding(false); }
   }
   return <>
-    <button type="button" className={`${b.dropZone} ${s.upload}`} disabled={disabled || !userId || !remaining} onClick={() => setOpen(true)}><BrainCircuit size={28} /><strong>Zgjedh nga maroBrain</strong><small>{workspaceName} · produktet dhe logoja e ruajtur</small></button>
+    <button type="button" className={s.referenceChoice} disabled={disabled || !userId || !remaining} onClick={() => setOpen(true)}><BrainCircuit size={24} /><span><strong>Zgjedh nga maroBrain</strong><small>Produktet dhe logoja e ruajtur</small></span></button>
     <Modal open={open} onClose={() => { if (!importLock.current) setOpen(false); }} closeOnBackdrop={!adding} size="lg" aria-label="Zgjedh imazhe nga maroBrain">
       <ModalHeader title="Nga maroBrain, në feed-in tënd" description={`Imazhet e ${workspaceName}. Mundesh me i kombinu edhe me ngarkime të reja.`} />
       <div className={s.brainPickerBody}>

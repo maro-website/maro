@@ -6,10 +6,9 @@ import { ArrowDownToLine, ArrowUpRight, Check, Grid3X3, ImagePlus, LoaderCircle,
 import { useMaro } from "@/context/store";
 import { useWorkspace } from "@/context/workspace";
 import { IMAGE_REFERENCE_ACCEPT, createPrivateImageAttachment, uploadOrResolvePrivateAttachment, type PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
-import { canUseFeed, categoryIds, defaults, roles, contentTypes, contentLabels, feedRole, FEED_MAX_REFERENCES, type FeedContentType, type FeedBrief, type FeedCategory, type FeedView } from "@/lib/feed/model";
+import { canUseFeed, roles, contentLabels, feedRole, FEED_MAX_REFERENCES, type FeedContentType, type FeedBrief, type FeedCategory, type FeedView, type FeedHistoryItem } from "@/lib/feed/model";
 import { downloadFeed, feedJson, feedMessage, feedStep } from "@/lib/feed/client";
 import { Button } from "@/components/ui/Button";
-import { Switch } from "@/components/ui/Switch";
 import { Logo } from "@/components/ui/Logo";
 import b from "@/components/modules/BrainStudio.module.css";
 import s from "./FeedWorkspace.module.css";
@@ -18,8 +17,12 @@ import { appRole, appFormats, canUseApps } from "@/lib/apps/model";
 import { marketingJson, marketingMessage } from "@/lib/marketing/client";
 import type { MarketingCampaign } from "@/lib/marketing/model";
 import { feedFormats } from "@/lib/feed/campaign";
-import { FeedBrandSettings, draftFeedDesign, initialFeedDesign, readyFeedDesign } from "./FeedBrandSettings";
+import { draftFeedDesign, initialFeedDesign, readyFeedDesign } from "./FeedBrandSettings";
 import { FeedHero } from "./FeedHero";
+import { FeedPreparation, type FeedBrainState } from "./FeedPreparation";
+import { FeedResults, FeedLibrary } from "./FeedResults";
+import { useFeedPreparation } from "./useFeedPreparation";
+import { fetchBrainProfile } from "@/lib/workspaces/brainService";
 import { FeedBrainPicker } from "./FeedBrainPicker";
 import { mergeFeedBrainAssets, type FeedBrainSelection } from "@/lib/feed/brainAssets";
 
@@ -30,14 +33,17 @@ export function FeedWorkspace({ studio = "feed", marketingCampaignId, onMarketin
   if (!activeWorkspace) return <div className={s.notice}>Duke hapur workspace…</div>;
   return <FeedStudio key={`${studio}:${user!.id}:${activeWorkspace.id}:${marketingCampaignId ?? "standalone"}`} workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} studio={studio} marketingCampaignId={marketingCampaignId} onMarketingImport={onMarketingImport} />;
 }
-type History = { id: string; name?: string; brand: string; createdAt: string; refunded: boolean; cancelled?: boolean; format?: string; contentType?: FeedContentType };
+type History = FeedHistoryItem;
 const initialBrief: FeedBrief = { brand: "", description: "", audience: "", goal: "sales", language: "sq", colors: "", notes: "" };
 function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, onMarketingImport }: { workspaceId: string; workspaceName: string; studio: "feed" | "apps"; marketingCampaignId?: string; onMarketingImport?: (feedId: string, studio: "feed" | "apps") => Promise<void> }) {
   const apps = studio === "apps", api = `/api/${studio}`;
   const [appDraft, setAppDraft] = React.useState(initialAppDraft);
   const { user, credits, refreshProfile } = useMaro();
+  const userId = user!.id;
   const [tab, setTab] = React.useState<"prepare" | "feed" | "history">("prepare");
   const [brief, setBrief] = React.useState(initialBrief); const [brain, setBrain] = React.useState(false);
+  const [brainState, setBrainState] = React.useState<FeedBrainState>({ loading: false, ready: false });
+  const languageTouched = React.useRef(false);
   const [category, setCategory] = React.useState<FeedCategory>("drinks");
   const [attachments, setAttachments] = React.useState<PrivateImageAttachment[]>([]);
   const attachmentRef = React.useRef<PrivateImageAttachment[]>([]);
@@ -76,13 +82,36 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     document.addEventListener("keydown", keydown);
     return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", keydown); previous?.focus(); };
   }, [selected]);
-  const patch = (key: keyof FeedBrief, value: string) => setBrief(b => ({ ...b, [key]: value }));
+  const patch = (key: keyof FeedBrief, value: string) => { if (key === "language") languageTouched.current = true; setBrief(b => ({ ...b, [key]: value })); };
   const remember = React.useCallback((value: FeedView, open = true) => {
     if (!alive.current) return;
+    const previous = currentFeed.current;
+    if (previous?.id === value.id && value.tiles.some(tile => tile.version > previous.tiles[tile.slot].version)) setError("");
     currentFeed.current = value;
+    setHistory(rows => {
+      const entry: History = { id: value.id, name: value.design?.name, format: value.design?.format, contentType: value.contentType, brand: value.brand, createdAt: value.createdAt, refunded: value.refunded, cancelled: value.cancelled, done: value.tiles.filter(tile => tile.url).length, cover: value.tiles.find(tile => tile.url)?.url, running: Boolean(value.active) };
+      return [...rows.filter(row => row.id !== value.id), entry].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    });
     if (open) setTab("feed");
     setFeed(value); if (open && !marketingCampaignId) { const url = new URL(window.location.href); url.searchParams.set("feed", value.id); window.history.replaceState(null, "", url); }
   }, [marketingCampaignId]);
+  const preparationState = { brief, brain, category, contentType, textMode, designDraft, attachments };
+  const preparation = useFeedPreparation({ enabled: !apps && !marketingCampaignId, userId: user!.id, workspaceId, state: preparationState,
+    restore: (saved, restored) => { setBrief(saved.brief); setBrain(saved.brain); setCategory(saved.category); setContentType(saved.contentType); setTextMode(saved.textMode); setDesignDraft(saved.designDraft); updateAttachments(restored); languageTouched.current = true; },
+    recovered: value => { remember(value); createId.current = ""; void refreshProfile(); }, error: setError,
+  });
+  React.useEffect(() => {
+    if (apps || !brain) { setBrainState({ loading: false, ready: false }); return; }
+    let active = true; setBrainState({ loading: true, ready: false });
+    void fetchBrainProfile(userId, workspaceId).then(profile => {
+      if (!active) return;
+      const name = profile.brand.name ?? "", description = profile.brand.description ?? "";
+      setBrainState({ loading: false, ready: Boolean(name.trim() && description.trim().length >= 8), name, description });
+      if (!languageTouched.current) setBrief(value => ({ ...value, language: /english|anglisht|^en$/i.test(profile.brand.language ?? "") ? "en" : "sq" }));
+    }).catch(error => { if (active) setBrainState({ loading: false, ready: false, error: feedMessage(error.message) }); });
+    return () => { active = false; };
+  }, [apps, brain, userId, workspaceId]);
+
   React.useEffect(() => {
     if (!marketingCampaignId) return;
     let live = true;
@@ -134,6 +163,24 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     }
     if (alive.current) setUploadBusy(false);
   }
+  async function retryPreview(id: string) {
+    const item = attachmentRef.current.find(value => value.id === id); if (!item?.storageRef || busy || uploadBusy) return;
+    setUploadBusy(true);
+    try { const restored = await uploadOrResolvePrivateAttachment(item); if (alive.current) updateAttachments(attachmentRef.current.map(value => value.id === id ? restored : value)); }
+    finally { if (alive.current) setUploadBusy(false); }
+  }
+  function previewError(id: string, url: string) {
+    if (!alive.current) return;
+    updateAttachments(attachmentRef.current.map(item => item.id === id && item.previewUrl === url && item.status === "ready" ? { ...item, status: "preview-error", error: "Pamja private nuk u hap. Rihape foton." } : item));
+  }
+  function resetPreparation() {
+    if (busy || preparation.pending) return;
+    preparation.clear(); updateAttachments([]); setBrief(initialBrief); setBrain(false); setCategory("drinks"); setContentType("mix"); setTextMode(true); setDesignDraft(initialFeedDesign); setError(""); languageTouched.current = false; createId.current = "";
+  }
+  function openPreparation() {
+    setTab("prepare");
+    if (!apps && !marketingCampaignId) { const url = new URL(window.location.href); url.searchParams.delete("feed"); window.history.replaceState(null, "", url); }
+  }
   async function complete(value: FeedView) {
     let current = value;
     while (alive.current && !current.refunded && !current.cancelRequested && !current.cancelled && stopFeed.current !== current.id && current.tiles.some(t => !t.url)) {
@@ -162,17 +209,17 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     finally { lock.current = false; if (alive.current) { setBusy(false); setActiveSlot(null); void refreshProfile(); } }
   }
   async function start() {
-    if (!marketingReady) return;
+    if (!marketingReady || (!apps && (!preparation.ready || preparation.checking))) return;
     await run(async () => {
       if (!apps && (!attachments.length || attachments.some(item => !item.storageRef || item.status !== "ready"))) throw new Error("brief_incomplete");
       if (!apps && !designReady) throw new Error("design_incomplete");
       stopFeed.current = null;
-      createId.current ||= crypto.randomUUID();
+      if (!apps && !marketingCampaignId) createId.current = preparation.begin(preparationState);
+      else createId.current ||= crypto.randomUUID();
       if (!apps) setPlanning(true);
       const data = await feedJson<{ feed: FeedView }>(api, { requestId: createId.current, workspaceId, ...(marketingCampaignId ? { marketingCampaignId } : {}),
-        ...(apps ? appDraftPayload(appDraft) : { references: attachments.map(item => item.storageRef!), contentType, textMode, category, useBrain: brain, design: draftDesign }), brief: apps ? appDraft.brief : brain ? { goal: brief.goal, language: brief.language, notes: brief.notes, ...(brief.colors ? { colors: brief.colors } : {}) } : brief }).finally(() => { if (alive.current) setPlanning(false); });
-      remember(data.feed); createId.current = "";
-      setHistory(rows => [{ id: data.feed.id, name: data.feed.design?.name, format: data.feed.design?.format, contentType: data.feed.contentType, brand: data.feed.brand, createdAt: data.feed.createdAt, refunded: false }, ...rows.filter(f => f.id !== data.feed.id)]);
+        ...(apps ? appDraftPayload(appDraft) : { references: attachments.map(item => item.storageRef!), contentType, textMode, category, useBrain: brain, design: draftDesign }), brief: apps ? appDraft.brief : brain ? { goal: brief.goal, language: brief.language, notes: brief.notes, ...(brief.colors ? { colors: brief.colors } : {}) } : brief }).catch(error => { if (!apps && !marketingCampaignId) preparation.failed(); throw error; }).finally(() => { if (alive.current) setPlanning(false); });
+      remember(data.feed); createId.current = ""; if (!apps && !marketingCampaignId) preparation.finish();
       void refreshProfile(); await complete(data.feed);
     });
   }
@@ -197,7 +244,7 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     try { await downloadFeed(feed.id, slot, studio); } catch (err) { setError(feedMessage((err as Error).message)); } finally { setDownloading(false); }
   }
   const done = feed?.tiles.filter(t => t.url).length ?? 0; const completeFeed = done === 9;
-  const working = busy || Boolean(feed?.active) || !marketingReady; const active = activeSlot ?? feed?.active?.slot;
+  const working = busy || Boolean(feed?.active) || !marketingReady || (!apps && (!preparation.ready || preparation.checking)); const active = activeSlot ?? feed?.active?.slot;
   const free = Math.max(0, 3 - (feed?.freeUsed ?? 0));
   const stopped = Boolean(feed?.cancelled || feed?.cancelRequested || feed?.refunded);
   const tiles: FeedView["tiles"] = feed?.tiles ?? roles.map((_, slot) => ({ slot, title: (apps ? appRole(slot, appDraft.contentType) : feedRole(slot, contentType)).title, url: null, version: 0 }));
@@ -205,54 +252,38 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
     {apps ? <header className={s.lead}>
       <div><h1 className={s.wordmark} aria-label={apps ? "maroApps" : "maroFeed"}><Logo showWord wordClassName={s.maroWord} /><span>{apps ? "Apps" : "Feed"}</span></h1><h2>{apps ? "App-i yt. Reklama që e tregojnë." : "Nga referencat, te feed-i yt."}</h2><p>{apps ? "Screenshot-et e tua, pajisjet e fundit dhe drejtimi yt kreativ. Maro i lidh në një fushatë." : "Ti zgjedh drejtimin. Maro i lidh 9 postimet me brendin tënd."}</p></div>
       <div className={s.leadSteps} aria-label={apps ? "Si funksionon maroApps" : "Si funksionon maroFeed"}><span><ImagePlus size={20} /><small>01</small><strong>Ngarko</strong></span><span><SlidersHorizontal size={20} /><small>02</small><strong>Zgjedh</strong></span><span><Grid3X3 size={20} /><small>03</small><strong>Maro</strong></span></div>
-    </header> : <FeedHero attachments={attachments} design={draftDesign} />}
+    </header> : <FeedHero attachments={tab === "prepare" ? attachments : []} design={draftDesign} />}
     {marketingCampaignId && <div className={b.assistBar}><Sparkles size={20} /><div><strong>Imazhet e fushatës maroMarketing</strong><p>Çdo imazh ndjek postimin përkatës të planit. Ngarko produktin ose screenshot-et reale; pastaj ktheji imazhet te postimet për rishikim.</p></div>{done > 0 && onMarketingImport && <Button variant="brand" loading={marketingImportBusy} disabled={working} onClick={async () => { if (!feed) return; setMarketingImportBusy(true); try { await onMarketingImport(feed.id, studio); } catch (e) { setError(marketingMessage((e as Error).message)); } finally { if (alive.current) setMarketingImportBusy(false); } }}>Shto {done} imazhe te plani</Button>}</div>}
     <div className={b.layout}>
       <aside className={b.sidebar}>
         <div className={b.workspace}><span>Workspace</span><div className={`maro-input ${s.workspaceName}`}>{workspaceName}</div></div>
         <nav className={b.sectionNav} aria-label={apps ? "Seksionet e maroApps" : "Seksionet e maroFeed"}>
           <button type="button" disabled={working || uploadBusy} aria-current={tab === "prepare" ? "page" : undefined} onClick={() => { setTab("prepare"); if (!apps && !marketingCampaignId) { const url = new URL(window.location.href); url.searchParams.delete("feed"); window.history.replaceState(null, "", url); } }}><SlidersHorizontal size={18} /><span>Përgatitja</span></button>
-          <button type="button" disabled={working || uploadBusy} aria-current={(apps ? tab === "feed" : tab !== "prepare") ? "page" : undefined} onClick={() => setTab(apps ? "feed" : "history")}><Grid3X3 size={18} /><span>{apps ? "Reklamat e tua" : "Feed-at e tu"}</span><small>{apps ? `${done}/9` : history.length}</small></button>
+          <button type="button" disabled={working || uploadBusy} aria-current={(apps ? tab === "feed" : tab === "history") ? "page" : undefined} onClick={() => setTab(apps ? "feed" : "history")}><Grid3X3 size={18} /><span>{apps ? "Reklamat e tua" : "Feed-at e tu"}</span><small>{apps ? `${done}/9` : history.length}</small></button>
+          {!apps && feed && <button type="button" disabled={working || uploadBusy} aria-current={tab === "feed" ? "page" : undefined} onClick={() => setTab("feed")}><ImageIcon size={18} /><span>Feed-i aktual</span><small>{done}/9</small></button>}
           {apps && <button type="button" disabled={working || uploadBusy} aria-current={tab === "history" ? "page" : undefined} onClick={() => setTab("history")}><History size={18} /><span>Historiku</span><small>{history.length}</small></button>}
         </nav>
         <div className={b.sidebarProgress}><div className={b.row}><span>Postime të përfunduara</span><strong>{done}/9</strong></div><div className={b.progress}><span style={{ width: `${done / 9 * 100}%` }} /></div><p className={s.sidebarNote}>{apps ? "3 rigjenerime falas për fushatë." : "3 rigjenerime falas për feed."}<br />Pastaj 5 credits secili.</p></div>
       </aside>
       <main className={b.main}>
-        {(apps || tab === "feed") && <section className={apps ? b.hero : s.feedSummary} aria-label="Përmbledhja e feed-it">
+        {apps && <section className={apps ? b.hero : s.feedSummary} aria-label="Përmbledhja e feed-it">
           <div className={b.brandIdentity}><div className={b.heroLogo}>{attachment?.previewUrl ? <img src={attachment.previewUrl} alt="Produkti i ngarkuar" /> : <Grid3X3 size={24} />}</div><div><h2>{feed?.brand || (apps ? appDraft.brief.brand : brief.brand) || workspaceName}</h2><p>{apps ? "Fushatë për mobile app" : brain ? "Me kontekst nga maroBrain" : "Me informatat e brendit tënd"}</p></div></div>
           <div className={s.summary}><span>{feed?.cancelled ? `U ndal · ${done} imazhe` : feed?.cancelRequested ? "Po ndalet pas imazhit aktual…" : working ? "Po krijohet, një nga një…" : completeFeed ? (apps ? "Reklamat janë gati." : "Feed-i është gati.") : feed?.refunded ? "Credits u kthyen." : (apps ? `9 reklama · ${feed?.mobile?.format ?? appDraft.mobile.format}` : `9 imazhe · ${feed?.design?.format ?? "1:1"}`)}</span><strong>{done}/9</strong></div>
         </section>}
         {error && (apps || tab !== "prepare") && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
         {tab === "prepare" && <section className={b.editor} aria-label="Përgatitja e feed-it">
           <div className={b.sectionHeading}><div><h2>{apps ? "Përgatite fushatën e app-it" : "Përgatite feed-in"}</h2><p>{apps ? "Prej ndërfaqes reale, te reklama jote e ardhshme." : "Ngarko produktin dhe shto informatat që na duhen për brendin."}</p></div></div>
-          {apps ? <AppsPreparation draft={appDraft} setDraft={setAppDraft} working={working} loading={loading} credits={credits} start={() => void start()} onUploadBusy={setUploadBusy} /> : <div className={s.form}>
-            <div className={s.referenceSources}>
-            <FeedBrainPicker userId={user?.id ?? ""} workspaceId={workspaceId} workspaceName={workspaceName} disabled={working || uploadBusy} existingRefs={attachments.map(item => item.storageRef).filter((ref): ref is string => Boolean(ref))} attachmentCount={attachments.length} hasLogo={draftDesign.assets.some(asset => asset.role === "logo")} onAdd={addBrainReferences} />
-            <button className={`${b.dropZone} ${s.upload}`} type="button" onClick={() => fileInput.current?.click()} disabled={working || uploadBusy || attachments.length >= FEED_MAX_REFERENCES} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void upload(Array.from(event.dataTransfer.files)); }}>
-              {uploadBusy ? <LoaderCircle className={s.spin} size={24} /> : <ImagePlus size={28} />}
-              <strong>{uploadBusy ? "Duke ngarkuar referencat…" : "Ngarko të reja"}</strong><small>PNG, JPG ose WebP · deri në 25 MB secila · {attachments.length}/{FEED_MAX_REFERENCES}</small>
-            </button>
-            </div>
-            <input ref={fileInput} type="file" multiple accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={e => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
-            <FeedBrandSettings draft={designDraft} setDraft={setDesignDraft} attachments={attachments} remove={id => { updateAttachments(attachmentRef.current.filter(item => item.id !== id)); setDesignDraft(draft => ({ ...draft, assignments: undefined })); }} disabled={working || uploadBusy} contentType={contentType} textMode={textMode} />
-            <div className={s.contextRow}><div><strong>maroBrain</strong><p>{brain ? workspaceName : "Përdore kujtesën e brendit"}</p></div><Switch checked={brain} onChange={setBrain} disabled={working} aria-label="Përdor maroBrain" /></div>
-            {brain ? <div className={b.hint}>Identiteti, audienca, ngjyrat dhe rregullat merren nga maroBrain i këtij workspace. <Link className={s.inlineLink} href="/brain">Hape maroBrain <ArrowUpRight size={14} /></Link></div> : <>
-              <label className={b.field}><span>Emri i brendit</span><input className="maro-input" value={brief.brand} maxLength={120} disabled={working} placeholder="p.sh. NOMA" onChange={e => patch("brand", e.target.value)} /></label>
-              <label className={b.field}><span>Çka shet / ofron?</span><textarea className="maro-input" value={brief.description} maxLength={1800} disabled={working} placeholder="Produkti, çka e bën të veçantë, për kë është…" rows={3} onChange={e => patch("description", e.target.value)} /></label>
-              <label className={b.field}><span>Audienca <small className={b.hint}>(opsionale)</small></span><input className="maro-input" value={brief.audience} maxLength={300} disabled={working} placeholder="Kujt i drejtohet brendi yt?" onChange={e => patch("audience", e.target.value)} /></label>
-            </>}
-            <div className={s.fieldPair}><label className={b.field}><span>Kategoria</span><select className="maro-input" value={category} disabled={working} onChange={e => setCategory(e.target.value as FeedCategory)}>{categoryIds.map(id => <option key={id} value={id}>{defaults[id].label}</option>)}</select></label><label className={b.field}><span>Synimi</span><select className="maro-input" value={brief.goal} disabled={working} onChange={e => patch("goal", e.target.value)}><option value="sales">Shitje</option><option value="engagement">Engagement</option><option value="launch">Lansim</option></select></label></div>
-            <label className={b.field}><span>Lloji i postimeve</span><select className="maro-input" value={contentType} disabled={working} onChange={e => setContentType(e.target.value as FeedContentType)}>{contentTypes.map(type => <option key={type} value={type}>{contentLabels[type]}</option>)}</select><small className={b.hint}>{contentType === "mix" ? "Një miks me 9 role të ndryshme, si një fushatë e vetme." : `9 postime të llojit “${contentLabels[contentType]}”, me kompozime të ndryshme.`}</small></label>
-            <div className={s.contextRow}><div><strong>Tekst në imazhe</strong><p>{textMode ? "Tekst i integruar në dizajn, sipas fushatës." : "Pa tekst të shtuar. Etiketat dhe logoja e produktit ruhen."}</p></div><Switch checked={textMode} onChange={setTextMode} disabled={working} aria-label="Tekst në imazhe" /></div>
-            <label className={b.field}><span>Gjuha në imazhe</span><select className="maro-input" value={brief.language} disabled={working || !textMode} onChange={e => patch("language", e.target.value)}><option value="sq">Shqip</option><option value="en">English</option></select></label>
-            <label className={b.field}><span>Drejtimi i fushatës</span><textarea className="maro-input" value={brief.notes} maxLength={1200} rows={3} placeholder="p.sh. Christmas themed: atmosferë festive, drita të ngrohta dhe skena dimërore…" onChange={e => patch("notes", e.target.value)} disabled={working} /><small className={b.hint}>Tema, oferta e saktë dhe kërkesat që duhet me u ndjekë në të gjitha postimet.</small></label>
-            <details className={s.more}><summary className={b.promptSummary}>Ngjyrat (opsionale)</summary><div className={s.form}><label className={b.field}><span>Ngjyrat</span><input className="maro-input" value={brief.colors} maxLength={100} placeholder="p.sh. #233D2A, krem, portokalli" onChange={e => patch("colors", e.target.value)} disabled={working} /></label></div></details>
-            <div className={s.formActions}><Button variant="brand" disabled={working || uploadBusy || loading || !designReady || !attachments.length || attachments.some(item => item.status !== "ready") || credits < 50 || (!brain && (!brief.brand.trim() || brief.description.trim().length < 8))} onClick={() => void start()} icon={planning ? <LoaderCircle size={16} className={s.spin} /> : <Sparkles size={16} />}>{planning ? "Po përgatitet plani i feed-it…" : "Ma maro feed-in · 50 credits"}</Button><p className={b.hint} aria-live="polite">{planning ? "Po lidhen 9 koncepte, produktet dhe stili i përbashkët." : <>9 imazhe · 3 rigjenerime falas.<br />Pastaj 5 credits për rigjenerim.</>}</p></div>
-            {error && <div className={s.error} role="alert"><p>{error}</p><Button variant="ghost" size="icon" aria-label="Mbylle mesazhin" onClick={() => setError("")}><X size={16} /></Button></div>}
-            <p className={b.hint}>50 credits paguhen në nisje: 5 për përgatitjen + 5 për secilin imazh. Nëse e ndal në mes, pjesa e papërdorur kthehet automatikisht.</p>
-          </div>}
+          {apps ? <AppsPreparation draft={appDraft} setDraft={setAppDraft} working={working} loading={loading} credits={credits} start={() => void start()} onUploadBusy={setUploadBusy} /> : <>
+          <input ref={fileInput} type="file" multiple accept={IMAGE_REFERENCE_ACCEPT} className={s.hidden} onChange={event => { void upload(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+          <FeedPreparation workspaceName={workspaceName} attachments={attachments} draft={designDraft} setDraft={setDesignDraft} designReady={designReady}
+            remove={id => { updateAttachments(attachmentRef.current.filter(item => item.id !== id)); setDesignDraft(value => ({ ...value, assignments: undefined })); }} retry={id => void retryPreview(id)} previewError={previewError}
+            pickFiles={() => fileInput.current?.click()} upload={files => void upload(files)} brainPicker={<FeedBrainPicker userId={user!.id} workspaceId={workspaceId} workspaceName={workspaceName} disabled={working || uploadBusy || Boolean(preparation.pending)} existingRefs={attachments.map(item => item.storageRef).filter((ref): ref is string => Boolean(ref))} attachmentCount={attachments.length} hasLogo={draftDesign.assets.some(asset => asset.role === "logo")} onAdd={addBrainReferences} />} uploadBusy={uploadBusy} working={working} loading={loading}
+            draftReady={preparation.ready} draftSaved={preparation.saved} planning={planning} credits={credits} brain={brain} setBrain={setBrain} brainState={brainState}
+            brief={brief} patch={patch} category={category} setCategory={setCategory} contentType={contentType} setContentType={setContentType} textMode={textMode} setTextMode={setTextMode}
+            error={error} dismiss={() => setError("")} pending={preparation.pending} checking={preparation.checking} checkRequest={preparation.check} start={() => void start()} reset={resetPreparation} />
+          </>}
         </section>}
-        {tab === "feed" && <section className={b.editor} aria-label="Feed-i me nëntë postime">
+        {apps && tab === "feed" && <section className={b.editor} aria-label="Feed-i me nëntë postime">
           {!apps && <div className={s.feedPicker}><Button variant="ghost" size="sm" disabled={working} onClick={() => setTab("history")}>← Feed-at e tu</Button><label className={b.field}><span>Feed-i i zgjedhur</span><select className="maro-input" value={feed?.id ?? ""} disabled={working} onChange={e => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`${api}?feedId=${e.target.value}`); remember(data.feed); })}>{history.map(item => <option key={item.id} value={item.id}>{item.name || item.brand} · {new Intl.DateTimeFormat("sq", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(item.createdAt))}</option>)}</select></label></div>}
           <div className={b.sectionHeading}><div><h2>{apps ? "Reklamat e tua" : feed?.design?.name || feed?.brand || "Feed-i yt"}</h2><p>{feed?.cancelled ? `U mbajtën ${50 - feed.refundCredits} credits (5 + ${done} × 5). U kthyen ${feed.refundCredits} credits.` : feed?.cancelRequested ? "Po përfundon imazhi aktual; pastaj kthehen credits e papërdorura." : completeFeed ? `${free} rigjenerime falas të mbetura.` : "Postimet krijohen një nga një dhe ruhen automatikisht."}</p></div><span className={b.hint}>{apps ? appFormats[feed?.mobile?.format ?? appDraft.mobile.format] : feedFormats[feed?.design?.format ?? "1:1"]}</span></div>
           {working && <div className={`${b.progress} ${s.feedProgress}`} role="progressbar" aria-label="Postimet e përfunduara" aria-valuenow={done} aria-valuemin={0} aria-valuemax={9}><span style={{ width: `${done / 9 * 100}%` }} /></div>}
@@ -265,11 +296,15 @@ function FeedStudio({ workspaceId, workspaceName, studio, marketingCampaignId, o
           {feed?.cancelRequested && !feed.cancelled && <p role="status" className={b.footnote}>Ndalimi u kërkua. Rezultati aktual ruhet; postimet e radhës nuk nisen.</p>}
 
         </section>}
-        {tab === "history" && <section className={b.editor} aria-label="Historiku i feed-ave"><div className={b.sectionHeading}><div><h2>{apps ? "Fushatat e tua" : "Feed-at e tu"}</h2><p>{apps ? "Progresi ruhet automatikisht." : "Zgjedhe kampanjën që dëshiron me hapë."}</p></div>{!apps && <Button variant="secondary" size="sm" onClick={() => setTab("prepare")}>Feed i ri</Button>}</div>{history.length ? <div className={apps ? s.history : s.feedLibrary}>{history.map(item => <button type="button" key={item.id} disabled={working} aria-pressed={item.id === feed?.id} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`${api}?feedId=${item.id}`); remember(data.feed); })}><Grid3X3 size={24} /><div><strong>{item.name || item.brand}</strong>{!apps && <p>{item.brand} · {item.format ?? "1:1"} · {contentLabels[item.contentType ?? "mix"]}</p>}<span>{new Intl.DateTimeFormat("sq", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.createdAt))}</span>{!apps && (item.cancelled || item.refunded) && <small>U ndal</small>}</div><ArrowUpRight size={16} /></button>)}</div> : <div className={b.empty}><History size={24} /><h3>{apps ? "Fushata jote e parë po të pret." : "Ende nuk ke krijuar feed."}</h3><p>{apps ? "Fushatat e app-eve ruhen këtu." : "Feed-at që krijon do t’i gjesh këtu."}</p></div>}</section>}
+        {apps && tab === "history" && <section className={b.editor} aria-label="Historiku i feed-ave"><div className={b.sectionHeading}><div><h2>{apps ? "Fushatat e tua" : "Feed-at e tu"}</h2><p>{apps ? "Progresi ruhet automatikisht." : "Zgjedhe kampanjën që dëshiron me hapë."}</p></div>{!apps && <Button variant="secondary" size="sm" onClick={() => setTab("prepare")}>Feed i ri</Button>}</div>{history.length ? <div className={apps ? s.history : s.feedLibrary}>{history.map(item => <button type="button" key={item.id} disabled={working} aria-pressed={item.id === feed?.id} onClick={() => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`${api}?feedId=${item.id}`); remember(data.feed); })}><Grid3X3 size={24} /><div><strong>{item.name || item.brand}</strong>{!apps && <p>{item.brand} · {item.format ?? "1:1"} · {contentLabels[item.contentType ?? "mix"]}</p>}<span>{new Intl.DateTimeFormat("sq", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.createdAt))}</span>{!apps && (item.cancelled || item.refunded) && <small>U ndal</small>}</div><ArrowUpRight size={16} /></button>)}</div> : <div className={b.empty}><History size={24} /><h3>{apps ? "Fushata jote e parë po të pret." : "Ende nuk ke krijuar feed."}</h3><p>{apps ? "Fushatat e app-eve ruhen këtu." : "Feed-at që krijon do t’i gjesh këtu."}</p></div>}</section>}
+        {!apps && tab === "feed" && <FeedResults feed={feed} history={history} working={working} activeSlot={activeSlot} downloading={downloading} cancelling={cancelling}
+          open={slot => { setSelected(slot); setFeedback(""); setHeadline(feed?.tiles[slot].headline ?? ""); }} download={slot => void download(slot)} resume={() => { if (feed) { stopFeed.current = null; void run(() => complete(feed)); } }} cancel={() => void cancelFeed()}
+          choose={id => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`${api}?feedId=${id}`); remember(data.feed); })} library={() => setTab("history")} prepare={openPreparation} />}
+        {!apps && tab === "history" && <FeedLibrary items={history} selected={feed?.id} loading={loading} working={working} open={id => void run(async () => { const data = await feedJson<{ feed: FeedView }>(`${api}?feedId=${id}`); remember(data.feed); })} prepare={openPreparation} />}
         <p className={b.footnote}>{apps ? "Screenshot-et gjenerohen si pjesë e reklamës. Kontrollo detajet e ndërfaqes para publikimit. " : ""}Kur të vijë <strong>maroMarketing</strong>, mundesh me kriju edhe captions për këto postime.</p>
       </main>
     </div>
-    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><Button className={s.modalClose} variant="secondary" size="icon" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={20} /></Button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${feed.tiles[selected].title}`} /><div className={s.modalInfo}><div><p className={b.hint}>Postimi {selected + 1} / 9</p><h2>{feed.tiles[selected].title}</h2></div>{error && <p role="alert" className={b.hint}>{error}</p>}<Button variant="secondary" disabled={downloading} onClick={() => void download(selected)} icon={<ArrowDownToLine size={16} />}>Shkarko PNG</Button>{completeFeed && !stopped && <>{!apps && feed.textMode && feed.tiles[selected].headline !== undefined && <label className={b.field}><span>Teksti në imazh</span><textarea className="maro-input" value={headline} maxLength={60} rows={2} disabled={working} placeholder="Lëre bosh për pa tekst" onChange={e => setHeadline(e.target.value)} /><small className={b.hint}>Mundesh me e ndryshu ose me e heqë para rigjenerimit.</small></label>}<label className={b.field}><span>Çka dëshiron me ndryshu? <small className={b.hint}>(opsionale)</small></span><textarea className="maro-input" value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Kënd tjetër, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><Button variant="brand" disabled={working || (!free && credits < 5)} onClick={() => void regenerate()} icon={working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}>Rigjenero · {free ? `Falas · ${free} të mbetura` : "5 credits"}</Button><p className={b.hint}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
+    {selected !== null && feed?.tiles[selected]?.url && <div className={s.modalBackdrop} onClick={() => setSelected(null)}><section className={s.modal} role="dialog" aria-modal="true" aria-label={`Postimi ${selected + 1}`} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") setSelected(null); }}><Button className={s.modalClose} variant="secondary" size="icon" autoFocus aria-label="Mbylle imazhin" onClick={() => setSelected(null)}><X size={20} /></Button><img src={feed.tiles[selected].url!} alt={`${feed.brand} · ${feed.tiles[selected].title}`} /><div className={s.modalInfo}><div><p className={b.hint}>Postimi {selected + 1} / 9</p><h2>{feed.tiles[selected].title}</h2></div>{error && <p role="alert" className={b.hint}>{error}</p>}<Button variant="secondary" disabled={downloading} onClick={() => void download(selected)} icon={<ArrowDownToLine size={16} />}>Shkarko PNG</Button>{completeFeed && !stopped && <>{!apps && feed.textMode && feed.tiles[selected].headline !== undefined && <label className={b.field}><span>Teksti për versionin e ri</span><textarea className="maro-input" value={headline} maxLength={60} rows={2} disabled={working} placeholder="Lëre bosh për pa tekst" onChange={e => setHeadline(e.target.value)} /><small className={b.hint}>Ndryshoje, ndaje në rreshta ose hiqe për versionin e ri. Fotoja rigjenerohet bashkë me tekstin.</small></label>}<label className={b.field}><span>Çka dëshiron me ndryshu? <small className={b.hint}>(opsionale)</small></span><textarea className="maro-input" value={feedback} maxLength={600} rows={3} disabled={working} placeholder="p.sh. Kënd tjetër, dritë më e ngrohtë…" onChange={e => setFeedback(e.target.value)} /></label><Button variant="brand" disabled={working || (!free && credits < 5)} onClick={() => void regenerate()} icon={working ? <LoaderCircle size={16} className={s.spin} /> : <RefreshCw size={16} />}>Rigjenero · {free ? `Falas · ${free} të mbetura` : "5 credits"}</Button><p className={b.hint}>Imazhi aktual mbetet deri sa të jetë gati versioni i ri.</p></>}</div></section></div>}
   </div>;
 }
 

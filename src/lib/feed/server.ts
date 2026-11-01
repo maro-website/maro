@@ -150,13 +150,38 @@ export async function handleFeedGet(req: Request) {
     const workspaceId = url.searchParams.get("workspaceId");
     if (!workspaceId || workspaceId.length > 160) throw new FeedError("invalid_request");
     await ownedWorkspace(user.id, workspaceId);
+    const requestId = url.searchParams.get("requestId");
+    if (requestId) {
+      if (studio !== "feed" || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(requestId)) throw new FeedError("invalid_request");
+      const db = getSupabaseAdmin();
+      const existing = await db.from("maro_feeds").select("id,workspace_id,brief").eq("owner_id", user.id).eq("request_id", requestId).maybeSingle();
+      if (existing.error) throw new FeedError("feed_unavailable", 503);
+      if (existing.data) {
+        if (existing.data.workspace_id !== workspaceId || existing.data.brief?.mobile) throw new FeedError("feed_not_found", 404);
+        return feedResponse({ feed: await feedView(user.id, existing.data.id), preparation: { state: "ready" } });
+      }
+      const attempt = await db.from("maro_optimizer_attempts").select("status,created_at").eq("user_id", user.id).eq("workspace_id", workspaceId).eq("request_key", `feed-plan:${requestId}`).maybeSingle();
+      if (attempt.error) throw new FeedError("feed_unavailable", 503);
+      const row = attempt.data;
+      return feedResponse({ preparation: !row ? { state: "missing" } : row.status === "completed" ? { state: "prepared", createdAt: row.created_at } : row.status === "running" ? { state: "running", createdAt: row.created_at } : { state: "failed", error: row.status === "rejected" ? "feed_plan_invalid" : "optimizer_unavailable", createdAt: row.created_at } });
+    }
     const campaignId = url.searchParams.get("marketingCampaignId");
     if (campaignId) await ownedMarketingCampaign(user.id, workspaceId, campaignId);
     let query = getSupabaseAdmin().from("maro_feeds").select("id,brief,created_at,refunded,cancelled_at,content_type").eq("owner_id", user.id).eq("workspace_id", workspaceId).filter("brief->mobile", studio === "apps" ? "not.is" : "is", "null");
     if (campaignId) query = query.eq("brief->marketing->>campaignId", campaignId);
     const { data, error } = await query.order("created_at", { ascending: false }).limit(30);
     if (error) throw new FeedError("feed_unavailable", 503);
-    return feedResponse({ feeds: (data ?? []).map(f => ({ id: f.id, name: f.brief.design?.name, brand: f.brief.brand, createdAt: f.created_at, refunded: f.refunded, cancelled: Boolean(f.cancelled_at), format: f.brief.design?.format ?? f.brief.mobile?.format ?? "1:1", contentType: f.content_type ?? "mix" })) });
+    const feeds = (data ?? []).map(f => ({ id: f.id, name: f.brief.design?.name, brand: f.brief.brand, createdAt: f.created_at, refunded: f.refunded, cancelled: Boolean(f.cancelled_at), format: f.brief.design?.format ?? f.brief.mobile?.format ?? "1:1", contentType: f.content_type ?? "mix" }));
+    if (studio !== "feed" || !feeds.length) return feedResponse({ feeds });
+    const ids = feeds.map(f => f.id), db = getSupabaseAdmin();
+    const [completed, running] = await Promise.all([
+      db.from("maro_feed_attempts").select("feed_id,slot,job_id").eq("owner_id", user.id).in("feed_id", ids).eq("status", "completed").eq("regenerate", false),
+      db.from("maro_feed_attempts").select("feed_id").eq("owner_id", user.id).in("feed_id", ids).eq("status", "running"),
+    ]);
+    if (completed.error || running.error) throw new FeedError("feed_unavailable", 503);
+    const covers = feeds.map(f => (completed.data ?? []).filter(a => a.feed_id === f.id).sort((a, b) => a.slot - b.slot)[0]);
+    const signed = await resolveAssetListForClient(covers.filter(Boolean).map(a => `storage:generations/${user.id}/${a!.job_id}/output.png`)); let coverIndex = 0;
+    return feedResponse({ feeds: feeds.map((f, index) => ({ ...f, cover: covers[index] ? signed[coverIndex++] || null : null, done: new Set((completed.data ?? []).filter(a => a.feed_id === f.id).map(a => a.slot)).size, running: (running.data ?? []).some(a => a.feed_id === f.id) })) });
   } catch (error) { return feedError(error); }
 }
 export async function handleFeedCreate(req: Request) {
@@ -167,6 +192,14 @@ export async function handleFeedCreate(req: Request) {
     const input = parsed.data;
     if (studio === "feed" && !input.design) throw new FeedError("design_incomplete");
     await ownedWorkspace(user.id, input.workspaceId);
+    if (studio === "feed" && !input.marketingCampaignId) {
+      const existing = await getSupabaseAdmin().from("maro_feeds").select("id,workspace_id,brief").eq("owner_id", user.id).eq("request_id", input.requestId).maybeSingle();
+      if (existing.error) throw new FeedError("feed_unavailable", 503);
+      if (existing.data) {
+        if (existing.data.workspace_id !== input.workspaceId || existing.data.brief?.mobile) throw new FeedError("request_conflict", 409);
+        return feedResponse({ feed: await feedView(user.id, existing.data.id) });
+      }
+    }
     // Resolve before any charge: never silently generate without the uploaded product.
     const references = input.references ?? [input.reference!];
     const resolvedReferences: Awaited<ReturnType<typeof resolvePrivateImageReference>>[] = [];

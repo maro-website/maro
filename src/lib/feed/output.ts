@@ -1,64 +1,11 @@
 import "server-only";
 import sharp from "sharp";
-import path from "node:path";
-import { readFileSync } from "node:fs";
-import { create, type Font } from "fontkit";
-import { feedFonts, feedFontPixels, feedLogoBox, feedTextBox, feedDimensions, type FeedDesign } from "./campaign";
-import { feedTypographyBox, type FeedPlanPost } from "./plan";
-
-const fontFiles = { inter: "@fontsource/inter/files/inter-latin-700-normal.woff", manrope: "@fontsource/manrope/files/manrope-latin-700-normal.woff", playfair: "@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff" } as const;
-const fonts = new Map<FeedDesign["font"], Font>();
-/** Rasterize the bundled glyph outlines directly; system font availability cannot change the face. */
-export async function feedTextImage(text: string, design: FeedDesign, color = "#ffffff", bounds?: { width: number; height: number; size: number }) {
-  const box = bounds ?? feedTextBox(design);
-  let size = bounds?.size ?? Math.round(feedFontPixels(design.typeScale) * (design.format === "9:16" ? 864 / 1024 : 1));
-  let font = fonts.get(design.font);
-  if (!font) {
-    font = create(readFileSync(path.join(process.cwd(), "node_modules", fontFiles[design.font])));
-    if (font.familyName !== feedFonts[design.font]) throw new Error("feed_font_unavailable");
-    fonts.set(design.font, font);
-  }
-  const normalized = text.normalize("NFC").replace(/\s+/gu, " ").trim();
-  if (!normalized || [...normalized].some(c => !font.hasGlyphForCodePoint(c.codePointAt(0)!))) throw new Error("headline_unsupported");
-  if (!/^#[a-f\d]{6}$/i.test(color)) throw new Error("invalid_text_color");
-  let scale = size / font.unitsPerEm;
-  const width = (value: string) => font.layout(value).positions.reduce((n, p) => n + p.xAdvance * scale, 0);
-  const lines: string[] = []; let current = "";
-  const wrap = () => {
-  lines.length = 0; current = "";
-  for (const word of normalized.split(" ")) {
-    if (current && width(current + " " + word) <= box.width) { current += " " + word; continue; }
-    if (current) { lines.push(current); current = ""; }
-    for (const character of word) {
-      if (current && width(current + character) > box.width) { lines.push(current); current = ""; }
-      current += character;
-    }
-  }
-  if (current) lines.push(current);
-  };
-  wrap();
-  if (bounds) while (lines.length * Math.ceil((font.ascent - font.descent + font.lineGap) * scale) > box.height && size > 32) { size -= 2; scale = size / font.unitsPerEm; wrap(); }
-  const lineHeight = Math.ceil((font.ascent - font.descent + font.lineGap) * scale);
-  const height = lines.length * lineHeight;
-  if (height > box.height) throw new Error("headline_too_long");
-  const paths: string[] = [];
-  lines.forEach((line, lineIndex) => {
-    const run = font.layout(line); let cursor = 0;
-    run.glyphs.forEach((glyph, index) => {
-      const position = run.positions[index], x = cursor + position.xOffset * scale;
-      const y = font!.ascent * scale + lineIndex * lineHeight - position.yOffset * scale;
-      paths.push(`<path d="${glyph.path.toSVG()}" transform="translate(${x} ${y}) scale(${scale} ${-scale})"/>`);
-      cursor += position.xAdvance * scale;
-    });
-  });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${box.width}" height="${height}" viewBox="0 0 ${box.width} ${height}"><g fill="${color}">${paths.join("")}</g></svg>`;
-  return sharp(Buffer.from(svg)).png().toBuffer({ resolveWithObject: true });
-}
-
-export function feedPlannedText(text: string, design: FeedDesign, post: Pick<FeedPlanPost, "layout">, color = "#ffffff") {
-  const box = feedTypographyBox(design, post.layout), { width } = feedDimensions(design.format);
-  return feedTextImage(text, design, color, { ...box, size: Math.round(width * (["graphic", "interactive"].includes(post.layout) ? .075 : .060)) });
-}
+import { feedDimensions, type FeedDesign } from "./campaign";
+import type { FeedPlanPost } from "./plan";
+import { feedTextImage, feedPlannedText } from "./typeRenderer";
+import { feedLogoLayers } from "./logo";
+import { feedTextLayers } from "./textContrast";
+export { feedTextImage, feedPlannedText };
 
 export async function feedPalette(images: string[]) {
   const colors: string[] = [];
@@ -88,18 +35,10 @@ export async function feedOutputBytes(bytes: Buffer, design: FeedDesign, logo?: 
   const { width, height } = feedDimensions(design.format);
   let framed = await sharp(bytes, { limitInputPixels: 40_000_000 }).rotate().resize(width, height, { fit: "cover", position: "centre" }).png().toBuffer();
   if (post?.headline) {
-    const box = feedTypographyBox(design, post.layout);
-    const { channels } = await sharp(framed).extract(box).resize(8, 8).stats();
-    const linear = (value: number) => value / 255 <= .04045 ? value / 255 / 12.92 : ((value / 255 + .055) / 1.055) ** 2.4;
-    const luminance = .2126 * linear(channels[0].mean) + .7152 * linear(channels[1].mean) + .0722 * linear(channels[2].mean);
-    const dark = .2126 * linear(32) + .7152 * linear(37) + .0722 * linear(34);
-    const color = (luminance + .05) / (dark + .05) >= 4.5 ? "#202522" : 1.05 / (luminance + .05) >= 4.5 ? "#ffffff" : "#000000";
-    const text = await feedPlannedText(post.headline, design, post, color);
-    // Transparent original glyphs only. No title plate, bar, panel, fallback font or UI frame.
-    framed = await sharp(framed).composite([{ input: text.data, left: box.left, top: box.top }]).png().toBuffer();
+    const text = await feedTextLayers(framed, design, post);
+    framed = await sharp(framed).composite(text.layers).png().toBuffer();
   }
   if (!logo) return framed;
-  const box = feedLogoBox(design);
-  const overlay = await sharp(Buffer.from(logo.split(",")[1], "base64"), { limitInputPixels: 40_000_000 }).rotate().resize(box.width, box.height, { fit: "contain", background: "#00000000" }).png().toBuffer();
-  return sharp(framed).composite([{ input: overlay, left: box.left, top: box.top }]).png().toBuffer();
+  const mark = await feedLogoLayers(framed, logo, design);
+  return sharp(framed).composite(mark.layers).png().toBuffer();
 }

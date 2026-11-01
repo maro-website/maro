@@ -54,9 +54,9 @@ describe("Feed plan admission through the real create API and existing financial
         } catch (error) { return { data: null, error: { message: (error as Error).message } }; }
       });
       m.db.mockReturnValue({ rpc, from: (table: string) => {
-        let id = "";
-        const row = async () => table === "workspaces" ? { id: "ws" } : table === "maro_feed_config" ? { config: defaultConfig, revision: 0 } : table === "maro_optimizer_attempts" ? { final_prompt: JSON.stringify({ look: plan.look, sources: plan.sources, posts: plan.posts }) } : table === "maro_feeds" ? (await db.query("select * from maro_feeds where id=$1", [id])).rows[0] : null;
-        const q = { select: () => q, eq: (key: string, value: string) => { if (key === "id") id = value; return q; }, order: () => q, limit: () => q, maybeSingle: async () => ({ data: await row(), error: null }), single: async () => ({ data: await row(), error: null }), then: (done: (value: unknown) => void) => Promise.resolve({ data: [], error: null }).then(done) };
+        let id = "", key = "";
+        const row = async () => table === "workspaces" ? { id: "ws" } : table === "maro_feed_config" ? { config: defaultConfig, revision: 0 } : table === "maro_optimizer_attempts" ? { final_prompt: JSON.stringify({ look: plan.look, sources: plan.sources, posts: plan.posts }) } : table === "maro_feeds" ? (await db.query(`select * from maro_feeds where ${key ? "request_id" : "id"}=$1 and owner_id=$2`, [key || id, owner])).rows[0] : null;
+        const q = { select: () => q, eq: (column: string, value: string) => { if (column === "id") id = value; if (column === "request_id") key = value; return q; }, order: () => q, limit: () => q, maybeSingle: async () => ({ data: await row(), error: null }), single: async () => ({ data: await row(), error: null }), then: (done: (value: unknown) => void) => Promise.resolve({ data: [], error: null }).then(done) };
         return q;
       } });
       const body = { requestId, workspaceId: "ws", references: [`storage:generations/${owner}/refs/product.png`], design, category: "drinks", useBrain: false, brief: { brand: "Original Brand", description: "A real original product collection", notes: "Chrismas Themed", language: "sq" } };
@@ -66,7 +66,9 @@ describe("Feed plan admission through the real create API and existing financial
       expect((await db.query<{ credits: number }>("select credits from profiles where id=$1", [owner])).rows[0].credits).toBe(500);
       m.plan.mockResolvedValue(plan);
       const response = await handleFeedCreate(request()); expect(await response.clone().json()).not.toHaveProperty("error"); expect(response.status).toBe(200);
+      const beforeReplay = m.plan.mock.calls.length;
       expect((await handleFeedCreate(request())).status).toBe(200);
+      expect(m.plan).toHaveBeenCalledTimes(beforeReplay);
       const rows = (await db.query<{ brief: { campaignPlan: object }; bytes: number }>("select brief,pg_column_size(brief) bytes from maro_feeds")).rows;
       expect(rows).toHaveLength(1); expect(rows[0].bytes).toBeLessThan(12000);
       expect(rows[0].brief.campaignPlan).toEqual({ version: plan.version, optimizer: plan.optimizer });

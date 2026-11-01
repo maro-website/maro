@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const db = getSupabaseAdmin();
     const { data, error } = await db.from("maro_feed_attempts").select("slot,job_id").eq("feed_id", id).eq("owner_id", user.id).eq("status", "completed").order("created_at", { ascending: false }).limit(500);
     if (error) throw new Error("download_unavailable");
-    const slots = raw === null ? (feed.cancelled_at ? [...new Set((data ?? []).map(row => Number(row.slot)))].sort((a, b) => a - b) : Array.from({ length: 9 }, (_, i) => i)) : [Number(raw)];
+    const slots = raw === null ? (studio === "feed" || feed.cancelled_at ? [...new Set((data ?? []).map(row => Number(row.slot)))].sort((a, b) => a - b) : Array.from({ length: 9 }, (_, i) => i)) : [Number(raw)];
     if (!slots.length) return feedResponse({ error: "feed_not_complete" }, 409);
     const files: Array<{ name: string; bytes: Uint8Array }> = [];
     let total = 0;

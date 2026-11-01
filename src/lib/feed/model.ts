@@ -80,6 +80,8 @@ export type FeedView = { id: string; brand: string; category: FeedCategory; crea
   contentType: FeedContentType; textMode: boolean; referenceCount: number;
   cancelRequested: boolean; cancelled: boolean; refundCredits: number;
   tiles: FeedTile[]; active: { slot: number; startedAt: string } | null; lastError: string | null };
+export type FeedHistoryItem = { id: string; name?: string; brand: string; createdAt: string; refunded: boolean; cancelled?: boolean; format?: string; contentType?: FeedContentType; cover?: string | null; done?: number; running?: boolean };
+export type FeedRequestLookup = { feed?: FeedView; preparation: { state: "ready" | "running" | "failed" | "missing" | "prepared"; error?: string; createdAt?: string } };
 
 export function feedRole(slot: number, type: FeedContentType = "mix") {
   if (!Number.isInteger(slot) || slot < 0 || slot > 8) throw new Error("invalid_slot");

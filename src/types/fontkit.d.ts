@@ -7,7 +7,7 @@ declare module "fontkit" {
     lineGap: number;
     hasGlyphForCodePoint(codePoint: number): boolean;
     layout(text: string): {
-      glyphs: Array<{ path: { toSVG(): string } }>;
+      glyphs: Array<{ path: { toSVG(): string }; bbox: { minX: number; minY: number; maxX: number; maxY: number } }>;
       positions: Array<{ xAdvance: number; xOffset: number; yOffset: number }>;
     };
   };
