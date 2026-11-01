@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     const response = authJson(CONFIRMATION_NOTICE);
     const supabase = createSupabaseRouteHandlerClient(req, response);
     const { data, error } = await supabase.auth.signUp({ email, password, options: {
+      captchaToken: input.captchaToken,
       data: { full_name: name || email.split("@")[0] },
       emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: signInPath }),
     } });

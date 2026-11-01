@@ -6,6 +6,7 @@ import { readJsonBody } from "@/lib/security/requestLimits";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { isProduction } from "@/lib/config/serverEnv";
 import { isValidEmail } from "@/lib/security/validation";
+import { authCaptchaToken, nativeAuthCaptchaEnabled } from "./captcha";
 
 export const CONFIRMATION_NOTICE = { ok: true, needsEmailConfirmation: true };
 export const RECOVERY_NOTICE = { ok: true, message: "Nëse ekziston një llogari me këtë email, do të marrësh udhëzime për rivendosjen e fjalëkalimit." };
@@ -17,6 +18,7 @@ export function authFailure(error: { code?: string; status?: number } | null) {
   if (["user_already_exists", "email_exists", "email_not_confirmed", "user_not_found"].includes(error.code ?? "")) return null;
   if (error.code === "weak_password") return authJson({ error: "weak-password" }, 400);
   if (error.code === "email_address_invalid") return authJson({ error: "invalid-email" }, 400);
+  if (error.code === "captcha_failed") return authJson({ error: "turnstile_failed" }, 403);
   if (error.status === 429) return authJson({ error: "rate_limited" }, 429);
   return authJson({ error: "auth_temporarily_unavailable" }, 503);
 }
@@ -36,13 +38,20 @@ export async function readPublicAuthRequest(req: Request, flow: "signup" | "rese
   const body = parsed.body as Record<string, unknown>;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!isValidEmail(email) || email.length > 254) return { response: authJson({ error: "invalid-email" }, 400) };
-  const ts = await verifyTurnstileToken(typeof body.turnstileToken === "string" ? body.turnstileToken : null, ip, { required: isProduction() });
-  if (!ts.ok) return { response: authJson({ error: ts.reason }, 403) };
+  const captchaToken = authCaptchaToken(body.turnstileToken);
+  if (nativeAuthCaptchaEnabled()) {
+    // A Turnstile token is single-use. Supabase verifies it at the Auth boundary;
+    // consuming it here first would break legitimate signup and recovery.
+    if (!captchaToken) return { response: authJson({ error: "turnstile_required" }, 403) };
+  } else {
+    const ts = await verifyTurnstileToken(captchaToken, ip, { required: isProduction() });
+    if (!ts.ok) return { response: authJson({ error: ts.reason }, 403) };
+  }
   const recipientLimit = await enforceRateLimit(req, `auth:email:${flow}`, createHash("sha256").update(email).digest("hex"), 3, 3600, "strict");
   if (!recipientLimit.allowed) {
     const response = authJson({ error: "rate_limited", retry_after: recipientLimit.retryAfter }, 429);
     response.headers.set("Retry-After", String(recipientLimit.retryAfter));
     return { response };
   }
-  return { body, email, ip };
+  return { body, email, ip, captchaToken };
 }

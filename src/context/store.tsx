@@ -63,7 +63,7 @@ interface MaroContextValue {
   supabaseReady: boolean;
   projects: Project[];
   // auth
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string, turnstileToken?: string) => Promise<{ error: string | null }>;
   signUp: (
     name: string,
     email: string,
@@ -359,10 +359,10 @@ export function MaroProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile]);
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<{ error: string | null }> => {
+    async (email: string, password: string, turnstileToken?: string): Promise<{ error: string | null }> => {
       if (!supabaseConfigured) return { error: "Supabase nuk është konfiguruar." };
       const sb = getSupabaseBrowser();
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken: turnstileToken } });
       if (error) return { error: authErrorMessage(error.code) };
       await refreshProfile();
       return { error: null };

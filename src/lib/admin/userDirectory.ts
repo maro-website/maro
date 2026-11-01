@@ -9,6 +9,9 @@ export interface AdminDirectoryUser {
   access_role: AccessRole | null;
   is_admin: boolean;
   created_at: string;
+  emailConfirmedAt?: string | null;
+  lastSignInAt?: string | null;
+  bannedUntil?: string | null;
   plan: string;
   membershipId: string | null;
   planExpiresAt: string | null;

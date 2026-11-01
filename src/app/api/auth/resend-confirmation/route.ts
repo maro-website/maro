@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const response = authJson(CONFIRMATION_NOTICE);
     const supabase = createSupabaseRouteHandlerClient(req, response);
     const { error } = await supabase.auth.resend({ type: "signup", email: input.email,
-      options: { emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: "/sign-in?confirmed=1" }) } });
+      options: { captchaToken: input.captchaToken, emailRedirectTo: buildPublicUrl("/auth/callback", { type: "signup", next: "/sign-in?confirmed=1" }) } });
     return authFailure(error) ?? response;
   } catch { return authJson({ error: "auth_temporarily_unavailable" }, 503); }
 }

@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     // Return the response carrying the browser's PKCE verifier cookie.
     const supabase = createSupabaseRouteHandlerClient(req, response);
     const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
+      captchaToken: input.captchaToken,
       redirectTo: buildPublicUrl("/auth/callback", { type: "recovery", next: "/reset-password" }),
     });
     return authFailure(error) ?? response;

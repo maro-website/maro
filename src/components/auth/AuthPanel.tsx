@@ -61,17 +61,17 @@ export function AuthPanel({
       setError(LEGAL_CONSENT_REQUIRED);
       return;
     }
-    if (mode === "sign-up" && turnstileConfigured() && !turnstileToken) {
+    if (turnstileConfigured() && !turnstileToken) {
       setError("Plotëso verifikimin CAPTCHA.");
       return;
     }
     setLoading(true);
     const res =
       mode === "sign-in"
-        ? await signIn(email.trim(), password)
+        ? await signIn(email.trim(), password, turnstileToken ?? undefined)
         : await signUp(name.trim(), email.trim(), password, turnstileToken ?? undefined, nextPath);
     setLoading(false);
-    if (mode === "sign-up") { setTurnstileToken(null); setCaptchaAttempt(n => n + 1); }
+    setTurnstileToken(null); setCaptchaAttempt(n => n + 1);
     if (res.error) {
       setError(res.error);
       return;
@@ -106,6 +106,8 @@ export function AuthPanel({
                 setMode(m);
                 setError(null);
                 setNotice(null);
+                setTurnstileToken(null);
+                setCaptchaAttempt(n => n + 1);
                 if (m === "sign-in") setLegalAccepted(false);
               }}
               className={`h-9 rounded-lg text-sm font-semibold transition-all ${
@@ -178,7 +180,7 @@ export function AuthPanel({
           />
         )}
 
-        {mode === "sign-up" && signupEnabled && turnstileConfigured() && (
+        {turnstileConfigured() && (
           <TurnstileWidget
             key={captchaAttempt}
             onToken={(t) => setTurnstileToken(t)}
@@ -195,7 +197,7 @@ export function AuthPanel({
             !supabaseReady ||
             (mode === "sign-up" && !signupEnabled) ||
             (mode === "sign-up" && signupEnabled && !legalAccepted) ||
-            (mode === "sign-up" && signupEnabled && turnstileConfigured() && !turnstileToken)
+            (turnstileConfigured() && !turnstileToken)
           }
         >
           {mode === "sign-in" ? (dedicatedPage ? "Hin e maro" : "Hyr") : (dedicatedPage ? "Regjistrohu e maro" : "Krijo llogari")}

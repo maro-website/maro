@@ -15,6 +15,7 @@ export function authErrorMessage(code?: string): string {
     case "turnstile_required":
     case "turnstile_failed":
     case "turnstile_error": return "Verifikimi CAPTCHA dështoi ose skadoi. Provo përsëri.";
+    case "captcha_failed": return "Verifikimi CAPTCHA dështoi ose skadoi. Provo përsëri.";
     default: return "Autentikimi nuk është i disponueshëm për momentin. Provo përsëri më vonë.";
   }
 }

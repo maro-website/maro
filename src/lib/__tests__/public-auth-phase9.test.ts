@@ -20,7 +20,7 @@ import { completePasswordReset } from "@/lib/auth/passwordReset";
 import { authErrorMessage } from "@/lib/auth/messages";
 import { roleRequiresMfa } from "@/lib/admin/mfaPolicy";
 const request = (body: unknown) => new NextRequest("https://maro.al/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-const valid = { email: "owner@example.org", name: "Preview", password: "test-only-strong-password", turnstileToken: "mock-captcha" };
+const valid = { email: "owner@customer.al", name: "Preview", password: "test-only-strong-password", turnstileToken: "mock-captcha" };
 beforeEach(() => {
   vi.resetAllMocks(); mocks.configured = true;
   vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("NEXT_PUBLIC_SIGNUP_ENABLED", "true"); vi.stubEnv("APP_ORIGIN", "https://maro.al");
@@ -82,11 +82,49 @@ describe("email requests", () => {
   });
   it("returns recovery's verifier cookie and canonical reset destination", async () => {
     const response = await recovery(request(valid)); expect(response.cookies.has("sb-test-auth-token-code-verifier")).toBe(true);
-    expect(mocks.recovery).toHaveBeenCalledWith(valid.email, { redirectTo: "https://maro.al/auth/callback?type=recovery&next=%2Freset-password" });
+    expect(mocks.recovery).toHaveBeenCalledWith(valid.email, { captchaToken: valid.turnstileToken, redirectTo: "https://maro.al/auth/callback?type=recovery&next=%2Freset-password" });
   });
   it("requires recovery CAPTCHA even with signup disabled", async () => {
     vi.stubEnv("NEXT_PUBLIC_SIGNUP_ENABLED", "false"); mocks.captcha.mockResolvedValue({ ok: false, reason: "turnstile_required" });
     expect((await recovery(request(valid))).status).toBe(403); expect(mocks.captcha).toHaveBeenCalledWith(valid.turnstileToken, "127.0.0.1", { required: true }); expect(mocks.recovery).not.toHaveBeenCalled();
+  });
+});
+
+describe("native Auth CAPTCHA boundary", () => {
+  beforeEach(() => vi.stubEnv("SUPABASE_AUTH_CAPTCHA_ENABLED", "true"));
+  it("forwards a fresh signup token without consuming it at Cloudflare first", async () => {
+    expect((await signup(request(valid))).status).toBe(200);
+    expect(mocks.captcha).not.toHaveBeenCalled();
+    expect(mocks.signUp).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({ captchaToken: valid.turnstileToken }) }));
+  });
+  it.each([undefined, "", " ", "x".repeat(2049)])("rejects missing or unbounded tokens before Auth for %j", async token => {
+    expect((await signup(request({ ...valid, turnstileToken: token }))).status).toBe(403);
+    expect(mocks.signUp).not.toHaveBeenCalled(); expect(mocks.captcha).not.toHaveBeenCalled();
+  });
+  it("preserves a CAPTCHA rejection from Supabase and records no signup", async () => {
+    mocks.signUp.mockResolvedValue({ data: { user: null, session: null }, error: { code: "captcha_failed", message: "private verification details" } });
+    const response = await signup(request(valid));
+    expect(response.status).toBe(403); expect(await response.json()).toEqual({ error: "turnstile_failed" });
+    expect(mocks.insert).not.toHaveBeenCalled(); expect(response.cookies.getAll()).toHaveLength(0);
+  });
+  it("forwards recovery and resend tokens without double verification", async () => {
+    expect((await recovery(request(valid))).status).toBe(200);
+    expect((await resend(request(valid))).status).toBe(200);
+    expect(mocks.recovery).toHaveBeenCalledWith(valid.email, expect.objectContaining({ captchaToken: valid.turnstileToken }));
+    expect(mocks.resend).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({ captchaToken: valid.turnstileToken }) }));
+    expect(mocks.captcha).not.toHaveBeenCalled();
+  });
+  it.each([recovery, resend])("returns CAPTCHA failure instead of a success notice", async route => {
+    mocks.recovery.mockResolvedValue({ error: { code: "captcha_failed" } });
+    mocks.resend.mockResolvedValue({ error: { code: "captcha_failed" } });
+    const response = await route(request(valid));
+    expect(response.status).toBe(403); expect(await response.json()).toEqual({ error: "turnstile_failed" });
+  });
+  it("retains strict IP limits before native verification", async () => {
+    mocks.rate.mockResolvedValue({ allowed: false, retryAfter: 60 });
+    const response = await signup(request(valid));
+    expect(response.status).toBe(429); expect(response.headers.get("Retry-After")).toBe("60");
+    expect(mocks.signUp).not.toHaveBeenCalled();
   });
 });
 

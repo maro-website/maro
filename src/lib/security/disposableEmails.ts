@@ -1,31 +1,15 @@
-/** Common disposable / temporary email domains (subset; extend as needed). */
-const DISPOSABLE_DOMAINS = new Set([
-  "mailinator.com",
-  "guerrillamail.com",
-  "guerrillamail.de",
-  "sharklasers.com",
-  "grr.la",
-  "tempmail.com",
-  "temp-mail.org",
-  "throwaway.email",
-  "yopmail.com",
-  "trashmail.com",
-  "getnada.com",
-  "maildrop.cc",
-  "dispostable.com",
-  "10minutemail.com",
-  "fakeinbox.com",
-  "mintemail.com",
-  "emailondeck.com",
-  "tempail.com",
-  "burnermail.io",
-]);
+import domains from "./disposable-domains.json";
+
+/** Curated signup denylist, shared with the native Auth hook migration. */
+const DISPOSABLE_DOMAINS = new Set(domains);
+const RESERVED_DOMAINS = new Set(["localhost", "test", "invalid", "example", "example.com", "example.net", "example.org"]);
 
 export function isDisposableEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase().trim();
+  const domain = email.split("@")[1]?.toLowerCase().trim().replace(/\.+$/, "");
   if (!domain) return false;
-  if (DISPOSABLE_DOMAINS.has(domain)) return true;
-  if (domain.endsWith(".mailinator.com")) return true;
+  if (RESERVED_DOMAINS.has(domain) || /\.(test|invalid|localhost|example)$/.test(domain)) return true;
+  const labels = domain.split(".");
+  for (let i = 0; i < labels.length; i++) if (DISPOSABLE_DOMAINS.has(labels.slice(i).join("."))) return true;
   return false;
 }
 
