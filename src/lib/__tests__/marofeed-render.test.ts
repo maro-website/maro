@@ -18,7 +18,7 @@ import { defaultConfig } from "@/lib/feed/model";
 import { planFeedProducts, type FeedDesign } from "@/lib/feed/campaign";
 
 describe("Feed real render orchestration with synthetic provider and storage", () => {
-  it.each([{ regenerate: false }, { regenerate: true }, { regenerate: true, headline: "Teksti im i ri." }, { regenerate: true, headline: "" }])("uses the assigned originals, plan and exact font on initial/regen=$regenerate and copy=$headline", async ({ regenerate, headline }) => {
+  it.each([{ regenerate: false }, { regenerate: true }, { regenerate: true, headline: "Teksti im i ri." }, { regenerate: true, headline: "Teksti im\nNë dy rreshta." }, { regenerate: true, headline: "" }])("uses assigned originals, plan and the selected font specimen on initial/regen=$regenerate and copy=$headline", async ({ regenerate, headline }) => {
     vi.clearAllMocks();
     const owner = "11111111-1111-4111-8111-111111111111", id = randomUUID(), job = randomUUID(), attempt = randomUUID();
     const refs = Array.from({ length: 4 }, (_, i) => `storage:generations/${owner}/refs/${i}.png`);
@@ -48,12 +48,17 @@ describe("Feed real render orchestration with synthetic provider and storage", (
     const response = await handleFeedAction(new Request("https://maro.al/api/feed/action", { method: "POST", headers: { authorization: "Bearer synthetic", "content-type": "application/json" }, body: JSON.stringify({ feedId: id, requestId: randomUUID(), action: regenerate ? "regenerate" : "next", ...(regenerate ? { slot: 1 } : {}), ...(headline !== undefined ? { headline } : {}) }) }));
     expect(response.status).toBe(200); const events = await response.text(); expect(events).not.toContain('"error"');
     expect(m.provider).toHaveBeenCalledTimes(1);
-    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(1);
+    const copy = headline ?? plan.posts[1].headline, withCopy = Boolean(copy);
+    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(withCopy ? 2 : 1);
     expect(call.images[0]).toBe(`data:image/png;base64,${sources[1].toString("base64")}`); expect(call.prompt).toContain("THIS POST MUST SHOW: Floor"); expect(call.prompt).not.toContain("first completed");
     expect(m.resolve.mock.calls.map(([ref]) => ref).sort()).toEqual([refs[1], refs[3]].sort());
-    expect(traces[0]).toMatchObject({ snapshot: { resolvedReferenceIndices: [1, 3], assignedProductIndices: [1], providerReferenceIndices: [1], fontSpecimenIncluded: false, logoComposited: true, campaignPlanVersion: "maro-feed-plan/1", typography: "original-font-glyphs" } });
+    expect(traces[0]).toMatchObject({ snapshot: { resolvedReferenceIndices: [1, 3], assignedProductIndices: [1], providerReferenceIndices: [1], fontSpecimenIncluded: withCopy, logoComposited: true, campaignPlanVersion: "maro-feed-plan/1", typography: withCopy ? "image-native-with-font-specimen" : "image-native-visual-only" } });
+    if (withCopy) { expect(call.prompt).toContain(JSON.stringify(copy)); expect(call.prompt).toContain("Image 2 is an original-font rendering"); expect(call.prompt).toContain("no headline is added afterward"); }
+    else expect(call.prompt).toContain("TEXT MODE: PLAN-LOCKED / VISUAL-ONLY");
     expect(traces[0]).toMatchObject({ snapshot: { plannedPost: { headline: headline ?? plan.posts[1].headline } } });
     const info = await sharp(output!).metadata(); expect([info.width, info.height]).toEqual([1024, 1280]);
+    const untouched = await sharp(output!).extract({ left: 0, top: 200, width: 1024, height: 1080 }).removeAlpha().raw().toBuffer();
+    expect(untouched.every(value => value === 255)).toBe(true);
     expect(rpc.mock.calls.filter(([name]) => name === "maro_feed_finish")).toHaveLength(1);
   });
 });

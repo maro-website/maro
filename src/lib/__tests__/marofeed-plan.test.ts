@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { feedDimensions, feedLogoBox, legacyFeedDesign, type FeedDesign } from "@/lib/feed/campaign";
 import { defaultConfig, buildFeedPrompt, type FeedBrief } from "@/lib/feed/model";
 import { feedCampaignPlanSchema, feedPostLayout, feedTypographyBox, validateFeedPlan } from "@/lib/feed/plan";
-import { feedOutputBytes, feedPlannedText } from "@/lib/feed/output";
+import { feedOutputBytes, feedFontReference } from "@/lib/feed/output";
 import { feedPlanFixture } from "./helpers/feedPlanFixture";
 const design = legacyFeedDesign(3);
 const brief: FeedBrief = { brand: "Brand", description: "Three original products", notes: "Christmas themed", audience: "", colors: "", goal: "sales", language: "sq" };
@@ -81,7 +81,7 @@ describe("one shared Feed art direction", () => {
       const prompt = buildFeedPrompt({ config: defaultConfig, brief, category: "drinks", slot, variant: 1, brain: "", design: d, plan });
       expect(prompt).toContain(plan.posts[slot].scene); expect(prompt).toContain("TEXT MODE: PLAN-LOCKED");
       expect(prompt).toContain("No invented variants, mini versions"); expect(prompt).not.toContain("TEXT MODE: ON — IMAGE-NATIVE");
-      if (plan.posts[slot].headline) expect(prompt).toContain("x=");
+      if (plan.posts[slot].headline) { expect(prompt).toContain(JSON.stringify(plan.posts[slot].headline)); expect(prompt).toContain("IMAGE-NATIVE TYPOGRAPHY"); }
       if (slot === 2) { expect(prompt).toContain("MACRO CROPPING CONTRACT"); expect(prompt).not.toContain("keep every complete product"); }
     }
   });
@@ -101,16 +101,14 @@ describe("exact Feed font and crop-safe text, without title plates", () => {
       }
     }
   });
-  it("stores the exact bundled glyphs over transparent space, preserving surrounding image pixels and quiet posts", async () => {
+  it("supplies the selected actual font as a headline specimen and preserves the provider's completed lettering", async () => {
     const source = await sharp({ create: { width: 1024, height: 1024, channels: 4, background: "#e7f2e8" } }).png().toBuffer();
     for (const font of ["inter", "manrope", "playfair"] as const) {
-      const d = { ...design, font }, post = feedPlanFixture(d).posts[0], box = feedTypographyBox(d, post.layout);
-      const text = await feedPlannedText(post.headline, d, post, "#202522");
-      const expected = await sharp(source).composite([{ input: text.data, left: box.left, top: box.top }]).raw().toBuffer();
-      const result = await feedOutputBytes(source, d, undefined, post);
-      expect((await sharp(result).raw().toBuffer()).equals(expected)).toBe(true);
-      const quiet = await feedOutputBytes(source, d, undefined, { ...post, headline: "" });
-      expect((await sharp(quiet).raw().toBuffer()).equals(await sharp(source).raw().toBuffer())).toBe(true);
+      const d = { ...design, font };
+      const specimen = await feedFontReference(d, "Open one\nbefore guests arrive"), info = await sharp(Buffer.from(specimen.split(",")[1], "base64")).metadata();
+      expect(info.width).toBeLessThanOrEqual(1024); expect(info.height).toBeLessThanOrEqual(256);
+      const result = await feedOutputBytes(source, d);
+      expect((await sharp(result).raw().toBuffer()).equals(await sharp(source).raw().toBuffer())).toBe(true);
     }
   });
 });

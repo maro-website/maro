@@ -5,8 +5,6 @@ import { feedLayouts, feedTypographyBox } from "@/lib/feed/plan";
 import { balanceFeedLines } from "@/lib/feed/typography";
 import { feedPlannedText } from "@/lib/feed/typeRenderer";
 import { feedLogoLayers } from "@/lib/feed/logo";
-import { feedTextLayers } from "@/lib/feed/textContrast";
-import { feedPlanFixture } from "./helpers/feedPlanFixture";
 
 const frame = (color: string) => sharp({ create: { width: 1024, height: 1024, channels: 4, background: color } }).png().toBuffer();
 const logo = async (multicolor = false) => "data:image/png;base64," + (await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="80"><path d="M10 65V15h24l16 24 16-24h24v50H70V40L50 63 30 40v25z" fill="#174c3a"/>${multicolor ? '<circle cx="125" cy="40" r="25" fill="#d72a36"/>' : ''}</svg>`)).png().toBuffer()).toString("base64");
@@ -40,16 +38,22 @@ describe("Feed typography and original-logo visibility", () => {
     const a = await raw(original.layers[0].input), b = await raw(light.layers[0].input);
     for (let i = 3; i < a.length; i += 4) { expect(b[i]).toBe(a[i]); if (b[i] > 0) expect([...b.subarray(i - 3, i)]).toEqual([255, 255, 255]); }
   });
-  it("preserves a multicolor original and adds a small backing only when its scene hides it", async () => {
+  it("preserves a multicolor original with a transparent silhouette outline, never a rectangular backing", async () => {
     const design = legacyFeedDesign(1), mark = await logo(true);
     const original = await feedLogoLayers(await frame("#ffffff"), mark, design), busy = await feedLogoLayers(await frame("#174c3a"), mark, design);
-    expect(original.variant).toBe("original"); expect(busy.variant).toBe("backing"); expect(busy.layers).toHaveLength(2);
+    expect(original.variant).toBe("original"); expect(busy.variant).toBe("outlined"); expect(busy.layers).toHaveLength(2);
     expect(busy.layers[1]).toEqual(original.layers[0]);
+    const { data, info } = await sharp(busy.layers[0].input as Buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect(data[(Math.floor(info.height / 2) * info.width + info.width - 3) * 4 + 3]).toBe(0);
   });
-  it("chooses text color from the photograph under its actual glyphs", async () => {
-    const design = legacyFeedDesign(1), post = feedPlanFixture(design).posts[0];
-    expect((await feedTextLayers(await frame("#f5f3ee"), design, post)).color).toBe("#202522");
-    expect((await feedTextLayers(await frame("#174c3a"), design, post)).color).toBe("#ffffff");
-    expect((await feedTextLayers(await frame("#f5f3ee"), design, post)).fontSize).toBeGreaterThan(64);
+  it("keeps a monochrome logo transparent even when a busy scene prevents a uniform contrast pass", async () => {
+    const design = legacyFeedDesign(1), mark = await logo();
+    const scene = await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><defs><pattern id="p" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="white"/><rect width="4" height="8" fill="black"/></pattern></defs><rect width="1024" height="1024" fill="url(#p)"/></svg>')).png().toBuffer();
+    const result = await feedLogoLayers(scene, mark, design);
+    expect(result.variant).toBe("outlined"); expect(result.layers).toHaveLength(2);
+    for (const layer of result.layers) {
+      const { data, info } = await sharp(layer.input as Buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      expect(data[(Math.floor(info.height / 2) * info.width + info.width - 3) * 4 + 3]).toBe(0);
+    }
   });
 });

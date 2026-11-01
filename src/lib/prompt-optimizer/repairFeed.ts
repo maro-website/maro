@@ -2,7 +2,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { ImageRequestValidationError } from "@/lib/generation/requestValidation";
 import { FEED_PLAN_VERSION, validateFeedPlan } from "@/lib/feed/plan";
-import { feedPlannedText } from "@/lib/feed/output";
+import { feedFontReference } from "@/lib/feed/output";
 import type { FeedPlannerInput } from "./feed";
 
 /** Revalidate a paid, finished rejection for the identical private input before spending on another plan. */
@@ -18,7 +18,7 @@ export async function repairAccountedFeedPlan(input: FeedPlannerInput, fingerpri
   let plan: ReturnType<typeof validateFeedPlan>;
   try {
     plan = validateFeedPlan(JSON.parse(row.final_prompt), input.design, input.brief, input.brain, input.contentType, input.textMode);
-    for (const post of plan.posts) if (post.headline) await feedPlannedText(post.headline, input.design, post);
+    for (const post of plan.posts) if (post.headline) await feedFontReference(input.design, post.headline);
   } catch { return; } // Unsupported references, variants, claims or font layouts remain rejected.
   const serialized = JSON.stringify(plan);
   const saved = await db.from("maro_optimizer_attempts").update({ status: "completed", final_prompt: serialized, final_chars: serialized.length, error_code: null })
