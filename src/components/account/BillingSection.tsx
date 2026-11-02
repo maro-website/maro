@@ -9,11 +9,7 @@ import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 import { useRaiAcceptAvailability } from "@/lib/payments/useRaiAcceptAvailability";
 import type { CommerceEntitlementsState } from "@/lib/commerce/useCommerceEntitlements";
-
-interface UsageRow {
-  module: string;
-  credits: number;
-}
+import type { CreditUsage } from "@/lib/credits/usage";
 
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Plan aktiv",
@@ -28,39 +24,34 @@ const STATUS_LABELS: Record<string, string> = {
 export function BillingSection({ commerce }: { commerce: CommerceEntitlementsState }) {
   const purchasesEnabled=useRaiAcceptAvailability();
   const { user, credits, getAccessToken } = useMaro();
+  const userId = user?.id;
   const { data, loading, error } = commerce;
-  const [usage, setUsage] = React.useState<UsageRow[]>([]);
+  const [usageState, setUsageState] = React.useState<{ userId: string; data?: CreditUsage; error?: boolean } | null>(null);
+  const currentUsage = usageState?.userId === userId ? usageState : null;
+  const usage = currentUsage?.data;
+  const usageError = currentUsage?.error;
+  const [usageRetry, setUsageRetry] = React.useState(0);
 
   React.useEffect(() => {
-    if (!user) return;
+    setUsageState(null);
+    if (!userId) return;
     let cancelled = false;
+    const controller = new AbortController();
     (async () => {
       try {
         const token = await getAccessToken();
-        if (!token) return;
-        const txRes = await fetch("/api/credits/transactions?limit=100", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-        if (!cancelled && txRes.ok) {
-          const tx = (await txRes.json()) as {
-            items?: { type: string; amount: number; metadata?: { module?: string } }[];
-          };
-          const byModule = new Map<string, number>();
-          for (const t of tx.items ?? []) {
-            if (t.type !== "charge") continue;
-            const mod = t.metadata?.module ?? "other";
-            byModule.set(mod, (byModule.get(mod) ?? 0) + t.amount);
-          }
-          setUsage(
-            [...byModule.entries()]
-              .map(([module, creditsUsed]) => ({ module, credits: creditsUsed }))
-              .sort((a, b) => b.credits - a.credits)
-          );
-        }
-      } catch { if (!cancelled) setUsage([]); }
+        if (!token) throw new Error("unauthorized");
+        const response = await fetch("/api/credits/usage", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("credit_usage_unavailable");
+        const result = await response.json() as CreditUsage;
+        if (!cancelled) setUsageState({ userId, data: result });
+      } catch { if (!cancelled) setUsageState({ userId, error: true }); }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [user, getAccessToken]);
+  }, [userId, getAccessToken, credits, usageRetry]);
 
   if (loading) {
     return <p className="text-[14px] text-ink-3">Duke ngarkuar…</p>;
@@ -122,19 +113,23 @@ export function BillingSection({ commerce }: { commerce: CommerceEntitlementsSta
         </div>:<p className="mt-4 text-[14px] text-ink-2">Blerjet e reja janë të mbyllura.</p>}
       </section>
 
-      {usage.length > 0 && (
-        <section className="rounded-maro16 bg-surface p-6">
-          <h2 className="text-[18px] font-semibold tracking-brand text-ink">Përdorimi</h2>
+      <section className="rounded-maro16 bg-surface p-6" aria-busy={!usage && !usageError}>
+        <h2 className="text-[18px] font-semibold tracking-brand text-ink">Përdorimi</h2>
+        <p className="mt-1 text-[12px] text-ink-3">Gjithë historiku · pas rimbursimeve</p>
+        {usageError ? <p role="alert" className="mt-4 text-[14px] text-ink-2">Përdorimi nuk u ngarkua. <button type="button" className="min-h-11 font-semibold underline" onClick={() => setUsageRetry(value => value + 1)}>Provo sërish</button></p>
+          : !usage ? <p className="mt-4 text-[14px] text-ink-3">Duke ngarkuar përdorimin…</p>
+          : !usage.items.length ? <p className="mt-4 text-[14px] text-ink-3">Ende nuk ke shpenzime kreditesh.</p> : (
           <ul className="mt-4 space-y-2">
-            {usage.map((row) => (
+            {usage.items.map((row) => (
               <li key={row.module} className="flex justify-between text-[14px] text-ink-2">
-                <span>{row.module}</span>
+                <span>{row.label}</span>
                 <span className="font-semibold text-ink">{row.credits} kredite</span>
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        )}
+        {!!usage?.unattributedRefunds && <p className="mt-3 text-[12px] text-ink-3">Rimbursime pa tool të lidhur: {usage.unattributedRefunds} kredite.</p>}
+      </section>
 
       {ent?.expires_at && (
         <p className="text-[12px] text-ink-3">
