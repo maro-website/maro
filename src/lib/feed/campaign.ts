@@ -6,7 +6,8 @@ export const feedFormats = { "1:1": "1:1 · 1024 × 1024", "4:5": "4:5 · 1024 �
 export const feedLogoPositions = { "top-left": "Lart majtas", "top-right": "Lart djathtas", "bottom-left": "Poshtë majtas", "bottom-right": "Poshtë djathtas" } as const;
 export type FeedAsset = { index: number; role: "product" | "logo" | "style"; label: string };
 export const feedDesignSchema = z.object({
-  version: z.literal(1), font: z.enum(["inter", "manrope", "playfair"]),
+  // Accept legacy saved settings; generation no longer uses a fixed font.
+  version: z.literal(1), font: z.enum(["inter", "manrope", "playfair"]).optional(),
   name: z.string().trim().max(100).optional(),
   headlines: z.array(z.string().trim().max(60)).length(9).optional(),
   textRendering: z.literal("native").optional(),
@@ -40,7 +41,7 @@ export function feedPostReferences(design: FeedDesign, slot: number) {
 
 export function legacyFeedDesign(count: number): FeedDesign {
   const assets: FeedAsset[] = Array.from({ length: count }, (_, index) => ({ index, role: "product", label: `Produkti ${index + 1}` }));
-  return { version: 1, font: "inter", format: "1:1", typeScale: "medium", logoPosition: "bottom-right", assets, assignments: planFeedProducts(assets) };
+  return { version: 1, format: "1:1", typeScale: "medium", logoPosition: "bottom-right", assets, assignments: planFeedProducts(assets) };
 }
 
 export function feedDimensions(format: FeedDesign["format"]) {

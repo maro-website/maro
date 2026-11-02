@@ -46,12 +46,14 @@ describe("maroFeed uses the existing dedicated optimizer and durable budget", ()
     await expect(planFeedCampaign(input)).rejects.toThrow("optimizer_budget_limit"); expect(m.update).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
   });
   it("plans nine images in one vision call, accounts actual usage before returning and uses no ordinary image key", async () => {
-    const input = await fixture();
+    const input = await fixture(); input.design.font = "playfair";
     m.create.mockResolvedValue({ id: "response", model: "gpt-6.1-sol", status: "completed", service_tier: "default", output_text: JSON.stringify(generated(input)), usage: { input_tokens: 8000, output_tokens: 2000, input_tokens_details: { cached_tokens: 4000 } } });
     const plan = await planFeedCampaign(input);
     expect(plan.posts).toHaveLength(9); expect(plan.optimizer.attemptId).toBe("attempt");
     expect(m.create).toHaveBeenCalledTimes(1); expect(m.client).toHaveBeenCalledWith({ apiKey: "dedicated-optimizer-test-key", maxRetries: 0, timeout: 60000 });
     const call = m.create.mock.calls[0][0]; expect(call.model).toBe("gpt-6.1-sol"); expect(call.store).toBe(false);
+    expect(JSON.parse(call.input[0].content[0].text)).not.toHaveProperty("font");
+    expect(call.instructions).toContain("one coherent type family"); expect(call.instructions).toContain("Avoid grunge, distressed"); expect(call.instructions).not.toContain("selected actual font");
     expect(call.input[0].content.filter((item: { type: string }) => item.type === "input_image")).toHaveLength(2);
     expect(call.input[0].content[0].text).toContain("Chrismas Themed"); expect(call.text.format.type).toBe("json_schema");
     expect(m.rpc).toHaveBeenCalledWith("maro_optimizer_reserve", expect.objectContaining({ p_user: "owner", p_workspace: "workspace-a", p_request_key: "feed-plan:request", p_module: "reklama" }));

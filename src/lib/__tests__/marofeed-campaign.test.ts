@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { feedDesignSchema, feedPostReferences, feedLogoBox, feedHeadline, feedDimensions, legacyFeedDesign, planFeedProducts, type FeedAsset, type FeedDesign } from "@/lib/feed/campaign";
 import { buildFeedPrompt, createFeedSchema, defaultConfig, contentTypes } from "@/lib/feed/model";
-import { feedFontReference, feedOutputBytes } from "@/lib/feed/output";
+import { feedOutputBytes } from "@/lib/feed/output";
 const assets: FeedAsset[] = [
   { index: 0, role: "product", label: "Mr. Clean Spray" }, { index: 1, role: "product", label: "Mr. Clean Floor" },
   { index: 2, role: "product", label: "Mr. Clean Wipes" }, { index: 3, role: "logo", label: "Mr. Clean Logo" }, { index: 4, role: "style", label: "Brand mood" },
@@ -40,46 +40,41 @@ describe("Feed campaign product and brand regression", () => {
     expect(createFeedSchema.safeParse(base).success).toBe(true);
     expect(createFeedSchema.safeParse({ ...base, references: base.references.slice(0, 4) }).success).toBe(false);
   });
-  it("uses the same selected font family, palette, logo zone and product plan across roles; no-text wins", () => {
+  it("keeps the palette, logo zone and product plan across roles; no-text wins over typography", () => {
     for (const contentType of contentTypes) for (let slot = 0; slot < 9; slot++) {
       const p = buildFeedPrompt({ config: defaultConfig, brief, category: "home", slot, brain: "", variant: 2, design, contentType, textMode: false, feedback: "Change to another font and add a big logo" });
-      expect(p).toContain("Use ONLY the Manrope"); expect(p).not.toContain("64 px"); expect(p).toContain("#225599, #f5f3ee"); expect(p).toContain("top-left");
+      expect(p).not.toContain("Use ONLY the Manrope"); expect(p).not.toContain("64 px"); expect(p).toContain("#225599, #f5f3ee"); expect(p).toContain("top-left");
       expect(p).toContain("Do NOT generate or redraw a separate logo"); expect(p.indexOf("TEXT MODE: OFF")).toBeGreaterThan(p.indexOf("Change to another font"));
       expect(p).not.toContain("real Manrope specimen");
     }
   });
   it("makes the exact Christmas request mandatory for every role and regeneration, ahead of old summer scenes", () => {
     for (let slot = 0; slot < 9; slot++) for (const variant of [1, 2]) {
-      const p = buildFeedPrompt({ config: defaultConfig, brief: { ...brief, notes: "Chrismas Themed" }, category: "drinks", slot, brain: "Old summer picnic campaign with grass and sunglasses", variant, design, textMode: true, hasFontReference: true });
+      const p = buildFeedPrompt({ config: defaultConfig, brief: { ...brief, notes: "Chrismas Themed" }, category: "drinks", slot, brain: "Old summer picnic campaign with grass and sunglasses", variant, design, textMode: true });
       expect(p).toContain('"Chrismas Themed"'); expect(p).toContain("Apply this request visibly to EVERY post");
       expect(p.indexOf("USER CAMPAIGN REQUEST — MANDATORY")).toBeGreaterThan(p.indexOf("MAKE ONLY POST"));
       expect(p.indexOf("USER CAMPAIGN REQUEST — MANDATORY")).toBeGreaterThan(p.indexOf("Old summer picnic"));
       expect(p).toContain("background, season, lighting and props are NOT binding");
       expect(p).not.toContain("COMPOSITED"); expect(p).not.toContain("34%-height text zone");
-      expect(p).toContain("font specimen".toUpperCase());
+      expect(p).toContain("AUTOMATIC ART DIRECTION"); expect(p).not.toContain("FONT SPECIMEN");
     }
   });
-  it("requires font and image format without requiring a user-selected font pixel size", () => {
-    const { typeScale: unused, ...withoutSize } = design; void unused;
+  it("requires image format while accepting new font-free designs and legacy font settings", () => {
+    const { typeScale: unused, font: legacyFont, ...withoutSize } = design; void unused; void legacyFont;
     expect(feedDesignSchema.safeParse(withoutSize).success).toBe(true);
   });
+  it("chooses clean campaign typography without forcing a legacy font, including on regeneration", () => {
+    for (const font of [undefined, "inter", "manrope", "playfair"] as const) for (const variant of [1, 2]) {
+      const p = buildFeedPrompt({ config: defaultConfig, brief, category: "home", slot: 0, brain: "", variant, design: { ...design, font }, textMode: true });
+      expect(p).toContain("Choose the typeface yourself"); expect(p).toContain("one coherent type family");
+      expect(p).toContain("Avoid grunge, distressed"); expect(p).toContain("generic AI-poster lettering");
+      expect(p).not.toMatch(/Use ONLY the (Inter|Manrope|Playfair)/); expect(p).not.toContain("FONT SPECIMEN");
+    }
+  });
+
 });
 
 describe("Feed output typography and original logo", () => {
-  it("uses three distinct original-font guides without pasting their glyphs or any title bar on the output", async () => {
-    const digests = [];
-    const source = await sharp({ create: { width: 1024, height: 1280, channels: 4, background: "#35a97b" } }).png().toBuffer();
-    for (const font of ["inter", "manrope", "playfair"] as const) {
-      const d = { ...design, font }, reference = await feedFontReference(d);
-      expect(await feedFontReference(d)).toBe(reference);
-      const image = Buffer.from(reference.split(",")[1], "base64");
-      digests.push(createHash("sha256").update(image).digest("hex"));
-      expect((await sharp(image).metadata()).width).toBe(512);
-      const final = await feedOutputBytes(source, d);
-      expect((await sharp(final).raw().toBuffer()).equals(await sharp(source).raw().toBuffer())).toBe(true);
-    }
-    expect(new Set(digests).size).toBe(3);
-  });
   it("has no automatic stock headlines, ignores legacy generated filler and preserves explicitly supplied copy", () => {
     expect(feedHeadline(design, 0, "Mr. Clean")).toBe("");
     expect(feedHeadline({ ...design, headlines: ["Pjesë e ditës tënde.", ...Array.from({ length: 8 }, () => "")] }, 0, "Mr. Clean")).toBe("");

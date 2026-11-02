@@ -7,7 +7,7 @@ const draftSchema = z.object({
   brief: briefSchema.extend({ brand: z.string().max(120), description: z.string().max(1800) }), brain: z.boolean(), category: z.enum(categoryIds), contentType: z.enum(contentTypes), textMode: z.boolean(),
   designDraft: z.object({
     name: z.string().max(100).optional(), headlines: z.array(z.string().max(60)).length(9).optional(),
-    font: z.enum(["", "inter", "manrope", "playfair"]), format: z.enum(["", "1:1", "4:5", "9:16"]),
+    font: z.enum(["", "inter", "manrope", "playfair"]).optional(), format: z.enum(["", "1:1", "4:5", "9:16"]),
     logoPosition: z.enum(["top-left", "top-right", "bottom-left", "bottom-right"]),
     assets: z.record(z.string().max(1300), z.object({ role: z.enum(["product", "logo", "style"]), label: z.string().max(100) }).strict()).refine(value => Object.keys(value).length <= 10),
     assignments: z.array(z.array(z.number().int().min(0).max(9)).min(1).max(10)).length(9).optional(),

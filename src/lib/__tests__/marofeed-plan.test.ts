@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { feedDimensions, feedLogoBox, legacyFeedDesign, type FeedDesign } from "@/lib/feed/campaign";
 import { defaultConfig, buildFeedPrompt, type FeedBrief } from "@/lib/feed/model";
 import { feedCampaignPlanSchema, feedPostLayout, feedTypographyBox, validateFeedPlan } from "@/lib/feed/plan";
-import { feedOutputBytes, feedFontReference } from "@/lib/feed/output";
+import { feedOutputBytes } from "@/lib/feed/output";
 import { feedPlanFixture } from "./helpers/feedPlanFixture";
 const design = legacyFeedDesign(3);
 const brief: FeedBrief = { brand: "Brand", description: "Three original products", notes: "Christmas themed", audience: "", colors: "", goal: "sales", language: "sq" };
@@ -87,7 +87,7 @@ describe("one shared Feed art direction", () => {
   });
 });
 
-describe("exact Feed font and crop-safe text, without title plates", () => {
+describe("Feed crop-safe layout and image-native lettering", () => {
   it("keeps all nine text boxes inside every final format and outside every original logo corner", () => {
     for (const format of ["1:1", "4:5", "9:16"] as const) for (const logoPosition of ["top-left", "top-right", "bottom-left", "bottom-right"] as const) {
       const d: FeedDesign = { ...design, format, logoPosition, assets: [...design.assets, { index: 3, role: "logo", label: "Logo" }] };
@@ -101,14 +101,9 @@ describe("exact Feed font and crop-safe text, without title plates", () => {
       }
     }
   });
-  it("supplies the selected actual font as a headline specimen and preserves the provider's completed lettering", async () => {
+  it("preserves the provider's completed lettering without any fixed-font postprocessing", async () => {
     const source = await sharp({ create: { width: 1024, height: 1024, channels: 4, background: "#e7f2e8" } }).png().toBuffer();
-    for (const font of ["inter", "manrope", "playfair"] as const) {
-      const d = { ...design, font };
-      const specimen = await feedFontReference(d, "Open one\nbefore guests arrive"), info = await sharp(Buffer.from(specimen.split(",")[1], "base64")).metadata();
-      expect(info.width).toBeLessThanOrEqual(1024); expect(info.height).toBeLessThanOrEqual(256);
-      const result = await feedOutputBytes(source, d);
-      expect((await sharp(result).raw().toBuffer()).equals(await sharp(source).raw().toBuffer())).toBe(true);
-    }
+    const result = await feedOutputBytes(source, design);
+    expect((await sharp(result).raw().toBuffer()).equals(await sharp(source).raw().toBuffer())).toBe(true);
   });
 });

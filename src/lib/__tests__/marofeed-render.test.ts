@@ -18,18 +18,18 @@ import { defaultConfig } from "@/lib/feed/model";
 import { planFeedProducts, type FeedDesign } from "@/lib/feed/campaign";
 
 describe("Feed real render orchestration with synthetic provider and storage", () => {
-  it.each([{ regenerate: false }, { regenerate: true }, { regenerate: true, headline: "Teksti im i ri." }, { regenerate: true, headline: "Teksti im\nNë dy rreshta." }, { regenerate: true, headline: "" }])("uses assigned originals, plan and the selected font specimen on initial/regen=$regenerate and copy=$headline", async ({ regenerate, headline }) => {
+  it.each([{ regenerate: false }, { regenerate: false, legacyFont: "manrope" as const }, { regenerate: true, textMode: false }, { regenerate: true }, { regenerate: true, headline: "Teksti im i ri." }, { regenerate: true, headline: "Teksti im\nNë dy rreshta." }, { regenerate: true, headline: "" }])("uses only assigned originals and automatic typography on initial/regen=$regenerate and copy=$headline", async ({ regenerate, headline, legacyFont, textMode = true }) => {
     vi.clearAllMocks();
     const owner = "11111111-1111-4111-8111-111111111111", id = randomUUID(), job = randomUUID(), attempt = randomUUID();
     const refs = Array.from({ length: 4 }, (_, i) => `storage:generations/${owner}/refs/${i}.png`);
     const assets = refs.map((_, index) => ({ index, role: index === 3 ? "logo" as const : "product" as const, label: ["Spray", "Floor", "Wipes", "Logo"][index] }));
-    const design: FeedDesign = { version: 1, font: "inter", typeScale: "small", format: "4:5", logoPosition: "top-right", assets, assignments: planFeedProducts(assets), palette: ["#225599"] };
+    const design: FeedDesign = { version: 1, ...(legacyFont ? { font: legacyFont } : {}), typeScale: "small", format: "4:5", logoPosition: "top-right", assets, assignments: planFeedProducts(assets), palette: ["#225599"] };
     const sources = await Promise.all(["#ff0000", "#00ff00", "#0000ff", "#ff00ff"].map(background => sharp({ create: { width: 40, height: 20, channels: 4, background } }).png().toBuffer()));
     m.resolve.mockImplementation(async (ref: string) => { const index = refs.indexOf(ref); if (index < 0) throw new Error("generated_anchor_forbidden"); return { dataUrl: `data:image/png;base64,${sources[index].toString("base64")}`, digest: createHash("sha256").update(sources[index]).digest("hex") }; });
     const source = await sharp({ create: { width: 1024, height: 1536, channels: 4, background: "#ffffff" } }).png().toBuffer();
     m.provider.mockResolvedValue([source.toString("base64")]);
     const plan = feedPlanFixture(design);
-    const feed = { id, owner_id: owner, workspace_id: "ws", reference: refs[0], references_list: refs, content_type: "mix", text_mode: true, cancel_requested: false, cancelled_at: null, refund_credits: 0, category: "home", config: defaultConfig, brain_context: "", free_used: 0, refunded: false, created_at: new Date().toISOString(), brief: { brand: "Mr. Clean", description: "Three separate cleaning products", audience: "", goal: "sales", language: "sq", colors: "", notes: "", design, campaignPlan: feedPlanReference(plan) } };
+    const feed = { id, owner_id: owner, workspace_id: "ws", reference: refs[0], references_list: refs, content_type: "mix", text_mode: textMode, cancel_requested: false, cancelled_at: null, refund_credits: 0, category: "home", config: defaultConfig, brain_context: "", free_used: 0, refunded: false, created_at: new Date().toISOString(), brief: { brand: "Mr. Clean", description: "Three separate cleaning products", audience: "", goal: "sales", language: "sq", colors: "", notes: "", design, campaignPlan: feedPlanReference(plan) } };
     const rows = Array.from({ length: regenerate ? 9 : 1 }, (_, slot) => ({ id: randomUUID(), slot, job_id: `old-${slot}`, status: "completed", created_at: "2026-10-30", regenerate: false }));
     const traces: Record<string, unknown>[] = []; let output: Buffer | undefined;
     const rpc = vi.fn(async (name: string, args: Record<string, unknown>) => {
@@ -48,14 +48,14 @@ describe("Feed real render orchestration with synthetic provider and storage", (
     const response = await handleFeedAction(new Request("https://maro.al/api/feed/action", { method: "POST", headers: { authorization: "Bearer synthetic", "content-type": "application/json" }, body: JSON.stringify({ feedId: id, requestId: randomUUID(), action: regenerate ? "regenerate" : "next", ...(regenerate ? { slot: 1 } : {}), ...(headline !== undefined ? { headline } : {}) }) }));
     expect(response.status).toBe(200); const events = await response.text(); expect(events).not.toContain('"error"');
     expect(m.provider).toHaveBeenCalledTimes(1);
-    const copy = headline ?? plan.posts[1].headline, withCopy = Boolean(copy);
-    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(withCopy ? 2 : 1);
+    const copy = textMode ? headline ?? plan.posts[1].headline : "", withCopy = Boolean(copy);
+    const call = m.provider.mock.calls[0][0]; expect(call.size).toBe("1024x1536"); expect(call.images).toHaveLength(1);
     expect(call.images[0]).toBe(`data:image/png;base64,${sources[1].toString("base64")}`); expect(call.prompt).toContain("THIS POST MUST SHOW: Floor"); expect(call.prompt).not.toContain("first completed");
     expect(m.resolve.mock.calls.map(([ref]) => ref).sort()).toEqual([refs[1], refs[3]].sort());
-    expect(traces[0]).toMatchObject({ snapshot: { resolvedReferenceIndices: [1, 3], assignedProductIndices: [1], providerReferenceIndices: [1], fontSpecimenIncluded: withCopy, logoComposited: true, campaignPlanVersion: "maro-feed-plan/1", typography: withCopy ? "image-native-with-font-specimen" : "image-native-visual-only" } });
-    if (withCopy) { expect(call.prompt).toContain(JSON.stringify(copy)); expect(call.prompt).toContain("Image 2 is an original-font rendering"); expect(call.prompt).toContain("no headline is added afterward"); }
+    expect(traces[0]).toMatchObject({ snapshot: { resolvedReferenceIndices: [1, 3], assignedProductIndices: [1], providerReferenceIndices: [1], fontSpecimenIncluded: false, logoComposited: true, campaignPlanVersion: "maro-feed-plan/1", typography: withCopy ? "image-native-automatic" : "image-native-visual-only" } });
+    if (withCopy) { expect(call.prompt).toContain(JSON.stringify(copy)); expect(call.prompt).toContain("Choose the typeface yourself"); expect(call.prompt).toContain("Avoid grunge, distressed"); expect(call.prompt).not.toContain("FONT SPECIMEN"); expect(call.prompt).not.toContain("Use ONLY the Manrope"); expect(call.prompt).toContain("no headline is added afterward"); }
     else expect(call.prompt).toContain("TEXT MODE: PLAN-LOCKED / VISUAL-ONLY");
-    expect(traces[0]).toMatchObject({ snapshot: { plannedPost: { headline: headline ?? plan.posts[1].headline } } });
+    expect(traces[0]).toMatchObject({ snapshot: { plannedPost: { headline: copy } } });
     const info = await sharp(output!).metadata(); expect([info.width, info.height]).toEqual([1024, 1280]);
     const untouched = await sharp(output!).extract({ left: 0, top: 200, width: 1024, height: 1080 }).removeAlpha().raw().toBuffer();
     expect(untouched.every(value => value === 255)).toBe(true);

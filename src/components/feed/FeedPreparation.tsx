@@ -5,7 +5,7 @@ import { ArrowUpRight, CheckCircle2, Circle, ImagePlus, LoaderCircle, Sparkles, 
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
 import { categoryIds, contentLabels, contentTypes, defaults, FEED_MAX_REFERENCES, type FeedBrief, type FeedCategory, type FeedContentType } from "@/lib/feed/model";
-import { feedFonts, feedFormats } from "@/lib/feed/campaign";
+import { feedFormats } from "@/lib/feed/campaign";
 import { feedMessage } from "@/lib/feed/client";
 import type { PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
 import type { PendingFeedRequest } from "@/lib/feed/draft";
@@ -34,8 +34,8 @@ export function FeedPreparation(p: Props) {
   const design = draftFeedDesign(p.draft, p.attachments), products = design.assets.filter(asset => asset.role === "product"), logo = design.assets.some(asset => asset.role === "logo");
   const referencesReady = p.attachments.length > 0 && p.attachments.every(item => item.status === "ready") && products.length > 0;
   const brandReady = p.brain ? p.brainState.ready : Boolean(p.brief.brand.trim() && p.brief.description.trim().length >= 8);
-  const choicesReady = Boolean(p.draft.font && p.draft.format && p.designReady);
-  const missing = !p.draftReady || p.loading ? "Po hapet përgatitja…" : p.uploadBusy ? "Prit sa të ngarkohen fotot." : !referencesReady ? "Shto së paku një produkt dhe kontrollo fotot që s’u hapën." : !brandReady ? p.brainState.loading && p.brain ? "Po lexohet maroBrain…" : "Plotëso brendin dhe përshkrimin, ose lidhe një maroBrain të plotësuar." : !choicesReady ? "Zgjedhe fontin dhe formatin; çdo produkt duhet të ketë vend në plan." : p.credits < 50 ? "Për këtë feed duhen 50 credits." : "";
+  const choicesReady = Boolean(p.draft.format && p.designReady);
+  const missing = !p.draftReady || p.loading ? "Po hapet përgatitja…" : p.uploadBusy ? "Prit sa të ngarkohen fotot." : !referencesReady ? "Shto së paku një produkt dhe kontrollo fotot që s’u hapën." : !brandReady ? p.brainState.loading && p.brain ? "Po lexohet maroBrain…" : "Plotëso brendin dhe përshkrimin, ose lidhe një maroBrain të plotësuar." : !choicesReady ? "Zgjedhe formatin; çdo produkt duhet të ketë vend në plan." : p.credits < 50 ? "Për këtë feed duhen 50 credits." : "";
   const disabled = p.working || p.checking || Boolean(missing);
   const locked = p.working || Boolean(p.pending);
   const atReferences = [feedMessage("too_many_references"), feedMessage("invalid_asset")].includes(p.error);
@@ -65,7 +65,7 @@ export function FeedPreparation(p: Props) {
       <details className={s.more}><summary className={b.promptSummary}>Audienca dhe ngjyrat · opsionale</summary><div className={s.form}>{!p.brain && <label className={b.field}><span>Audienca</span><input className="maro-input" value={p.brief.audience} maxLength={300} disabled={locked} placeholder="Kujt i drejtohet brendi yt?" onChange={event => p.patch("audience", event.target.value)} /></label>}<label className={b.field}><span>Ngjyrat</span><input className="maro-input" value={p.brief.colors} maxLength={100} disabled={locked} placeholder="p.sh. #233D2A, krem, portokalli" onChange={event => p.patch("colors", event.target.value)} /></label></div></details>
     </section>
     <section id="feed-appearance" className={s.formStep}>
-      <div className={s.stepHeading}><span>3</span><div><h3>Pamja e postimeve</h3><p>Zgjedh formatin, fontin dhe llojin e përmbajtjes.</p></div></div>
+      <div className={s.stepHeading}><span>3</span><div><h3>Pamja e postimeve</h3><p>Zgjedh formatin dhe llojin e përmbajtjes.</p></div></div>
       <FeedBrandSettings {...settings} section="appearance" />
       <label className={b.field}><span>Lloji i postimeve</span><select className="maro-input" value={p.contentType} disabled={locked} onChange={event => p.setContentType(event.target.value as FeedContentType)}>{contentTypes.map(type => <option key={type} value={type}>{contentLabels[type]}</option>)}</select><small className={b.hint}>{p.contentType === "mix" ? "9 koncepte me role të ndryshme: produkti, përdorimi, detajet dhe më shumë." : `9 postime “${contentLabels[p.contentType]}”, me kompozime të ndryshme.`}</small></label>
       <div className={s.contextRow}><div><strong>Tekst në imazhe</strong><p>{p.textMode ? "Tekst i shkurtër, kur i shërben kompozimit." : "Vetëm imazhe; ruhen etiketat e produktit dhe logoja."}</p></div><Switch checked={p.textMode} onChange={p.setTextMode} disabled={locked} aria-label="Tekst në imazhe" /></div>
@@ -73,7 +73,7 @@ export function FeedPreparation(p: Props) {
       <FeedBrandSettings {...settings} section="plan" />
     </section>
     <section className={s.reviewCard} aria-label="Përmbledhja para gjenerimit">
-      <div className={s.reviewHeading}><div><h3>9 postime për feed-in tënd</h3><p>{p.draft.format ? feedFormats[p.draft.format] : "Zgjedh formatin"} · {p.draft.font ? feedFonts[p.draft.font] : "Zgjedh fontin"} · {p.textMode ? "Me tekst" : "Pa tekst"}{logo ? " · Me logo" : ""}</p></div><strong>50 <small>credits</small></strong></div>
+      <div className={s.reviewHeading}><div><h3>9 postime për feed-in tënd</h3><p>{p.draft.format ? feedFormats[p.draft.format] : "Zgjedh formatin"} · {p.textMode ? "Me tekst" : "Pa tekst"}{logo ? " · Me logo" : ""}</p></div><strong>50 <small>credits</small></strong></div>
       <ul className={s.readiness}>{([[referencesReady, "Referencat", "feed-references"], [brandReady, "Brendi", "feed-brand"], [choicesReady, "Pamja", "feed-appearance"]] as const).map(([ok, label, id]) => <li key={id} data-ready={ok}>{ok ? <CheckCircle2 size={16} /> : <Circle size={16} />}<a href={`#${id}`}>{label}</a></li>)}</ul>
       {p.pending && !p.planning && <div className={s.pendingRequest} role="status"><p>{p.checking ? "Po kontrollohet kërkesa e fundit…" : "Kërkesa e fundit ende nuk u verifikua. Kontrolloje ose riprovoje me të njëjtat zgjedhje; ruhet e njëjta kërkesë."}</p>{!p.checking && <Button type="button" variant="ghost" size="sm" onClick={p.checkRequest}>Kontrollo kërkesën</Button>}</div>}
       {p.planning || p.checking ? <div className={s.planningStatus} role="status"><LoaderCircle size={20} className={s.spin} /><div><strong>{p.planning ? "Po përgatitet plani i feed-it…" : "Po verifikohet kërkesa…"}</strong><p>{p.planning ? "Po lidhen produktet, 9 konceptet dhe stili i përbashkët." : "Po kontrollohet nëse feed-i është krijuar."}</p></div><FeedElapsed key={p.planning ? "planning" : "checking"} startedAt={p.checking ? p.pending?.startedAt : undefined} /></div> : null}

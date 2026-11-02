@@ -8,12 +8,13 @@ import type { FeedPlanPost } from "./plan";
 import { balanceFeedLines, feedTypeSetting } from "./typography";
 
 const files = { inter: "@fontsource/inter/files/inter-latin-700-normal.woff", manrope: "@fontsource/manrope/files/manrope-latin-700-normal.woff", playfair: "@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff" } as const;
-const fonts = new Map<FeedDesign["font"], Font>();
+const fonts = new Map<NonNullable<FeedDesign["font"]>, Font>();
 type Bounds = { width: number; height: number; size: number; maxLines?: number; align?: "left" | "center"; tracking?: number; leading?: number };
 /** Exact bundled outlines, balanced words, tight leading and real ink bounds; no system-font fallback. */
 export async function feedTextImage(text: string, design: FeedDesign, color = "#ffffff", bounds?: Bounds) {
-  let font = fonts.get(design.font);
-  if (!font) { font = create(readFileSync(path.join(process.cwd(), "node_modules", files[design.font]))); if (font.familyName !== feedFonts[design.font]) throw new Error("feed_font_unavailable"); fonts.set(design.font, font); }
+  const fontKey = design.font ?? "inter";
+  let font = fonts.get(fontKey);
+  if (!font) { font = create(readFileSync(path.join(process.cwd(), "node_modules", files[fontKey]))); if (font.familyName !== feedFonts[fontKey]) throw new Error("feed_font_unavailable"); fonts.set(fontKey, font); }
   const value = text.normalize("NFC").replace(/[^\S\n]+/g, " ").trim();
   if (!value || [...value].some(c => c !== "\n" && !font!.hasGlyphForCodePoint(c.codePointAt(0)!))) throw new Error("headline_unsupported");
   if (!/^#[a-f\d]{6}$/i.test(color)) throw new Error("invalid_text_color");

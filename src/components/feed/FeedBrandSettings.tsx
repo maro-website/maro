@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import type { PrivateImageAttachment } from "@/lib/services/privateImageAttachment";
-import { feedFonts, feedFormats, feedLogoPositions, feedDesignSchema, planFeedProducts, type FeedAsset, type FeedDesign } from "@/lib/feed/campaign";
+import { feedFormats, feedLogoPositions, feedDesignSchema, planFeedProducts, type FeedAsset, type FeedDesign } from "@/lib/feed/campaign";
 import { feedRole, type FeedContentType } from "@/lib/feed/model";
 import { Button } from "@/components/ui/Button";
 import b from "@/components/modules/BrainStudio.module.css";
@@ -10,18 +10,19 @@ import s from "./FeedWorkspace.module.css";
 export type FeedDesignDraft = {
   name?: string;
   headlines?: string[];
-  font: FeedDesign["font"] | ""; format: FeedDesign["format"] | "";
+  /** Read-only compatibility for drafts saved before automatic typography. */
+  font?: FeedDesign["font"] | ""; format: FeedDesign["format"] | "";
   logoPosition: FeedDesign["logoPosition"];
   assets: Record<string, { role: FeedAsset["role"]; label: string }>;
   assignments?: number[][];
 };
-export const initialFeedDesign: FeedDesignDraft = { font: "", format: "", logoPosition: "bottom-right", assets: {} };
+export const initialFeedDesign: FeedDesignDraft = { format: "", logoPosition: "bottom-right", assets: {} };
 export function draftFeedDesign(draft: FeedDesignDraft, attachments: PrivateImageAttachment[]): FeedDesign {
   const assets = attachments.map((item, index) => ({ index, role: draft.assets[item.id]?.role ?? "product", label: (draft.assets[item.id]?.label ?? item.name).trim().slice(0, 100) || `Produkti ${index + 1}` }));
-  return { version: 1, name: draft.name?.trim(), headlines: draft.headlines, textRendering: "native", font: draft.font || "inter", format: draft.format || "1:1", typeScale: "medium", logoPosition: draft.logoPosition, assets, assignments: draft.assignments ?? planFeedProducts(assets) };
+  return { version: 1, name: draft.name?.trim(), headlines: draft.headlines, textRendering: "native", format: draft.format || "1:1", typeScale: "medium", logoPosition: draft.logoPosition, assets, assignments: draft.assignments ?? planFeedProducts(assets) };
 }
 export function readyFeedDesign(draft: FeedDesignDraft, design: FeedDesign) {
-  return Boolean(draft.font && draft.format && feedDesignSchema.safeParse(design).success);
+  return Boolean(draft.format && feedDesignSchema.safeParse(design).success);
 }
 
 export function FeedBrandSettings({ draft, setDraft, attachments, remove, disabled, contentType, textMode, section = "all", retry, retryDisabled, previewError }: {
@@ -51,14 +52,13 @@ export function FeedBrandSettings({ draft, setDraft, attachments, remove, disabl
     {attachments.length > 0 && !products.length && <p className={s.validation} role="alert">Së paku një referencë duhet me qenë Produkt / shërbim.</p>}
     </>}
     {(section === "all" || section === "appearance") && <>
-    {section === "all" && <div className={s.designHeading}><h3>I njëjti stil. Çdo herë.</h3><p>Zgjedhe fontin dhe formatin e imazheve.</p></div>}
+    {section === "all" && <div className={s.designHeading}><h3>I njëjti stil. Çdo herë.</h3><p>Zgjedhe formatin e imazheve.</p></div>}
     <label className={b.field}><span>Emri i feed-it <small>(opsionale)</small></span><input className="maro-input" value={draft.name ?? ""} maxLength={100} placeholder="p.sh. Mr. Clean · Koleksioni i nëntorit" disabled={disabled} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
     <div className={s.fieldPair}>
-      <label className={b.field}><span>Fonti *</span><select required className="maro-input" value={draft.font} disabled={disabled} onChange={e => setDraft({ ...draft, font: e.target.value as FeedDesignDraft["font"] })}><option value="" disabled>Zgjedhe fontin</option>{Object.entries(feedFonts).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
       <label className={b.field}><span>Formati i imazheve *</span><select required className="maro-input" value={draft.format} disabled={disabled} onChange={e => setDraft({ ...draft, format: e.target.value as FeedDesignDraft["format"] })}><option value="" disabled>Zgjedhe formatin</option>{Object.entries(feedFormats).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
       {logo && <label className={b.field}><span>Pozicioni i logos</span><select className="maro-input" value={draft.logoPosition} disabled={disabled} onChange={e => setDraft({ ...draft, logoPosition: e.target.value as FeedDesign["logoPosition"] })}>{Object.entries(feedLogoPositions).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>}
     </div>
-    {draft.font && <div className={s.fontSample} data-font={draft.font}><span>{feedFonts[draft.font]}</span><p>Një brend. Nëntë ide.</p><small>{textMode ? "Një familje shkronjash për krejt kampanjën." : "Pa tekst të shtuar; zgjedhja ruhet në identitetin e kampanjës."}</small></div>}
+    {textMode && <p className={b.hint}>Tipografia zgjidhet sipas brendit dhe imazhit, me stil të pastër dhe të njëtrajtshëm në krejt feed-in.</p>}
     {logo && <p className={b.hint}>Logoja ruan formën, madhësinë dhe pozicionin. Përshtatet me sfondin që të lexohet; PNG transparente jep rezultatin më të pastër.</p>}
     </>}
     {(section === "all" || section === "plan") && products.length > 0 && <details className={s.planDetails}>
