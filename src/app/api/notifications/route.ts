@@ -17,6 +17,8 @@ export async function GET(req: Request) {
     .from("user_notifications")
     .select("id, dedupe_key, kind, title, body, action_href, read_at, metadata, created_at")
     .eq("user_id", user.id)
+    // Email delivery markers stay in the database to prevent duplicate sends.
+    .or("metadata->>email.is.null,metadata->>email.neq.true")
     .order("created_at", { ascending: false })
     .limit(limit);
 
