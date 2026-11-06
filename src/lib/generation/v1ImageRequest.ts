@@ -16,6 +16,8 @@ import { IMAZH_REQUEST_PROMPT_MAX_CHARS } from "./imagePromptValidation";
 import { MOOD_ID } from "@/lib/moods/model";
 import { resolveGenerationMood } from "@/lib/moods/server";
 import { isRecraftModel, canUseRecraft } from "@/lib/ai/recraftModels";
+import type { Image26Options } from "@/lib/ai/image26";
+import { parseImage26Options, validateImage26Options } from "./image26Options";
 
 export { ImageRequestValidationError } from "./requestValidation";
 export const V1_IMAGE_REQUEST_VERSION = "v1-image-request/1";
@@ -38,6 +40,7 @@ export interface ParsedV1ImageRequest {
   useBrain: boolean;
   logoWizard?: MaroLogoWizardState;
   idempotencyKey?: string;
+  imageOptions?: Image26Options;
 }
 
 /** No database, provider or financial work. Explicit invalid values are never defaults. */
@@ -46,7 +49,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
   const denial = generationAvailabilityError(raw.toolId);
   if (denial) throw new ImageRequestValidationError(denial.error, denial.status, "toolId");
   const logo = resolveProductModule(raw.toolId) === "logo";
-  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "moodId", "workspaceId", "conversationId", "revision", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort"], "request");
+  knownKeys(raw, ["toolId", "prompt", "model", "selections", "size", "quality", "n", "attachments", "maroPrompt", "moodId", "workspaceId", "conversationId", "revision", "useWorkspaceBrand", "logoWizard", "idempotencyKey", "fort", "imageOptions"], "request");
   if (!logo && typeof raw.prompt !== "string") throw new ImageRequestValidationError("invalid_string", 400, "prompt");
   if (!logo && (raw.prompt as string).length > IMAZH_REQUEST_PROMPT_MAX_CHARS) {
     throw new ImageRequestValidationError("prompt_too_long", 400, "prompt", {
@@ -127,6 +130,11 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
     if (!/^[a-zA-Z0-9_-]+$/.test(requestedWorkspaceId)) throw new ImageRequestValidationError("invalid_workspace");
   }
   const requestedBrain = requestBoolean(raw.useWorkspaceBrand, "useWorkspaceBrand");
+  const imageOptions = parseImage26Options(raw.imageOptions);
+  if (imageOptions && ((imageOptions.outputFormat === "svg" && revision) ||
+      (imageOptions.outputFormat === "gif" && (selections.format === "4:3" || requestedBrain)))) {
+    throw new ImageRequestValidationError("image_option_unavailable", 400, "imageOptions");
+  }
   const idempotencyKey = raw.idempotencyKey === undefined ? undefined : requestString(raw.idempotencyKey, "idempotencyKey", 128);
   if (idempotencyKey === "") throw new ImageRequestValidationError("invalid_idempotency_key");
   // Fort remains governed by Phase 1: stale payloads are intentionally discarded, never interpreted.
@@ -137,6 +145,7 @@ export function parseV1ImageRequest(value: unknown): ParsedV1ImageRequest {
     imageCount: 1, quality, size, referenceIds: [...referenceIds], presetId, requestedWorkspaceId,
     useBrain: !logo && requestedBrain, logoWizard, idempotencyKey, conversationId, revision,
     ...(moodId ? { moodId } : {}),
+    ...(imageOptions ? { imageOptions } : {}),
   };
 }
 
@@ -176,6 +185,7 @@ export interface TrustedV1ImageRequest extends Omit<ParsedV1ImageRequest, "reque
   userId: string;
   workspaceId: string | null;
   model: V1ImageModelConfiguration;
+  generationCredits?: number;
   references: Array<{ id: string; digest: string; mime: string }>;
   presetContentHash?: string;
   moodContentHash?: string;
@@ -202,6 +212,7 @@ export async function resolveV1ImageRequest(
   if (isRecraftModel(input.logicalModel)) await (deps.authorizeRecraft ?? dependencies.authorizeRecraft)(userId);
   const mood = input.moodId ? await (deps.loadMood ?? resolveGenerationMood)(userId, input.moodId) : undefined;
   const model = resolveV1ImageModel(await deps.loadModels(input.module), input.module, input.logicalModel);
+  const generationCredits = input.imageOptions ? validateImage26Options(input.imageOptions, model, input.referenceIds.length) : undefined;
   if (input.logoWizard && deps.loadLogoContent) {
     const content = await deps.loadLogoContent();
     if (Object.keys(logoContentAnswerErrors(input.logoWizard, content)).length) throw new ImageRequestValidationError("invalid_logo_content_answer");
@@ -229,6 +240,7 @@ export async function resolveV1ImageRequest(
   const snapshot = freezeSnapshot<TrustedV1ImageRequest>({
     ...normalized, contractVersion: V1_IMAGE_REQUEST_VERSION, modulePolicy: "maro-v1" as const, inputPolicy: "existing-image-ui/1" as const,
     userId, workspaceId, model, logicalModel: model.logicalModel, selections: { ...input.selections, model: model.logicalModel },
+    ...(generationCredits !== undefined ? { generationCredits } : {}),
     references: [...resolvedReferences].map(([id, ref]) => ({ id, digest: ref.digest, mime: ref.mime })),
     ...(presetPrompt ? { presetContentHash: createHash("sha256").update(presetPrompt).digest("hex") } : {}),
     ...(mood ? { moodContentHash: mood.hash, moodTitle: mood.title } : {}),

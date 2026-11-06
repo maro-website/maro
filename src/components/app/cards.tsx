@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/Toast";
 import { trackEvent } from "@/lib/services/trackService";
 import { submitReport } from "@/lib/services/reportService";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
+import { downloadNativeImage } from "@/lib/services/projectAssetService";
 import {
   MoreVertical,
   Pencil,
@@ -53,7 +54,7 @@ function mediaOf(c: ImageCreation): "image" | "audio" | "text" {
 function CreationThumb({ creation, className }: { creation: ImageCreation; className?: string }) {
   const media = mediaOf(creation);
   if (media === "image") {
-    return <StableImage src={creation.urls[0]} module={creation.toolId} refreshKey={creation.storageRefs?.[0] ?? creation.id} alt="" className={cn("h-full w-full object-cover", className)} />;
+    return <StableImage src={creation.nativeImage?.format === "gif" ? creation.nativeImage.url ?? creation.urls[0] : creation.urls[0]} module={creation.toolId} refreshKey={creation.storageRefs?.[0] ?? creation.id} alt="" className={cn("h-full w-full object-cover", className)} />;
   }
   return <PreviewFallback module={media} className={className} />;
 }
@@ -459,10 +460,12 @@ export function CreationLightbox({
   creation,
   open,
   onClose,
+  onAnimate,
 }: {
   creation: ImageCreation;
   open: boolean;
   onClose: () => void;
+  onAnimate?: (preview: string, reference: string) => void;
 }) {
   const { toast } = useToast();
   const { toggleFavouriteCreation } = useMaro();
@@ -486,6 +489,8 @@ export function CreationLightbox({
   }, [open, creation.id, creation.prompt, creation.toolId, creation.urls]);
 
   const url = creation.urls[active] ?? creation.urls[0];
+  const native = active === 0 ? creation.nativeImage : undefined;
+  const animationRef = creation.storageRefs?.[active];
 
   const copyPrompt = async () => {
     try {
@@ -506,6 +511,7 @@ export function CreationLightbox({
   const download = async () => {
     setBusy(true);
     try {
+      if (native) { await downloadNativeImage(native, `maro-${creation.id}`); return; }
       const res = await fetch(url);
       const blob = await res.blob();
       const href = URL.createObjectURL(blob);
@@ -517,7 +523,8 @@ export function CreationLightbox({
       a.remove();
       URL.revokeObjectURL(href);
     } catch {
-      window.open(url, "_blank");
+      if (native) toast("Skedari nuk u shkarkua. Provo përsëri.", "error");
+      else window.open(url, "_blank");
     } finally {
       setBusy(false);
     }
@@ -552,7 +559,7 @@ export function CreationLightbox({
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <StableImage
-                src={url}
+                src={native?.format === "gif" ? native.url ?? url : url}
                 module={creation.toolId}
                 refreshKey={creation.storageRefs?.[active] ?? `${creation.id}-${active}`}
                 fallbackClassName="aspect-square"
@@ -629,8 +636,11 @@ export function CreationLightbox({
                   disabled={busy}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
                 >
-                  <Download className="h-4 w-4" /> Shkarko
+                  <Download className="h-4 w-4" /> Shkarko{native ? ` ${native.format.toUpperCase()}` : ""}
                 </button>
+                {onAnimate && animationRef && url && !native && media === "image" && (
+                  <button type="button" onClick={() => onAnimate(url, animationRef)} className="rounded-xl bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-2">Animo këtë imazh</button>
+                )}
               </>
             )}
 

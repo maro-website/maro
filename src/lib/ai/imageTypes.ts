@@ -2,6 +2,7 @@ import type { ImageQuality, ImageSize, ToolId } from "@/lib/tools/registry";
 import type { FortPayload } from "@/lib/fort/types";
 import type { MaroLogoWizardState } from "@/lib/marologo/types";
 import type { V1LogicalImageModel } from "@/lib/engine/v1ImageModels";
+import type { Image26Options, NativeImageAsset } from "./image26";
 
 export interface AiImageRequest {
   toolId: ToolId;
@@ -31,6 +32,7 @@ export interface AiImageRequest {
   revision?: string;
   /** Inject active workspace brand colors/logo into the prompt. */
   useWorkspaceBrand?: boolean;
+  imageOptions?: Image26Options;
   idempotencyKey?: string;
 }
 
@@ -39,6 +41,7 @@ export interface AiImageResponse {
   /** Stable database/storage identities; display URLs may expire and change. */
   generationId?: string;
   storageRefs?: string[];
+  nativeImage?: NativeImageAsset;
   creditsSpent: number;
   jobId?: string;
 }

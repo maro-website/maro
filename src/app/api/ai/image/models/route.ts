@@ -4,6 +4,7 @@ import { loadV1ImageModelRows, publicV1ImageModel, validateV1ModelSet } from "@/
 import { ImageRequestValidationError, v1ImageValidationResponse } from "@/lib/generation/v1ImageRequest";
 import { canUseRecraft } from "@/lib/ai/recraftModels";
 import { getUserFromToken } from "@/lib/supabase/server";
+import { image26Features } from "@/lib/generation/image26Options";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,10 @@ export async function GET(req: Request) {
     const header = req.headers.get("authorization");
     const owner = await getUserFromToken(header?.startsWith("Bearer ") ? header.slice(7) : null);
     const models = validateV1ModelSet(rows, productModule).filter((m) => m.enabled && (m.provider !== "recraft" || canUseRecraft(owner?.email)));
-    return Response.json({ models: models.sort((a, b) => a.order - b.order).map(publicV1ImageModel) }, {
+    return Response.json({ models: models.sort((a, b) => a.order - b.order).map(model => ({
+      ...publicV1ImageModel(model),
+      ...(process.env.MARO_IMAGE26_ENABLED === "true" ? { image26: image26Features(model) } : {}),
+    })) }, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

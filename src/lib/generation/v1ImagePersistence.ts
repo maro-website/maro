@@ -4,6 +4,8 @@ import { imageOutputBytes } from "@/lib/generation/imageOutputFormat";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { validateProviderImageBytes } from "@/lib/security/uploadValidation";
 import type { ImageProviderObservation } from "@/lib/ai/imageObservation";
+import type { NativeImageFormat } from "@/lib/ai/image26";
+import { nativeImageOutput } from "./nativeImageOutput";
 
 export type V1Failure = "provider_failed" | "provider_output_invalid" | "storage_failed" | "history_failed" | "execution_trace_unavailable" | "execution_interrupted";
 export class V1PersistenceError extends Error {
@@ -18,12 +20,20 @@ export function v1OutputReference(userId: string, jobId: string) {
 }
 
 /** Decode, durably checkpoint, upload, and read back the one expected V1 output. */
-export async function storeV1ImageOutput(userId: string, jobId: string, outputs: string[], observation?: ImageProviderObservation, format?: string): Promise<string> {
+export async function storeV1ImageOutput(userId: string, jobId: string, outputs: string[], observation?: ImageProviderObservation, format?: string, outputFormat?: NativeImageFormat): Promise<string> {
   if (outputs.length !== 1) throw new V1PersistenceError("provider_output_invalid");
-  const validated = validateProviderImageBytes(outputs[0]);
-  if (!validated.ok) throw new V1PersistenceError("provider_output_invalid");
   let bytes: Buffer;
-  try { bytes = await imageOutputBytes(validated.bytes, format); }
+  let native: Awaited<ReturnType<typeof nativeImageOutput>> | undefined;
+  try {
+    if (outputFormat) {
+      native = await nativeImageOutput(outputs[0], outputFormat);
+      bytes = native.poster;
+    } else {
+      const validated = validateProviderImageBytes(outputs[0]);
+      if (!validated.ok) throw new Error("invalid_image");
+      bytes = await imageOutputBytes(validated.bytes, format);
+    }
+  }
   catch { throw new V1PersistenceError("provider_output_invalid"); }
   const { path, reference } = v1OutputReference(userId, jobId);
   const db = getSupabaseAdmin();
@@ -32,12 +42,17 @@ export async function storeV1ImageOutput(userId: string, jobId: string, outputs:
   if (checkpoint.error || checkpoint.data !== true) throw new V1PersistenceError("storage_failed");
   try {
     const bucket = db.storage.from("generations");
-    const uploaded = await bucket.upload(path, bytes, { contentType: "image/png", upsert: false });
-    if (uploaded.error?.message.includes("storage_quota_exceeded")) throw new V1PersistenceError("storage_failed", true);
-    // A timeout/conflict may mean a previous upload committed. Verify the deterministic object.
-    if (!uploaded.error && uploaded.data?.path !== path) throw new Error("invalid_storage_path");
-    const stored = await bucket.download(path);
-    if (stored.error || !stored.data || hash(new Uint8Array(await stored.data.arrayBuffer())) !== digest) throw new Error("storage_verification_failed");
+    async function uploadVerified(assetPath: string, data: Buffer, contentType: string, checksum: string) {
+      const uploaded = await bucket.upload(assetPath, data, { contentType, upsert: false });
+      if (uploaded.error?.message.includes("storage_quota_exceeded")) throw new V1PersistenceError("storage_failed", true);
+      // A timeout/conflict may mean a previous upload committed. Verify the deterministic object.
+      if (!uploaded.error && uploaded.data?.path !== assetPath) throw new Error("invalid_storage_path");
+      const stored = await bucket.download(assetPath);
+      if (stored.error || !stored.data || hash(new Uint8Array(await stored.data.arrayBuffer())) !== checksum) throw new Error("storage_verification_failed");
+    }
+    // The PNG is the durable settlement marker. Publish it only after the native file is verified.
+    if (native) await uploadVerified(path.replace(/\.png$/, `.${outputFormat}`), native.original, native.contentType, hash(native.original));
+    await uploadVerified(path, bytes, "image/png", digest);
     return reference;
   } catch (error) {
     if (error instanceof V1PersistenceError) throw error;

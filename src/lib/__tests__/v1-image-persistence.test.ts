@@ -30,6 +30,21 @@ describe("verified durable storage",()=>{
   it("fails if the provider checkpoint cannot be committed",async()=>{mocks.rpc.mockResolvedValue({data:false,error:null});await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed"});expect(mocks.upload).not.toHaveBeenCalled();});
   it("upload error plus missing object is a storage failure",async()=>{mocks.upload.mockResolvedValue({data:null,error:{message:"upload"}});mocks.download.mockResolvedValue({data:null,error:{message:"missing"}});await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed"});});
   it("upload success alone is insufficient",async()=>{mocks.download.mockResolvedValue({data:null,error:{message:"missing"}});await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed"});});
+  it("verifies the original SVG before writing the PNG settlement marker", async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32"/></svg>');
+    const assets = new Map<string, Buffer>();
+    mocks.upload.mockImplementation(async (key: string, bytes: Buffer) => {
+      assets.set(key, bytes);
+      return { data: { path: key }, error: null };
+    });
+    mocks.download.mockImplementation(async (key: string) => ({ data: new Blob([new Uint8Array(assets.get(key)!)]), error: null }));
+    expect(await storeV1ImageOutput(user, job, [svg.toString("base64")], undefined, undefined, "svg")).toBe(reference);
+    const originalPath = path.replace(".png", ".svg");
+    expect(mocks.upload.mock.calls.map(([key]) => key)).toEqual([originalPath, path]);
+    expect(assets.get(originalPath)).toEqual(svg);
+    expect(await sharp(assets.get(path)!).metadata()).toMatchObject({ format: "png" });
+    expect(mocks.download.mock.invocationCallOrder[0]).toBeLessThan(mocks.upload.mock.invocationCallOrder[1]);
+  });
   it("wrong bytes cannot satisfy verification",async()=>{mocks.download.mockResolvedValue({data:new Blob(["wrong"]),error:null});await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed"});});
   it("wrong returned path cannot satisfy verification",async()=>{mocks.upload.mockResolvedValue({data:{path:"other/file.png"},error:null});await expect(storeV1ImageOutput(user,job,[image.toString("base64")])).rejects.toMatchObject({code:"storage_failed"});});
   it("recovers a committed upload after a lost upload response without overwriting",async()=>{mocks.upload.mockResolvedValue({data:null,error:{message:"transport timeout"}});expect(await storeV1ImageOutput(user,job,[image.toString("base64")])).toBe(reference);});

@@ -3,9 +3,10 @@ import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 
 import { useEffect, useState } from "react";
 import type { publicV1ImageModel } from "@/lib/engine/v1ImageModels";
+import type { Image26Features } from "@/lib/ai/image26";
 import { getAccessToken, getSupabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 
-type PublicModel = ReturnType<typeof publicV1ImageModel>;
+type PublicModel = ReturnType<typeof publicV1ImageModel> & { image26?: Image26Features };
 
 /** A display projection, never an authoritative price submitted to generation. */
 export function useV1ImageModels(toolId: string | null) {

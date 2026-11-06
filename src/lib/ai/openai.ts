@@ -3,6 +3,7 @@ import OpenAI, { toFile } from "openai";
 import { buildImageObservation, type ImageObservationCallback } from "./imageObservation";
 import type { ImageQuality, ImageSize } from "@/lib/tools/registry";
 import { MODULE_LIMITS } from "@/lib/generation/limits";
+import type { ImageComplexity, NativeImageFormat } from "./image26";
 
 /** Wall-clock budget for a single OpenAI image generate/edit call. */
 export const OPENAI_TIMEOUT_MS =
@@ -114,6 +115,8 @@ async function withOpenAITimeout<T>(
 export async function generateImages(opts: {
   model: string;
   prompt: string;
+  complexity?: ImageComplexity;
+  outputFormat?: NativeImageFormat;
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
@@ -127,6 +130,8 @@ export async function generateImages(opts: {
     size: opts.size ?? "1024x1024",
     quality: opts.quality ?? "high",
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
+    ...(opts.complexity ? { complexity: opts.complexity } : {}),
+    ...(opts.outputFormat === "svg" ? { output_format: "svg", background: "transparent" } : {}),
   } as unknown as OpenAI.ImageGenerateParams;
 
   return observedImages(opts, "generate", 0, async () => withOpenAITimeout(
@@ -153,6 +158,9 @@ export async function editImages(opts: {
   model: string;
   prompt: string;
   images: string[];
+  complexity?: ImageComplexity;
+  outputFormat?: NativeImageFormat;
+  markup?: string;
   size?: ImageSize;
   quality?: ImageQuality;
   n?: number;
@@ -168,9 +176,12 @@ export async function editImages(opts: {
     model: opts.model,
     prompt: opts.prompt,
     image: files,
-    size: opts.size ?? "1024x1024",
+    size: opts.outputFormat === "gif" ? "auto" : opts.size ?? "1024x1024",
     quality: opts.quality ?? "high",
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
+    ...(opts.complexity ? { complexity: opts.complexity } : {}),
+    ...(opts.outputFormat === "gif" ? { output_format: "gif", frame_count: 6, frame_duration_ms: 200 } : {}),
+    ...(opts.markup ? { markup: await dataUrlToFile(opts.markup, 0) } : {}),
   } as unknown as OpenAI.ImageEditParams;
 
   return observedImages(opts, "edit", files.length, async () => withOpenAITimeout(

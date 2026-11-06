@@ -57,6 +57,7 @@ export interface ImageCreation {
   serverId?: string;
   /** Stable storage references used to refresh expiring signed display URLs. */
   storageRefs?: string[];
+  nativeImage?: import("@/lib/ai/image26").NativeImageAsset;
   /** Active workspace when the creation was saved locally. */
   workspaceId?: string;
   toolId: string;

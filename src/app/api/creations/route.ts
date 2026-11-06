@@ -5,6 +5,8 @@ import { resolveGenerationLabels } from "@/lib/design/generationMeta";
 import type { ConversationJob } from "@/lib/creations/conversations";
 import { UUID } from "@/lib/explore/server";
 import { isOwnedPrivateAssetPath, parseMaroStorageAsset, STORAGE_BUCKET } from "@/lib/storage/assets";
+import { isNativeImageFormat, nativeImageReference } from "@/lib/ai/image26";
+import { resolveNativeImage } from "@/lib/storage/nativeImages";
 import {
   getSupabaseAdmin,
   getUserFromToken,
@@ -62,18 +64,21 @@ export async function GET(req: Request) {
           const tool = getTool((r.tool_id as string) ?? "logo");
           const selections = r.selections && typeof r.selections === "object" && !Array.isArray(r.selections)
             ? Object.fromEntries(Object.entries(r.selections).filter((entry): entry is [string, string] => typeof entry[1] === "string")) : {};
+          const { outputFormat, ...visibleSelections } = selections;
           const labels = tool ? resolveGenerationLabels(tool, selections) : {};
           const urls = (await resolveAssetListForClient(refs)).filter(
             (url) => /^(https?:|data:|blob:)/i.test(url)
           );
           if (urls.length === 0) return null;
+          const nativeImage = isNativeImageFormat(outputFormat) ? await resolveNativeImage(refs[0], outputFormat, user.id) : undefined;
           return {
             id: r.id as string,
             serverId: r.id as string,
             toolId: (r.tool_id as string) ?? "logo",
             ...labels,
             conversationId: (r.conversation_id as string | null) ?? r.id as string,
-            selections,
+            selections: visibleSelections,
+            ...(nativeImage ? { nativeImage } : {}),
             brain: Boolean(r.brain),
             inputRefs: (r.input_refs as string[] | null) ?? undefined,
             inputUrls: Array.isArray(r.input_refs) ? await resolveAssetListForClient(r.input_refs as string[]) : undefined,
@@ -187,7 +192,7 @@ export async function DELETE(req: Request) {
     }
     try {
       const admin = getSupabaseAdmin();
-      let lookup = admin.from("generations").select("id,output_urls").eq("user_id", user.id);
+      let lookup = admin.from("generations").select("id,output_urls,selections").eq("user_id", user.id);
       lookup = body.id ? lookup.eq("id", body.id) : lookup.contains("output_urls", [body.url!]);
       const { data, error } = await lookup.maybeSingle();
       if (error) return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 });
@@ -201,9 +206,13 @@ export async function DELETE(req: Request) {
         .eq("id", data.id).eq("output_urls", arrayFilter(refs)).select("id").maybeSingle();
       if (updated.error) return NextResponse.json({ error: "asset-delete-failed" }, { status: 503 });
       if (!updated.data) return NextResponse.json({ error: "assets-changed" }, { status: 409 });
+      const format = data.selections?.outputFormat;
       const paths = [...requested].flatMap(value => {
         const ref = parseMaroStorageAsset(value);
-        return ref?.bucket === STORAGE_BUCKET && isOwnedPrivateAssetPath(ref.path, user.id) ? [ref.path] : [];
+        if (ref?.bucket !== STORAGE_BUCKET || !isOwnedPrivateAssetPath(ref.path, user.id)) return [];
+        const native = isNativeImageFormat(format) ? nativeImageReference(value, format) : undefined;
+        const nativePath = native && parseMaroStorageAsset(native)?.path;
+        return nativePath ? [ref.path, nativePath] : [ref.path];
       });
       if (paths.length) {
         const removed = await admin.storage.from(STORAGE_BUCKET).remove([...new Set(paths)]);

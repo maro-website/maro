@@ -1,6 +1,21 @@
 import { rateLimitedFetch as fetch } from "@/lib/client/rateLimit";
 import { getAccessToken, getSupabaseBrowser } from "@/lib/supabase/client";
 import { notifyStorageChanged } from "@/lib/workspaces/accountPolicy";
+import type { NativeImageAsset } from "@/lib/ai/image26";
+
+export async function downloadNativeImage(asset: NativeImageAsset, name: string) {
+  const urls = await resolvePrivateAssetRefsStrict([asset.reference]);
+  const response = await fetch(urls[asset.reference]);
+  if (!response.ok) throw new Error("asset_download_failed");
+  const href = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = `${name.replace(/[^\p{L}\p{N}_-]+/gu, "-") || "maro"}.${asset.format}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
 
 export const MAX_PROJECT_ASSET_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_REFERENCE_FILE_BYTES = 25 * 1024 * 1024;

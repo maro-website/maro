@@ -88,6 +88,19 @@ describe("OpenAI image provider safety", () => {
     expect(mockEdit.mock.calls[0][0].image).toHaveLength(10);
   });
 
+  it("uses the Images API wire options for markup, GIF and SVG", async () => {
+    mockEdit.mockResolvedValue({ data: [{ b64_json: "sample" }] });
+    mockGenerate.mockResolvedValue({ data: [{ b64_json: "sample" }] });
+    const { editImages, generateImages } = await loadOpenAI();
+    const options = { model: "gpt-image-2.6-flare", prompt: "Test" };
+    await editImages({ ...options, images: ["data:image/png;base64,YWJj"], complexity: "low", markup: "data:image/png;base64,em9uZQ==" });
+    expect(mockEdit.mock.calls[0][0]).toMatchObject({ complexity: "low", markup: { buffer: Buffer.from("zone"), type: "image/png" } });
+    await editImages({ ...options, images: ["data:image/png;base64,YWJj"], outputFormat: "gif" });
+    expect(mockEdit.mock.calls[1][0]).toMatchObject({ output_format: "gif", size: "auto", frame_count: 6, frame_duration_ms: 200, n: 1 });
+    await generateImages({ ...options, outputFormat: "svg" });
+    expect(mockGenerate.mock.calls[0][0]).toMatchObject({ output_format: "svg", background: "transparent", n: 1 });
+  });
+
   it("reports actual response usage and request ID without another call", async () => {
     mockGenerate.mockResolvedValue({ _request_id: "req_live_shape", data: [{ b64_json: "image" }], usage: { input_tokens: 100, input_tokens_details: { text_tokens: 100, image_tokens: 0 }, output_tokens: 1000 } });
     const onObservation = vi.fn();

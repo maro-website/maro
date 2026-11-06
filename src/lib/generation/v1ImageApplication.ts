@@ -20,6 +20,8 @@ import { AccountPolicyError, requireBrainAccess, requireStorageSpace } from "@/l
 import { isVerifiedMcpImageRequest } from "@/lib/mcp/internalRequest";
 import { generateRecraftImage, hasRecraftKey, planRecraftImage, type RecraftImagePlan } from "@/lib/ai/recraft";
 import { optimizeImageCompilation } from "@/lib/prompt-optimizer/server";
+import { prepareMarkedImage } from "./image26Options";
+import { resolveNativeImage } from "@/lib/storage/nativeImages";
 
 export async function executeV1ImageApplication(req: Request) {
   const requestId = randomUUID();
@@ -39,6 +41,7 @@ export async function executeV1ImageApplication(req: Request) {
   let trusted: Awaited<ReturnType<typeof resolveV1ImageRequest>>;
   let resolved: Awaited<ReturnType<typeof compileTrustedImageRequest>>;
   let recraftPlan: RecraftImagePlan | undefined;
+  let markup: string | undefined;
   try {
     const input = parseV1ImageRequest(parsed.body);
     validation.model = input.logicalModel;
@@ -56,6 +59,11 @@ export async function executeV1ImageApplication(req: Request) {
     // Validate the exact, immutable provider payload before admission/reservation.
     // No prompt transformations occur between this check and the adapter call.
     validateCompiledImagePrompt(trusted.snapshot.prompt, resolved.compilation.prompt, trusted.snapshot.model.providerModelId);
+    if (trusted.snapshot.imageOptions?.markup) {
+      const marked = await prepareMarkedImage(resolved.images[0], trusted.snapshot.imageOptions.markup);
+      resolved.images[0] = marked.image;
+      markup = marked.markup;
+    }
     if (trusted.snapshot.model.provider === "recraft") recraftPlan = planRecraftImage({ model: trusted.snapshot.model.providerModelId,
       prompt: resolved.compilation.prompt, size: resolved.compilation.size, format: trusted.snapshot.selections.format, images: resolved.images });
   } catch (error) {
@@ -67,14 +75,17 @@ export async function executeV1ImageApplication(req: Request) {
   const snapshot = trusted.snapshot;
   const canonical = resolved.compilation;
   const userId = snapshot.userId;
-  const cost = snapshot.model.customerCredits;
+  const cost = snapshot.generationCredits ?? snapshot.model.customerCredits;
+  const outputFormat = snapshot.imageOptions?.outputFormat;
   const model = snapshot.model.providerModelId;
   let prep: Awaited<ReturnType<typeof prepareGeneration>>;
   try {
     prep = await prepareGeneration({ req, module: snapshot.registryToolId, cost, model, provider: snapshot.model.provider,
       idempotencyKey: getIdempotencyKey(req, snapshot.idempotencyKey), promptText: snapshot.prompt,
       attachmentCount: snapshot.references.length,
-      metadata: { request_id: requestId, v1_durable: true, v1_request: snapshot, canonical_prompt: { version: canonical.provenance.version, hash: canonical.provenance.promptHash,
+      metadata: { request_id: requestId, v1_durable: true, v1_request: outputFormat ? {
+        ...snapshot, selections: { ...snapshot.selections, outputFormat },
+      } : snapshot, canonical_prompt: { version: canonical.provenance.version, hash: canonical.provenance.promptHash,
         configurationHash: canonical.configurationHash, system: canonical.provenance.system,
         layers: canonical.provenance.layers.map(({ id, key, version, hash }) => ({ id, key, version, hash })),
         preset: canonical.provenance.preset, ...(canonical.provenance.mood ? { mood: canonical.provenance.mood } : {}),
@@ -110,11 +121,12 @@ export async function executeV1ImageApplication(req: Request) {
         send({ event: "generation_started", jobId: prep.job.id, requestId });
         abortScope.markProviderAttemptStarted();
         const options = { model, prompt: canonical.prompt, size: canonical.size, quality: canonical.quality, n: canonical.n,
-          abortSignal: abortScope.abortSignal, onObservation };
+          abortSignal: abortScope.abortSignal, onObservation, ...(snapshot.imageOptions?.complexity ? { complexity: snapshot.imageOptions.complexity } : {}),
+          ...(outputFormat ? { outputFormat } : {}) };
         const b64s = recraftPlan ? await generateRecraftImage(recraftPlan, { abortSignal: abortScope.abortSignal, onObservation })
-          : canonical.operation === "edit" ? await editImages({ ...options, images: resolved.images }) : await generateImages(options);
+          : canonical.operation === "edit" ? await editImages({ ...options, images: resolved.images, ...(markup ? { markup } : {}) }) : await generateImages(options);
         stage = "storage_failed";
-        storageRef = await storeV1ImageOutput(userId, prep.job.id, b64s, observation, snapshot.selections.format);
+        storageRef = await storeV1ImageOutput(userId, prep.job.id, b64s, observation, snapshot.selections.format, outputFormat);
         stage = "history_failed";
         generationId = await persistV1ImageHistory(prep.job.id);
         persisted = true;
@@ -129,8 +141,13 @@ export async function executeV1ImageApplication(req: Request) {
         await optionalImageWork("success telemetry", () => stampJobExecutionTelemetry(prep.job.id, { success: true, generation_id: generationId }));
         if (snapshot.presetId) await optionalImageWork("preset use", () => incrementPromptUse(snapshot.presetId!));
         let displayUrls: string[] = [];
-        await optionalImageWork("signed result URLs", async () => { displayUrls = await resolveAssetListForClient([storageRef!]); });
-        send({ ok: true, images: displayUrls, generationId, storageRefs: [storageRef], creditsSpent: cost, jobId: prep.job.id, model: snapshot.logicalModel });
+        let nativeImage: Awaited<ReturnType<typeof resolveNativeImage>> = undefined;
+        await optionalImageWork("signed result URLs", async () => {
+          displayUrls = await resolveAssetListForClient([storageRef!]);
+          if (outputFormat) nativeImage = await resolveNativeImage(storageRef!, outputFormat, userId);
+        });
+        send({ ok: true, images: displayUrls, generationId, storageRefs: [storageRef], creditsSpent: cost, jobId: prep.job.id, model: snapshot.logicalModel,
+          ...(nativeImage ? { nativeImage } : {}) });
       } catch (error) {
         const code = error instanceof V1PersistenceError ? error.code : stage;
         const outcome = persisted ? "settlement_pending" : await failV1ImageJob(prep.job.id, code);

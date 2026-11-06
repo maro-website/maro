@@ -57,7 +57,7 @@ function responseError(payload: unknown, status: number, requestId?: string | nu
 
 type ImageStreamPayload =
   | { event: "generation_started"; jobId: string; requestId?: string }
-  | { ok: true; images: string[]; creditsSpent?: number; jobId?: string; generationId?: string; storageRefs?: string[] }
+  | ({ ok: true; creditsSpent?: number } & Omit<AiImageResponse, "creditsSpent">)
   | { ok: false; error?: string; detail?: string; refunded?: boolean; jobId?: string };
 
 export function serializeImageGenerationRequest(req: AiImageRequest, idempotencyKey: string): string {
@@ -99,6 +99,7 @@ async function readImageStream(res: Response, onStarted: () => void): Promise<Ai
             jobId: payload.jobId,
             generationId: payload.generationId,
             storageRefs: payload.storageRefs,
+            ...(payload.nativeImage ? { nativeImage: payload.nativeImage } : {}),
           };
         }
         lastError = responseError(payload, 502, res.headers.get("x-request-id"));

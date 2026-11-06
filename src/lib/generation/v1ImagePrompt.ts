@@ -82,6 +82,9 @@ export function buildCanonicalImagePrompt(request: TrustedV1ImageRequest, config
     { kind: "preset", text: preset }, contextPart(brainText), ...section("reference").map(contextPart), contextPart(brief), ...section("output").map(contextPart),
   ];
   if (mood) parts.push(contextPart(moodPromptSection(mood)));
+  if (request.imageOptions?.markup) parts.push(contextPart("The annotation outlines the target for the requested edit. Change that area as requested, preserve the surrounding image, and omit the annotation from the output."));
+  if (request.imageOptions?.outputFormat === "svg") parts.push(contextPart("Create one standalone flat vector logo on a transparent background, suitable for editing its paths and colors. Omit mockups, presentation panels, captions and explanatory labels."));
+  if (request.imageOptions?.outputFormat === "gif") parts.push(contextPart("Animate the reference as a short loop. Keep its subject and framing recognizable and follow the requested motion."));
   const { prompt, adaptation } = adaptRecraftImagePrompt(request.model.providerModelId, parts);
   const optimizationSource: OptimizationSource = {
     engine: [config.system.content, ...section("direction"), ...section("reference"), ...section("output")].filter(Boolean).join("\n\n"),
@@ -168,7 +171,7 @@ export async function compileTrustedImageRequest(trusted: Awaited<ReturnType<typ
 export async function recordCanonicalImageTrace(jobId: string, request: TrustedV1ImageRequest, compilation: CanonicalImageCompilation) {
   const { data, error } = await getSupabaseAdmin().from("pricing_snapshots").insert({
     job_id: jobId, user_id: request.userId, kind: "generation",
-    snapshot: { record_type: "v1_image_execution", request, canonical: compilation, configured_credits: request.model.customerCredits },
+    snapshot: { record_type: "v1_image_execution", request, canonical: compilation, configured_credits: request.generationCredits ?? request.model.customerCredits },
   }).select("id").single();
   if (error || !data?.id) throw new ImageRequestValidationError("execution_trace_unavailable", 503);
   return data.id as string;

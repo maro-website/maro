@@ -17,6 +17,8 @@ import { useComposerDraft } from "@/lib/hooks/useComposerDraft";
 import { resolvePrivateAssetRefsStrict } from "@/lib/services/projectAssetService";
 import type { LibrarySelection } from "@/lib/services/assetLibrary";
 import { GenerateButton } from "@/components/app/GenerateButton";
+import { ImageMarkupDialog } from "@/components/app/ImageMarkupDialog";
+import type { Image26Options, ImageComplexity, ImageMarkupZone } from "@/lib/ai/image26";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -270,10 +272,16 @@ export function ToolComposer({
   const [selections, setSelections] = React.useState<ToolSelections>(() => defaultSelections(tool));
   const generateButtonRef = React.useRef<HTMLButtonElement>(null);
   const [uploadingReferences, setUploadingReferences] = React.useState(false);
+  const [complexity, setComplexity] = React.useState<ImageComplexity | "default">("default");
+  const [markup, setMarkup] = React.useState<{ attachmentId: string; zone: ImageMarkupZone } | null>(null);
+  const [markupOpen, setMarkupOpen] = React.useState(false);
+  const [gifAttachmentId, setGifAttachmentId] = React.useState<string | null>(null);
+  const [demoBusy, setDemoBusy] = React.useState(false);
+  const imageRequestInFlight = React.useRef(false);
   const [loading, setLoading] = React.useState(false);
   const [showAuth, setShowAuth] = React.useState(false);
   const [showBuy, setShowBuy] = React.useState(false);
-  const [mobileComposerOpen, setMobileComposerOpen] = React.useState(false);
+  const [mobileComposerOpen, setMobileComposerOpen] = React.useState(() => searchParams.get("demo") === "editim");
   const [mobileResultOpen, setMobileResultOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   const [serverPromptLimit, setServerPromptLimit] = React.useState<number | null>(null);
@@ -395,6 +403,17 @@ export function ToolComposer({
   const needsPrompt = isAudio ? !modeOpt?.noPrompt : true;
   const imageModels = useV1ImageModels(isImage ? tool.id : null);
   const selectedImageModel = imageModels.find((model) => model.key === selections.model && model.enabled) ?? imageModels.find((model) => model.isDefault && model.enabled);
+  const image26 = tool.id === "reklama" ? selectedImageModel?.image26 : undefined;
+  const editAttachment = privateImageAttachments.length === 1 ? privateImageAttachments[0] : undefined;
+  const markedZone = markup && markup.attachmentId === editAttachment?.id ? markup.zone : undefined;
+  const gifSelected = Boolean(gifAttachmentId && gifAttachmentId === editAttachment?.id);
+  const imageOptionNeedsOne = !editAttachment && privateImageAttachments.some(attachment =>
+    attachment.id === markup?.attachmentId || attachment.id === gifAttachmentId);
+  const imageOptions = React.useMemo<Image26Options>(() => ({
+    ...(image26?.complexity && complexity !== "default" ? { complexity } : {}),
+    ...(markedZone ? { markup: markedZone } : {}),
+    ...(gifSelected ? { outputFormat: "gif" } : {}),
+  }), [image26?.complexity, complexity, markedZone, gifSelected]);
   React.useEffect(() => {
     if (isImage && selections.model && imageModels.length && !imageModels.some((m) => m.key === selections.model && m.enabled)) {
       setSelections((current) => { const next = { ...current }; delete next.model; return next; });
@@ -554,7 +573,7 @@ export function ToolComposer({
     return () => cancelAnimationFrame(frame);
   }, [latestMessageId, latestMessageStatus]);
 
-  const cost = isImage ? selectedImageModel?.customerCredits ?? 0 : toolSelectionCost(tool, selections, pricing.options);
+  const cost = isImage ? (gifSelected ? image26?.gifCredits : selectedImageModel?.customerCredits) ?? 0 : toolSelectionCost(tool, selections, pricing.options);
 
   const setOption = (settingId: string, optionId: string) => {
     setSelections((prev) => {
@@ -926,6 +945,9 @@ export function ToolComposer({
       return;
     }
 
+    if (imageRequestInFlight.current) return;
+    imageRequestInFlight.current = true;
+    const hasImageOptions = Object.keys(imageOptions).length > 0;
     const sentPrivateAttachments = privateImageAttachments.length ? [...privateImageAttachments] : undefined;
     const sentAttachments = sentPrivateAttachments?.map((attachment) => attachment.previewUrl);
     const maroId = uid("g");
@@ -982,13 +1004,16 @@ export function ToolComposer({
         maroPrompt: maroPromptPayload,
         ...(selectedMood ? { moodId: selectedMood.id } : {}),
         workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
-        useWorkspaceBrand: brainReady && useWorkspaceBrand,
-      }, { onStarted });
+        useWorkspaceBrand: !gifSelected && brainReady && useWorkspaceBrand,
+        ...(hasImageOptions ? { imageOptions } : {}),
+      }, hasImageOptions ? undefined : { onStarted });
+      if (hasImageOptions) onStarted();
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"),
         serverId: res.generationId,
         storageRefs: res.storageRefs,
+        nativeImage: res.nativeImage,
         workspaceId,
         conversationId,
         selections,
@@ -1004,7 +1029,7 @@ export function ToolComposer({
         modelLabel: selectedImageModel?.label ?? labels.modelLabel,
         speedLabel: labels.speedLabel,
         fort: Boolean(fortPayload),
-        brain: brainReady && useWorkspaceBrand,
+        brain: !gifSelected && brainReady && useWorkspaceBrand,
         promptCode: promptAttach?.code,
         createdAt: now,
       };
@@ -1038,13 +1063,14 @@ export function ToolComposer({
         )
       );
     } finally {
+      imageRequestInFlight.current = false;
       setUploadingReferences(false);
       setLoading(false);
     }
-  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, selectedMood, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation]);
+  }, [setPrompt, setAttachments, setPrivateImageAttachments, promptTooLong, prompt, tool, selections, attachments, privateImageAttachments, cost, promptAttach, selectedMood, addProject, router, spendCredits, addCreation, toast, doGenerateAudio, workspaceId, brainReady, useWorkspaceBrand, startPrivateAttachmentUpload, selectedImageModel, conversationId, conversationScope, logoWizard, lastOutputRef, requestedConversation, imageOptions, gifSelected]);
 
   // Whether the current inputs are enough to generate.
-  const canGenerate = ready && draftReady && !recoveredPending && !historyError && (!isImage || !privateImageAttachments.some(attachment => attachment.status === "invalid-file")) && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
+  const canGenerate = ready && draftReady && !recoveredPending && !historyError && !imageOptionNeedsOne && (!markedZone || image26?.markup) && (!gifSelected || image26?.gif && selections.format !== "4:3") && (!isImage || !privateImageAttachments.some(attachment => attachment.status === "invalid-file")) && (!isImage || !user || serverHistory.scope === `${conversationScope}:${conversationId}`) && !promptTooLong && (isAudio
     ? (needsAudioInput ? Boolean(audioInput) : Boolean(prompt.trim()))
     : Boolean(prompt.trim()) && (!isImage || Boolean(selectedImageModel)) && (
         !isImage ||
@@ -1235,6 +1261,22 @@ export function ToolComposer({
         <div className={cn("mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6", moodsEligible && "maro-moods-dock", moodsEligible && shownSettings.some(setting => setting.id === "font") && "maro-moods-dock--with-font")}>
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
+          {image26?.markup && searchParams.get("demo") === "editim" && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-maro12 bg-surface px-3 py-2 text-sm text-ink">
+              <span>Provoje me një foto gati. Rretho etiketën dhe ndryshoja ngjyrën.</span>
+              <Button type="button" variant="secondary" disabled={demoBusy || loading || !draftReady || privateImageAttachments.length > 0} onClick={async () => {
+                setDemoBusy(true);
+                try {
+                  const response = await fetch("/images/maro-image26-demo.png");
+                  if (!response.ok) throw new Error("demo_unavailable");
+                  await queuePrivateImageFiles([new File([await response.blob()], "Shishja e provës.png", { type: "image/png" })]);
+                  if (!prompt.trim()) setPrompt("Ndrysho ngjyrën e etiketës së rrethuar në të kaltër. Ruaje shishen dhe sfondin.");
+                } catch { toast("Fotoja e provës nuk u hap. Provo përsëri.", "error"); }
+                finally { setDemoBusy(false); }
+              }}>Përdor foton e provës</Button>
+            </div>
+          )}
+
           {(isImage ? privateImageAttachments.length : attachments.length) > 0 && (
             <div className="mb-2.5">
             <div className="flex flex-wrap gap-2">
@@ -1315,6 +1357,29 @@ export function ToolComposer({
             )}
             </div>
           )}
+          {imageOptionNeedsOne && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-ink-3">
+              <span>Kjo zgjedhje kërkon vetëm një foto.</span>
+              <Button type="button" variant="secondary" onClick={() => { setMarkup(null); setGifAttachmentId(null); }}>Pastro opsionin</Button>
+            </div>
+          )}
+          {(editAttachment?.previewUrl && (image26?.markup || image26?.gif || markedZone || gifSelected)) && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {(image26?.markup || markedZone) && !gifSelected && (
+                <>
+                  <Button type="button" variant="secondary" disabled={loading || !image26?.markup} onClick={() => setMarkupOpen(true)}>{markedZone ? "Ndrysho zonën" : "Shëno zonën"}</Button>
+                  {markedZone && <Button type="button" variant="secondary" disabled={loading} onClick={() => setMarkup(null)}>Hiq shenjën</Button>}
+                </>
+              )}
+              {(image26?.gif || gifSelected) && !markedZone && (
+                <Button type="button" variant="secondary" disabled={loading} onClick={() => {
+                  setGifAttachmentId(gifSelected ? null : editAttachment.id);
+                  if (!gifSelected && selections.format === "4:3") setOption("format", "fb-post");
+                }}>{gifSelected ? "Kthehu te fotoja" : "Animo si GIF"}</Button>
+              )}
+              {gifSelected && <span className="text-xs text-ink-3">{selections.format === "4:3" ? "Zgjidh një format tjetër për GIF." : "Shkruaj çfarë lëvizjeje dëshiron."}</span>}
+            </div>
+          )}
 
           {uploadingReferences && (
             <div className="mb-2 text-[12.5px] font-medium text-ink-3">Duke ngarkuar referencat privatisht…</div>
@@ -1392,6 +1457,21 @@ export function ToolComposer({
               <button type="button" className="absolute right-0 top-0 grid h-11 w-11 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink lg:hidden" aria-label="Mbyll promptbox" aria-expanded={true} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(false)}><ChevronDown className="h-5 w-5" /></button>
             </div>
 
+            {image26?.complexity && (
+              <details className="mx-2 my-2 text-xs text-ink-3">
+                <summary className="w-fit cursor-pointer font-medium">Opsionet e avancuara</summary>
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-ink">
+                  Planifikimi i imazhit
+                  <select className="rounded-lg bg-surface-2 px-2 py-1.5 text-sm" value={complexity} disabled={loading}
+                    onChange={event => setComplexity(event.target.value as ImageComplexity | "default")}>
+                    <option value="default">Parazgjedhja</option>
+                    <option value="low">I ulët</option>
+                    <option value="medium">Mesatar</option>
+                    <option value="high">I lartë</option>
+                  </select>
+                </label>
+              </details>
+            )}
             {needsPrompt && <PromptLinks value={prompt} />}
             {needsPrompt && <p id={promptCountId} className={cn("px-2 text-[12px]", prompt.length < promptLimit * 0.9 && "sr-only", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
               {prompt.length.toLocaleString("en-US")} / {promptLimit.toLocaleString("en-US")} shkronja
@@ -1480,7 +1560,7 @@ export function ToolComposer({
                   loading={loading}
                   onCommit={onGenerate}
                   cost={functional && (!isImage || selectedImageModel) ? cost : undefined}
-                  cancelKey={JSON.stringify([conversationUserId, conversationId, tool.id, workspaceId, prompt, selections, selectedMood?.id, cost, credits, privateImageAttachments.map(item => item.id), attachments, audioInput?.name])}
+                  cancelKey={JSON.stringify([conversationUserId, conversationId, tool.id, workspaceId, prompt, selections, selectedMood?.id, cost, credits, privateImageAttachments.map(item => item.id), attachments, audioInput?.name, imageOptions])}
                   disabled={functional && (!canGenerate || loading)}
                 />
               </div>
@@ -1570,7 +1650,23 @@ export function ToolComposer({
           creation={lightbox}
           open={lightbox !== null}
           onClose={() => setLightbox(null)}
+          onAnimate={image26?.gif && privateImageAttachments.length === 0 && !loading ? (previewUrl, storageRef) => {
+            const id = uid("att");
+            setPrivateImageAttachments([{ id, storageRef, previewUrl, name: "Foto për animim", status: "ready" }]);
+            setGifAttachmentId(id);
+            if (selections.format === "4:3") setOption("format", "fb-post");
+            setLightbox(null);
+            setMobileResultOpen(false);
+            setMobileComposerOpen(true);
+          } : undefined}
         />
+      )}
+      {markupOpen && image26?.markup && editAttachment?.previewUrl && (
+        <ImageMarkupDialog key={editAttachment.id} src={editAttachment.previewUrl} initial={markedZone}
+          onClose={() => setMarkupOpen(false)} onApply={zone => {
+            setMarkup({ attachmentId: editAttachment.id, zone });
+            setMarkupOpen(false);
+          }} />
       )}
 
     </div>

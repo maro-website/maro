@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { CreationLightbox } from "@/components/app/cards";
 import type { ImageCreation } from "@/lib/types";
+import { downloadNativeImage } from "@/lib/services/projectAssetService";
+import { useToast } from "@/components/ui/Toast";
 
 export function MaroLogoResult({
   creation,
@@ -21,10 +23,19 @@ export function MaroLogoResult({
 }) {
   const [lightbox, setLightbox] = React.useState(false);
   const router = useRouter();
+  const { toast } = useToast();
+  const [downloading, setDownloading] = React.useState(false);
   const url = creation.urls[0];
   const storageRef = creation.storageRefs?.[0];
 
-  const download = () => {
+  const download = async () => {
+    if (creation.nativeImage) {
+      setDownloading(true);
+      try { await downloadNativeImage(creation.nativeImage, creation.prompt.slice(0, 40)); }
+      catch { toast("SVG nuk u shkarkua. Provo përsëri.", "error"); }
+      finally { setDownloading(false); }
+      return;
+    }
     if (!url) return;
     const a = document.createElement("a");
     a.href = url;
@@ -56,8 +67,8 @@ export function MaroLogoResult({
           <StableImage src={url} module="logo" refreshKey={storageRef ?? creation.id} alt="Logo e gjeneruar" fallbackClassName="aspect-square" className="mx-auto max-h-[360px] w-full object-contain" />
         </button>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} onClick={download}>
-          Shkarko
+        <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} disabled={downloading} onClick={() => void download()}>
+          {creation.nativeImage ? "Shkarko SVG" : "Shkarko"}
         </Button>
         {storageRef?.startsWith("storage:generations/") && (
           <Button type="button" variant="secondary" icon={<ImagePlus className="h-4 w-4" />} onClick={useInMaroImazh}>

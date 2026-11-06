@@ -228,7 +228,7 @@ export function GenerationCard({
             module={message.creation?.toolId ?? "imazh"}
             refreshKey={message.creation?.storageRefs?.[index] ?? message.id}
             status={message.status}
-            url={url}
+            url={index === 0 && message.creation?.nativeImage?.format === "gif" ? message.creation.nativeImage.url ?? url : url}
             error={message.error}
             onOpen={message.creation && onOpen && url ? () => onOpen({ ...message.creation!, urls: [url], storageRefs: message.creation!.storageRefs?.[index] ? [message.creation!.storageRefs[index]] : undefined }) : undefined}
           />

@@ -125,6 +125,7 @@ export function MaroLogoWizard() {
   const [showBuy, setShowBuy] = React.useState(false);
   const [resultCreation, setResultCreation] = React.useState<ImageCreation | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [outputSvg, setOutputSvg] = React.useState(false);
   const [generationFeedback, setGenerationFeedback] = React.useState<{ status: "working" | "done" | "error"; startedAt: number; endedAt?: number } | null>(null);
   const [presetAttach, setPresetAttach] = React.useState<PromptAttach | null>(null);
   const generatingRef = React.useRef(false);
@@ -135,7 +136,9 @@ export function MaroLogoWizard() {
   const workspaceId = activeWorkspace?.id ?? activeWorkspaceScope ?? LOCAL_WORKSPACE_SCOPE;
   const { toast } = useToast();
   const model = useV1ImageModels("logo").find((entry) => entry.key === "flare" && entry.enabled);
-  const cost = model?.customerCredits ?? 0;
+  const svgCredits = model?.image26?.svg ? model.image26.svgCredits : undefined;
+  const svgUnavailable = outputSvg && (svgCredits === undefined || state.references.length > 0);
+  const cost = (outputSvg ? svgCredits : model?.customerCredits) ?? 0;
   const userId = user?.id;
   const activeWorkspaceId = activeWorkspace?.id;
   const draftKey = `${userId ?? "guest"}:${workspaceId}`;
@@ -218,6 +221,7 @@ export function MaroLogoWizard() {
     setValidationStep(null);
     if (!user) { pendingGenerateRef.current = true; setShowAuth(true); return; }
     if (!model) { toast("Konfigurimi i gjenerimit nuk është i disponueshëm.", "error"); return; }
+    if (svgUnavailable) { toast("Për SVG, kthehu te Drejtimi dhe hiqi fotot e referencës, ose zgjidh PNG.", "error"); return; }
     if (credits < cost) { setShowBuy(true); return; }
 
     generatingRef.current = true;
@@ -239,13 +243,15 @@ export function MaroLogoWizard() {
         ...buildGenerationRequest(state.wizard, state.references, fort, canonicalReferences, presetAttach?.id),
         workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
         conversationId,
+        ...(outputSvg ? { imageOptions: { outputFormat: "svg" } } : {}),
       });
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"), serverId: res.generationId, storageRefs: res.storageRefs, workspaceId,
         conversationId, logoWizard: structuredClone(state.wizard),
+        nativeImage: res.nativeImage,
         toolId: "logo", prompt: state.wizard.brand.name.trim() || "Logo", urls: res.images,
-        formatLabel: PRESENTATION_LABELS[state.wizard.presentation.mode], modelLabel: model.label, speedLabel: "Normal",
+        formatLabel: outputSvg ? "SVG" : PRESENTATION_LABELS[state.wizard.presentation.mode], modelLabel: model.label, speedLabel: "Normal",
         fort: Boolean(fort), createdAt: now,
       };
       addCreation(creation);
@@ -254,6 +260,7 @@ export function MaroLogoWizard() {
       dispatch({ type: "RESET" });
       dispatch({ type: "CONTENT_DEFAULTS", wizard: logoInitialState(content) });
       setPresetAttach(null);
+      setOutputSvg(false);
       setGenerationFeedback({ status: "done", startedAt, endedAt: Date.now() });
       dispatch({ type: "SET_PHASE", phase: "result" });
     } catch (err) {
@@ -266,7 +273,7 @@ export function MaroLogoWizard() {
       generatingRef.current = false;
       setIsGenerating(false);
     }
-  }, [draftKey, content, state.wizard, state.references, user, credits, cost, model, presetAttach, spendCredits, addCreation, workspaceId, toast]);
+  }, [draftKey, content, state.wizard, state.references, user, credits, cost, model, presetAttach, spendCredits, addCreation, workspaceId, toast, outputSvg, svgUnavailable]);
 
   React.useEffect(() => {
     if (user && loadedDraftKey === draftKey && pendingGenerateRef.current) {
@@ -290,7 +297,12 @@ export function MaroLogoWizard() {
       {state.phase === "intro" && <MaroLogoIntro onStart={() => dispatch({ type: "SET_PHASE", phase: 1 })} />}
       {state.phase === 1 && <StepBrand step={1} highestStepReached={state.highestStepReached} wizard={state.wizard} errors={stepErrors} onChange={(patch) => dispatch({ type: "PATCH_BRAND", patch })} onNext={() => advanceFromStep(1)} onStepClick={goToStep} />}
       {state.phase === 2 && <StepDirection step={2} highestStepReached={state.highestStepReached} wizard={state.wizard} references={state.references} errors={stepErrors} onChangeTraits={(traits) => dispatch({ type: "PATCH_DIRECTION", patch: { traits } })} onChangeLogo={(patch) => dispatch({ type: "PATCH_LOGO", patch })} onChangeLook={(patch) => dispatch({ type: "PATCH_LOOK", patch })} onChangeReferences={(references) => dispatch({ type: "SET_REFERENCES", references })} onMaxTraits={() => toast("Zgjedh maksimum 3 tipare.", "info")} onToast={(message) => toast(message, "error")} onNext={() => advanceFromStep(2)} onStepClick={goToStep} />}
-      {state.phase === 3 && <>{generationFeedback?.status === "error" && <div className="marologo-shell"><GenerationLoader status="error" elapsed={generationElapsed} /></div>}<StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model ? cost : null} generating={isGenerating} onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} /></>}
+      {state.phase === 3 && <>
+        {generationFeedback?.status === "error" && <div className="marologo-shell"><GenerationLoader status="error" elapsed={generationElapsed} /></div>}
+        <StepPresentation step={3} highestStepReached={state.highestStepReached} wizard={state.wizard} cost={model && !svgUnavailable ? cost : null}
+          generating={isGenerating} svgCredits={svgCredits} outputSvg={outputSvg} hasReferences={state.references.length > 0} onOutputSvg={setOutputSvg}
+          onChangePresentation={(mode) => dispatch({ type: "PATCH_PRESENTATION", mode })} onGenerate={() => void runGenerate()} onStepClick={goToStep} />
+      </>}
       {state.phase === "generating" && <MaroLogoGenerating startedAt={generationFeedback?.startedAt} />}
       {state.phase === "result" && resultCreation && <MaroLogoResult creation={resultCreation} elapsed={generationElapsed} onRestart={restart} />}
 
