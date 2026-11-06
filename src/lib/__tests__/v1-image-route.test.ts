@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
 import { modelRow, imazhRequest, logoRequest } from "./helpers/v1ImageFixtures";
 
 const localPromptSource = vi.hoisted(() => "LOCAL REVIEWED PLATFORM. ".repeat(500));
@@ -60,6 +61,9 @@ vi.mock("@/lib/engine/executionTelemetry", () => ({ buildInitialExecutionTelemet
 vi.mock("@/lib/engine/imageExecution", () => ({ resolveImageExecutionContext: mocks.execution }));
 vi.mock("@/lib/engine/productionShadow", () => ({ maybeScheduleImageShadow: mocks.shadow }));
 vi.mock("@/lib/engine/storage", () => ({ loadCompileContext: mocks.compileContext }));
+vi.mock("@/lib/storage/nativeImages", () => ({
+  resolveNativeImage: async (preview: string, format: string) => ({ format, reference: preview.replace(".png", `.${format}`) }),
+}));
 
 import { POST } from "@/app/api/ai/image/route";
 import { GET } from "@/app/api/ai/image/models/route";
@@ -105,6 +109,59 @@ beforeEach(() => {
     ...(module === "maro_logo" ? buildTestContext("maro_logo") : buildImazhTestContext()),
     trustedImageModel: options.trustedImageModel,
   }));
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
+describe("GPT Image 2.6 options through the generation route", () => {
+  function enableModel26() {
+    vi.stubEnv("MARO_IMAGE26_ENABLED", "true");
+    vi.stubEnv("MARO_IMAGE26_SVG_CREDITS", "8");
+    vi.stubEnv("MARO_IMAGE26_GIF_ENABLED", "true");
+    vi.stubEnv("MARO_IMAGE26_GIF_CREDITS", "12");
+    mocks.rows = [modelRow(), modelRow("sunburst"), modelRow("flare", "maro_logo")].map(row => ({
+      ...row, metadata: { ...row.metadata, providerModelId: row.metadata.providerModelId.replace("2.5", "2.6") },
+    }));
+  }
+
+  it("sends the oriented photo, separate PNG overlay, and requested planning level through an authenticated edit", async () => {
+    enableModel26();
+    const photo = await sharp({ create: { width: 48, height: 36, channels: 3, background: "orange" } }).png().toBuffer();
+    mocks.reference.mockResolvedValue({ dataUrl: `data:image/png;base64,${photo.toString("base64")}`, mime: "image/png", digest: "private", normalized: false });
+    const response = await request({ ...imazhRequest, attachments: ["storage:generations/user/refs/bottle.png"], imageOptions: {
+      markup: { x: 0.25, y: 0.4, width: 0.5, height: 0.3 }, complexity: "low",
+    } });
+    expect(await response.text()).toContain('"ok":true');
+    expect(mocks.edit).toHaveBeenCalledOnce();
+    expect(mocks.edit.mock.calls[0][0]).toMatchObject({ model: "gpt-image-2.6-flare", complexity: "low", markup: expect.stringMatching(/^data:image\/png;base64,/) });
+    expect(mocks.prepare.mock.calls[0][0]).toMatchObject({ cost: 7, metadata: { v1_request: { imageOptions: { complexity: "low" } } } });
+    expect(JSON.stringify(mocks.prepare.mock.calls[0][0].metadata)).not.toContain("data:image");
+  });
+
+  it.each([
+    { format: "svg", body: logoRequest(), credits: 8, operation: "generate" },
+    { format: "gif", body: { ...imazhRequest, attachments: ["storage:generations/user/refs/bottle.png"] }, credits: 12, operation: "edit" },
+  ])("quotes, persists and settles one $format output", async ({ format, body, credits, operation }) => {
+    enableModel26();
+    const response = await request({ ...body, imageOptions: { outputFormat: format } });
+    const stream = await response.text();
+    expect(stream).toContain(`"creditsSpent":${credits}`);
+    expect(stream).toContain(`"nativeImage":{"format":"${format}"`);
+    expect(mocks.prepare.mock.calls[0][0]).toMatchObject({ cost: credits, metadata: { v1_request: { selections: { outputFormat: format } } } });
+    expect(operation === "edit" ? mocks.edit : mocks.generate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ outputFormat: format }));
+    expect(mocks.store.mock.calls[0][5]).toBe(format);
+    expect(mocks.log).toHaveBeenCalledOnce();
+    expect(mocks.settle).toHaveBeenCalledOnce();
+  });
+
+  it("releases reserved credits after the new format fails before the PNG checkpoint", async () => {
+    enableModel26();
+    mocks.store.mockRejectedValueOnce(new Error("no valid output"));
+    const response = await request({ ...logoRequest(), imageOptions: { outputFormat: "svg" } });
+    expect(await response.text()).toContain('"refunded":true');
+    expect(mocks.fail).toHaveBeenCalledOnce();
+    expect(mocks.settle).not.toHaveBeenCalled();
+  });
 });
 
 describe("active route preflight before job/reservation/provider", () => {

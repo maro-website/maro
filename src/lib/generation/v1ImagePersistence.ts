@@ -19,6 +19,12 @@ export function v1OutputReference(userId: string, jobId: string) {
   return { path, reference: `storage:generations/${path}` };
 }
 
+export async function discardV1NativeOutput(userId: string, jobId: string, format: NativeImageFormat) {
+  const { path } = v1OutputReference(userId, jobId);
+  const removed = await getSupabaseAdmin().storage.from("generations").remove([path.replace(/\.png$/, `.${format}`)]);
+  if (removed.error) throw new V1PersistenceError("storage_failed");
+}
+
 /** Decode, durably checkpoint, upload, and read back the one expected V1 output. */
 export async function storeV1ImageOutput(userId: string, jobId: string, outputs: string[], observation?: ImageProviderObservation, format?: string, outputFormat?: NativeImageFormat): Promise<string> {
   if (outputs.length !== 1) throw new V1PersistenceError("provider_output_invalid");

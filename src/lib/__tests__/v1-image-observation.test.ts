@@ -24,6 +24,17 @@ describe("V1 image usage estimates", () => {
 });
 
 describe("provider observation", () => {
+  it("accounts for SVG authoring separately from raster rendering", () => {
+    const response = {
+      usage: { input_tokens: 100, input_tokens_details: { text_tokens: 100, image_tokens: 0 }, output_tokens: 1000 },
+      svg_usage: { model: "gpt-6-luna", input_tokens: 2000, output_tokens: 3000, private_content: "not retained" },
+    };
+    const request = { model: "gpt-image-2.6-flare", prompt: "test", operation: "generate" as const, outputFormat: "svg" as const, referenceCount: 0, startedAt: new Date().toISOString() };
+    const observation = buildImageObservation({ ...request, response });
+    expect(observation.estimate.usd).toBe(0.0322);
+    expect(observation.response.svg_usage).toEqual({ model: "gpt-6-luna", input_tokens: 2000, output_tokens: 3000 });
+    expect(buildImageObservation({ ...request, response: { usage: response.usage } }).estimate.usd).toBeNull();
+  });
   it("distinguishes requested model, reported model, usage and estimated money; excludes image bytes", () => {
     const observation = buildImageObservation({ model: "gpt-image-2.5-flare", prompt: "private prompt", operation: "generate", referenceCount: 0, startedAt: new Date().toISOString(), response: {
       _request_id: "req_verified", data: [{ b64_json: "IMAGE_BYTES" }], created: 123,

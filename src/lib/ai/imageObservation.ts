@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { estimateV1ImageCost, type V1ImageCostEstimate } from "@/lib/cost/v1ImageCost";
+import { estimateV1ImageCost, estimateV1SvgCost, type V1ImageCostEstimate } from "@/lib/cost/v1ImageCost";
+import type { NativeImageFormat } from "./image26";
 
 export interface ImageProviderObservation {
   provider: "openai" | "recraft";
@@ -26,7 +27,7 @@ export interface ImageProviderObservation {
 export type ImageObservationCallback = (observation: ImageProviderObservation) => void | Promise<void>;
 
 export function buildImageObservation(input: {
-  model: string; prompt: string; size?: string; quality?: string; n?: number;
+  model: string; prompt: string; size?: string; quality?: string; n?: number; outputFormat?: NativeImageFormat;
   operation: "generate" | "edit"; referenceCount: number; startedAt: string;
   response?: Record<string, unknown>; error?: unknown;
 }): ImageProviderObservation {
@@ -36,6 +37,12 @@ export function buildImageObservation(input: {
     ? JSON.parse(JSON.stringify(response.usage)) as Record<string, unknown> : null;
   const completedAt = new Date().toISOString();
   const safeResponse = Object.fromEntries(["created", "size", "quality", "output_format", "background"].filter((key) => response[key] != null).map((key) => [key, response[key]]));
+  const author = response.svg_usage && typeof response.svg_usage === "object" && !Array.isArray(response.svg_usage)
+    ? response.svg_usage as Record<string, unknown> : null;
+  const authorUsage = author ? Object.fromEntries(["model", "input_tokens", "output_tokens", "reasoning_tokens"]
+    .filter((key) => typeof author[key] === (key === "model" ? "string" : "number")).map((key) => [key, author[key]])) : null;
+  if (authorUsage) safeResponse.svg_usage = authorUsage;
+  const imageEstimate = estimateV1ImageCost(input.model, usage);
   return {
     provider: "openai", requestedModel: input.model,
     reportedModel: typeof response.model === "string" ? response.model : null,
@@ -45,7 +52,8 @@ export function buildImageObservation(input: {
     promptSha256: createHash("sha256").update(input.prompt).digest("hex"), promptCharacters: input.prompt.length,
     size: input.size ?? "1024x1024", quality: input.quality ?? "high", imageCount: input.n ?? 1,
     referenceCount: input.referenceCount, response: safeResponse, usage,
-    estimate: estimateV1ImageCost(input.model, usage), providerReportedCostUsd: null,
+    estimate: input.outputFormat === "svg" || response.output_format === "svg" ? estimateV1SvgCost(imageEstimate, authorUsage) : imageEstimate,
+    providerReportedCostUsd: null,
     error: error ? {
       code: error.providerCode ?? error.code ?? null,
       message: String(error.detail || error.message || "provider_failed").replace(/sk-[a-zA-Z0-9_-]+/g, "[redacted]").slice(0, 1500),

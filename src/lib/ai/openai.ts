@@ -124,6 +124,7 @@ export async function generateImages(opts: {
   abortSignal?: AbortSignal;
   onObservation?: ImageObservationCallback;
 }): Promise<string[]> {
+  const svgAuthor = opts.outputFormat === "svg" ? process.env.MARO_IMAGE26_SVG_AUTHOR_MODEL?.trim() : undefined;
   const params = {
     model: opts.model,
     prompt: opts.prompt,
@@ -132,6 +133,7 @@ export async function generateImages(opts: {
     n: Math.min(Math.max(opts.n ?? 1, 1), 4),
     ...(opts.complexity ? { complexity: opts.complexity } : {}),
     ...(opts.outputFormat === "svg" ? { output_format: "svg", background: "transparent" } : {}),
+    ...(svgAuthor ? { svg: { model: svgAuthor } } : {}),
   } as unknown as OpenAI.ImageGenerateParams;
 
   return observedImages(opts, "generate", 0, async () => withOpenAITimeout(
@@ -193,7 +195,7 @@ export async function editImages(opts: {
 
 type ImageResponse = Record<string, unknown> & { data?: Array<{ b64_json?: string }> };
 async function observedImages(
-  opts: { model: string; prompt: string; size?: string; quality?: string; n?: number; onObservation?: ImageObservationCallback },
+  opts: { model: string; prompt: string; size?: string; quality?: string; n?: number; outputFormat?: NativeImageFormat; onObservation?: ImageObservationCallback },
   operation: "generate" | "edit", referenceCount: number, run: () => Promise<ImageResponse>
 ): Promise<string[]> {
   const startedAt = new Date().toISOString();

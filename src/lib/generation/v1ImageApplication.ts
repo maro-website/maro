@@ -11,7 +11,7 @@ import { parseV1ImageRequest, resolveV1ImageRequest, v1ImageValidationResponse }
 import { compileTrustedImageRequest, recordCanonicalImageTrace } from "@/lib/generation/v1ImagePrompt";
 import { getIdempotencyKey } from "@/lib/generation/idempotency";
 import { prepareGeneration, guardErrorResponse, recordCompletedGenerationCosts } from "@/lib/generation/orchestrator";
-import { storeV1ImageOutput, persistV1ImageHistory, settleV1ImageJob, failV1ImageJob, optionalImageWork, V1PersistenceError, type V1Failure } from "@/lib/generation/v1ImagePersistence";
+import { storeV1ImageOutput, persistV1ImageHistory, settleV1ImageJob, failV1ImageJob, discardV1NativeOutput, optionalImageWork, V1PersistenceError, type V1Failure } from "@/lib/generation/v1ImagePersistence";
 import { createImageClientAbortScope } from "@/lib/generation/imageStreamLifecycle";
 import { stampJobExecutionTelemetry } from "@/lib/engine/executionTelemetry";
 import { denyIfProductionWithoutSupabase } from "@/lib/security/protectedRoute";
@@ -151,6 +151,9 @@ export async function executeV1ImageApplication(req: Request) {
       } catch (error) {
         const code = error instanceof V1PersistenceError ? error.code : stage;
         const outcome = persisted ? "settlement_pending" : await failV1ImageJob(prep.job.id, code);
+        if (outputFormat && outcome === "released" && code === "storage_failed") {
+          await optionalImageWork("release native output", () => discardV1NativeOutput(userId, prep.job.id, outputFormat));
+        }
         const pending = outcome !== "released";
         await optionalImageWork("failure telemetry", () => stampJobExecutionTelemetry(prep.job.id, { success: false, error_code: code,
           failure_stage: code === "provider_failed" || code === "provider_output_invalid" ? "provider" : "persistence" }));
