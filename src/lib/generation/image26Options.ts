@@ -16,7 +16,7 @@ export function image26Features(model: V1ImageModelConfiguration): Image26Featur
   const gifCredits = formatCredits(process.env.MARO_IMAGE26_GIF_CREDITS);
   return {
     complexity: enabled && imazh,
-    markup: enabled && imazh,
+    markup: enabled && imazh && process.env.MARO_IMAGE26_MARKUP_ENABLED !== "false",
     svg: enabled && !imazh && svgCredits !== undefined,
     gif: enabled && imazh && process.env.MARO_IMAGE26_GIF_ENABLED === "true" && gifCredits !== undefined,
     ...(enabled && !imazh && svgCredits !== undefined ? { svgCredits } : {}),

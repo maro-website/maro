@@ -21,6 +21,7 @@ import { trackEvent } from "@/lib/services/trackService";
 import { submitReport } from "@/lib/services/reportService";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { downloadNativeImage } from "@/lib/services/projectAssetService";
+import { creationPreviewUrl } from "@/lib/creations/creationAssets";
 import { imageMarkupConversationHref } from "@/lib/services/privateImageAttachment";
 import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
 import { Button } from "@/components/ui/Button";
@@ -57,7 +58,8 @@ function mediaOf(c: ImageCreation): "image" | "audio" | "text" {
 function CreationThumb({ creation, className }: { creation: ImageCreation; className?: string }) {
   const media = mediaOf(creation);
   if (media === "image") {
-    return <StableImage src={creation.nativeImage?.format === "gif" ? creation.nativeImage.url ?? creation.urls[0] : creation.urls[0]} module={creation.toolId} refreshKey={creation.storageRefs?.[0] ?? creation.id} alt="" className={cn("h-full w-full object-cover", className)} />;
+    return <StableImage src={creationPreviewUrl(creation)} module={creation.toolId} refreshKey={creation.storageRefs?.[0] ?? creation.id} alt=""
+      className={cn("h-full w-full object-cover", className, creation.nativeImage?.format === "svg" && "bg-white")} />;
   }
   return <PreviewFallback module={media} className={className} />;
 }
@@ -582,12 +584,12 @@ export function CreationLightbox({
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <StableImage
-                src={native?.format === "gif" ? native.url ?? url : url}
+                src={creationPreviewUrl(creation, active) ?? url}
                 module={creation.toolId}
                 refreshKey={creation.storageRefs?.[active] ?? `${creation.id}-${active}`}
                 fallbackClassName="aspect-square"
                 alt=""
-                className="max-h-[70vh] w-full rounded-xl object-contain"
+                className={cn("max-h-[70vh] w-full rounded-xl object-contain", native?.format === "svg" && "bg-white")}
               />
               {creation.urls.length > 1 && (
                 <div className="mt-3 flex flex-wrap justify-center gap-2">

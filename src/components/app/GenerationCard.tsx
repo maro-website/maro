@@ -14,6 +14,7 @@ import { GenerationLoader } from "./GenerationLoader";
 import { MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { Button } from "@/components/ui/Button";
+import { creationPreviewUrl } from "@/lib/creations/creationAssets";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
 import { fallbackFormatLabel } from "@/lib/design/generationMeta";
@@ -60,6 +61,7 @@ function GenerationImageBox({
   status,
   url,
   error,
+  lightBackground,
   onOpen,
 }: {
   format?: string;
@@ -69,6 +71,7 @@ function GenerationImageBox({
   status: "thinking" | "done" | "error";
   url?: string;
   error?: string;
+  lightBackground?: boolean;
   onOpen?: () => void;
 }) {
   const { ratio, maxW } = resolveAspectBox(format, size);
@@ -98,7 +101,7 @@ function GenerationImageBox({
       <div className="relative mx-auto w-full overflow-hidden rounded-maro16 bg-surface" data-generation-result style={{ maxWidth: maxW }}>
         <button type="button" onClick={onOpen} className="group relative block w-full overflow-hidden">
           <StableImage src={url} refreshKey={refreshKey} alt="" module={module} loading="eager"
-            className="h-auto w-full object-contain" fallbackClassName="min-h-40" />
+            className={cn("h-auto w-full object-contain", lightBackground && "bg-white")} fallbackClassName="min-h-40" />
         </button>
       </div>
     );
@@ -231,7 +234,8 @@ export function GenerationCard({
             module={message.creation?.toolId ?? "imazh"}
             refreshKey={message.creation?.storageRefs?.[index] ?? message.id}
             status={message.status}
-            url={index === 0 && message.creation?.nativeImage?.format === "gif" ? message.creation.nativeImage.url ?? url : url}
+            url={message.creation ? creationPreviewUrl(message.creation, index) ?? url : url}
+            lightBackground={index === 0 && message.creation?.nativeImage?.format === "svg"}
             error={message.error}
             onOpen={message.creation && onOpen && url ? () => onOpen({ ...message.creation!, urls: [url], storageRefs: message.creation!.storageRefs?.[index] ? [message.creation!.storageRefs[index]] : undefined }) : undefined}
           />

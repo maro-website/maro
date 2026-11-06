@@ -5,6 +5,7 @@ import { readV1ImageModelConfiguration } from "@/lib/engine/v1ImageModels";
 import { image26Features, parseImage26Options, prepareMarkedImage, validateImage26Options } from "@/lib/generation/image26Options";
 import { parseV1ImageRequest } from "@/lib/generation/v1ImageRequest";
 import { nativeImageOutput } from "@/lib/generation/nativeImageOutput";
+import { creationPreviewUrl } from "@/lib/creations/creationAssets";
 
 const zone = { x: 0.2, y: 0.25, width: 0.5, height: 0.5 };
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path d="M8 8h48v48H8Z" fill="green"/></svg>';
@@ -28,6 +29,7 @@ it("validates the markup geometry before parsing a generation", () => {
 
 it("enforces verified model and feature combinations before any credit reservation", () => {
   vi.stubEnv("MARO_IMAGE26_ENABLED", "true");
+  vi.stubEnv("MARO_IMAGE26_MARKUP_ENABLED", "true");
   vi.stubEnv("MARO_IMAGE26_SVG_CREDITS", "8");
   vi.stubEnv("MARO_IMAGE26_GIF_CREDITS", "12");
   vi.stubEnv("MARO_IMAGE26_GIF_ENABLED", "false");
@@ -40,6 +42,26 @@ it("enforces verified model and feature combinations before any credit reservati
   vi.stubEnv("MARO_IMAGE26_GIF_ENABLED", "true");
   expect(validateImage26Options({ outputFormat: "gif" }, model("maro_imazh"), 1)).toBe(12);
   expect(() => validateImage26Options({ outputFormat: "gif", markup: zone }, model("maro_imazh"), 1)).toThrow("image_option_reference_count");
+});
+
+it("pauses markup without disabling other Image 2.6 features", () => {
+  vi.stubEnv("MARO_IMAGE26_ENABLED", "true");
+  vi.stubEnv("MARO_IMAGE26_MARKUP_ENABLED", "false");
+  vi.stubEnv("MARO_IMAGE26_GIF_ENABLED", "true");
+  vi.stubEnv("MARO_IMAGE26_GIF_CREDITS", "5");
+  vi.stubEnv("MARO_IMAGE26_SVG_CREDITS", "5");
+  expect(image26Features(model("maro_imazh"))).toMatchObject({ markup: false, complexity: true, gif: true });
+  expect(image26Features(model("maro_logo")).svg).toBe(true);
+  expect(() => validateImage26Options({ markup: zone }, model("maro_imazh"), 1)).toThrow("image_option_unavailable");
+});
+
+it("uses the native preview on the first image and retains the PNG fallback", () => {
+  const creation = { urls: ["poster.png", "other.png"] };
+  const nativeImage = { format: "svg" as const, reference: "private/logo.svg", url: "signed/logo.svg" };
+  const svgCreation = { ...creation, nativeImage };
+  expect(creationPreviewUrl(svgCreation)).toBe("signed/logo.svg");
+  expect(creationPreviewUrl(svgCreation, 1)).toBe("other.png");
+  expect(creationPreviewUrl({ ...creation, nativeImage: { ...nativeImage, url: undefined } })).toBe("poster.png");
 });
 
 it("draws the transparent overlay on the exact provider image dimensions", async () => {

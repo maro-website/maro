@@ -17,7 +17,7 @@ import { EXPLORE_VISIBLE } from "@/lib/explore/visibility";
 import { MoodCollection } from "@/components/moods/MoodCollection";
 import { canUseMoods } from "@/lib/moods/model";
 import { fetchUploadedAssets, fetchAssetMetadata, deleteUploadedAsset, assetFilename, formatAssetBytes, ownedLibraryReference, libraryStorageRef, type UploadedLibraryAsset, type LibrarySelection } from "@/lib/services/assetLibrary";
-import { creationAssetRef } from "@/lib/creations/creationAssets";
+import { creationAssetRef, creationPreviewUrl } from "@/lib/creations/creationAssets";
 import { useLibraryWorkspaces } from "./useLibraryWorkspaces";
 import { STORAGE_CHANGED_EVENT } from "@/lib/workspaces/accountPolicy";
 import { ItemMenu, CreationLightbox, creationConversationHref } from "@/components/app/cards";
@@ -601,7 +601,11 @@ function AssetThumb({ row }: { row: Row }) {
     return <PreviewThumb project={row.project} height="100%" />;
   }
   if (row.media === "image") {
-    return <StableImage src={row.creation.urls[row.imageIndex ?? 0]} module={row.toolId} refreshKey={row.creation.storageRefs?.[row.imageIndex ?? 0] ?? row.id} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />;
+    const index = row.imageIndex ?? 0;
+    const isSvg = index === 0 && row.creation.nativeImage?.format === "svg";
+    return <StableImage src={isSvg ? creationPreviewUrl(row.creation, index) : row.creation.urls[index]} module={row.toolId}
+      refreshKey={row.creation.storageRefs?.[index] ?? row.id} alt=""
+      className={cn("h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]", isSvg && "bg-white")} />;
   }
   return <PreviewFallback module={row.media} />;
 }

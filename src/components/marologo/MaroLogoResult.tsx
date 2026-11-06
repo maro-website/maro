@@ -11,6 +11,8 @@ import { CreationLightbox } from "@/components/app/cards";
 import type { ImageCreation } from "@/lib/types";
 import { downloadNativeImage } from "@/lib/services/projectAssetService";
 import { useToast } from "@/components/ui/Toast";
+import { creationPreviewUrl } from "@/lib/creations/creationAssets";
+import { cn } from "@/lib/utils/cn";
 
 export function MaroLogoResult({
   creation,
@@ -64,7 +66,9 @@ export function MaroLogoResult({
           className="marologo-card mx-auto block w-full max-w-md overflow-hidden p-4"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <StableImage src={url} module="logo" refreshKey={storageRef ?? creation.id} alt="Logo e gjeneruar" fallbackClassName="aspect-square" className="mx-auto max-h-[360px] w-full object-contain" />
+          <StableImage src={creationPreviewUrl(creation)} module="logo" refreshKey={storageRef ?? creation.id}
+            alt="Logo e gjeneruar" fallbackClassName="aspect-square"
+            className={cn("mx-auto max-h-[360px] w-full object-contain", creation.nativeImage?.format === "svg" && "bg-white")} />
         </button>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
         <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} disabled={downloading} onClick={() => void download()}>

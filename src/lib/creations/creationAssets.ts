@@ -4,6 +4,10 @@ export function creationAssetRef(creation: ImageCreation, index: number): string
   return creation.storageRefs?.[index] ?? creation.urls[index];
 }
 
+export function creationPreviewUrl(creation: Pick<ImageCreation, "urls" | "nativeImage">, index = 0): string | undefined {
+  return (index === 0 ? creation.nativeImage?.url : undefined) ?? creation.urls[index];
+}
+
 /** Keep URL/reference indices aligned after deleting selected outputs. */
 export function withoutCreationAssets(creation: ImageCreation, removed: ReadonlySet<string>): ImageCreation {
   const indices = creation.urls.map((_, index) => index).filter(index => !removed.has(creationAssetRef(creation, index)));

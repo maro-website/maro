@@ -6,5 +6,5 @@ export async function resolveNativeImage(previewRef: string, format: NativeImage
   const reference = nativeImageReference(previewRef, format);
   const path = reference && parseStorageRef(reference)?.path;
   if (!reference || !path || !isOwnedPrivateAssetPath(path, userId)) return undefined;
-  return { format, reference, ...(format === "gif" ? { url: (await signStoragePath(path)) ?? undefined } : {}) };
+  return { format, reference, url: (await signStoragePath(path)) ?? undefined };
 }
