@@ -21,6 +21,9 @@ import { trackEvent } from "@/lib/services/trackService";
 import { submitReport } from "@/lib/services/reportService";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
 import { downloadNativeImage } from "@/lib/services/projectAssetService";
+import { imageMarkupConversationHref } from "@/lib/services/privateImageAttachment";
+import { useV1ImageModels } from "@/lib/hooks/useV1ImageModels";
+import { Button } from "@/components/ui/Button";
 import {
   MoreVertical,
   Pencil,
@@ -461,13 +464,16 @@ export function CreationLightbox({
   open,
   onClose,
   onAnimate,
+  onMarkArea,
 }: {
   creation: ImageCreation;
   open: boolean;
   onClose: () => void;
   onAnimate?: (preview: string, reference: string) => void;
+  onMarkArea?: ((preview: string, reference: string) => void) | null;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
   const { toggleFavouriteCreation } = useMaro();
   const tool = getTool(creation.toolId);
   const media = mediaOf(creation);
@@ -491,6 +497,22 @@ export function CreationLightbox({
   const url = creation.urls[active] ?? creation.urls[0];
   const native = active === 0 ? creation.nativeImage : undefined;
   const animationRef = creation.storageRefs?.[active];
+  const markable = media === "image" && !native && Boolean(animationRef?.startsWith("storage:generations/"));
+  const imazhModels = useV1ImageModels(open && markable && onMarkArea === undefined ? "reklama" : null);
+  const canMark = markable && (onMarkArea === undefined ? imazhModels.some(model => model.enabled && model.image26?.markup) : Boolean(onMarkArea));
+  const mark = () => {
+    if (!url || !animationRef) return;
+    if (onMarkArea) {
+      onMarkArea(url, animationRef);
+      return;
+    }
+    try {
+      router.push(imageMarkupConversationHref(url, animationRef));
+      onClose();
+    } catch {
+      toast("Fotoja nuk u hap për editim. Provo përsëri.", "error");
+    }
+  };
 
   const copyPrompt = async () => {
     try {
@@ -543,7 +565,8 @@ export function CreationLightbox({
   return (
     <Modal open={open} onClose={onClose} size="lg" className="max-w-3xl">
       <div className="grid gap-0 md:grid-cols-[1.2fr_1fr]">
-        <div className="grid place-items-center bg-surface-2 p-4">
+        <div className="relative grid place-items-center bg-surface-2 p-4">
+          {canMark && url && <Button type="button" size="sm" variant="secondary" className="absolute left-4 top-4 z-10" onClick={mark}>Shëno zonën</Button>}
           {media === "audio" ? (
             <div className="flex w-full flex-col items-center gap-4 py-8">
               <span className="grid h-20 w-20 place-items-center rounded-2xl bg-surface-2 text-ink">

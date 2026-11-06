@@ -13,6 +13,7 @@ import { AlertCircle, BrainCircuit, Clock, Flame, Globe, Lightbulb, Ratio } from
 import { GenerationLoader } from "./GenerationLoader";
 import { MaroBuildingSpinner } from "@/components/app/MaroBuildingLoader";
 import { PublishToExploreButton } from "@/components/app/PublishToExploreButton";
+import { Button } from "@/components/ui/Button";
 import { useMaro } from "@/context/store";
 import { formatGenerationDate, resolveAspectBox } from "@/lib/design/aspectRatio";
 import { fallbackFormatLabel } from "@/lib/design/generationMeta";
@@ -138,9 +139,11 @@ export type GenerationCardMessage = {
 export function GenerationCard({
   message,
   onOpen,
+  onMarkArea,
 }: {
   message: GenerationCardMessage;
   onOpen?: (c: ImageCreation) => void;
+  onMarkArea?: (preview: string, reference: string) => void;
 }) {
   const { user } = useMaro();
   const [promptExpanded, setPromptExpanded] = React.useState(false);
@@ -234,6 +237,9 @@ export function GenerationCard({
           />
           {message.status === "done" && message.creation && url && (
             <div className="flex flex-wrap gap-2 px-1">
+              {onMarkArea && !message.creation.nativeImage && message.creation.storageRefs?.[index]?.startsWith("storage:generations/") && (
+                <Button size="sm" variant="secondary" onClick={() => onMarkArea(url, message.creation!.storageRefs![index])}>Shëno zonën</Button>
+              )}
               <PublishToExploreButton
                 toolId={message.creation.toolId}
                 prompt={message.text}

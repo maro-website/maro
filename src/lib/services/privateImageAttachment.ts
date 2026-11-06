@@ -6,6 +6,13 @@ import {
 
 export const IMAGE_REFERENCE_ACCEPT = "image/png,image/jpeg,image/webp";
 export const IMAGE_REFERENCE_FORMAT_ERROR = "Ky format nuk mbështetet. Përdor vetëm PNG, JPG ose WebP.";
+export const IMAGE_REFERENCE_TRANSFER_KEY = "maro:image-reference";
+
+export function imageMarkupConversationHref(previewUrl: string, storageRef: string) {
+  const conversationId = crypto.randomUUID();
+  sessionStorage.setItem(IMAGE_REFERENCE_TRANSFER_KEY, JSON.stringify({ previewUrl, storageRef, conversationId, action: "markup" }));
+  return `/imazh?chat=${conversationId}`;
+}
 
 export type PrivateImageAttachmentStatus =
   | "pending"

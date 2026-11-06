@@ -65,6 +65,8 @@ import {
 import {
   createPrivateImageAttachment,
   IMAGE_REFERENCE_ACCEPT,
+  IMAGE_REFERENCE_TRANSFER_KEY,
+  imageMarkupConversationHref,
   uploadOrResolvePrivateAttachment,
   type PrivateImageAttachment,
 } from "@/lib/services/privateImageAttachment";
@@ -112,6 +114,7 @@ import {
   ImagePlus,
   Loader2,
   RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const IMG_ERRORS: Record<string, string> = {
@@ -156,7 +159,17 @@ const AUDIO_ERRORS: Record<string, string> = {
 };
 
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
-const IMAGE_REFERENCE_TRANSFER_KEY = "maro:image-reference";
+const IMAGE_PLANNING: ToolSetting = {
+  id: "complexity",
+  label: "Planifikimi",
+  icon: SlidersHorizontal,
+  default: "high",
+  options: [
+    { id: "low", label: "I ulët" },
+    { id: "medium", label: "Mesatar" },
+    { id: "high", label: "I lartë" },
+  ],
+};
 
 const SPEED_TO_LEGACY: Record<string, SpeedKey> = {
   kadale: "slow",
@@ -272,9 +285,9 @@ export function ToolComposer({
   const [selections, setSelections] = React.useState<ToolSelections>(() => defaultSelections(tool));
   const generateButtonRef = React.useRef<HTMLButtonElement>(null);
   const [uploadingReferences, setUploadingReferences] = React.useState(false);
-  const [complexity, setComplexity] = React.useState<ImageComplexity | "default">("default");
+  const [complexity, setComplexity] = React.useState<ImageComplexity>("high");
   const [markup, setMarkup] = React.useState<{ attachmentId: string; zone: ImageMarkupZone } | null>(null);
-  const [markupOpen, setMarkupOpen] = React.useState(false);
+  const [markupAttachmentId, setMarkupAttachmentId] = React.useState<string | null>(null);
   const [gifAttachmentId, setGifAttachmentId] = React.useState<string | null>(null);
   const [demoBusy, setDemoBusy] = React.useState(false);
   const imageRequestInFlight = React.useRef(false);
@@ -366,6 +379,7 @@ export function ToolComposer({
   const dragDepth = React.useRef(0);
   const pendingRef = React.useRef(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const markupFileRef = React.useRef<HTMLInputElement>(null);
   const audioFileRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const privateImageAttachmentsRef = React.useRef(privateImageAttachments);
@@ -404,13 +418,16 @@ export function ToolComposer({
   const imageModels = useV1ImageModels(isImage ? tool.id : null);
   const selectedImageModel = imageModels.find((model) => model.key === selections.model && model.enabled) ?? imageModels.find((model) => model.isDefault && model.enabled);
   const image26 = tool.id === "reklama" ? selectedImageModel?.image26 : undefined;
+  const markupModel = tool.id === "reklama"
+    ? (image26?.markup ? selectedImageModel : imageModels.find(model => model.enabled && model.image26?.markup))
+    : undefined;
   const editAttachment = privateImageAttachments.length === 1 ? privateImageAttachments[0] : undefined;
   const markedZone = markup && markup.attachmentId === editAttachment?.id ? markup.zone : undefined;
   const gifSelected = Boolean(gifAttachmentId && gifAttachmentId === editAttachment?.id);
   const imageOptionNeedsOne = !editAttachment && privateImageAttachments.some(attachment =>
     attachment.id === markup?.attachmentId || attachment.id === gifAttachmentId);
   const imageOptions = React.useMemo<Image26Options>(() => ({
-    ...(image26?.complexity && complexity !== "default" ? { complexity } : {}),
+    ...(image26?.complexity ? { complexity } : {}),
     ...(markedZone ? { markup: markedZone } : {}),
     ...(gifSelected ? { outputFormat: "gif" } : {}),
   }), [image26?.complexity, complexity, markedZone, gifSelected]);
@@ -419,11 +436,18 @@ export function ToolComposer({
       setSelections((current) => { const next = { ...current }; delete next.model; return next; });
     }
   }, [isImage, imageModels, selections.model]);
-  const shownSettings = visibleSettings(tool, selections).map((setting) => isImage && setting.id === "model"
-    ? { ...setting, default: imageModels.find((m) => m.isDefault)?.key ?? setting.default, options: imageModels.map((model) => ({
-        id: model.key, label: model.label, hint: `${model.customerCredits} credits · ${model.descriptor}`, available: model.enabled,
-      })) }
-    : setting);
+  const shownSettings = visibleSettings(tool, selections).flatMap((setting) => {
+    if (tool.id === "reklama" && setting.id === "speed") return image26?.complexity ? [IMAGE_PLANNING] : [];
+    if (!isImage || setting.id !== "model") return [setting];
+    return [{ ...setting, default: imageModels.find((m) => m.isDefault)?.key ?? setting.default, options: imageModels.map((model) => ({
+      id: model.key, label: model.label, hint: `${model.customerCredits} credits · ${model.descriptor}`, available: model.enabled,
+    })) }];
+  });
+  React.useEffect(() => {
+    if (markupAttachmentId && markupAttachmentId === editAttachment?.id && markupModel && !image26?.markup) {
+      setSelections(current => ({ ...current, model: markupModel.key }));
+    }
+  }, [markupAttachmentId, editAttachment?.id, markupModel, image26?.markup]);
 
   React.useEffect(() => {
     setBrainReady(false);
@@ -456,7 +480,6 @@ export function ToolComposer({
     if (!draftReady || !ready) return;
     // Reload when the tool changes (e.g. client-side nav between tools).
     const savedSelections = loadToolSelections(tool);
-    setSelections(savedSelections);
     // Pull a prompt drafted on the Hub, if any.
     let draft = "";
     try {
@@ -481,46 +504,44 @@ export function ToolComposer({
     const nextSelections = attach
       ? { ...savedSelections, ...presetSelections(attach.tool, presetConfig) }
       : savedSelections;
+    if (tool.id === "reklama") nextSelections.speed = "normal";
     setSelections(nextSelections);
     if (attach) saveToolSelections(tool.id, nextSelections);
     if (draft || attach) setPrompt(draft || presetInitialPrompt(attach!.tool, presetConfig));
     if (attach) setPromptAttach(attach);
     saveLastTool(tool.id);
 
-    // maroLogo → maroImazh keeps the already-private generation identity. The
-    // signed URL is display-only and is never persisted as the reference.
-    if (tool.kind === "image" && tool.id !== "logo") {
-      try {
-        const transferred = sessionStorage.getItem(IMAGE_REFERENCE_TRANSFER_KEY);
-        if (transferred) {
-          const parsed = JSON.parse(transferred) as { storageRef?: string; previewUrl?: string };
-          if (parsed.storageRef?.startsWith("storage:generations/") && parsed.previewUrl) {
-            const transferredAttachment: PrivateImageAttachment = {
-              id: uid("att"),
-              name: "maroLogo",
-              storageRef: parsed.storageRef,
-              previewUrl: parsed.previewUrl,
-              status: "uploading",
-            };
-            setPrivateImageAttachments([transferredAttachment]);
-            void uploadOrResolvePrivateAttachment(transferredAttachment).then((next) => {
-              setPrivateImageAttachments((current) => current.map((item) => item.id === next.id ? next : item));
-            }).catch(() => {
-              setPrivateImageAttachments((current) => current.map((item) => item.id === transferredAttachment.id
-                ? { ...item, status: "preview-error", error: "Pamja private nuk u hap. Provo përsëri." }
-                : item));
-            });
-          }
-          sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
-        }
-      } catch {
-        sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
-      }
-    }
-
     // Re-seed whenever the tool OR the ?open= target changes (clicking another
     // recent card while already on the same tool page).
-  }, [tool, openId, setPromptAttach, setPrompt, setPrivateImageAttachments, draftReady, ready]);
+  }, [tool, openId, setPromptAttach, setPrompt, draftReady, ready]);
+
+  React.useEffect(() => {
+    if (!draftReady || !ready || tool.id !== "reklama") return;
+    try {
+      const transferred = sessionStorage.getItem(IMAGE_REFERENCE_TRANSFER_KEY);
+      if (!transferred) return;
+      const parsed = JSON.parse(transferred) as { storageRef?: string; previewUrl?: string; conversationId?: string; action?: string };
+      if (parsed.conversationId && parsed.conversationId !== conversationId) return;
+      sessionStorage.removeItem(IMAGE_REFERENCE_TRANSFER_KEY);
+      if (!parsed.storageRef?.startsWith("storage:generations/") || !parsed.previewUrl) return;
+      const attachment: PrivateImageAttachment = {
+        id: uid("att"), name: parsed.action === "markup" ? "Foto për editim" : "maroLogo",
+        storageRef: parsed.storageRef, previewUrl: parsed.previewUrl, status: "uploading",
+      };
+      setPrivateImageAttachments([attachment]);
+      if (parsed.action === "markup") {
+        setMarkupAttachmentId(attachment.id);
+        setMobileComposerOpen(true);
+      }
+      void uploadOrResolvePrivateAttachment(attachment).then((next) => {
+        setPrivateImageAttachments((current) => current.map((item) => item.id === next.id ? next : item));
+      }).catch(() => {
+        setPrivateImageAttachments((current) => current.map((item) => item.id === attachment.id
+          ? { ...item, status: "preview-error", error: "Pamja private nuk u hap. Provo përsëri." }
+          : item));
+      });
+    } catch { /* An unavailable browser transfer leaves the current draft intact. */ }
+  }, [draftReady, ready, tool.id, conversationId, setPrivateImageAttachments]);
 
   const restoredPreferences = React.useRef("");
   const chatSetupApplied = React.useRef("");
@@ -554,7 +575,9 @@ export function ToolComposer({
     const latest = history[history.length - 1];
     if (restoredPreferences.current === key || latest.toolId !== tool.id) return;
     restoredPreferences.current = key;
-    if (latest.selections && Object.keys(latest.selections).length) setSelections({ ...defaultSelections(tool), ...latest.selections });
+    if (latest.selections && Object.keys(latest.selections).length) setSelections({
+      ...defaultSelections(tool), ...latest.selections, ...(tool.id === "reklama" ? { speed: "normal" } : {}),
+    });
     setUseWorkspaceBrand(Boolean(latest.brain));
   }, [draftReady, history, conversationId, conversationScope, tool]);
 
@@ -651,6 +674,7 @@ export function ToolComposer({
             : item));
         }
       }));
+      return admitted.length === 1 && admitted[0].status !== "invalid-file" ? admitted[0].id : undefined;
     },
     [startPrivateAttachmentUpload, toast, user, setPrivateImageAttachments]
   );
@@ -787,6 +811,29 @@ export function ToolComposer({
     if (!files) return;
     addImageFiles(Array.from(files));
   };
+
+  const markResult = markupModel && !loading && draftReady ? (previewUrl: string, storageRef: string) => {
+    const current = privateImageAttachmentsRef.current;
+    const existing = current.length === 1 && current[0].storageRef === storageRef ? current[0] : undefined;
+    if (current.length && !existing) {
+      try {
+        router.push(imageMarkupConversationHref(previewUrl, storageRef));
+      } catch {
+        toast("Fotoja nuk u hap për editim. Provo përsëri.", "error");
+        return;
+      }
+    } else {
+      const attachment: PrivateImageAttachment = existing ?? {
+        id: uid("att"), storageRef, previewUrl, name: "Foto për editim", status: "ready",
+      };
+      if (!existing) setPrivateImageAttachments([attachment]);
+      if (gifAttachmentId === attachment.id) setGifAttachmentId(null);
+      setMarkupAttachmentId(attachment.id);
+      setMobileComposerOpen(true);
+    }
+    setLightbox(null);
+    setMobileResultOpen(false);
+  } : undefined;
 
   // Paste an image straight from the clipboard (Ctrl/Cmd+V) into attachments.
   const onPasteImages = (e: React.ClipboardEvent) => {
@@ -948,6 +995,8 @@ export function ToolComposer({
     if (imageRequestInFlight.current) return;
     imageRequestInFlight.current = true;
     const hasImageOptions = Object.keys(imageOptions).length > 0;
+    const keepDraftUntilSuccess = Boolean(imageOptions.markup || imageOptions.outputFormat ||
+      (imageOptions.complexity && imageOptions.complexity !== "high"));
     const sentPrivateAttachments = privateImageAttachments.length ? [...privateImageAttachments] : undefined;
     const sentAttachments = sentPrivateAttachments?.map((attachment) => attachment.previewUrl);
     const maroId = uid("g");
@@ -1006,8 +1055,8 @@ export function ToolComposer({
         workspaceId: workspaceId === LOCAL_WORKSPACE_SCOPE ? undefined : workspaceId,
         useWorkspaceBrand: !gifSelected && brainReady && useWorkspaceBrand,
         ...(hasImageOptions ? { imageOptions } : {}),
-      }, hasImageOptions ? undefined : { onStarted });
-      if (hasImageOptions) onStarted();
+      }, keepDraftUntilSuccess ? undefined : { onStarted });
+      if (keepDraftUntilSuccess) onStarted();
       spendCredits(res.creditsSpent || cost);
       const creation: ImageCreation = {
         id: res.generationId ?? uid("img"),
@@ -1239,13 +1288,13 @@ export function ToolComposer({
           )}
 
           {functional && isGallery && (isImage || isAudio) && messages.length > 0 && (
-            <GalleryMasonry messages={messages} onOpen={(c) => setLightbox(c)} />
+            <GalleryMasonry messages={messages} onOpen={(c) => setLightbox(c)} onMarkArea={markResult} />
           )}
 
           {functional && !isGallery && (isImage || isAudio) && messages.length > 0 && (
             <div className="mb-4 flex flex-col gap-8">
               {messages.map((m) => (
-                <GenerationCard key={m.id} message={m} onOpen={(c) => setLightbox(c)} />
+                <GenerationCard key={m.id} message={m} onOpen={(c) => setLightbox(c)} onMarkArea={markResult} />
               ))}
             </div>
           )}
@@ -1261,7 +1310,7 @@ export function ToolComposer({
         <div className={cn("mx-auto w-full max-w-[var(--layout-promptbox-max)] px-4 pb-4 pt-2 lg:pb-6", moodsEligible && "maro-moods-dock", moodsEligible && shownSettings.some(setting => setting.id === "font") && "maro-moods-dock--with-font")}>
           <PlatformNotices placement="promptbox" moduleId={noticeModuleId(tool.id)} />
 
-          {image26?.markup && searchParams.get("demo") === "editim" && (
+          {markupModel && searchParams.get("demo") === "editim" && (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-maro12 bg-surface px-3 py-2 text-sm text-ink">
               <span>Provoje me një foto gati. Rretho etiketën dhe ndryshoja ngjyrën.</span>
               <Button type="button" variant="secondary" disabled={demoBusy || loading || !draftReady || privateImageAttachments.length > 0} onClick={async () => {
@@ -1269,11 +1318,26 @@ export function ToolComposer({
                 try {
                   const response = await fetch("/images/maro-image26-demo.png");
                   if (!response.ok) throw new Error("demo_unavailable");
-                  await queuePrivateImageFiles([new File([await response.blob()], "Shishja e provës.png", { type: "image/png" })]);
-                  if (!prompt.trim()) setPrompt("Ndrysho ngjyrën e etiketës së rrethuar në të kaltër. Ruaje shishen dhe sfondin.");
+                  if (privateImageAttachmentsRef.current.length) return;
+                  const id = await queuePrivateImageFiles([new File([await response.blob()], "Shishja e provës.png", { type: "image/png" })]);
+                  setPrompt(current => current.trim() ? current : "Ndrysho ngjyrën e etiketës së rrethuar në të kaltër. Ruaje shishen dhe sfondin.");
+                  if (id) setMarkupAttachmentId(id);
                 } catch { toast("Fotoja e provës nuk u hap. Provo përsëri.", "error"); }
                 finally { setDemoBusy(false); }
-              }}>Përdor foton e provës</Button>
+              }}>Hape foton e provës</Button>
+            </div>
+          )}
+          {markupModel && privateImageAttachments.length === 0 && searchParams.get("demo") !== "editim" && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <input ref={markupFileRef} type="file" accept={IMAGE_REFERENCE_ACCEPT} className="hidden" onChange={event => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file && !privateImageAttachmentsRef.current.length) {
+                  void queuePrivateImageFiles([file]).then(id => { if (id) setMarkupAttachmentId(id); });
+                }
+              }} />
+              <Button type="button" size="sm" variant="secondary" disabled={!draftReady || loading} onClick={() => markupFileRef.current?.click()}>Shëno zonën</Button>
+              <span className="text-xs text-ink-3">Zgjidh një foto për editim.</span>
             </div>
           )}
 
@@ -1363,11 +1427,11 @@ export function ToolComposer({
               <Button type="button" variant="secondary" onClick={() => { setMarkup(null); setGifAttachmentId(null); }}>Pastro opsionin</Button>
             </div>
           )}
-          {(editAttachment?.previewUrl && (image26?.markup || image26?.gif || markedZone || gifSelected)) && (
+          {(editAttachment?.previewUrl && (markupModel || image26?.gif || markedZone || gifSelected)) && (
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              {(image26?.markup || markedZone) && !gifSelected && (
+              {(markupModel || markedZone) && !gifSelected && (
                 <>
-                  <Button type="button" variant="secondary" disabled={loading || !image26?.markup} onClick={() => setMarkupOpen(true)}>{markedZone ? "Ndrysho zonën" : "Shëno zonën"}</Button>
+                  <Button type="button" variant="secondary" disabled={loading || !markupModel} onClick={() => setMarkupAttachmentId(editAttachment.id)}>{markedZone ? "Ndrysho zonën" : "Shëno zonën"}</Button>
                   {markedZone && <Button type="button" variant="secondary" disabled={loading} onClick={() => setMarkup(null)}>Hiq shenjën</Button>}
                 </>
               )}
@@ -1457,21 +1521,6 @@ export function ToolComposer({
               <button type="button" className="absolute right-0 top-0 grid h-11 w-11 place-items-center rounded-maro12 text-ink-3 hover:bg-surface-2 hover:text-ink lg:hidden" aria-label="Mbyll promptbox" aria-expanded={true} aria-controls="mobile-composer-content" onClick={() => setMobileComposerOpen(false)}><ChevronDown className="h-5 w-5" /></button>
             </div>
 
-            {image26?.complexity && (
-              <details className="mx-2 my-2 text-xs text-ink-3">
-                <summary className="w-fit cursor-pointer font-medium">Opsionet e avancuara</summary>
-                <label className="mt-2 flex flex-wrap items-center gap-2 text-ink">
-                  Planifikimi i imazhit
-                  <select className="rounded-lg bg-surface-2 px-2 py-1.5 text-sm" value={complexity} disabled={loading}
-                    onChange={event => setComplexity(event.target.value as ImageComplexity | "default")}>
-                    <option value="default">Parazgjedhja</option>
-                    <option value="low">I ulët</option>
-                    <option value="medium">Mesatar</option>
-                    <option value="high">I lartë</option>
-                  </select>
-                </label>
-              </details>
-            )}
             {needsPrompt && <PromptLinks value={prompt} />}
             {needsPrompt && <p id={promptCountId} className={cn("px-2 text-[12px]", prompt.length < promptLimit * 0.9 && "sr-only", promptTooLong ? "font-semibold text-danger" : "text-ink-3")}>
               {prompt.length.toLocaleString("en-US")} / {promptLimit.toLocaleString("en-US")} shkronja
@@ -1539,10 +1588,13 @@ export function ToolComposer({
                     key={s.id}
                     toolId={tool.id}
                     setting={s}
-                    value={selections[s.id] ?? s.default}
+                    value={s.id === "complexity" ? complexity : selections[s.id] ?? s.default}
                     optionIcons={toolOptionIcons}
+                    triggerLabel={s.id === "complexity" ? s.label : undefined}
                     onChange={(optId, opt) => {
-                      if (opt.confirm) {
+                      if (s.id === "complexity") {
+                        setComplexity(optId as ImageComplexity);
+                      } else if (opt.confirm) {
                         setConfirmOpt({ settingId: s.id, optionId: optId, message: opt.confirm });
                       } else {
                         setOption(s.id, optId);
@@ -1628,7 +1680,7 @@ export function ToolComposer({
           <h2 className="font-bold">{loading ? "Po gjenerohet…" : "Gjenerimi yt"}</h2>
           <button type="button" autoFocus onClick={() => setMobileResultOpen(false)} aria-label="Mbyll gjenerimin" className="grid h-11 w-11 place-items-center rounded-xl bg-surface-2 text-ink"><X className="h-6 w-6" /></button>
         </div>
-        {latestMessage && <div className="px-4 pb-6"><GenerationCard message={latestMessage} onOpen={(creation) => { setMobileResultOpen(false); setLightbox(creation); }} /></div>}
+        {latestMessage && <div className="px-4 pb-6"><GenerationCard message={latestMessage} onOpen={(creation) => { setMobileResultOpen(false); setLightbox(creation); }} onMarkArea={markResult} /></div>}
       </Modal>
 
       <PromptExpand
@@ -1650,6 +1702,7 @@ export function ToolComposer({
           creation={lightbox}
           open={lightbox !== null}
           onClose={() => setLightbox(null)}
+          onMarkArea={markResult ?? null}
           onAnimate={image26?.gif && privateImageAttachments.length === 0 && !loading ? (previewUrl, storageRef) => {
             const id = uid("att");
             setPrivateImageAttachments([{ id, storageRef, previewUrl, name: "Foto për animim", status: "ready" }]);
@@ -1661,11 +1714,11 @@ export function ToolComposer({
           } : undefined}
         />
       )}
-      {markupOpen && image26?.markup && editAttachment?.previewUrl && (
+      {markupAttachmentId === editAttachment?.id && image26?.markup && editAttachment?.previewUrl && (
         <ImageMarkupDialog key={editAttachment.id} src={editAttachment.previewUrl} initial={markedZone}
-          onClose={() => setMarkupOpen(false)} onApply={zone => {
+          onClose={() => setMarkupAttachmentId(null)} onApply={zone => {
             setMarkup({ attachmentId: editAttachment.id, zone });
-            setMarkupOpen(false);
+            setMarkupAttachmentId(null);
           }} />
       )}
 
@@ -1841,12 +1894,14 @@ function SettingSelect({
   setting,
   value,
   optionIcons,
+  triggerLabel,
   onChange,
 }: {
   toolId: string;
   setting: ToolSetting;
   value: string;
   optionIcons?: ToolOptionIcons;
+  triggerLabel?: string;
   onChange: (optionId: string, opt: NonNullable<ReturnType<typeof findOption>>) => void;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -1894,6 +1949,7 @@ function SettingSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open} aria-haspopup="menu" className="maro-dock-pill max-w-none shrink-0"
+        aria-label={triggerLabel ? `${triggerLabel}, ${current?.label ?? value}` : undefined}
         title={setting.label}
       >
         <OptionIcon
@@ -1904,7 +1960,7 @@ function SettingSelect({
           fallback={Icon}
           className="h-5 w-5 shrink-0"
         />
-        <span className="maro-dock-pill__label">{compactLabel}</span>
+        <span className="maro-dock-pill__label">{triggerLabel ?? compactLabel}</span>
         <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
       </button>
       {typeof document !== "undefined" &&
