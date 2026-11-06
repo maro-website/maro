@@ -1,6 +1,6 @@
-/** Verified 2026-09-17 against the official Flare and Sunburst model pages.
- * https://developers.openai.com/api/docs/models/gpt-image-2.5-flare
- * https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst
+/** Flare and Sunburst share the same published token rates in GPT Image 2.5 and 2.6.
+ * https://developers.openai.com/api/docs/models/gpt-image-2.6-flare
+ * https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst
  * This is a token-rate estimate, never an invoice or customer-credit price.
  */
 export const V1_IMAGE_RATE_VERSION = "openai-image-2.5-2026-09-17";
@@ -14,8 +14,10 @@ export interface V1ImageCostEstimate {
 }
 
 export function estimateV1ImageCost(model: string, usage: Record<string, unknown> | null): V1ImageCostEstimate {
-  const unavailable: V1ImageCostEstimate = { usd: null, source: "unavailable", rateVersion: V1_IMAGE_RATE_VERSION, assumptions: ["Complete supported usage breakdown was not returned."] };
-  if (!["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"].includes(model) || !usage) return unavailable;
+  const version = /^gpt-image-(2\.[56])-(flare|sunburst)$/.exec(model)?.[1];
+  const rateVersion = version === "2.6" ? "openai-image-2.6-2026-11-04" : V1_IMAGE_RATE_VERSION;
+  const unavailable: V1ImageCostEstimate = { usd: null, source: "unavailable", rateVersion, assumptions: ["Complete supported usage breakdown was not returned."] };
+  if (!version || !usage) return unavailable;
   const input = usage.input_tokens_details as Record<string, unknown> | undefined;
   const output = usage.output_tokens_details as Record<string, unknown> | undefined;
   const text = input?.text_tokens;
@@ -27,7 +29,7 @@ export function estimateV1ImageCost(model: string, usage: Record<string, unknown
   // If discounts apply this is an upper estimate, not a claimed exact monetary charge.
   return {
     usd: Math.round((text * 5 + image * 8 + imageOutput * 30) / 1_000_000 * 1e8) / 1e8,
-    source: "usage_calculated", rateVersion: V1_IMAGE_RATE_VERSION,
+    source: "usage_calculated", rateVersion,
     assumptions: ["Uncached input rates; any cache discounts are not deducted.", "USD token-rate estimate, not provider-reported money or invoiced cost."],
   };
 }

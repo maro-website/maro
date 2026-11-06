@@ -3,10 +3,16 @@ import { estimateV1ImageCost } from "@/lib/cost/v1ImageCost";
 import { buildImageObservation } from "@/lib/ai/imageObservation";
 
 describe("V1 image usage estimates", () => {
-  it.each(["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"])("uses the verified same token rates for %s, never the old flat image estimate", (model) => {
+  it.each([
+    ["gpt-image-2.5-flare", "openai-image-2.5-2026-09-17"],
+    ["gpt-image-2.5-sunburst", "openai-image-2.5-2026-09-17"],
+    ["gpt-image-2.6-flare", "openai-image-2.6-2026-11-04"],
+    ["gpt-image-2.6-sunburst", "openai-image-2.6-2026-11-04"],
+  ])("uses published token rates for %s", (model, rateVersion) => {
     const estimate = estimateV1ImageCost(model, { input_tokens: 300, input_tokens_details: { text_tokens: 100, image_tokens: 200 }, output_tokens: 1000 });
     expect(estimate.usd).toBe(0.0321);
     expect(estimate.source).toBe("usage_calculated");
+    expect(estimate.rateVersion).toBe(rateVersion);
     expect(estimate.assumptions.join(" ")).toContain("not provider-reported money");
   });
   it.each([null, {}, { input_tokens: 10, output_tokens: 10 }, { input_tokens: 10, input_tokens_details: { text_tokens: -1, image_tokens: 11 }, output_tokens: 10 }, { input_tokens: 11, input_tokens_details: { text_tokens: 10, image_tokens: 0 }, output_tokens: 10 }])("does not invent a cost from incomplete usage %j", (usage) => {

@@ -10,8 +10,8 @@ export const V1_IMAGE_MODEL_IDS: V1LogicalImageModel[] = ["flare", "sunburst", .
 
 /** Supported identifiers, not a fallback configuration or a price list. */
 export const V1_IMAGE_PROVIDER_IDS = {
-  flare: "gpt-image-2.5-flare",
-  sunburst: "gpt-image-2.5-sunburst",
+  flare: ["gpt-image-2.5-flare", "gpt-image-2.6-flare"],
+  sunburst: ["gpt-image-2.5-sunburst", "gpt-image-2.6-sunburst"],
 } as const;
 
 export interface V1ImageModelConfiguration {
@@ -49,7 +49,10 @@ export function readV1ImageModelConfiguration(value: unknown, module: V1ImageMod
   const metadata = requestObject(row.metadata, "metadata");
   const cost = requestObject(row.cost_metadata, "cost_metadata");
   const recraft = isRecraftModel(logicalModel);
-  if (row.provider !== (recraft ? "recraft" : "openai") || metadata.providerModelId !== (recraft ? logicalModel : V1_IMAGE_PROVIDER_IDS[logicalModel as "flare" | "sunburst"])) invalidConfig("providerModelId");
+  const providerModelId = metadata.providerModelId;
+  const supportedIds = recraft ? [logicalModel] : V1_IMAGE_PROVIDER_IDS[logicalModel];
+  if (row.provider !== (recraft ? "recraft" : "openai") || typeof providerModelId !== "string" ||
+      !supportedIds.some((id) => id === providerModelId)) invalidConfig("providerModelId");
   if (recraft && row.is_default !== false) invalidConfig("default_model");
   if (typeof row.enabled !== "boolean" || typeof row.coming_soon !== "boolean") invalidConfig("enabled");
   if (typeof row.is_default !== "boolean") invalidConfig("is_default");
@@ -63,7 +66,7 @@ export function readV1ImageModelConfiguration(value: unknown, module: V1ImageMod
   if (cost.pricingStage !== "internal" && cost.pricingStage !== "launch") invalidConfig("pricingStage");
   const config: Omit<V1ImageModelConfiguration, "fingerprint"> = {
     id: row.id, module, logicalModel,
-    provider: recraft ? "recraft" : "openai", providerModelId: metadata.providerModelId as string,
+    provider: recraft ? "recraft" : "openai", providerModelId,
     enabled: row.enabled && !row.coming_soon, isDefault: row.is_default,
     order: row.sort_order as number, label: row.display_name.trim(), descriptor: metadata.description,
     customerCredits: cost.customerCredits as number, pricingStage: cost.pricingStage,

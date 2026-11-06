@@ -87,9 +87,15 @@ describe("authoritative model configuration", () => {
     expect(() => resolveV1ImageModel([modelRow()], "maro_imazh", "sunburst")).toThrow("model_not_configured");
     expect(() => resolveV1ImageModel([{ ...modelRow(), enabled: false, is_default: false }, { ...modelRow("sunburst"), is_default: true }], "maro_imazh", "flare")).toThrow("model_disabled");
   });
+  it.each(["flare", "sunburst"] as const)("resolves the configured 2.6 provider ID for %s", (model) => {
+    const row = modelRow(model);
+    const providerModelId = `gpt-image-2.6-${model}`;
+    expect(readV1ImageModelConfiguration({ ...row, metadata: { ...row.metadata, providerModelId } }, "maro_imazh").providerModelId).toBe(providerModelId);
+  });
   it.each([
     { metadata: null }, { cost_metadata: null }, { is_default: "false" }, { provider: "other" },
     { metadata: { providerModelId: "gpt-image-2", description: "legacy" } },
+    { metadata: { providerModelId: "gpt-image-2.6-sunburst", description: "wrong variant" } },
   ])("rejects conflicting configuration %j with 503", (change) => {
     try { readV1ImageModelConfiguration({ ...modelRow(), ...change }, "maro_imazh"); expect.fail("accepted"); }
     catch (error) { expect(error).toMatchObject({ status: 503 }); }
