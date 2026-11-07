@@ -30,11 +30,14 @@
 @tailwind components;
 @tailwind utilities;
 
+.maro-generate-fuse {
+  --sb-surface: var(--maro-ink);
+}
+
 .maro-generate-fuse__line {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset-inline: var(--sb-radius);
+  bottom: 1px;
   height: 3px;
   background: currentColor;
   opacity: .55;

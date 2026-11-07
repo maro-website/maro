@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/Button";
+import SpecularButton from "@/components/ui/SpecularButton";
 import { MaroIcon } from "@/components/app/OptionIcon";
 
 /** Defer provider admission: cancelling the two-second fuse cannot spend credits. */
@@ -39,11 +39,33 @@ export const GenerateButton = React.forwardRef<HTMLButtonElement, {
       onCommit();
     }, 2000);
   };
-  return <Button ref={ref} onClick={press} disabled={!armed && disabled} loading={loading} className="maro-generate-fuse relative min-w-[8rem] shrink-0 overflow-hidden" aria-label={armed ? "Anulo gjenerimin" : "Gjenero"}>
+  return <SpecularButton
+    ref={ref}
+    size="lg"
+    radius={18}
+    tint="#ffffff"
+    tintOpacity={0.04}
+    textColor="#f5f5f5"
+    lineColor="#ffffff"
+    baseColor="#525252"
+    intensity={1}
+    idleIntensity={0.35}
+    shineSize={10}
+    shineFade={34}
+    thickness={1.2}
+    glow={1}
+    followMouse
+    proximity={250}
+    onClick={press}
+    disabled={loading || (!armed && disabled)}
+    aria-busy={loading || undefined}
+    aria-label={armed ? "Anulo gjenerimin" : "Gjenero"}
+    className="maro-generate-fuse min-w-[8rem] shrink-0"
+  >
     <span className="inline-flex items-center gap-2" aria-live="polite">
       {armed ? "Anulo · 2s" : <><span>maro{cost !== undefined && " për"}</span>{cost !== undefined && <><MaroIcon name="coins" className="h-4 w-4" /><span>{cost}</span></>}</>}
     </span>
     {armed && <span aria-hidden className="maro-generate-fuse__line" />}
-  </Button>;
+  </SpecularButton>;
 });
 GenerateButton.displayName = "GenerateButton";
